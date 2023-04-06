@@ -6,8 +6,8 @@
 <script setup lang="ts">
 import { createClient } from "@supabase/supabase-js";
 import LabelStudio from "@heartexlabs/label-studio";
-
 import "@heartexlabs/label-studio/build/static/css/main.css";
+
 const config = useRuntimeConfig();
 const supabase = createClient(config.apiUrl, config.apiAnonKey);
 
@@ -30,7 +30,6 @@ const fetchTask = async (id: string) => {
 };
 
 const fetchLabels = async (id: string) => {
-  console.log(id);
   const { data, error } = await supabase.from("labels").select().eq("id", id);
   if (error) {
     console.log("ERROR: ", error);
@@ -49,8 +48,21 @@ const fetchAnnotations = async (id: string) => {
   }
   if (data) {
     console.log("ANNOTATIONS: ", data);
-    if (data[0]) annotations.value = data[0].data;
+    data.map((ann) => {
+      annotations.value.push({ result: ann.value });
+    });
     initLS();
+  }
+};
+
+const createAnnotation = async (value: JSON) => {
+  const task_id = task.value.id;
+  const { data, error } = await supabase.from("annotations").insert([{ task_id, value }]);
+  if (error) {
+    console.log("ERROR: ", error);
+  }
+  if (data) {
+    console.log("ANNOTATION: ", data);
   }
 };
 
@@ -137,7 +149,9 @@ const initLS = () => {
         LS.annotationStore.selectAnnotation(c.id);
       }
     },
-    onSubmitAnnotation: (LS, annotation) => {},
+    onSubmitAnnotation: (LS, annotation) => {
+      createAnnotation(annotation.serializeAnnotation());
+    },
     onUpdateAnnotation: (LS, annotation) => {},
   });
 };
