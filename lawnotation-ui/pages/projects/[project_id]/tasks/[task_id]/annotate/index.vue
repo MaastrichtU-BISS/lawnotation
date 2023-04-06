@@ -49,21 +49,40 @@ const fetchAnnotations = async (id: string) => {
   if (data) {
     console.log("ANNOTATIONS: ", data);
     data.map((ann) => {
-      annotations.value.push({ result: ann.value });
+      annotations.value.push({ result: ann.data, db_id: ann.id });
     });
     initLS();
   }
 };
 
-const createAnnotation = async (value: JSON) => {
-  const task_id = task.value.id;
-  const { data, error } = await supabase.from("annotations").insert([{ task_id, value }]);
+const createAnnotation = async (new_ann: JSON) => {
+  const { data, error } = await supabase
+    .from("annotations")
+    .insert([{ task_id: task.value.id, data: new_ann }]);
   if (error) {
     console.log("ERROR: ", error);
   }
   if (data) {
     console.log("ANNOTATION: ", data);
   }
+};
+
+const updateAnnotation = async (new_ann: JSON) => {
+  annotations.value.map(async (ann) => {
+    if (new_ann[0].id == ann.result[0].id) {
+      console.log(new_ann, ann.db_id);
+      const { data, error } = await supabase
+        .from("annotations")
+        .update({ data: new_ann })
+        .eq("id", ann.db_id);
+      if (error) {
+        console.log("ERROR: ", error);
+      }
+      if (data) {
+        console.log("ANNOTATION: ", data);
+      }
+    }
+  });
 };
 
 const initLS = () => {
@@ -152,7 +171,9 @@ const initLS = () => {
     onSubmitAnnotation: (LS, annotation) => {
       createAnnotation(annotation.serializeAnnotation());
     },
-    onUpdateAnnotation: (LS, annotation) => {},
+    onUpdateAnnotation: (LS, annotation) => {
+      updateAnnotation(annotation.serializeAnnotation());
+    },
   });
 };
 
