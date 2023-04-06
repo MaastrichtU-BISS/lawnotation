@@ -12,6 +12,7 @@
     "nuxt": "^3.3.3"
   },
   "dependencies": {
+    "@heartexlabs/label-studio": "^1.4.0",
     "@supabase/supabase-js": "^2.14.0"
   }
 }
