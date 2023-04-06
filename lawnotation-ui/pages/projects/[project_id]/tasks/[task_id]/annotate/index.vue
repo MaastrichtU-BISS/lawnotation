@@ -38,6 +38,18 @@ const fetchLabels = async (id: string) => {
   if (data) {
     console.log("LABELS: ", data);
     labels.value = data[0].data;
+    fetchAnnotations(task.value.id);
+  }
+};
+
+const fetchAnnotations = async (id: string) => {
+  const { data, error } = await supabase.from("annotations").select().eq("task_id", id);
+  if (error) {
+    console.log("ERROR: ", error);
+  }
+  if (data) {
+    console.log("ANNOTATIONS: ", data);
+    if (data[0]) annotations.value = data[0].data;
     initLS();
   }
 };
@@ -116,7 +128,7 @@ const initLS = () => {
       },
     },
     onLabelStudioLoad: (LS) => {
-      if (annotations.length) {
+      if (annotations.value.length) {
         LS.annotationStore.selectAnnotation(LS.annotationStore.annotations);
       } else {
         const c = LS.annotationStore.addAnnotation({
