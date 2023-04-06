@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-if="project">
     <h3>{{ project }}</h3>
     <span>Go to: </span><NuxtLink :to="`/projects/${project.id}/tasks`">Tasks</NuxtLink>
   </div>
@@ -10,7 +10,7 @@ const config = useRuntimeConfig();
 const supabase = createClient(config.apiUrl, config.apiAnonKey);
 
 const route = useRoute();
-const project = ref({});
+const project = ref();
 
 const fetchProject = async (id: string) => {
   const { data, error } = await supabase.from("projects").select().eq("id", id);
