@@ -69,19 +69,21 @@ const createAnnotation = async (new_ann: JSON) => {
 
 const updateAnnotation = async (new_ann: JSON) => {
   annotations.value.map(async (ann) => {
-    if (new_ann[0].id == ann.result[0].id) {
-      console.log(new_ann, ann.db_id);
-      const { data, error } = await supabase
-        .from("annotations")
-        .update({ data: new_ann })
-        .eq("id", ann.db_id);
-      if (error) {
-        console.log("ERROR: ", error);
+    ann.result.map(async (res) => {
+      if (new_ann[0].id == res.id) {
+        const { data, error } = await supabase
+          .from("annotations")
+          .update({ data: new_ann })
+          .eq("id", ann.db_id);
+        if (error) {
+          console.log("ERROR: ", error);
+        }
+        if (data) {
+          console.log("ANNOTATION: ", data);
+        }
+        return;
       }
-      if (data) {
-        console.log("ANNOTATION: ", data);
-      }
-    }
+    });
   });
 };
 
@@ -172,6 +174,7 @@ const initLS = () => {
       createAnnotation(annotation.serializeAnnotation());
     },
     onUpdateAnnotation: (LS, annotation) => {
+      console.log(annotation);
       updateAnnotation(annotation.serializeAnnotation());
     },
   });
