@@ -1,6 +1,7 @@
 <template>
   <div>
     <h3>{{ project }}</h3>
+    <span>Go to: </span><NuxtLink :to="`/projects/${project.id}/tasks`">Tasks</NuxtLink>
   </div>
 </template>
 <script setup lang="ts">
@@ -17,7 +18,7 @@ const fetchProject = async (id: string) => {
     console.log("ERROR: ", error);
   }
   if (data) {
-    console.log("PROJECTS: ", data);
+    console.log("PROJECT: ", data);
     project.value = data[0];
   }
 };
