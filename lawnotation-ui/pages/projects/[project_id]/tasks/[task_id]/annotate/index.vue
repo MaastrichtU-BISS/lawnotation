@@ -5,7 +5,7 @@
 </template>
 <script setup lang="ts">
 import { createClient } from "@supabase/supabase-js";
-import LabelStudio from "@heartexlabs/label-studio";
+// import LabelStudio from "@heartexlabs/label-studio";
 import "@heartexlabs/label-studio/build/static/css/main.css";
 
 const config = useRuntimeConfig();
@@ -49,7 +49,7 @@ const fetchAnnotations = async (id: string) => {
   if (data) {
     console.log("ANNOTATIONS: ", data);
     data.map((ann) => {
-      annotations.value.push({ result: ann.data, db_id: ann.id });
+      annotations.value.push({ result: ann.data, id: ann.id });
     });
     initLS();
   }
@@ -67,27 +67,22 @@ const createAnnotation = async (new_ann: JSON) => {
   }
 };
 
-const updateAnnotation = async (new_ann: JSON) => {
-  annotations.value.map(async (ann) => {
-    ann.result.map(async (res) => {
-      if (new_ann[0].id == res.id) {
-        const { data, error } = await supabase
-          .from("annotations")
-          .update({ data: new_ann })
-          .eq("id", ann.db_id);
-        if (error) {
-          console.log("ERROR: ", error);
-        }
-        if (data) {
-          console.log("ANNOTATION: ", data);
-        }
-        return;
-      }
-    });
-  });
+const updateAnnotation = async (id: number, new_ann: JSON) => {
+  const { data, error } = await supabase
+      .from("annotations")
+      .update({ data: new_ann })
+      .eq("id", id);
+    if (error) {
+      console.log("ERROR: ", error);
+    }
+    if (data) {
+      console.log("ANNOTATION: ", data);
+    }
 };
 
-const initLS = () => {
+const initLS = async () => {
+  const LabelStudio = (await import("@heartexlabs/label-studio")).default
+  
   label_studio.value = new LabelStudio("label-studio", {
     config: `
             <View style="display: flex;">
@@ -174,8 +169,9 @@ const initLS = () => {
       createAnnotation(annotation.serializeAnnotation());
     },
     onUpdateAnnotation: (LS, annotation) => {
-      console.log(annotation);
-      updateAnnotation(annotation.serializeAnnotation());
+      // console.log(LS);
+      // console.log(annotation.serializeAnnotation());
+      updateAnnotation(annotation.pk, annotation.serializeAnnotation());
     },
   });
 };
