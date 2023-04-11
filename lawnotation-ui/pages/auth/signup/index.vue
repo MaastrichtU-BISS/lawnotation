@@ -40,8 +40,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useUserApi } from "~/data/user";
-const userApi = useUserApi();
+import { useAuth } from "@/composables/auth";
+const auth = useAuth();
+
 const email = ref<string>("");
 const password = ref<string>("");
 const confirm_password = ref<string>("");
@@ -55,7 +56,7 @@ const signUp = () => {
     alert("passwords must match");
     return;
   }
-  userApi
+  auth
     .signUp(email.value, password.value)
     .then((user_session) => console.log(user_session));
 };

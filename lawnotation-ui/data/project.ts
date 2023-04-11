@@ -7,7 +7,7 @@ export type Project = {
   // tasks: Task[];
 }
 
-export const useProjectApi = () => {  
+export const useProjectApi = () => {
   const config = useRuntimeConfig();
   const supabase = createClient(config.apiUrl, config.apiAnonKey);
 
