@@ -12,7 +12,7 @@ export const useProjectApi = () => {
   const supabase = createClient(config.apiUrl, config.apiAnonKey);
 
   // Create
-  const createProject = async (fields: Project): Promise<boolean> => {
+  const createProject = async (fields: Omit<Project, 'id'>): Promise<boolean> => {
     const { data, error } = await supabase.from("projects").insert(fields);
     
     if (error)
@@ -31,7 +31,7 @@ export const useProjectApi = () => {
       return data as Project
   };
 
-  // Read
+  // Read all
   const findProjects = async (): Promise<Project[]> => {
     const { data, error } = await supabase.from("projects").select();
     
