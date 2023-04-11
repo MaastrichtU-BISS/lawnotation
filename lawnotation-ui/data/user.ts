@@ -28,5 +28,16 @@ export const useUserApi = () => {
       return true;
   };
 
-  return {signIn, signOut}
+  const signUp = async (email: string, password: string): Promise<any> => {
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password
+    })
+    if (error)
+      throw Error(`Error in signUp: ${error.message}`)
+    else
+      return data;
+  };
+
+  return {signIn, signOut, signUp}
 }

@@ -21,10 +21,20 @@
           class="border"
         />
       </div>
-      <div class="my-2">
-        <button class="btn-primary rounded-full" @click="signIn()">Log In</button>
+      <div class="my-1">
+        <label for="confirm_password" class="pr-2">confirm password</label>
+        <input
+          v-model="confirm_password"
+          type="password"
+          name="confirm_password"
+          autocomplete="new-password"
+          class="border"
+        />
+      </div>
+      <div class="mx-2">
+        <button class="btn-primary rounded-full my-2" @click="signUp()">Sign Up</button>
         <div>or</div>
-        <NuxtLink to="/auth/signup">Sign Up</NuxtLink>
+        <NuxtLink to="/auth/login">Log In</NuxtLink>
       </div>
     </div>
   </div>
@@ -34,10 +44,15 @@ import { useUserApi } from "~/data/user";
 const userApi = useUserApi();
 const email = ref<string>("");
 const password = ref<string>("");
+const confirm_password = ref<string>("");
 
-const signIn = () => {
+const signUp = () => {
   if (email.value?.length == 0 || password.value?.length == 0) {
     alert("params required");
+    return;
+  }
+  if (password.value != confirm_password.value) {
+    alert("passwords must match");
     return;
   }
   userApi
