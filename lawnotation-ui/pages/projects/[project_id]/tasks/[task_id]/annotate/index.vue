@@ -8,13 +8,15 @@ import { createClient } from "@supabase/supabase-js";
 // import LabelStudio from "@heartexlabs/label-studio";
 import "@heartexlabs/label-studio/build/static/css/main.css";
 
+type Id = number;
+
 const config = useRuntimeConfig();
 const supabase = createClient(config.apiUrl, config.apiAnonKey);
 
 const route = useRoute();
 const task = ref();
-const labels = ref();
-const annotations = ref([]);
+const labels = reactive<{name: string, color: string}[]>([]);
+const annotations = reactive<{result: any, id: Id}[]>([]);
 const label_studio = ref();
 
 const fetchTask = async (id: string) => {
@@ -36,7 +38,8 @@ const fetchLabels = async (id: string) => {
   }
   if (data) {
     console.log("LABELS: ", data);
-    labels.value = data[0].data;
+    for (const label of data[0].data)
+      labels.push(label);
     fetchAnnotations(task.value.id);
   }
 };
@@ -49,7 +52,7 @@ const fetchAnnotations = async (id: string) => {
   if (data) {
     console.log("ANNOTATIONS: ", data);
     data.map((ann) => {
-      annotations.value.push({ result: ann.data, id: ann.id });
+      annotations.push({ result: ann.result, id: ann.id });
     });
     initLS();
   }
@@ -70,7 +73,7 @@ const createAnnotation = async (new_ann: JSON) => {
 const updateAnnotation = async (id: number, new_ann: JSON) => {
   const { data, error } = await supabase
       .from("annotations")
-      .update({ data: new_ann })
+      .update({ result: new_ann })
       .eq("id", id);
     if (error) {
       console.log("ERROR: ", error);
@@ -89,7 +92,7 @@ const initLS = async () => {
               <View style="width: 150px; background: #f1f1f1; border-radius: 3px">
                 <Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
                 <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
-                  ${labels.value
+                  ${labels
                     .map((l) => `<Label value="${l.name}" background="${l.color}" />`)
                     .join("\n")}
                 </Labels>
@@ -149,14 +152,14 @@ const initLS = async () => {
       lastName: "Dean",
     },
     task: {
-      annotations: annotations.value,
+      annotations: annotations,
       // predictions: this.predictions,
       data: {
         text: task.value.text,
       },
     },
-    onLabelStudioLoad: (LS) => {
-      if (annotations.value.length) {
+    onLabelStudioLoad: (LS: any) => {
+      if (annotations.length) {
         LS.annotationStore.selectAnnotation(LS.annotationStore.annotations);
       } else {
         const c = LS.annotationStore.addAnnotation({
@@ -165,10 +168,10 @@ const initLS = async () => {
         LS.annotationStore.selectAnnotation(c.id);
       }
     },
-    onSubmitAnnotation: (LS, annotation) => {
+    onSubmitAnnotation: (LS: any, annotation: any) => {
       createAnnotation(annotation.serializeAnnotation());
     },
-    onUpdateAnnotation: (LS, annotation) => {
+    onUpdateAnnotation: (LS: any, annotation: any) => {
       // console.log(LS);
       // console.log(annotation.serializeAnnotation());
       updateAnnotation(annotation.pk, annotation.serializeAnnotation());
