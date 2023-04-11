@@ -7,23 +7,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import { createClient } from "@supabase/supabase-js";
-const config = useRuntimeConfig();
-const supabase = createClient(config.apiUrl, config.apiAnonKey);
+import { Project, useProjectApi } from "~/data/project";
+const projectApi = useProjectApi();
+const projects = reactive<Project[]>([]);
 
-const projects = ref<any>([]);
-
-const fetchProjects = async () => {
-  const { data, error } = await supabase.from("projects").select();
-  if (error) {
-    console.log("ERROR: ", error);
-  }
-  if (data) {
-    console.log("PROJECTS: ", data);
-    projects.value = data;
-  }
-};
 onMounted(() => {
-  fetchProjects();
+  projectApi.findProjects().then(_projects => projects.splice(0) && projects.push(..._projects))
 });
 </script>
