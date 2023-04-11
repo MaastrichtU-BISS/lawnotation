@@ -56,9 +56,7 @@ const signUp = () => {
     return;
   }
   userApi
-    .signIn(email.value, password.value)
+    .signUp(email.value, password.value)
     .then((user_session) => console.log(user_session));
 };
-
-onMounted(() => {});
 </script>
