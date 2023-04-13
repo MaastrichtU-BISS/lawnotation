@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+const supabase = useSupabaseClient();
 
 export type User = {
   email: string,

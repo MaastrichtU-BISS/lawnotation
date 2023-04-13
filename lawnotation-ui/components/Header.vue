@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useAuth } from "@/composables/auth";
-const auth = useAuth();
+const supabase = useSupabaseClient();
+const user = useSupabaseUser();
 </script>
 
 <template>
@@ -9,12 +9,10 @@ const auth = useAuth();
       <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
     </div>
     <div class="auth">
-      <template v-if="auth.session.value?.user">
-        <span v-if="auth.session.value?.user"
-          >Hello {{ auth.session.value?.user.email?.split("@")[0] }}</span
-        >
+      <template v-if="user">
+        <span v-if="user?.email">Hello {{ user.email?.split("@")[0] }}</span>
         |
-        <button @click="auth.signOut">Sign Out</button>
+        <button @click="supabase.auth.signOut">Sign Out</button>
       </template>
       <template v-else>
         <NuxtLink to="/auth/login">Sign In</NuxtLink>

@@ -40,8 +40,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useAuth } from "@/composables/auth";
-const auth = useAuth();
+const supabase = useSupabaseClient();
 
 const email = ref<string>("");
 const password = ref<string>("");
@@ -56,8 +55,10 @@ const signUp = () => {
     alert("passwords must match");
     return;
   }
-  auth.signUp(email.value, password.value).then((user_session) => {
-    navigateTo("/");
-  });
+  supabase.auth
+    .signUp({ email: email.value, password: password.value })
+    .then((user_session) => {
+      navigateTo("/");
+    });
 };
 </script>

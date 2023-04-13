@@ -9,9 +9,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { createClient } from "@supabase/supabase-js";
-const config = useRuntimeConfig();
-const supabase = createClient(config.apiUrl, config.apiAnonKey);
+const supabase = useSupabaseClient();
 
 const route = useRoute();
 const tasks = ref<any>([]);
@@ -28,5 +26,9 @@ const fetchTasks = async (id: string) => {
 };
 onMounted(() => {
   fetchTasks(route.params.project_id as string);
+});
+
+definePageMeta({
+  middleware: ["auth"],
 });
 </script>

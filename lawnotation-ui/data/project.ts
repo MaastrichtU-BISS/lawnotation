@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 
 export type Project = {
   id: number,
@@ -8,9 +7,8 @@ export type Project = {
 }
 
 export const useProjectApi = () => {
-  const config = useRuntimeConfig();
-  const supabase = createClient(config.apiUrl, config.apiAnonKey);
-
+  const supabase = useSupabaseClient();
+  
   // Create
   const createProject = async (fields: Omit<Project, 'id'>): Promise<boolean> => {
     const { data, error } = await supabase.from("projects").insert(fields);

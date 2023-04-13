@@ -4,19 +4,15 @@
   </div>
 </template>
 <script setup lang="ts">
-import { createClient } from "@supabase/supabase-js";
-// import LabelStudio from "@heartexlabs/label-studio";
 import "@heartexlabs/label-studio/build/static/css/main.css";
+const supabase = useSupabaseClient();
 
 type Id = number;
 
-const config = useRuntimeConfig();
-const supabase = createClient(config.apiUrl, config.apiAnonKey);
-
 const route = useRoute();
 const task = ref();
-const labels = reactive<{name: string, color: string}[]>([]);
-const annotations = reactive<{result: any, id: Id}[]>([]);
+const labels = reactive<{ name: string; color: string }[]>([]);
+const annotations = reactive<{ result: any; id: Id }[]>([]);
 const label_studio = ref();
 
 const fetchTask = async (id: string) => {
@@ -38,8 +34,7 @@ const fetchLabels = async (id: string) => {
   }
   if (data) {
     console.log("LABELS: ", data);
-    for (const label of data[0].data)
-      labels.push(label);
+    for (const label of data[0].data) labels.push(label);
     fetchAnnotations(task.value.id);
   }
 };
@@ -72,20 +67,20 @@ const createAnnotation = async (new_ann: JSON) => {
 
 const updateAnnotation = async (id: number, new_ann: JSON) => {
   const { data, error } = await supabase
-      .from("annotations")
-      .update({ result: new_ann })
-      .eq("id", id);
-    if (error) {
-      console.log("ERROR: ", error);
-    }
-    if (data) {
-      console.log("ANNOTATION: ", data);
-    }
+    .from("annotations")
+    .update({ result: new_ann })
+    .eq("id", id);
+  if (error) {
+    console.log("ERROR: ", error);
+  }
+  if (data) {
+    console.log("ANNOTATION: ", data);
+  }
 };
 
 const initLS = async () => {
-  const LabelStudio = (await import("@heartexlabs/label-studio")).default
-  
+  const LabelStudio = (await import("@heartexlabs/label-studio")).default;
+
   label_studio.value = new LabelStudio("label-studio", {
     config: `
             <View style="display: flex;">
@@ -181,5 +176,9 @@ const initLS = async () => {
 
 onMounted(() => {
   fetchTask(route.params.task_id as string);
+});
+
+definePageMeta({
+  middleware: ["auth"],
 });
 </script>
