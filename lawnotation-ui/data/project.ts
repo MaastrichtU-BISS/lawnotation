@@ -10,13 +10,12 @@ export const useProjectApi = () => {
   const supabase = useSupabaseClient();
   
   // Create
-  const createProject = async (fields: Omit<Project, 'id'>): Promise<boolean> => {
-    const { data, error } = await supabase.from("projects").insert(fields);
-    
+  const createProject = async (fields: Omit<Project, 'id'>): Promise<Project> => {
+    const { data, error } = await supabase.from("projects").insert(fields).select().single();
     if (error)
       throw Error(`Error in createProject: ${error.message}`)
     else
-      return true;
+      return data as Project;
   };
 
   // Read
@@ -30,8 +29,8 @@ export const useProjectApi = () => {
   };
 
   // Read all
-  const findProjects = async (): Promise<Project[]> => {
-    const { data, error } = await supabase.from("projects").select();
+  const findProjects = async (user_id: string): Promise<Project[]> => {
+    const { data, error } = await supabase.from("projects").select().eq("user_id", user_id);
     
     if (error)
       throw Error(`Error in findProject: ${error.message}`)

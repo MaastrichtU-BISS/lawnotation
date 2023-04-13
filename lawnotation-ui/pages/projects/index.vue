@@ -24,6 +24,7 @@
 <script setup lang="ts">
 import { Project, useProjectApi } from "~/data/project";
 const projectApi = useProjectApi();
+const user = useSupabaseUser();
 
 const projects = reactive<Project[]>([]);
 const projects_loading = ref(true);
@@ -31,6 +32,7 @@ const projects_loading = ref(true);
 const new_project = reactive({
   name: "",
   desc: "",
+  user_id: user?.value?.id,
 });
 
 onMounted(() => {
@@ -39,14 +41,16 @@ onMounted(() => {
 
 const loadProjects = () => {
   projects_loading.value = true;
-  projectApi.findProjects().then((_projects) => {
+  projectApi.findProjects(user?.value?.id).then((_projects) => {
     projects.splice(0) && projects.push(..._projects);
     projects_loading.value = false;
   });
 };
 
 const createNewProject = () => {
-  projectApi.createProject(new_project);
+  projectApi.createProject(new_project).then((project) => {
+    projects.push(project);
+  });
 };
 
 definePageMeta({

@@ -56,7 +56,7 @@ const fetchAnnotations = async (id: string) => {
 const createAnnotation = async (new_ann: JSON) => {
   const { data, error } = await supabase
     .from("annotations")
-    .insert([{ task_id: task.value.id, data: new_ann }]);
+    .insert([{ task_id: task.value.id, result: new_ann }]);
   if (error) {
     console.log("ERROR: ", error);
   }
