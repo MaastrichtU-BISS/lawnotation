@@ -56,8 +56,8 @@ const signUp = () => {
     alert("passwords must match");
     return;
   }
-  auth
-    .signUp(email.value, password.value)
-    .then((user_session) => console.log(user_session));
+  auth.signUp(email.value, password.value).then((user_session) => {
+    navigateTo("/");
+  });
 };
 </script>

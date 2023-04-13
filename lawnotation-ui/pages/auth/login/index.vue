@@ -41,8 +41,8 @@ const signIn = () => {
     alert("params required");
     return;
   }
-  auth
-    .signIn(email.value, password.value)
-    .then((user_session) => console.log(user_session));
+  auth.signIn(email.value, password.value).then((user_session) => {
+    navigateTo("/");
+  });
 };
 </script>
