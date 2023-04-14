@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
 const supabase = useSupabaseClient();
+const user = useSupabaseUser();
 
 type Id = number;
 
@@ -14,6 +15,7 @@ const task = ref();
 const labels = reactive<{ name: string; color: string }[]>([]);
 const annotations = reactive<{ result: any; id: Id }[]>([]);
 const label_studio = ref();
+const hola = ref("hola");
 
 const fetchTask = async (id: string) => {
   const { data, error } = await supabase.from("tasks").select().eq("id", id);
@@ -92,30 +94,16 @@ const initLS = async () => {
                     .join("\n")}
                 </Labels>
               </View>
-
               <View>
                 <View style="height: auto; overflow-y: auto; padding: 0 1em">
                   <Text name="text" value="$text" />
                 </View>
-
               <Relations>
                 <Relation value="Is A" />
                 <Relation value="Has Function" />
                 <Relation value="Involved In" />
                 <Relation value="Related To" />
               </Relations>
-
-                <View>
-                  <Choices name="relevance" toName="text" perRegion="true">
-                    <Choice value="Relevant" />
-                    <Choice value="Non Relevant" />
-                  </Choices>
-
-                  <View visibleWhen="region-selected">
-                    <Header value="Your confidence" />
-                  </View>
-                  <Rating name="confidence" toName="text" perRegion="true" />
-                </View>
               </View>
             </View>
             `,
@@ -129,16 +117,16 @@ const initLS = async () => {
       "topbar",
       "instruction",
       "side-column",
-      "annotations:history",
-      "annotations:tabs",
-      "annotations:menu",
+      // "annotations:history",
+      // "annotations:tabs",
+      // "annotations:menu",
       "annotations:current",
       "annotations:add-new",
       "annotations:delete",
-      "annotations:view-all",
-      "predictions:tabs",
-      "predictions:menu",
-      "auto-annotation",
+      // "annotations:view-all",
+      // "predictions:tabs",
+      // "predictions:menu",
+      // "auto-annotation",
       "edit-history",
     ],
     user: {
@@ -182,3 +170,19 @@ definePageMeta({
   middleware: ["auth"],
 });
 </script>
+<style>
+.lsf-current-task > div {
+  display: none;
+}
+
+.lsf-current-task::before {
+  content: "Annotate";
+}
+
+[aria-label="Reset"],
+[aria-label="Copy Annotation"],
+[aria-label="Settings"],
+.lsf-annotations-list {
+  display: none;
+}
+</style>
