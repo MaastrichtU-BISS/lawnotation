@@ -13,7 +13,6 @@
         </li>
       </ul>
     </template>
-
     <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
       <input type="text" placeholder="Project name" v-model="new_project.name" />
       <textarea placeholder="Project description" v-model="new_project.desc"></textarea>
