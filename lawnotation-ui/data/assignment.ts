@@ -1,16 +1,19 @@
 
 export type Assignment = {
     id: number,
-    user_id: number,
+    annotator_id: string,
     task_id: number | undefined,
     document_id: number
+    annotator_email: string | undefined,
+    editor_id: string | undefined,
+    editor_email: string | undefined,
   }
   
   export const useAssignmentApi = () => {
     const supabase = useSupabaseClient();
     
     // Create
-    const createAssignment = async (fields: Omit<Assignment, 'id' | 'user_id'>): Promise<Assignment> => {
+    const createAssignment = async (fields: Omit<Assignment, 'id' | 'annotator_id'>): Promise<Assignment> => {
       const { data, error } = await supabase.from("assignments").insert(fields).select().single();
       if (error)
         throw Error(`Error in createAssignment: ${error.message}`)

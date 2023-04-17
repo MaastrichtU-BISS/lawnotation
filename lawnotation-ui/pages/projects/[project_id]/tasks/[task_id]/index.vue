@@ -12,7 +12,7 @@
         <span
           >{{ a.id }}.
           <NuxtLink :to="`/assignments/${a.id}`">
-            document: {{ a.document_id }}, user: {{ a.user_id }}</NuxtLink
+            document: {{ a.document_id }}, user: {{ a.annotator_email }}</NuxtLink
           ></span
         >
       </li>
@@ -34,6 +34,7 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { User, useUserApi } from "~/data/user";
 
+const user = useSupabaseUser();
 const taskApi = useTaskApi();
 const documentApi = useDocumentApi();
 const assignmentApi = useAssignmentApi();
@@ -49,6 +50,7 @@ const email = ref("");
 const createAssignment = async () => {
   if (email.value == "") {
     alert("email required");
+    return;
   }
 
   const docs = await documentApi.takeUpToNRandomDocuments(
@@ -57,9 +59,12 @@ const createAssignment = async () => {
   );
 
   docs.map((doc, index) => {
-    const new_assignment = {
+    const new_assignment: Omit<Assignment, "id"> = {
       task_id: task.value?.id,
       document_id: doc.id,
+      editor_email: user.value?.email,
+      editor_id: user.value?.id,
+      annotator_email: email.value,
     };
     assignmentApi.createAssignment(new_assignment).then((_assignment) => {
       assignments.push(_assignment);
