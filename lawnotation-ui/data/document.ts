@@ -1,9 +1,11 @@
 export type Document = {
   id: number,
   name: string,
-  Document_id: number,
+  project_id: string,
   source: string,
-  full_text: string
+  full_text: string | undefined,
+  editor_id: string | undefined,
+  editor_email: string | undefined
 }
 
 export const useDocumentApi = () => {

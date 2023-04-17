@@ -79,7 +79,9 @@ const change_file = (event: Event) => {
           name: file.name,
           source: "local_upload",
           full_text: reader.result?.toString(),
-          project_id: route.params.project_id,
+          project_id: route.params.project_id.toString(),
+          editor_id: user.value?.id,
+          editor_email: user.value?.email,
         })
         .then((doc) => {
           documents.push(doc);

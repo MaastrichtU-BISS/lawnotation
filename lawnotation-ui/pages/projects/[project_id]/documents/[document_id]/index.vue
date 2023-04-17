@@ -1,8 +1,7 @@
 <template>
   <div>
-    <div>name:{{ document?.name }}</div>
-    <div>source:{{ document?.source }}</div>
-    <div>{{ document?.full_text }}</div>
+    <h3 class="text-lg font-semibold mb-2">Document:</h3>
+    {{ document }}
   </div>
 </template>
 <script setup lang="ts">
