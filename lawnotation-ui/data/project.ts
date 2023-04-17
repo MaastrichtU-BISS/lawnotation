@@ -3,7 +3,8 @@ export type Project = {
   id: number,
   name: string,
   desc: string,
-  // tasks: Task[];
+  editor_id: string | undefined,
+  editor_email: string | undefined
 }
 
 export const useProjectApi = () => {
@@ -29,8 +30,8 @@ export const useProjectApi = () => {
   };
 
   // Read all
-  const findProjects = async (user_id: string): Promise<Project[]> => {
-    const { data, error } = await supabase.from("projects").select().eq("user_id", user_id);
+  const findProjects = async (editor_id: string): Promise<Project[]> => {
+    const { data, error } = await supabase.from("projects").select().eq("editor_id", editor_id);
     
     if (error)
       throw Error(`Error in findProject: ${error.message}`)

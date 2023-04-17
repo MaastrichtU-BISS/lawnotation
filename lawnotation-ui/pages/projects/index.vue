@@ -29,10 +29,11 @@ const user = useSupabaseUser();
 const projects = reactive<Project[]>([]);
 const projects_loading = ref(true);
 
-const new_project = reactive({
+const new_project = reactive<Omit<Project, "id">>({
   name: "",
   desc: "",
-  user_id: 0,
+  editor_id: "",
+  editor_email: "",
 });
 
 onMounted(() => {
@@ -42,7 +43,7 @@ onMounted(() => {
 const loadProjects = () => {
   projects_loading.value = true;
   projectApi
-    .findProjects(user?.value?.id)
+    .findProjects(user?.value?.id.toString())
     .then((_projects) => {
       projects.splice(0) && projects.push(..._projects);
       projects_loading.value = false;
@@ -53,6 +54,8 @@ const loadProjects = () => {
 };
 
 const createNewProject = () => {
+  new_project.editor_id = user.value?.id;
+  new_project.editor_email = user.value?.email;
   projectApi.createProject(new_project).then((project) => {
     projects.push(project);
   });
