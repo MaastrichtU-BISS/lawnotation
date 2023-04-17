@@ -1,5 +1,3 @@
-import { Project } from './project';
-
 export type Document = {
   id: number,
   name: string,
