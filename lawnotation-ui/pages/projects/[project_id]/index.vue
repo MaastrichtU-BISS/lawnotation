@@ -51,6 +51,7 @@ import { Project, useProjectApi } from "~/data/project";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 
+const user = useSupabaseUser();
 const projectApi = useProjectApi();
 const documentApi = useDocumentApi();
 const taskApi = useTaskApi();
@@ -60,11 +61,13 @@ const project = ref<Project>();
 const documents = reactive<Document[]>([]);
 const tasks = reactive<Task[]>([]);
 
-const new_task = reactive({
+const new_task = reactive<Omit<Task, "id">>({
   name: "",
   desc: "",
   label_id: 1,
   project_id: 0,
+  editor_id: "",
+  editor_email: "",
 });
 
 const change_file = (event: Event) => {
@@ -95,7 +98,8 @@ const createTask = () => {
     alert("desc required");
     return;
   }
-
+  new_task.editor_email = user.value?.email;
+  new_task.editor_id = user.value?.id;
   taskApi.createTask(new_task).then((task) => {
     tasks.push(task);
   });

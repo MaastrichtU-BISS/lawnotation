@@ -1,8 +1,13 @@
 <template>
-  <div><span>Go to: </span><NuxtLink to="/projects">Projects</NuxtLink></div>
+  <div>
+    <div v-if="user">
+      <span>Go to: </span><NuxtLink to="/projects">Projects</NuxtLink>
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
-definePageMeta({
-  middleware: ["auth"],
-});
+const user = useSupabaseUser();
+// definePageMeta({
+//   middleware: ["auth"],
+// });
 </script>

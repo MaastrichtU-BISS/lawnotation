@@ -38,7 +38,7 @@ export const useDocumentApi = () => {
       return data as Document[]
   };
 
-  const takeUpToNRandomDocuments = async (project_id: string, N: number): Promise<Document[]> => {
+  const takeUpToNRandomDocuments = async (project_id: string  | undefined, N: number): Promise<Document[]> => {
     const { data, error } = await supabase.rpc("random_sample", {n: N});
     
     if (error)

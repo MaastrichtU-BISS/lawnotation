@@ -19,8 +19,8 @@
     </ul>
     <div class="my-3">
       <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-        <label for="label_id">User Id</label>
-        <input type="text" name="" id="user_id" v-model="new_assignment.user_id" />
+        <label for="label_id">Annotator email</label>
+        <input type="email" name="email" v-model="email" />
         <label for="label_id">Number of Documents (randomly selected)</label>
         <input type="number" name="" id="number_of_docs" v-model="number_of_docs" />
         <button class="btn-primary" @click="createAssignment">Create Assignment</button>
@@ -32,43 +32,50 @@
 import { Task, useTaskApi } from "~/data/task";
 import { Document, useDocumentApi } from "~/data/document";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
+import { User, useUserApi } from "~/data/user";
 
 const taskApi = useTaskApi();
 const documentApi = useDocumentApi();
 const assignmentApi = useAssignmentApi();
+const userApi = useUserApi();
 
 const route = useRoute();
 const task = ref<Task>();
 const number_of_docs = ref<number>(100);
 const assignments = reactive<Assignment[]>([]);
 
-const new_assignment = reactive({
-  user_id: "ab3ae219-3ec7-47c3-a317-fbdf923bccac",
-  task_id: 0,
-});
+const email = ref("");
 
-const createAssignment = () => {
-  console.log(new_assignment);
-  documentApi
-    .takeUpToNRandomDocuments(task.value?.project_id, number_of_docs.value)
-    .then((_documents) => {
-      _documents.map((doc) => {
-        const _new_assignment = {
-          user_id: new_assignment.user_id,
-          task_id: new_assignment.task_id,
-          document_id: doc.id,
-        };
-        assignmentApi.createAssignment(_new_assignment).then((_assignment) => {
-          assignments.push(_assignment);
-        });
-      });
+const createAssignment = async () => {
+  if (email.value == "") {
+    alert("email required");
+  }
+
+  const docs = await documentApi.takeUpToNRandomDocuments(
+    task.value?.project_id.toString(),
+    number_of_docs.value
+  );
+
+  docs.map((doc, index) => {
+    const new_assignment = {
+      task_id: task.value?.id,
+      document_id: doc.id,
+    };
+    assignmentApi.createAssignment(new_assignment).then((_assignment) => {
+      assignments.push(_assignment);
+      if (index === 0) {
+        userApi.inviteUser(
+          email.value,
+          `http://localhost:3000/assignments/${_assignment.id}`
+        );
+      }
     });
+  });
 };
 
 onMounted(() => {
   taskApi.findTask(route.params.task_id.toString()).then((_task) => {
     task.value = _task;
-    new_assignment.task_id = _task.id;
     assignmentApi.findAssignments(_task.id.toString()).then((_assignments) => {
       assignments.splice(0) && assignments.push(..._assignments);
     });

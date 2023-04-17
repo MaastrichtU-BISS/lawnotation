@@ -175,7 +175,7 @@ onMounted(() => {
 });
 
 definePageMeta({
-  middleware: ["auth"],
+  middleware: ["auth", "assignment"],
 });
 </script>
 <style>

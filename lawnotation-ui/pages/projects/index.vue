@@ -1,6 +1,7 @@
 <template>
   <div class="my-4 mx-auto max-w-screen-lg">
     <div v-if="projects_loading">
+      {{ user }}
       <span>Loading projects...</span>
     </div>
     <template v-else>
@@ -31,7 +32,7 @@ const projects_loading = ref(true);
 const new_project = reactive({
   name: "",
   desc: "",
-  user_id: user?.value?.id,
+  user_id: 0,
 });
 
 onMounted(() => {
@@ -40,10 +41,15 @@ onMounted(() => {
 
 const loadProjects = () => {
   projects_loading.value = true;
-  projectApi.findProjects(user?.value?.id).then((_projects) => {
-    projects.splice(0) && projects.push(..._projects);
-    projects_loading.value = false;
-  });
+  projectApi
+    .findProjects(user?.value?.id)
+    .then((_projects) => {
+      projects.splice(0) && projects.push(..._projects);
+      projects_loading.value = false;
+    })
+    .catch((error) => {
+      projects_loading.value = false;
+    });
 };
 
 const createNewProject = () => {
