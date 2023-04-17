@@ -1,8 +1,8 @@
 <template>
   <div v-if="project">
-    <h3 class="my-2 text-lg font-semibold mb-2">Project</h3>
+    <h3 class="my-3 text-lg font-semibold mb-2">Project</h3>
     <div>{{ project }}</div>
-    <h3 class="my-2">Documents: {{ documents.length }}</h3>
+    <h3 class="my-3 text-lg font-semibold">Documents: {{ documents.length }}</h3>
     <ul v-for="d in documents" :key="'doc_' + d.id" class="list-disc list-inside">
       <li>
         <span
@@ -24,7 +24,7 @@
         @change="change_file($event)"
       />
     </div>
-    <h3 class="my-2">Tasks: {{ tasks.length }}</h3>
+    <h3 class="my-3 text-lg font-semibold">Tasks: {{ tasks.length }}</h3>
     <ul v-for="t in tasks" :key="'task_' + t.id" class="list-disc list-inside">
       <li>
         <span
@@ -41,7 +41,7 @@
         <textarea placeholder="Project description" v-model="new_task.desc"></textarea>
         <label for="label_id">Labels Id</label>
         <input type="number" name="" id="label_id" v-model="new_task.label_id" />
-        <button class="btn-primary" @click="addTask">Add Tasks</button>
+        <button class="btn-primary" @click="createTask">Create Tasks</button>
       </div>
     </div>
   </div>
@@ -60,7 +60,7 @@ const project = ref<Project>();
 const documents = reactive<Document[]>([]);
 const tasks = reactive<Task[]>([]);
 
-const new_task = reactive<Task>({
+const new_task = reactive({
   name: "",
   desc: "",
   label_id: 1,
@@ -86,7 +86,7 @@ const change_file = (event: Event) => {
   });
 };
 
-const addTask = () => {
+const createTask = () => {
   if (new_task.name == "") {
     alert("name required");
     return;

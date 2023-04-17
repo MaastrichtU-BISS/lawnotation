@@ -1,3 +1,4 @@
+import { Project } from './project';
 
 export type Document = {
   id: number,
@@ -39,6 +40,16 @@ export const useDocumentApi = () => {
       return data as Document[]
   };
 
+  const takeUpToNRandomDocuments = async (project_id: string, N: number): Promise<Document[]> => {
+    const { data, error } = await supabase.rpc("random_sample", {n: N});
+    
+    if (error)
+      throw Error(`Error in findDocument: ${error.message}`)
+    else
+      return data as Document[]
+  };
+   
+
   // Update
   const updateDocument = async (id: string, fields: Partial<Document>): Promise<boolean> => {
     const { data, error } = await supabase.from("documents").update(fields).eq("id", id);
@@ -59,5 +70,5 @@ export const useDocumentApi = () => {
       return true;
   };
 
-  return {createDocument, findDocument, findDocuments, updateDocument, deleteDocument}
+  return {createDocument, findDocument, findDocuments, takeUpToNRandomDocuments, updateDocument, deleteDocument}
 }
