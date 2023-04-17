@@ -37,8 +37,8 @@
     </ul>
     <div class="my-3">
       <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-        <input type="text" placeholder="Project name" v-model="new_task.name" />
-        <textarea placeholder="Project description" v-model="new_task.desc"></textarea>
+        <input type="text" placeholder="Task name" v-model="new_task.name" />
+        <textarea placeholder="Task description" v-model="new_task.desc"></textarea>
         <label for="label_id">Labels Id</label>
         <input type="number" name="" id="label_id" v-model="new_task.label_id" />
         <button class="btn-primary" @click="createTask">Create Tasks</button>
