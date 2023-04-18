@@ -7,9 +7,9 @@ export type Annotation = {
     origin: string,
     ls_id: string,
     label: string[]
-  }
+}
   
-  export const useAnnotationApi = () => {
+export const useAnnotationApi = () => {
     const supabase = useSupabaseClient();
 
     const convert_ls2db = (anns: any[], assignment_id: number): Annotation[] => {
@@ -97,4 +97,4 @@ export type Annotation = {
     };
   
     return {createAnnotation, findAnnotation, findAnnotations, updateAnnotation, deleteAnnotation, convert_ls2db, convert_db2ls}
-  }
+}
