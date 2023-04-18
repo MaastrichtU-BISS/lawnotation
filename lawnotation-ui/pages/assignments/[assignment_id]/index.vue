@@ -8,7 +8,7 @@ import "@heartexlabs/label-studio/build/static/css/main.css";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
-import { Labelset, useLabelsetApi } from "~/data/labelset.js";
+import { Label, useLabelApi } from "~/data/label";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 
 
@@ -17,7 +17,7 @@ const user = useSupabaseUser();
 const assignmentApi = useAssignmentApi();
 const documentApi = useDocumentApi();
 const taskApi = useTaskApi();
-const labelsetApi = useLabelsetApi();
+const labelApi = useLabelApi();
 const annotationApi = useAnnotationApi();
 
 type Id = number;
