@@ -7,8 +7,8 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     const assignemntApi = useAssignmentApi();
 
     const assignment: Assignment = await assignemntApi.findAssignment(to.params.assignment_id);
-    const task_id = await supabase.from("tasks").select('id').eq('assignment_id', assignment.id).single();
-    const editor_id = await supabase.from("projects").select('editor_id').eq('task_id', task_id).single();
+    const project_id = (await supabase.from("tasks").select('project_id').eq('id', assignment.task_id).single()).data?.project_id;
+    const editor_id = (await supabase.from("projects").select('editor_id').eq('id', project_id).single()).data?.editor_id;
 
     // Is the anotator of the assignment or the owner of the project
     console.log(user.value?.id)

@@ -12,7 +12,7 @@
         <span
           >{{ a.id }}.
           <NuxtLink :to="`/assignments/${a.id}`">
-            document: {{ a.document_id }}, user: {{ a.annotator_email }}</NuxtLink
+            document: {{ a.document_id }}, user: {{ a.annotator_id }}</NuxtLink
           ></span
         >
       </li>

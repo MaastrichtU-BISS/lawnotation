@@ -11,7 +11,7 @@ export type Label = {
     
     // Create
     const createLabel = async (fields: Omit<Label, 'id'>): Promise<Label> => {
-      const { data, error } = await supabase.from("labels").insert(fields).select().single();
+      const { data, error } = await supabase.from("labelsets").insert(fields).select().single();
       if (error)
         throw Error(`Error in createLabel: ${error.message}`)
       else
@@ -20,7 +20,7 @@ export type Label = {
   
     // Read
     const findLabel = async (id: string): Promise<Label>   => {
-      const { data, error } = await supabase.from("labels").select().eq("id", id).single();
+      const { data, error } = await supabase.from("labelsets").select().eq("id", id).single();
   
       if (error)
         throw Error(`Error in findLabel: ${error.message}`)
@@ -30,7 +30,7 @@ export type Label = {
   
     // Update
     const updateLabel = async (id: string, fields: Partial<Label>): Promise<boolean> => {
-      const { data, error } = await supabase.from("labels").update(fields).eq("id", id);
+      const { data, error } = await supabase.from("labelsets").update(fields).eq("id", id);
       
       if (error)
         throw Error(`Error in updateLabel: ${error.message}`)
@@ -40,7 +40,7 @@ export type Label = {
   
     // Update
     const deleteLabel = async (id: string) => {
-      const { data, error } = await supabase.from("labels").delete().eq("id", id);
+      const { data, error } = await supabase.from("labelsets").delete().eq("id", id);
   
       if (error)
         throw Error(`Error in deleteLabel: ${error.message}`)
