@@ -9,7 +9,8 @@ import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 import { Label, useLabelApi } from "~/data/label";
-import { Annotation, useAnnotationApi } from "~/data/annotation";
+import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
+
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
@@ -27,12 +28,15 @@ const task = ref<Task>();
 const documment = ref<Document>();
 
 const annotations = reactive<Annotation[]>([]);
-const ls_annotations = reactive<any[]>([]);
+const ls_annotations = reactive<LSSerializedAnnotation>([]);
 
 const labels = reactive<{ name: string; color: string }[]>([]);
 const label_studio = ref();
+/*
+const updateAnnotation = async (id: number, ser_ann: LSSerializedAnnotation) => {
+  console.log("serialized annotation", ser_ann)
+  return;
 
-const updateAnnotation = async (id: number, new_ann: JSON) => {
   const { data, error } = await supabase
     .from("annotations")
     .update({ result: new_ann })
@@ -44,7 +48,7 @@ const updateAnnotation = async (id: number, new_ann: JSON) => {
     console.log("ANNOTATION: ", data);
   }
 };
-
+*/
 const initLS = async () => {
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
 
@@ -100,7 +104,7 @@ const initLS = async () => {
       // lastName: "Dean",
     },
     task: {
-      annotations: ls_annotations,
+      annotations: [{result: ls_annotations}],
       // predictions: this.predictions,
       data: {
         text: documment.value?.full_text,
@@ -116,21 +120,25 @@ const initLS = async () => {
         LS.annotationStore.selectAnnotation(c.id);
       }
     },
-    onSubmitAnnotation: (LS: any, annotation: any) => {
-      const anns = annotationApi.convert_ls2db(
-        annotation.serializeAnnotation(),
-        assignment.value?.id
+    onSubmitAnnotation: (LS: any, { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }) => {
+      if (!assignment.value)
+        return;
+      
+      const db_anns = annotationApi.convert_ls2db(
+        serializeAnnotation(),
+        assignment.value.id
       );
-      anns.map((a) => {
-        annotationApi.createAnnotation(a).then((_ann) => {
-          annotations.push(_ann);
-        });
-      });
+      annotationApi.updateAssignmentAnnotations(assignment.value.id, db_anns)
     },
-    onUpdateAnnotation: (LS: any, annotation: any) => {
-      // console.log(LS);
-      // console.log(annotation.serializeAnnotation());
-      updateAnnotation(annotation.pk, annotation.serializeAnnotation());
+    onUpdateAnnotation: (LS: any, { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }) => {
+      if (!assignment.value)
+        return;
+
+      const db_anns = annotationApi.convert_ls2db(
+        serializeAnnotation(),
+        assignment.value.id
+      );
+      annotationApi.updateAssignmentAnnotations(assignment.value.id, db_anns)
     },
   });
 };
@@ -139,12 +147,18 @@ const loadData = async () => {
   assignment.value = await assignmentApi.findAssignment(
     route.params.assignment_id.toString()
   );
+  if (!assignment.value)
+    throw Error("Assignment not found")
 
   documment.value = await documentApi.findDocument(
     assignment.value.document_id.toString()
   );
+  if (!documment.value)
+    throw Error("Document not found")
 
-  task.value = await taskApi.findTask(assignment.value.task_id.toString());
+  if (!assignment.value.task_id)
+    throw Error("Document not found")
+  task.value = await taskApi.findTask(assignment.value.task_id?.toString());
 
   const _labels: Label = await labelApi.findLabel(task.value.label_id.toString());
 
@@ -160,11 +174,10 @@ const loadData = async () => {
       ...(await annotationApi.findAnnotations(assignment.value.id.toString()))
     );
 
+  const db2ls_anns = annotationApi.convert_db2ls(annotations, assignment.value.id);
   if (annotations.length) {
     ls_annotations.splice(0) &&
-      ls_annotations.push(
-        ...annotationApi.convert_db2ls(annotations, assignment.value.id)
-      );
+      ls_annotations.push(...db2ls_anns);
   }
 
   initLS();
