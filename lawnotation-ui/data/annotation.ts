@@ -1,100 +1,132 @@
 export type Annotation = {
-    id: number,
-    assignment_id: number,
-    start_index: number,
-    end_index: number,
-    text: string,
-    origin: string,
-    ls_id: string,
-    label: string[]
+  id: number,
+  assignment_id: number,
+  start_index: number,
+  end_index: number,
+  text: string,
+  origin: string,
+  ls_id: string,
+  label: string
 }
+
+export type LSSerializedAnnotation = {
+  id: string,
+  from_name: string,
+  to_name: string,
+  origin: string,
+  type: string,
+  value: {
+    start: number,
+    end: number,
+    text: string,
+    labels: string[]
+  }
+}[];
   
 export const useAnnotationApi = () => {
-    const supabase = useSupabaseClient();
+  const supabase = useSupabaseClient();
 
-    const convert_ls2db = (anns: any[], assignment_id: number): Annotation[] => {
-        console.log(anns)
-        return anns.map(a => {
-            return {
-                ls_id: a.id,
-                origin: a.origin,
-                start_index: a.value.start,
-                end_index: a.value.end,
-                text: a.value.text,
-                label: a.value.labels[0],
-                assignment_id: assignment_id
-            };
-        })
-    }
+  const convert_ls2db = (anns: LSSerializedAnnotation, assignment_id: number): Omit<Annotation, "id">[] => {
+    console.log("ls2db", anns)
+    return anns.map(ann => {
+      return {
+        ls_id: ann.id,
+        origin: ann.origin,
+        start_index: ann.value.start,
+        end_index: ann.value.end,
+        text: ann.value.text,
+        label: ann.value.labels[0],
+        assignment_id: assignment_id
+      };
+    })
+  }
 
-    const convert_db2ls = (anns: Annotation[], assignment_id: number): any => {
-        const arr = anns.map(a => {
-            return {
-                id: a.ls_id,
-                origin: a.origin,
-                from_name: "label",
-                to_name: "text",
-                type: "labels",
-                value: {
-                    start: a.start_index,
-                    end: a.end_index,
-                    text: a.text,
-                    labels: [a.label]
-                }
-            };
-        })
+  const convert_db2ls = (anns: Annotation[], assignment_id: number): LSSerializedAnnotation => {
+    const arr = anns.map(a => {
+      return {
+        id: a.ls_id,
+        origin: a.origin,
+        from_name: "label",
+        to_name: "text",
+        type: "labels",
+        value: {
+          start: a.start_index,
+          end: a.end_index,
+          text: a.text,
+          labels: [a.label]
+        }
+      };
+    })
 
-        return [{ id: assignment_id, result: arr }]
-    }
+    return arr
+  }
+  
+  // Create
+  const createAnnotation = async (fields: Omit<Annotation, 'id'>): Promise<Annotation> => {
+    const { data, error } = await supabase.from("annotations").insert(fields).select().single();
+    if (error)
+      throw Error(`Error in createAnnotation: ${error.message}`)
+    else
+      return data as Annotation;
+  };
+  
+  // Read
+  const findAnnotation = async (id: string): Promise<Annotation>   => {
+    const { data, error } = await supabase.from("annotations").select().eq("id", id).single();
+  
+    if (error)
+      throw Error(`Error in findAnnotation: ${error.message}`)
+    else
+      return data as Annotation
+  };
+  
+  // Read all
+  const findAnnotations = async (assignment_id: string): Promise<Annotation[]> => {
+    const { data, error } = await supabase.from("annotations").select().eq("assignment_id", assignment_id);
     
-    // Create
-    const createAnnotation = async (fields: Omit<Annotation, 'id'>): Promise<Annotation> => {
-      const { data, error } = await supabase.from("annotations").insert(fields).select().single();
-      if (error)
-        throw Error(`Error in createAnnotation: ${error.message}`)
-      else
-        return data as Annotation;
-    };
+    if (error)
+      throw Error(`Error in findAnnotation: ${error.message}`)
+    else
+      return data as Annotation[]
+  };
   
-    // Read
-    const findAnnotation = async (id: string): Promise<Annotation>   => {
-      const { data, error } = await supabase.from("annotations").select().eq("id", id).single();
+  // Update
+  const updateAnnotation = async (id: string, fields: Partial<Annotation>): Promise<boolean> => {
+    const { data, error } = await supabase.from("annotations").update(fields).eq("id", id);
+    
+    if (error)
+      throw Error(`Error in updateAnnotation: ${error.message}`)
+    else
+      return true;
+  };
   
-      if (error)
-        throw Error(`Error in findAnnotation: ${error.message}`)
-      else
-        return data as Annotation
-    };
+  // Update
+  const updateAssignmentAnnotations = async (assignment_id: number, annotations: Omit<Annotation, "id">[]): Promise<Annotation[] | null> => {
+    const query_delete = await supabase.from("annotations").delete().eq("assignment_id", assignment_id);
+
+    if (query_delete.error)
+      throw Error(`Unable to delete annotations on update: ${query_delete.error.message}`)
+    const query_insert = await supabase.from("annotations").insert(annotations).select();
+    if (query_insert.error)
+      throw Error(`Unable to insert annotations on update: ${query_insert.error.message}`)
+
+    annotations.push(...query_insert.data);
+    console.log("updated annotations: ", query_insert.data);
+
+    return query_insert.data;
+    // TODO: touch assignment
+    
+  };
   
-    // Read all
-    const findAnnotations = async (assignment_id: string): Promise<Annotation[]> => {
-      const { data, error } = await supabase.from("annotations").select().eq("assignment_id", assignment_id);
-      
-      if (error)
-        throw Error(`Error in findAnnotation: ${error.message}`)
-      else
-        return data as Annotation[]
-    };
+  // Delete
+  const deleteAnnotation = async (id: string) => {
+    const { data, error } = await supabase.from("annotations").delete().eq("id", id);
   
-    // Update
-    const updateAnnotation = async (id: string, fields: Partial<Annotation>): Promise<boolean> => {
-      const { data, error } = await supabase.from("annotations").update(fields).eq("id", id);
-      
-      if (error)
-        throw Error(`Error in updateAnnotation: ${error.message}`)
-      else
-        return true;
-    };
+    if (error)
+      throw Error(`Error in deleteAnnotation: ${error.message}`)
+    else
+      return true;
+  };
   
-    // Update
-    const deleteAnnotation = async (id: string) => {
-      const { data, error } = await supabase.from("annotations").delete().eq("id", id);
-  
-      if (error)
-        throw Error(`Error in deleteAnnotation: ${error.message}`)
-      else
-        return true;
-    };
-  
-    return {createAnnotation, findAnnotation, findAnnotations, updateAnnotation, deleteAnnotation, convert_ls2db, convert_db2ls}
+  return {createAnnotation, findAnnotation, findAnnotations, updateAnnotation, updateAssignmentAnnotations, deleteAnnotation, convert_ls2db, convert_db2ls}
 }
