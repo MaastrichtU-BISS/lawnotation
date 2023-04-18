@@ -4,8 +4,6 @@ export type Document = {
   project_id: string,
   source: string,
   full_text: string | undefined,
-  editor_id: string | undefined,
-  editor_email: string | undefined
 }
 
 export const useDocumentApi = () => {

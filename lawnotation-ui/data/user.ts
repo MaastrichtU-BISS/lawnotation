@@ -11,12 +11,13 @@ export const useUserApi = () => {
 
     // const { data, error } = await supabase.auth.admin.inviteUserByEmail(email)
 
-        const { data, error } = await supabase.auth.signInWithOtp({
-          email: email,
-          options: {
-            emailRedirectTo: redirectTo
-          }
-        })
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email: email,
+      options: {
+        emailRedirectTo: redirectTo
+      }
+    })
+
     if (error)
         throw Error(`Error in inviteUser: ${error.message}`)
       else

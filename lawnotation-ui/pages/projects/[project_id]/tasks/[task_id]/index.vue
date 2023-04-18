@@ -58,24 +58,39 @@ const createAssignment = async () => {
     number_of_docs.value
   );
 
-  docs.map((doc, index) => {
-    const new_assignment: Omit<Assignment, "id"> = {
+  var new_assignments: Omit<Assignment, "id" | "annotator_id">[] = [];
+
+  docs.map((doc) => {
+    const new_assignment: Omit<Assignment, "id" | "annotator_id"> = {
       task_id: task.value?.id,
       document_id: doc.id,
-      editor_email: user.value?.email,
-      editor_id: user.value?.id,
-      annotator_email: email.value,
     };
-    assignmentApi.createAssignment(new_assignment).then((_assignment) => {
-      assignments.push(_assignment);
-      if (index === 0) {
-        userApi.inviteUser(
-          email.value,
-          `http://localhost:3000/assignments/${_assignment.id}`
-        );
-      }
-    });
+    new_assignments.push(new_assignment);
   });
+
+  const created_assignments: Assignment[] = await assignmentApi.createAssignments(
+    new_assignments
+  );
+
+  console.log(created_assignments);
+
+  userApi
+    .inviteUser(
+      email.value,
+      `http://localhost:3000/assignments/${created_assignments[0].id}`
+    )
+    .then((_user) => {
+      console.log(_user);
+
+      created_assignments.map((ca) => {
+        var new_ca = ca;
+        new_ca.annotator_id = _user.id;
+        console.log(new_ca);
+        assignmentApi.updateAssignment(new_ca.id.toString(), new_ca);
+      });
+
+      assignments.push(...created_assignments);
+    });
 };
 
 onMounted(() => {

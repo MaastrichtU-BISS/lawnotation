@@ -13,7 +13,6 @@ export type Annotation = {
     const supabase = useSupabaseClient();
 
     const convert_ls2db = (anns: any[], assignment_id: number): Annotation[] => {
-        console.log(anns)
         return anns.map(a => {
             return {
                 ls_id: a.id,

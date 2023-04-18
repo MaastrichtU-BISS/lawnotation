@@ -4,21 +4,27 @@ export type Assignment = {
     annotator_id: string,
     task_id: number | undefined,
     document_id: number
-    annotator_email: string | undefined,
-    editor_id: string | undefined,
-    editor_email: string | undefined,
   }
   
   export const useAssignmentApi = () => {
     const supabase = useSupabaseClient();
     
     // Create
-    const createAssignment = async (fields: Omit<Assignment, 'id' | 'annotator_id'>): Promise<Assignment> => {
+    const createAssignment = async (fields: Omit<Assignment, 'id'>): Promise<Assignment> => {
       const { data, error } = await supabase.from("assignments").insert(fields).select().single();
       if (error)
         throw Error(`Error in createAssignment: ${error.message}`)
       else
         return data as Assignment;
+    };
+
+    // Create
+    const createAssignments = async (fields: Omit<Assignment[], 'id' | "annotator_id">): Promise<Assignment[]> => {
+      const { data, error } = await supabase.from("assignments").insert(fields).select();
+      if (error)
+        throw Error(`Error in createAssignments: ${error.message}`)
+      else
+        return data as Assignment[];
     };
   
     // Read
@@ -61,5 +67,5 @@ export type Assignment = {
         return true;
     };
   
-    return {createAssignment, findAssignment, findAssignments, updateAssignment, deleteAssignment}
+    return {createAssignment, createAssignments, findAssignment, findAssignments, updateAssignment, deleteAssignment}
   }

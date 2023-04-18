@@ -66,8 +66,6 @@ const new_task = reactive<Omit<Task, "id">>({
   desc: "",
   label_id: 1,
   project_id: 0,
-  editor_id: "",
-  editor_email: "",
 });
 
 const change_file = (event: Event) => {
@@ -80,8 +78,6 @@ const change_file = (event: Event) => {
           source: "local_upload",
           full_text: reader.result?.toString(),
           project_id: route.params.project_id.toString(),
-          editor_id: user.value?.id,
-          editor_email: user.value?.email,
         })
         .then((doc) => {
           documents.push(doc);
@@ -100,8 +96,6 @@ const createTask = () => {
     alert("desc required");
     return;
   }
-  new_task.editor_email = user.value?.email;
-  new_task.editor_id = user.value?.id;
   taskApi.createTask(new_task).then((task) => {
     tasks.push(task);
   });

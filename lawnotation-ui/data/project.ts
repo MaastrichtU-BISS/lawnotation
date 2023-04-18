@@ -3,8 +3,7 @@ export type Project = {
   id: number,
   name: string,
   desc: string,
-  editor_id: string | undefined,
-  editor_email: string | undefined
+  editor_id: string | undefined
 }
 
 export const useProjectApi = () => {
