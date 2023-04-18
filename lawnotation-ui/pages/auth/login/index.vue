@@ -11,39 +11,24 @@
           class="border"
         />
       </div>
-      <div class="my-1">
-        <label for="password" class="pr-2">password</label>
-        <input
-          v-model="password"
-          type="password"
-          name="password"
-          autocomplete="new-password"
-          class="border"
-        />
-      </div>
       <div class="my-2">
         <button class="btn-primary rounded-full" @click="signIn()">Log In</button>
-        <div>or</div>
-        <NuxtLink to="/auth/signup">Sign Up</NuxtLink>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-const supabase = useSupabaseClient();
+import { User, useUserApi } from "~/data/user";
+const userApi = useUserApi();
 
 const email = ref<string>("");
-const password = ref<string>("");
 
 const signIn = () => {
-  if (email.value?.length == 0 || password.value?.length == 0) {
+  if (email.value?.length == 0) {
     alert("params required");
     return;
   }
-  supabase.auth
-    .signInWithPassword({ email: email.value, password: password.value })
-    .then((user_session) => {
-      navigateTo("/");
-    });
+
+  userApi.inviteUser(email.value, "/projects");
 };
 </script>
