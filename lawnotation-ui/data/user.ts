@@ -38,8 +38,7 @@ export const useUserApi = () => {
       method: 'POST',
       body: JSON.stringify({ email: email, options: { emailRedirectTo: redirectTo }})
     })
-
-    console.log(user);
+    
     return user;
 
   }

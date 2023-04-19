@@ -11,7 +11,6 @@ import { Task, useTaskApi } from "~/data/task";
 import { Label, useLabelApi } from "~/data/label";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 
-
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 const assignmentApi = useAssignmentApi();
@@ -32,23 +31,7 @@ const ls_annotations = reactive<LSSerializedAnnotation>([]);
 
 const labels = reactive<{ name: string; color: string }[]>([]);
 const label_studio = ref();
-/*
-const updateAnnotation = async (id: number, ser_ann: LSSerializedAnnotation) => {
-  console.log("serialized annotation", ser_ann)
-  return;
 
-  const { data, error } = await supabase
-    .from("annotations")
-    .update({ result: new_ann })
-    .eq("id", id);
-  if (error) {
-    console.log("ERROR: ", error);
-  }
-  if (data) {
-    console.log("ANNOTATION: ", data);
-  }
-};
-*/
 const initLS = async () => {
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
 
@@ -104,7 +87,7 @@ const initLS = async () => {
       // lastName: "Dean",
     },
     task: {
-      annotations: [{result: ls_annotations}],
+      annotations: ls_annotations.length ? [{ result: ls_annotations }] : [],
       // predictions: this.predictions,
       data: {
         text: documment.value?.full_text,
@@ -120,25 +103,29 @@ const initLS = async () => {
         LS.annotationStore.selectAnnotation(c.id);
       }
     },
-    onSubmitAnnotation: (LS: any, { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }) => {
-      if (!assignment.value)
-        return;
-      
-      const db_anns = annotationApi.convert_ls2db(
-        serializeAnnotation(),
-        assignment.value.id
-      );
-      annotationApi.updateAssignmentAnnotations(assignment.value.id, db_anns)
-    },
-    onUpdateAnnotation: (LS: any, { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }) => {
-      if (!assignment.value)
-        return;
+    onSubmitAnnotation: (
+      LS: any,
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+    ) => {
+      if (!assignment.value) return;
 
       const db_anns = annotationApi.convert_ls2db(
         serializeAnnotation(),
         assignment.value.id
       );
-      annotationApi.updateAssignmentAnnotations(assignment.value.id, db_anns)
+      annotationApi.updateAssignmentAnnotations(assignment.value.id, db_anns);
+    },
+    onUpdateAnnotation: (
+      LS: any,
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+    ) => {
+      if (!assignment.value) return;
+
+      const db_anns = annotationApi.convert_ls2db(
+        serializeAnnotation(),
+        assignment.value.id
+      );
+      annotationApi.updateAssignmentAnnotations(assignment.value.id, db_anns);
     },
   });
 };
@@ -147,17 +134,14 @@ const loadData = async () => {
   assignment.value = await assignmentApi.findAssignment(
     route.params.assignment_id.toString()
   );
-  if (!assignment.value)
-    throw Error("Assignment not found")
+  if (!assignment.value) throw Error("Assignment not found");
 
   documment.value = await documentApi.findDocument(
     assignment.value.document_id.toString()
   );
-  if (!documment.value)
-    throw Error("Document not found")
+  if (!documment.value) throw Error("Document not found");
 
-  if (!assignment.value.task_id)
-    throw Error("Document not found")
+  if (!assignment.value.task_id) throw Error("Document not found");
   task.value = await taskApi.findTask(assignment.value.task_id?.toString());
 
   const _labels: Label = await labelApi.findLabel(task.value.label_id.toString());
@@ -176,14 +160,14 @@ const loadData = async () => {
 
   const db2ls_anns = annotationApi.convert_db2ls(annotations, assignment.value.id);
   if (annotations.length) {
-    ls_annotations.splice(0) &&
-      ls_annotations.push(...db2ls_anns);
+    ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
   }
 
   initLS();
 };
 
 onMounted(() => {
+  console.log("ZZZ", user.value?.id);
   loadData();
 });
 

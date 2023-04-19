@@ -11,14 +11,12 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     const editor_id = (await supabase.from("projects").select('editor_id').eq('id', project_id).single()).data?.editor_id;
 
     // Is the anotator of the assignment or the owner of the project
-    console.log(user.value?.id)
-    console.log(assignment.annotator_id)
-    console.log(editor_id)
+    console.log('XX',user.value?.id)
     if(user.value?.id == assignment.annotator_id || user.value?.id == editor_id) {
-        console.log('yes')
+        // console.log('yes')
     }
     else {
-        console.log('no')
+        // console.log('no')
         // abortNavigation();
         return navigateTo("/")
     }
