@@ -6,6 +6,17 @@ export type User = {
 
 export const useUserApi = () => {
   const supabase = useSupabaseClient();
+
+  const findByEmail = async (email: string): Promise<any> => {
+
+    const { data, error } = await supabase.from("users").select("id").eq("email", email).single();
+
+    if (error)
+        throw Error(`Error in inviteUser: ${error.message}`)
+      else
+        return data;
+  }
+
   
   const inviteUser = async (email: string, redirectTo: string): Promise<any> => {
 
@@ -25,5 +36,5 @@ export const useUserApi = () => {
   }
 
 
-  return { inviteUser }
+  return { inviteUser, findByEmail }
 }

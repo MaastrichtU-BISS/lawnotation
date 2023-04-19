@@ -5,6 +5,7 @@ export type Task = {
     desc: string,
     project_id: number,
     label_id: number,
+    ann_guidelines: string
   }
   
   export const useTaskApi = () => {

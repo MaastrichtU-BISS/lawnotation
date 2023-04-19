@@ -80,16 +80,15 @@ const createAssignment = async () => {
       `http://localhost:3000/assignments/${created_assignments[0].id}`
     )
     .then((_user) => {
-      console.log(_user);
+      userApi.findByEmail(email.value).then((annotator) => {
+        created_assignments.map((ca) => {
+          var new_ca = ca;
+          new_ca.annotator_id = annotator.id;
+          assignmentApi.updateAssignment(new_ca.id.toString(), new_ca);
+        });
 
-      created_assignments.map((ca) => {
-        var new_ca = ca;
-        new_ca.annotator_id = _user.id;
-        console.log(new_ca);
-        assignmentApi.updateAssignment(new_ca.id.toString(), new_ca);
+        assignments.push(...created_assignments);
       });
-
-      assignments.push(...created_assignments);
     });
 };
 

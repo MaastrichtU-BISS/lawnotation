@@ -39,6 +39,10 @@
       <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
         <input type="text" placeholder="Task name" v-model="new_task.name" />
         <textarea placeholder="Task description" v-model="new_task.desc"></textarea>
+        <textarea
+          placeholder="Annotation Guidelines"
+          v-model="new_task.ann_guidelines"
+        ></textarea>
         <label for="label_id">Labels Id</label>
         <input type="number" name="" id="label_id" v-model="new_task.label_id" />
         <button class="btn-primary" @click="createTask">Create Tasks</button>
@@ -64,6 +68,7 @@ const tasks = reactive<Task[]>([]);
 const new_task = reactive<Omit<Task, "id">>({
   name: "",
   desc: "",
+  ann_guidelines: "",
   label_id: 1,
   project_id: 0,
 });

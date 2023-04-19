@@ -33,7 +33,6 @@ const new_project = reactive<Omit<Project, "id">>({
   name: "",
   desc: "",
   editor_id: "",
-  editor_email: "",
 });
 
 onMounted(() => {
@@ -55,7 +54,6 @@ const loadProjects = () => {
 
 const createNewProject = () => {
   new_project.editor_id = user.value?.id;
-  new_project.editor_email = user.value?.email;
   projectApi.createProject(new_project).then((project) => {
     projects.push(project);
   });
