@@ -20,19 +20,23 @@ export const useUserApi = () => {
   
   const inviteUser = async (email: string, redirectTo: string): Promise<any> => {
 
-    // const { data, error } = await supabase.auth.admin.inviteUserByEmail(email)
-
-    const { data, error } = await supabase.auth.signInWithOtp({
-      email: email,
-      options: {
-        emailRedirectTo: redirectTo
-      }
+    // const { data, error } = await client.auth.admin.inviteUserByEmail(email)
+    const user = await $fetch('/api/user/invite', {
+      method: 'POST',
+      body: JSON.stringify(email)
     })
 
-    if (error)
-        throw Error(`Error in inviteUser: ${error.message}`)
-      else
-        return data;
+    // const { data, error } = await supabase.auth.signInWithOtp({
+    //   email: email,
+    //   options: {
+    //     emailRedirectTo: redirectTo
+    //   }
+    // })
+
+    // if (error)
+    //     throw Error(`Error in inviteUser: ${error.message}`)
+    //   else
+    //     return data;
   }
 
 
