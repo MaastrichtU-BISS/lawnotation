@@ -7,6 +7,20 @@ export type User = {
 export const useUserApi = () => {
   const supabase = useSupabaseClient();
 
+  const otpLogin = async (email: string, redirectTo: string): Promise<any> => {
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email: email,
+      options: {
+        emailRedirectTo: redirectTo
+      }
+    })
+
+    if (error)
+        throw Error(`Error in inviteUser: ${error.message}`)
+      else
+        return data;
+  }
+
   const findByEmail = async (email: string): Promise<any> => {
 
     const { data, error } = await supabase.from("users").select("id").eq("email", email).single();
@@ -20,25 +34,16 @@ export const useUserApi = () => {
   
   const inviteUser = async (email: string, redirectTo: string): Promise<any> => {
 
-    // const { data, error } = await client.auth.admin.inviteUserByEmail(email)
     const user = await $fetch('/api/user/invite', {
       method: 'POST',
-      body: JSON.stringify(email)
+      body: JSON.stringify({ email: email, options: { emailRedirectTo: redirectTo }})
     })
 
-    // const { data, error } = await supabase.auth.signInWithOtp({
-    //   email: email,
-    //   options: {
-    //     emailRedirectTo: redirectTo
-    //   }
-    // })
+    console.log(user);
+    return user;
 
-    // if (error)
-    //     throw Error(`Error in inviteUser: ${error.message}`)
-    //   else
-    //     return data;
   }
 
 
-  return { inviteUser, findByEmail }
+  return { inviteUser, findByEmail, otpLogin }
 }

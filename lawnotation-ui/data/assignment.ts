@@ -38,8 +38,17 @@ export type Assignment = {
     };
   
     // Read all
-    const findAssignments = async (task_id: string): Promise<Assignment[]> => {
+    const findAssignmentsByTask = async (task_id: string): Promise<Assignment[]> => {
       const { data, error } = await supabase.from("assignments").select().eq("task_id", task_id);
+      
+      if (error)
+        throw Error(`Error in findAssignment: ${error.message}`)
+      else
+        return data as Assignment[]
+    };
+
+    const findAssignmentsByUser = async (annotator_id: string): Promise<Assignment[]> => {
+      const { data, error } = await supabase.from("assignments").select().eq("annotator_id", annotator_id);
       
       if (error)
         throw Error(`Error in findAssignment: ${error.message}`)
@@ -67,5 +76,5 @@ export type Assignment = {
         return true;
     };
   
-    return {createAssignment, createAssignments, findAssignment, findAssignments, updateAssignment, deleteAssignment}
+    return {createAssignment, createAssignments, findAssignment, findAssignmentsByTask, findAssignmentsByUser, updateAssignment, deleteAssignment}
   }

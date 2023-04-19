@@ -75,7 +75,7 @@ const createAssignment = async () => {
   console.log(created_assignments);
 
   userApi
-    .inviteUser(
+    .otpLogin(
       email.value,
       `http://localhost:3000/assignments/${created_assignments[0].id}`
     )
@@ -95,7 +95,7 @@ const createAssignment = async () => {
 onMounted(() => {
   taskApi.findTask(route.params.task_id.toString()).then((_task) => {
     task.value = _task;
-    assignmentApi.findAssignments(_task.id.toString()).then((_assignments) => {
+    assignmentApi.findAssignmentsByTask(_task.id.toString()).then((_assignments) => {
       assignments.splice(0) && assignments.push(..._assignments);
     });
   });

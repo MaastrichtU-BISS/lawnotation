@@ -29,6 +29,6 @@ const signIn = () => {
     return;
   }
 
-  userApi.inviteUser(email.value, "/projects");
+  userApi.otpLogin(email.value, "/projects");
 };
 </script>
