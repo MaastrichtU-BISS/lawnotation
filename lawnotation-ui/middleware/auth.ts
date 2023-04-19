@@ -4,12 +4,12 @@ export default defineNuxtRouteMiddleware((to, from) => {
     const supabase = useSupabaseClient();
     
     if(user.value == null) { 
-        abortNavigation();
+        // abortNavigation();
         return navigateTo('/');
     }
 
     supabase.auth.onAuthStateChange((event, session) => {
-        console.log(event, session)
+        console.log(event, session, user.value)
         if (event == 'SIGNED_IN') {
             // return navigateTo('/');
         } else if(event == 'SIGNED_OUT') {
