@@ -4,15 +4,15 @@
     <h3>{{ task }}</h3>
     <h3 class="my-3 text-lg font-semibold">Assignments: {{ assignments.length }}</h3>
     <ul
-      v-for="a in assignments"
-      :key="'assignments_' + a.id"
+      v-for="fa in formatted_assignments"
+      :key="'assignments_' + fa.id"
       class="list-disc list-inside"
     >
       <li>
         <span
-          >{{ a.id }}.
-          <NuxtLink :to="`/assignments/${a.id}`">
-            document: {{ a.document_id }}, user: {{ a.annotator_id }}</NuxtLink
+          >{{ fa.id }}.
+          <NuxtLink :to="`/assignments/${fa.id}`">
+            {{ fa.annotator_email }} - {{ fa.document_name }}</NuxtLink
           ></span
         >
       </li>
@@ -44,6 +44,7 @@ const route = useRoute();
 const task = ref<Task>();
 const number_of_docs = ref<number>(100);
 const assignments = reactive<Assignment[]>([]);
+const formatted_assignments = reactive<any[]>([]);
 
 const email = ref("");
 
@@ -80,15 +81,13 @@ const createAssignment = async () => {
       `http://localhost:3000/assignments/${created_assignments[0].id}`
     )
     .then((_user) => {
-      userApi.findByEmail(email.value).then((annotator) => {
-        created_assignments.map((ca) => {
-          var new_ca = ca;
-          new_ca.annotator_id = annotator.id;
-          assignmentApi.updateAssignment(new_ca.id.toString(), new_ca);
-        });
-
-        assignments.push(...created_assignments);
+      created_assignments.map((ca) => {
+        var new_ca = ca;
+        new_ca.annotator_id = _user.data.id;
+        assignmentApi.updateAssignment(new_ca.id.toString(), new_ca);
       });
+
+      update_assignments_lists(created_assignments);
     });
 };
 
@@ -96,10 +95,22 @@ onMounted(() => {
   taskApi.findTask(route.params.task_id.toString()).then((_task) => {
     task.value = _task;
     assignmentApi.findAssignmentsByTask(_task.id.toString()).then((_assignments) => {
-      assignments.splice(0) && assignments.push(..._assignments);
+      update_assignments_lists(_assignments);
     });
   });
 });
+
+const update_assignments_lists = async (_assignments: Assignment[]): Promise<void> => {
+  _assignments.map(async (a) => {
+    assignments.push(a);
+    const fa = { ...a };
+    const document_name = await documentApi.getName(a.document_id.toString());
+    const annotator_email = await userApi.getEmail(a.annotator_id);
+    fa.document_name = document_name;
+    fa.annotator_email = annotator_email;
+    formatted_assignments.push(fa);
+  });
+};
 
 definePageMeta({
   middleware: ["auth"],

@@ -173,7 +173,7 @@ const loadData = async () => {
 };
 
 onMounted(() => {
-  console.log("ZZZ", user.value?.id);
+  console.log("assignment index:", user.value?.id);
   loadData();
 });
 

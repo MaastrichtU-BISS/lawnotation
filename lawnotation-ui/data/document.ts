@@ -46,6 +46,16 @@ export const useDocumentApi = () => {
     else
       return data as Document[]
   };
+
+  const getName = async (id: string): Promise<any> => {
+
+    const { data, error } = await supabase.from("documents").select("name").eq("id", id).single();
+
+    if (error)
+        throw Error(`Error in inviteUser: ${error.message}`)
+      else
+        return data.name;
+  }
    
 
   // Update
@@ -68,5 +78,5 @@ export const useDocumentApi = () => {
       return true;
   };
 
-  return {createDocument, findDocument, findDocuments, takeUpToNRandomDocuments, updateDocument, deleteDocument}
+  return {createDocument, findDocument, findDocuments, takeUpToNRandomDocuments, updateDocument, deleteDocument, getName}
 }

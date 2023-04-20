@@ -3,11 +3,11 @@ export default defineNuxtRouteMiddleware((to, from) => {
     const user = useSupabaseUser();
     const supabase = useSupabaseClient();
     
-    console.log('YY',user.value?.id)
+    console.log('auth middleware',user.value?.id)
 
     if(user.value == null) { 
         // abortNavigation();
-        return navigateTo('/');
+        // return navigateTo('/');
     }
 
     supabase.auth.onAuthStateChange((event, session) => {
