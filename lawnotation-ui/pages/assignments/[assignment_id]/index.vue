@@ -59,6 +59,7 @@ const initLS = async () => {
                 </View>
               </View>
               `,
+    // description: "Description",
     interfaces: [
       "panel",
       "update",
@@ -67,6 +68,8 @@ const initLS = async () => {
       "controls",
       "infobar",
       "topbar",
+      "topbar:prevnext",
+      // "review",
       "instruction",
       "side-column",
       // "annotations:history",
@@ -102,6 +105,9 @@ const initLS = async () => {
         });
         LS.annotationStore.selectAnnotation(c.id);
       }
+    },
+    onSkipTask() {
+      console.log("skip");
     },
     onSubmitAnnotation: (
       LS: any,
