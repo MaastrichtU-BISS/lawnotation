@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="label-studio-container">
     <div id="label-studio"></div>
   </div>
 </template>
@@ -10,6 +10,8 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 import { Label, useLabelApi } from "~/data/label";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
+import { AssignmentIterator } from "~/data/assignmentsIterator";
+import { initCustomFormatter } from "vue";
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
@@ -22,19 +24,27 @@ const annotationApi = useAnnotationApi();
 type Id = number;
 
 const route = useRoute();
-const assignment = ref<Assignment>();
+const current_assignment = ref<Assignment>();
+const assignmentIterator = new AssignmentIterator();
 const task = ref<Task>();
-const documment = ref<Document>();
+const doc = ref<Document>();
 
 const annotations = reactive<Annotation[]>([]);
 const ls_annotations = reactive<LSSerializedAnnotation>([]);
 
 const labels = reactive<{ name: string; color: string }[]>([]);
 const label_studio = ref();
+const isEditor = ref<boolean>();
 
 const initLS = async () => {
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
 
+  var parent = document.getElementById("label-studio-container");
+  var child = document.getElementById("label-studio");
+  parent?.removeChild(child);
+  var new_child = document.createElement("div");
+  new_child.setAttribute("id", "label-studio");
+  parent?.appendChild(new_child);
   label_studio.value = new LabelStudio("label-studio", {
     config: `
               <View style="display: flex;">
@@ -69,7 +79,7 @@ const initLS = async () => {
       "infobar",
       "topbar",
       "topbar:prevnext",
-      // "review",
+      isEditor.value ? "review" : "",
       "instruction",
       "side-column",
       // "annotations:history",
@@ -93,7 +103,7 @@ const initLS = async () => {
       annotations: ls_annotations.length ? [{ result: ls_annotations }] : [],
       // predictions: this.predictions,
       data: {
-        text: documment.value?.full_text,
+        text: doc.value?.full_text,
       },
     },
     onLabelStudioLoad: (LS: any) => {
@@ -107,48 +117,86 @@ const initLS = async () => {
       }
     },
     onSkipTask() {
-      console.log("skip");
+      if (assignmentIterator.moveNext()) {
+        current_assignment.value = assignmentIterator.getCurrent();
+        loadData();
+      } else {
+        alert("All tasks are done: you will be logged out");
+        supabase.auth.signOut();
+      }
+    },
+    onAcceptAnnotation() {
+      if (assignmentIterator.moveNext()) {
+        current_assignment.value = assignmentIterator.getCurrent();
+        loadData();
+      } else {
+        alert("All tasks have been reviewed");
+      }
+    },
+    onRejectAnnotation() {
+      if (assignmentIterator.moveNext()) {
+        current_assignment.value = assignmentIterator.getCurrent();
+        loadData();
+      } else {
+        alert("All tasks have been reviewed");
+      }
     },
     onSubmitAnnotation: (
       LS: any,
       { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
     ) => {
-      if (!assignment.value) return;
+      if (!current_assignment.value) return;
 
       const db_anns = annotationApi.convert_ls2db(
         serializeAnnotation(),
-        assignment.value.id
+        current_assignment.value.id
       );
-      annotationApi.updateAssignmentAnnotations(assignment.value.id, db_anns);
+      annotationApi.updateAssignmentAnnotations(current_assignment.value.id, db_anns);
     },
     onUpdateAnnotation: (
       LS: any,
       { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
     ) => {
-      if (!assignment.value) return;
+      if (!current_assignment.value) return;
 
       const db_anns = annotationApi.convert_ls2db(
         serializeAnnotation(),
-        assignment.value.id
+        current_assignment.value.id
       );
-      annotationApi.updateAssignmentAnnotations(assignment.value.id, db_anns);
+      annotationApi.updateAssignmentAnnotations(current_assignment.value.id, db_anns);
     },
   });
 };
 
-const loadData = async () => {
-  assignment.value = await assignmentApi.findAssignment(
+const initAssignmentsIterator = async () => {
+  const first_assignment = await assignmentApi.findAssignment(
     route.params.assignment_id.toString()
   );
-  if (!assignment.value) throw Error("Assignment not found");
 
-  documment.value = await documentApi.findDocument(
-    assignment.value.document_id.toString()
+  isEditor.value = user.value?.id != first_assignment?.annotator_id;
+
+  console.log("1", user.value?.id);
+  console.log("2", first_assignment?.annotator_id);
+  console.log("3", isEditor.value);
+
+  await assignmentIterator.loadAssignments(
+    first_assignment.annotator_id,
+    first_assignment.task_id
   );
-  if (!documment.value) throw Error("Document not found");
+};
 
-  if (!assignment.value.task_id) throw Error("Document not found");
-  task.value = await taskApi.findTask(assignment.value.task_id?.toString());
+const loadData = async () => {
+  current_assignment.value = assignmentIterator.getCurrent();
+
+  if (!current_assignment.value) throw Error("Assignment not found");
+
+  doc.value = await documentApi.findDocument(
+    current_assignment.value.document_id.toString()
+  );
+  if (!doc.value) throw Error("Document not found");
+
+  if (!current_assignment.value.task_id) throw Error("Document not found");
+  task.value = await taskApi.findTask(current_assignment.value.task_id?.toString());
 
   const _labels: Label = await labelApi.findLabel(task.value.label_id.toString());
 
@@ -161,10 +209,13 @@ const loadData = async () => {
 
   annotations.splice(0) &&
     annotations.push(
-      ...(await annotationApi.findAnnotations(assignment.value.id.toString()))
+      ...(await annotationApi.findAnnotations(current_assignment.value.id.toString()))
     );
 
-  const db2ls_anns = annotationApi.convert_db2ls(annotations, assignment.value.id);
+  const db2ls_anns = annotationApi.convert_db2ls(
+    annotations,
+    current_assignment.value.id
+  );
   if (annotations.length) {
     ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
   }
@@ -173,8 +224,9 @@ const loadData = async () => {
 };
 
 onMounted(() => {
-  console.log("assignment index:", user.value?.id);
-  loadData();
+  initAssignmentsIterator().then((res) => {
+    loadData();
+  });
 });
 
 definePageMeta({

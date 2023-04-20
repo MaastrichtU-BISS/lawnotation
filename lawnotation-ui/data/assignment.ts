@@ -55,6 +55,15 @@ export type Assignment = {
       else
         return data as Assignment[]
     };
+
+    const findAssignmentsByUserAndTask = async (annotator_id: string, task_id: number): Promise<Assignment[]> => {
+      const { data, error } = await supabase.from("assignments").select().eq("annotator_id", annotator_id).eq("task_id", task_id);
+      
+      if (error)
+        throw Error(`Error in findAssignment: ${error.message}`)
+      else
+        return data as Assignment[]
+    };
   
     // Update
     const updateAssignment = async (id: string, fields: Partial<Assignment>): Promise<boolean> => {
@@ -76,5 +85,5 @@ export type Assignment = {
         return true;
     };
   
-    return {createAssignment, createAssignments, findAssignment, findAssignmentsByTask, findAssignmentsByUser, updateAssignment, deleteAssignment}
+    return {createAssignment, createAssignments, findAssignment, findAssignmentsByTask, findAssignmentsByUser, updateAssignment, deleteAssignment, findAssignmentsByUserAndTask}
   }

@@ -13,7 +13,7 @@ const user = useSupabaseUser();
         <NuxtLink to="/projects">Projects</NuxtLink>
       </div>
       <div>
-        <NuxtLink to="/assignments">Assignments</NuxtLink>
+        <!-- <NuxtLink to="/assignments">Assignments</NuxtLink> -->
       </div></template
     >
     <div class="auth">
