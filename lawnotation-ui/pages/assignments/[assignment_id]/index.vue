@@ -8,7 +8,7 @@ import "@heartexlabs/label-studio/build/static/css/main.css";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
-import { Label, useLabelApi } from "~/data/label";
+import { Labelset, useLabelsetApi } from "~/data/labelset.js";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 import { AssignmentIterator } from "~/data/assignmentsIterator";
 import { initCustomFormatter } from "vue";
@@ -18,7 +18,7 @@ const user = useSupabaseUser();
 const assignmentApi = useAssignmentApi();
 const documentApi = useDocumentApi();
 const taskApi = useTaskApi();
-const labelApi = useLabelApi();
+const labelsetApi = useLabelsetApi();
 const annotationApi = useAnnotationApi();
 
 type Id = number;
