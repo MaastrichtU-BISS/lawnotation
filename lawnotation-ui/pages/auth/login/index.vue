@@ -20,6 +20,7 @@
 <script setup lang="ts">
 import { User, useUserApi } from "~/data/user";
 const userApi = useUserApi();
+const config = useRuntimeConfig();
 
 const email = ref<string>("");
 
@@ -29,6 +30,6 @@ const signIn = () => {
     return;
   }
 
-  userApi.otpLogin(email.value, "/projects");
+  userApi.otpLogin(email.value, `${config.public.baseURL}/projects`);
 };
 </script>
