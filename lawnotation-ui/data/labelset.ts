@@ -10,7 +10,7 @@ export const useLabelsetApi = () => {
   
   // Create
   const createLabelset = async (fields: Omit<Labelset, 'id'>): Promise<Labelset> => {
-    const { data, error } = await supabase.from("labelset").insert(fields).select().single();
+    const { data, error } = await supabase.from("labelsets").insert(fields).select().single();
     if (error)
       throw Error(`Error in createLabelset: ${error.message}`)
     else
@@ -19,7 +19,7 @@ export const useLabelsetApi = () => {
 
   // Read
   const findLabelset = async (id: Labelset['id']): Promise<Labelset>   => {
-    const { data, error } = await supabase.from("labelset").select().eq("id", id).single();
+    const { data, error } = await supabase.from("labelsets").select().eq("id", id).single();
 
     if (error)
       throw Error(`Error in findLabelset: ${error.message}`)
@@ -29,7 +29,7 @@ export const useLabelsetApi = () => {
 
   // Read
   const findLabelsets = async (): Promise<Labelset[]>   => {
-    const { data, error } = await supabase.from("labelset").select();
+    const { data, error } = await supabase.from("labelsets").select();
 
     if (error)
       throw Error(`Error in findLabelset: ${error.message}`)
@@ -39,7 +39,7 @@ export const useLabelsetApi = () => {
 
   // Update
   const updateLabelset = async (id: string, fields: Partial<Labelset>): Promise<boolean> => {
-    const { data, error } = await supabase.from("labelset").update(fields).eq("id", id);
+    const { data, error } = await supabase.from("labelsets").update(fields).eq("id", id);
     
     if (error)
       throw Error(`Error in updateLabelset: ${error.message}`)
@@ -49,7 +49,7 @@ export const useLabelsetApi = () => {
 
   // Update
   const deleteLabelset = async (id: Labelset['id']) => {
-    const { data, error } = await supabase.from("labelset").delete().eq("id", id);
+    const { data, error } = await supabase.from("labelsets").delete().eq("id", id);
 
     if (error)
       throw Error(`Error in deleteLabelset: ${error.message}`)
