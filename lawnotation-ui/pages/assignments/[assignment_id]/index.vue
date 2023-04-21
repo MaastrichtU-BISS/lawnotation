@@ -11,7 +11,6 @@ import { Task, useTaskApi } from "~/data/task";
 import { Labelset, useLabelsetApi } from "~/data/labelset.js";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 import { AssignmentIterator } from "~/data/assignmentsIterator";
-import { initCustomFormatter } from "vue";
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();

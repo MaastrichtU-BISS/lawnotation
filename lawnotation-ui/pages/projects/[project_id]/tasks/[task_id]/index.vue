@@ -34,6 +34,8 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { User, useUserApi } from "~/data/user";
 
+const config = useRuntimeConfig();
+
 const user = useSupabaseUser();
 const taskApi = useTaskApi();
 const documentApi = useDocumentApi();
@@ -76,10 +78,7 @@ const createAssignment = async () => {
   console.log(created_assignments);
 
   userApi
-    .otpLogin(
-      email.value,
-      `http://localhost:3000/assignments/${created_assignments[0].id}`
-    )
+    .otpLogin(email.value, `${config.public.baseURL}/${created_assignments[0].id}`)
     .then((_user) => {
       created_assignments.map((ca) => {
         var new_ca = ca;
@@ -90,15 +89,6 @@ const createAssignment = async () => {
       update_assignments_lists(created_assignments);
     });
 };
-
-onMounted(() => {
-  taskApi.findTask(route.params.task_id.toString()).then((_task) => {
-    task.value = _task;
-    assignmentApi.findAssignmentsByTask(_task.id.toString()).then((_assignments) => {
-      update_assignments_lists(_assignments);
-    });
-  });
-});
 
 const update_assignments_lists = async (_assignments: Assignment[]): Promise<void> => {
   _assignments.map(async (a) => {
@@ -111,6 +101,15 @@ const update_assignments_lists = async (_assignments: Assignment[]): Promise<voi
     formatted_assignments.push(fa);
   });
 };
+
+onMounted(() => {
+  taskApi.findTask(route.params.task_id.toString()).then((_task) => {
+    task.value = _task;
+    assignmentApi.findAssignmentsByTask(_task.id.toString()).then((_assignments) => {
+      update_assignments_lists(_assignments);
+    });
+  });
+});
 
 definePageMeta({
   middleware: ["auth"],
