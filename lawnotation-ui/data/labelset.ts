@@ -2,7 +2,7 @@ export type Labelset = {
   id: string,
   name: string,
   desc: string,
-  data: []
+  labels: {name: string, color: string}[]
 }
 
 export const useLabelsetApi = () => {

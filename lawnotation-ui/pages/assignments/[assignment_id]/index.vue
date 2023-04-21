@@ -198,11 +198,11 @@ const loadData = async () => {
   if (!current_assignment.value.task_id) throw Error("Document not found");
   task.value = await taskApi.findTask(current_assignment.value.task_id?.toString());
 
-  const _labels: Label = await labelApi.findLabel(task.value.label_id.toString());
+  const _labelset: Labelset = await labelsetApi.findLabelset(task.value.labelset_id.toString());
 
   labels.splice(0) &&
     labels.push(
-      ..._labels.data.map((l) => {
+      ..._labelset.labels.map((l) => {
         return l;
       })
     );

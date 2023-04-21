@@ -4,7 +4,7 @@ export type Task = {
     name: string,
     desc: string,
     project_id: number,
-    label_id: number,
+    labelset_id: number,
     ann_guidelines: string
   }
   

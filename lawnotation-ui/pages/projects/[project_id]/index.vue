@@ -43,8 +43,18 @@
           placeholder="Annotation Guidelines"
           v-model="new_task.ann_guidelines"
         ></textarea>
-        <label for="label_id">Labels Id</label>
-        <input type="number" name="" id="label_id" v-model="new_task.label_id" />
+
+        <label for="label_id">Labelset</label>
+        <div>
+          <select v-model="new_task.labelset_id" class="w-64">
+            <option v-if="labelsets.length = 0">No labelsets</option>
+            <option v-for="labelset of labelsets" :value="labelset.id">"{{  labelset.name }}"</option>
+          </select>
+          <button class="btn-secondary" @click="() => navigateTo('/labelset/new')">Create new labelset</button>
+          <!-- <input type="number" name="" id="label_id" v-model="new_task.label_id" /> -->
+        </div>
+
+
         <button class="btn-primary" @click="createTask">Create Tasks</button>
       </div>
     </div>
@@ -54,6 +64,7 @@
 import { Project, useProjectApi } from "~/data/project";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
+import { Labelset } from "~/data/labelset";
 
 const user = useSupabaseUser();
 const projectApi = useProjectApi();
@@ -65,11 +76,13 @@ const project = ref<Project>();
 const documents = reactive<Document[]>([]);
 const tasks = reactive<Task[]>([]);
 
+const labelsets = reactive<Labelset[]>([]);
+
 const new_task = reactive<Omit<Task, "id">>({
   name: "",
   desc: "",
   ann_guidelines: "",
-  label_id: 1,
+  labelset_id: 1,
   project_id: 0,
 });
 
@@ -117,6 +130,8 @@ onMounted(() => {
       tasks.splice(0) && tasks.push(..._tasks);
     });
   });
+
+  
 });
 
 definePageMeta({
