@@ -47,13 +47,16 @@
         <label for="label_id">Labelset</label>
         <div>
           <select v-model="new_task.labelset_id" class="w-64">
-            <option v-if="labelsets.length = 0">No labelsets</option>
-            <option v-for="labelset of labelsets" :value="labelset.id">"{{  labelset.name }}"</option>
+            <option v-if="(labelsets.length = 0)">No labelsets</option>
+            <option v-for="labelset of labelsets" :value="labelset.id">
+              "{{ labelset.name }}"
+            </option>
           </select>
-          <button class="btn-secondary" @click="() => navigateTo('/labelset/new')">Create new labelset</button>
+          <button class="btn-secondary" @click="() => navigateTo('/labelset/new')">
+            Create new labelset
+          </button>
           <!-- <input type="number" name="" id="label_id" v-model="new_task.label_id" /> -->
         </div>
-
 
         <button class="btn-primary" @click="createTask">Create Tasks</button>
       </div>
@@ -130,8 +133,6 @@ onMounted(() => {
       tasks.splice(0) && tasks.push(..._tasks);
     });
   });
-
-  
 });
 
 definePageMeta({
