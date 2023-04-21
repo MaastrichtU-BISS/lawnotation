@@ -222,7 +222,9 @@ const loadData = async () => {
   initLS();
 };
 
-onMounted(() => {
+onMounted(() => {});
+
+watch(user, () => {
   initAssignmentsIterator().then((res) => {
     loadData();
   });

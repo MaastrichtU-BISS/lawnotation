@@ -1,7 +1,6 @@
 <template>
   <div class="my-4 mx-auto max-w-screen-lg">
     <div v-if="projects_loading">
-      {{ user }}
       <span>Loading projects...</span>
     </div>
     <template v-else>
@@ -36,7 +35,7 @@ const new_project = reactive<Omit<Project, "id">>({
 });
 
 onMounted(() => {
-  loadProjects();
+  // loadProjects();
 });
 
 const loadProjects = () => {
@@ -58,6 +57,12 @@ const createNewProject = () => {
     projects.push(project);
   });
 };
+
+watch(user, () => {
+  if (user.value) {
+    loadProjects();
+  }
+});
 
 definePageMeta({
   middleware: ["auth"],
