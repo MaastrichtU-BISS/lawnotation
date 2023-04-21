@@ -4,12 +4,7 @@
   </div>
 </template>
 <script setup lang="ts">
-const user = useSupabaseUser();
-const config = useRuntimeConfig();
-
-onMounted(() => {
-  console.log(config.public.baseURL);
-});
+onMounted(() => {});
 // definePageMeta({
 //   middleware: ["auth"],
 // });
