@@ -2,7 +2,7 @@
 export default defineNuxtConfig({
   runtimeConfig: {
     public: {
-      baseURL: process.env.NODE_ENV === 'production' ? 'https://lawnotation.vercel.app' : 'https://localhost:3000'
+      baseURL: process.env.NODE_ENV === 'production' ? 'https://lawnotation.vercel.app' : 'http://localhost:3000'
     }
   },
   modules: ['@nuxtjs/supabase'],
