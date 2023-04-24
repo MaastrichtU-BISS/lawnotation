@@ -114,7 +114,6 @@ export const useAnnotationApi = () => {
     console.log("updated annotations: ", query_insert.data);
 
     return query_insert.data;
-    // TODO: touch assignment
     
   };
   

@@ -1,4 +1,10 @@
 <template>
+  <div
+    class="text-center my-4 mx-auto max-w-screen-lg text-lg font-semibo"
+    v-if="loadedData"
+  >
+    {{ assignmentCounts?.done + 1 }} / {{ assignmentCounts?.total }}
+  </div>
   <div>
     <LabelStudio
       v-if="loadedData"
@@ -8,6 +14,8 @@
       :text="doc?.full_text"
       :annotations="ls_annotations"
       :labels="labels"
+      :key="key"
+      @nextAssignment="loadDataAndCount"
     ></LabelStudio>
   </div>
 </template>
@@ -20,6 +28,7 @@ import { Labelset, LsLabel, useLabelsetApi } from "~/data/labelset.js";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 
 const user = useSupabaseUser();
+const supabase = useSupabaseClient();
 const assignmentApi = useAssignmentApi();
 const documentApi = useDocumentApi();
 const taskApi = useTaskApi();
@@ -38,10 +47,13 @@ const annotations = reactive<Annotation[]>([]);
 const ls_annotations = reactive<LSSerializedAnnotation>([]);
 const labels = reactive<LsLabel>([]);
 const isEditor = ref<boolean>();
+const assignmentCounts = ref<{ done: number; total: number; pending: number }>();
+const key = ref("ls-default");
 
 const loadData = async () => {
-  assignment.value = await assignmentApi.findAssignment(
-    route.params.assignment_id.toString()
+  assignment.value = await assignmentApi.findNextAssignmentsByUserAndTask(
+    user.value?.id,
+    route.params.task_id.toString()
   );
 
   if (!assignment.value) throw Error("Assignment not found");
@@ -76,9 +88,28 @@ const loadData = async () => {
   isEditor.value = user.value?.id != assignment.value.annotator_id;
 
   loadedData.value = true;
+  key.value = "ls-" + assignment.value.id;
 };
 
-onMounted(() => {
+const loadCounters = async () => {
+  assignmentCounts.value = await assignmentApi.countAssignmentsByUserAndTask(
+    user.value?.id,
+    route.params.task_id.toString()
+  );
+};
+
+const loadDataAndCount = async () => {
+  assignmentCounts.value.done++;
+  assignmentCounts.value.pending--;
+  if (assignmentCounts.value?.pending == 0) {
+    alert("All tasks were done: you will be signed out");
+    supabase.auth.signOut();
+  }
+  await loadData();
+};
+
+onMounted(async () => {
+  await loadCounters();
   loadData();
 });
 
@@ -87,6 +118,6 @@ watch(user, () => {
 });
 
 definePageMeta({
-  middleware: ["auth", "assignment"],
+  middleware: ["auth"],
 });
 </script>

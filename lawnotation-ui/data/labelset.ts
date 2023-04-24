@@ -5,6 +5,8 @@ export type Labelset = {
   labels: {name: string, color: string}[]
 }
 
+export type LsLabel = { name: string; color: string }[]
+
 export const useLabelsetApi = () => {
   const supabase = useSupabaseClient();
   

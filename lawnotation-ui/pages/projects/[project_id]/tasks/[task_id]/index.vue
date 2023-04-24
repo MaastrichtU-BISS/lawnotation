@@ -75,12 +75,10 @@ const createAssignment = async () => {
     new_assignments
   );
 
-  console.log(created_assignments);
-
   userApi
     .otpLogin(
       email.value,
-      `${config.public.baseURL}/assignments/${created_assignments[0].id}`
+      `${config.public.baseURL}/annotate/${created_assignments[0].task_id}`
     )
     .then((_user) => {
       created_assignments.map((ca) => {
