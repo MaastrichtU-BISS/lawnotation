@@ -19,7 +19,7 @@
         type="file"
         name="data-set"
         id=""
-        accept=".txt"
+        accept=".txt,.pdf"
         multiple
         @change="change_file($event)"
       />
@@ -50,9 +50,11 @@
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
 import { Project, useProjectApi } from "~/data/project";
 import { Document, useDocumentApi } from "~/data/document";
+import TextExtractorFactory from "~/data/TextExtractor";
 import { Task, useTaskApi } from "~/data/task";
 
 const user = useSupabaseUser();
@@ -74,21 +76,24 @@ const new_task = reactive<Omit<Task, "id">>({
 });
 
 const change_file = (event: Event) => {
-  Array.from(event.target.files).forEach((file: File) => {
-    var reader = new FileReader();
-    reader.onload = () => {
+  Array.from(event.target.files).forEach(async (file: File) => {
+    try {
+      const textExtractor = TextExtractorFactory.createTextExtractorForFile(file);
+      const text = await textExtractor.getText();
+
       documentApi
         .createDocument({
           name: file.name,
           source: "local_upload",
-          full_text: reader.result?.toString(),
+          full_text: text,
           project_id: route.params.project_id.toString(),
         })
         .then((doc) => {
           documents.push(doc);
         });
-    };
-    reader.readAsText(file);
+    } catch {
+      (e: Error) => console.error(e);
+    }
   });
 };
 
