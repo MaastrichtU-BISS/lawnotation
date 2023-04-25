@@ -37,16 +37,22 @@ const new_project = reactive<Omit<Project, "id">>({
 });
 
 onMounted(() => {
-  // loadProjects();
+  if (user.value)
+    loadProjects();
+  else {
+    watch(user, () => {
+      if (user.value) {
+        loadProjects();
+      }
+    });
+  }
 });
 
 const loadProjects = () => {
   try {
-    if (!user.value)
-      throw new Error("User is required")
     projects_loading.value = true;
     projectApi
-      .findProjects(user.value.id.toString())
+      .findProjects(user.value!.id.toString())
       .then((_projects) => {
         projects.splice(0) && projects.push(..._projects);
         projects_loading.value = false;
@@ -73,11 +79,7 @@ const createNewProject = () => {
   }
 };
 
-watch(user, () => {
-  if (user.value) {
-    loadProjects();
-  }
-});
+
 
 definePageMeta({
   middleware: ["auth"],
