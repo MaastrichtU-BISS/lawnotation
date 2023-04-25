@@ -19,17 +19,26 @@
 </template>
 <script setup lang="ts">
 import { User, useUserApi } from "~/data/user";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
+
 const userApi = useUserApi();
 const config = useRuntimeConfig();
 
 const email = ref<string>("");
 
 const signIn = () => {
-  if (email.value?.length == 0) {
-    alert("params required");
-    return;
+  try {
+    if (email.value.length == 0) {
+      toast.error("Enter your email")
+      return;
+    }
+  
+    userApi.otpLogin(email.value, `${config.public.baseURL}/projects`);
+  } catch (error) {
+    if (error instanceof Error)
+      toast.error(`Error logging in with OTP: ${error.message}`);
   }
-
-  userApi.otpLogin(email.value, `${config.public.baseURL}/projects`);
 };
 </script>

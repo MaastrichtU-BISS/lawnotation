@@ -37,8 +37,10 @@
   </div>
 </template>
 <script setup lang="ts">
+import { useToast } from "vue-toastification";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
 const route = useRoute();
+const toast = useToast();
 
 const user = useSupabaseUser();
 const labelsetApi = useLabelsetApi();
@@ -83,20 +85,27 @@ const add_label = () => {
     Object.assign(new_label, get_label_default());
   } catch(error) {
     if (error instanceof Error)
-      alert(`add label error: ${error.message}`)
+      toast.error(`Error adding label: ${error.message}`)
   }
 };
 
 const create_new_labelset = async () => {
   try {
-    if (!user.value?.id)
+    if (!user.value)
       throw new Error("Invalid user")
+    if (new_labelset.value.name.trim().length === 0)
+      throw new Error("Name of labelset can not be empty")
+    if (new_labelset.value.desc.trim().length === 0)
+      throw new Error("Description of labelset can not be empty")
+    if (new_labelset.value.labels.length === 0)
+      throw new Error("Labelset should contain atleast one label")
+    
     const create = await labelsetApi.createLabelset({...new_labelset.value, editor_id: user.value.id});
-    alert("Created new labelset");
+    toast.success(`Labelset "${new_labelset.value.name}" created`)
     navigateTo(`/labelset`)
   } catch (error) {
     if (error instanceof Error)
-    alert(`Error creating new labelset: ${error.message}`)
+      toast.error(`Error creating new labelset: ${error.message}`)
   }
 }
 

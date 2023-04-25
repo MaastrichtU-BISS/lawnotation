@@ -18,6 +18,7 @@
   "dependencies": {
     "@heartexlabs/label-studio": "^1.4.0",
     "@nuxtjs/supabase": "^0.3.5",
-    "@supabase/supabase-js": "^2.14.0"
+    "@supabase/supabase-js": "^2.14.0",
+    "vue-toastification": "2.0.0-rc.5"
   }
 }

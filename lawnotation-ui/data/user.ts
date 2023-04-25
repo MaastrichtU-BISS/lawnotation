@@ -1,18 +1,25 @@
+import { AuthError } from "@supabase/supabase-js"
+
 export type User = {
+  id: string,
   email: string,
 }
 
 export const useUserApi = () => {
   const supabase = useSupabaseClient();
 
-  const otpLogin = async (email: string, redirectTo: string): Promise<any> => {
+  const otpLogin = async (email: string, redirectTo: string): Promise<User> => {
 
-    const user = await $fetch('/api/user/signInWithOtp', {
+    const { user, error } = await $fetch<{user: User, error: AuthError}>('/api/user/signInWithOtp', {
       method: 'POST',
       body: JSON.stringify({ email: email, redirectTo: redirectTo })
     })
     
-    return user;
+    if (error)
+      throw Error(`Supabase AuthError: ${error.message}`);
+    else
+      return user;
+
 
     // const { data, error } = await supabase.auth.signInWithOtp({
     //   email: email,

@@ -1,8 +1,8 @@
 
 export type Assignment = {
   id: number,
-  annotator_id: string | undefined,
-  task_id: number | undefined,
+  annotator_id: string,
+  task_id: number,
   document_id: number,
   status: string
 }
@@ -20,7 +20,7 @@ export const useAssignmentApi = () => {
   };
 
   // Create
-  const createAssignments = async (fields: Omit<Assignment[], 'id' | "annotator_id">): Promise<Assignment[]> => {
+  const createAssignments = async (fields: Omit<Assignment, 'id' | "annotator_id" | "status">[]): Promise<Assignment[]> => {
     const { data, error } = await supabase.from("assignments").insert(fields).select();
     if (error)
       throw Error(`Error in createAssignments: ${error.message}`)
@@ -57,7 +57,7 @@ export const useAssignmentApi = () => {
       return data as Assignment[]
   };
 
-  const findNextAssignmentsByUserAndTask = async (annotator_id: string, task_id: number): Promise<Assignment> => {
+  const findNextAssignmentsByUserAndTask = async (annotator_id: string, task_id: string): Promise<Assignment> => {
     const { data, error } = await supabase.from("assignments").select().eq("annotator_id", annotator_id).eq("task_id", task_id).eq("status", "pending").order('id').limit(1).single();
     
     if (error)
@@ -66,7 +66,7 @@ export const useAssignmentApi = () => {
       return data as Assignment
   };
 
-  const countAssignmentsByUserAndTask = async (annotator_id: string, task_id: number): Promise<any> => {
+  const countAssignmentsByUserAndTask = async (annotator_id: string, task_id: string): Promise<any> => {
     const pending = await supabase.from("assignments").select("count").eq("annotator_id", annotator_id).eq("task_id", task_id).eq("status", "pending").single();
     const total = await supabase.from("assignments").select("count").eq("annotator_id", annotator_id).eq("task_id", task_id).single();
 
