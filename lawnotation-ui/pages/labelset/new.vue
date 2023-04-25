@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-screen-xl py-8">
+  <div class="">
     <div class="flex flex-row justify-between">
       <h2 class="text-2xl">{{ new_labelset.name ? `New labelset: ${new_labelset.name}` : 'New labelset' }}</h2>
       <button class="btn btn-primary" @click="create_new_labelset">Create</button>

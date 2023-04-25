@@ -56,6 +56,10 @@ const assignmentCounts = ref<{ done: number; total: number; pending: number }>({
 });
 const key = ref("ls-default");
 
+definePageMeta({
+  layout: "wide",
+});
+
 const loadData = async () => {
   try {
     if (!user.value)

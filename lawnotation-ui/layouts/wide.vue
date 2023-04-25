@@ -5,9 +5,9 @@ import Footer from '@/components/Footer.vue'
 <template>
   <div>
     <Header></Header>
-    <div class="mx-auto max-w-screen-lg py-4">
-      <slot />
-    </div>
+    <slot />
     <Footer></Footer>
   </div>
 </template>
+<style>
+</style>

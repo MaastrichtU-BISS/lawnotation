@@ -2,7 +2,7 @@
   <div v-if="labelset === undefined">
     Loading labelset...
   </div>
-  <div v-else class="mx-auto max-w-screen-xl py-8">
+  <div v-else class="">
     <div class="flex flex-row justify-between">
       <h2 class="text-2xl">Editing labelset: {{labelset.name}}</h2>
       <button class="btn btn-primary" @click="save_labelset">Save changes</button>
