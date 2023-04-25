@@ -49,7 +49,11 @@ const annotations = reactive<Annotation[]>([]);
 const ls_annotations = reactive<LSSerializedAnnotation>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
-const assignmentCounts = ref<{ done: number; total: number; pending: number }>({done: 0, total: 0, pending: 0});
+const assignmentCounts = ref<{ done: number; total: number; pending: number }>({
+  done: 0,
+  total: 0,
+  pending: 0,
+});
 const key = ref("ls-default");
 
 const loadData = async () => {
@@ -91,7 +95,7 @@ const loadData = async () => {
       ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
     }
   
-    isEditor.value = user.value?.id != assignment.value.annotator_id;
+    isEditor.value = user.value.id != assignment.value.annotator_id;
   
     loadedData.value = true;
     key.value = "ls-" + assignment.value.id;

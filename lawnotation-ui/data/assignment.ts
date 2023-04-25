@@ -58,8 +58,8 @@ export const useAssignmentApi = () => {
   };
 
   const findNextAssignmentsByUserAndTask = async (annotator_id: string, task_id: string): Promise<Assignment> => {
-    const { data, error } = await supabase.from("assignments").select().eq("annotator_id", annotator_id).eq("task_id", task_id).eq("status", "pending").order('id').limit(1).single();
-    
+    const { data, error } = await supabase.rpc("next_random_assignment", { a_id: annotator_id, t_id: task_id }).single()
+
     if (error)
       throw Error(`Error in findNextAssignmentsByUserAndTask: ${error.message}`)
     else
