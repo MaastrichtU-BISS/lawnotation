@@ -1,5 +1,6 @@
 <template>
-  <div v-if="labelsets">
+  <div v-if="labelsets === undefined">Loading labelsets...</div>
+  <div v-else>
     <h3 class="text-lg font-semibold mb-2">Available labelsets: {{ labelsets.length }}</h3>
     <ul class="list-disc list-inside">
       <li v-for="labelset of labelsets">
@@ -17,11 +18,12 @@ const route = useRoute();
 const user = useSupabaseUser();
 const labelsetApi = useLabelsetApi();
 
-const labelsets = reactive<Labelset[]>([]);
+const labelsets = ref<Labelset[]>();
 
 onMounted(() => {
   labelsetApi.findLabelsets().then((_labelsets) => {
-    labelsets.push(..._labelsets)
+    labelsets.value = [];
+    labelsets.value.push(..._labelsets)
   });
 });
 

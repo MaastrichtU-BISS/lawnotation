@@ -1,6 +1,6 @@
 <template>
   <div v-if="labelset === undefined">
-    Effe laden {{ labelset }}
+    Loading labelset...
   </div>
   <div v-else class="mx-auto max-w-screen-xl py-8">
     <div class="flex flex-row justify-between">

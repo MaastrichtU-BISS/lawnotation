@@ -8,14 +8,17 @@ const user = useSupabaseUser();
     <div class="w-40">
       <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
     </div>
-    <template v-if="user"
-      ><div>
+    <template v-if="user">
+      <div>
         <NuxtLink to="/projects">Projects</NuxtLink>
       </div>
       <div>
+        <NuxtLink to="/labelset">Labelsets</NuxtLink>
+      </div>
+      <div>
         <!-- <NuxtLink to="/assignments">Assignments</NuxtLink> -->
-      </div></template
-    >
+      </div>
+    </template>
     <div class="auth">
       <template v-if="user">
         <span v-if="user?.email">Hello {{ user.email?.split("@")[0] }}</span>
