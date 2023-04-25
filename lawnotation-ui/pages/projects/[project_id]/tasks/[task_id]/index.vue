@@ -33,8 +33,10 @@ import { Task, useTaskApi } from "~/data/task";
 import { Document, useDocumentApi } from "~/data/document";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { User, useUserApi } from "~/data/user";
+import { useToast } from "vue-toastification";
 
 const config = useRuntimeConfig();
+const toast = useToast();
 
 const user = useSupabaseUser();
 const taskApi = useTaskApi();
@@ -51,56 +53,69 @@ const formatted_assignments = reactive<any[]>([]);
 const email = ref("");
 
 const createAssignment = async () => {
-  if (email.value == "") {
-    alert("email required");
-    return;
-  }
+  try {
+    if (!task.value)
+      throw new Error("Task not found")
 
-  const docs = await documentApi.takeUpToNRandomDocuments(
-    task.value?.project_id.toString(),
-    number_of_docs.value
-  );
-
-  var new_assignments: Omit<Assignment, "id" | "annotator_id">[] = [];
-
-  docs.map((doc) => {
-    const new_assignment: Omit<Assignment, "id" | "annotator_id"> = {
-      task_id: task.value?.id,
-      document_id: doc.id,
-    };
-    new_assignments.push(new_assignment);
-  });
-
-  const created_assignments: Assignment[] = await assignmentApi.createAssignments(
-    new_assignments
-  );
-
-  userApi
-    .otpLogin(
-      email.value,
-      `${config.public.baseURL}/annotate/${created_assignments[0].task_id}`
-    )
-    .then((_user) => {
-      created_assignments.map((ca) => {
-        var new_ca = ca;
-        new_ca.annotator_id = _user.data.id;
-        assignmentApi.updateAssignment(new_ca.id.toString(), new_ca);
-      });
-
-      update_assignments_lists(created_assignments);
+    if (email.value == "")
+      throw new Error("Email field is required")
+  
+    const docs = await documentApi.takeUpToNRandomDocuments(
+      task.value.project_id.toString(),
+      number_of_docs.value
+    );
+  
+    const new_assignments: Omit<Assignment, "id" | "annotator_id" | "status">[] = [];
+  
+    docs.map((doc) => {
+      const new_assignment: Omit<Assignment, "id" | "annotator_id" | "status"> = {
+        task_id: task.value!.id,
+        document_id: doc.id,
+      };
+      new_assignments.push(new_assignment);
     });
+  
+    const created_assignments: Assignment[] = await assignmentApi.createAssignments(
+      new_assignments
+    );
+  
+    userApi
+      .otpLogin(
+        email.value,
+        `${config.public.baseURL}/annotate/${created_assignments[0].task_id}`
+      )
+      .then((_user) => {
+        created_assignments.map((ca) => {
+          var new_ca = ca;
+          new_ca.annotator_id = _user.id;
+          assignmentApi.updateAssignment(new_ca.id.toString(), new_ca);
+        });
+  
+        update_assignments_lists(created_assignments);
+      });
+  } catch (error) {
+    if (error instanceof Error)
+      toast.error(`Error creating assignment: ${error.message}`)
+  }
 };
 
 const update_assignments_lists = async (_assignments: Assignment[]): Promise<void> => {
-  _assignments.map(async (a) => {
-    assignments.push(a);
-    const fa = { ...a };
-    const document_name = await documentApi.getName(a.document_id.toString());
-    const annotator_email = await userApi.getEmail(a.annotator_id);
-    fa.document_name = document_name;
-    fa.annotator_email = annotator_email;
-    formatted_assignments.push(fa);
-  });
+  try {
+    _assignments.map(async (a) => {
+      assignments.push(a);
+      const document_name = await documentApi.getName(a.document_id.toString());
+      const annotator_email = await userApi.getEmail(a.annotator_id);
+      const fa: Assignment & {document_name: string, annotator_email: string} = { 
+        ...a, 
+        document_name: document_name,
+        annotator_email: annotator_email
+      };
+      formatted_assignments.push(fa);
+    });
+  } catch (error) {
+    if (error instanceof Error)
+      toast.error(`Error updating assignmentlist: ${error.message}`);
+  }
 };
 
 onMounted(() => {

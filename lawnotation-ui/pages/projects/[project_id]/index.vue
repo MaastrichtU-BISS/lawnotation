@@ -1,20 +1,20 @@
 <template>
   <div v-if="project">
     <h3 class="my-3 text-lg font-semibold mb-2">Project</h3>
-    <div>{{ project }}</div>
+    <pre>{{ project }}</pre>
     <h3 class="my-3 text-lg font-semibold">Documents: {{ documents.length }}</h3>
     <ul v-for="d in documents" :key="'doc_' + d.id" class="list-disc list-inside">
       <li>
-        <span
-          >{{ d.id }}.
+        <span>
+          {{ d.id }}.
           <NuxtLink :to="`/projects/${route.params.project_id}/documents/${d.id}`">{{
             d.name
-          }}</NuxtLink></span
-        >
+          }}</NuxtLink>
+        </span>
       </li>
     </ul>
     <div class="my-3">
-      <span class="mr-3"> Add Docs</span>
+      <span class="mr-3">Add Docs</span>
       <input
         type="file"
         name="data-set"
@@ -68,6 +68,9 @@ import { Project, useProjectApi } from "~/data/project";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 const user = useSupabaseUser();
 const projectApi = useProjectApi();
@@ -112,43 +115,51 @@ const change_file = (event: Event) => {
 };
 
 const createTask = () => {
-  if (new_task.name == "") {
-    alert("name required");
-    return;
+  try {
+    if (!new_task.project_id === undefined) {
+      throw new Error("Task must be part of project")
+    }
+    if (!new_task.labelset_id === undefined) {
+      throw new Error("Task must have a labelset")
+    }
+    if (new_task.name == "") {
+      throw new Error("Task name is required")
+    }
+    if (new_task.desc == "") {
+      throw new Error("Task description is required")
+    }
+  
+    // For some reason casting as Omit<Task, "id"> is necessary here.
+    taskApi.createTask(new_task as Omit<Task, "id">).then((task) => {
+      tasks.push(task);
+    });
+  } catch (error) {
+    if (error instanceof Error)
+      // alert(`CAUGHT: ${error.message}`)
+      toast.error(`Error creating task: ${error.message}`)
   }
-  if (new_task.desc == "") {
-    alert("desc required");
-    return;
-  }
-  if (!new_task.project_id === undefined) {
-    alert("task must be part of project")
-    return;
-  }
-  if (!new_task.labelset_id === undefined) {
-    alert("task must have labelset")
-    return;
-  }
-  // For some reason casting as Omit<Task, "id"> is necessary here.
-  taskApi.createTask(new_task as Omit<Task, "id">).then((task) => {
-    tasks.push(task);
-  });
 };
 
 onMounted(() => {
-  projectApi.findProject(route.params.project_id.toString()).then((p) => {
-    project.value = p;
-    new_task.project_id = p.id;
-    documentApi.findDocuments(p.id.toString()).then((docs) => {
-      documents.splice(0) && documents.push(...docs);
+  try {
+    projectApi.findProject(route.params.project_id.toString()).then((p) => {
+      project.value = p;
+      new_task.project_id = p.id;
+      documentApi.findDocuments(p.id.toString()).then((docs) => {
+        documents.splice(0) && documents.push(...docs);
+      });
+      taskApi.findTasks(p.id.toString()).then((_tasks) => {
+        tasks.splice(0) && tasks.push(..._tasks);
+      });
     });
-    taskApi.findTasks(p.id.toString()).then((_tasks) => {
-      tasks.splice(0) && tasks.push(..._tasks);
+    
+    labelsetApi.findLabelsets().then((_labelsets) => {
+      labelsets.push(..._labelsets)
     });
-  });
-  
-  labelsetApi.findLabelsets().then((_labelsets) => {
-    labelsets.push(..._labelsets)
-  });
+  } catch (error) {
+    if (error instanceof Error)
+      toast.error(`Error loading data: ${error.message}`)
+  }
 });
 
 

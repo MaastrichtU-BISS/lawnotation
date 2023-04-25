@@ -21,9 +21,11 @@
   </div>
 </template>
 <script setup lang="ts">
+import { useToast } from "vue-toastification";
 import { Project, useProjectApi } from "~/data/project";
 const projectApi = useProjectApi();
 const user = useSupabaseUser();
+const toast = useToast()
 
 const projects = reactive<Project[]>([]);
 const projects_loading = ref(true);
@@ -39,23 +41,35 @@ onMounted(() => {
 });
 
 const loadProjects = () => {
-  projects_loading.value = true;
-  projectApi
-    .findProjects(user?.value?.id.toString())
-    .then((_projects) => {
-      projects.splice(0) && projects.push(..._projects);
-      projects_loading.value = false;
-    })
-    .catch((error) => {
-      projects_loading.value = false;
-    });
+  try {
+    if (!user.value)
+      throw new Error("User is required")
+    projects_loading.value = true;
+    projectApi
+      .findProjects(user.value.id.toString())
+      .then((_projects) => {
+        projects.splice(0) && projects.push(..._projects);
+        projects_loading.value = false;
+      })
+      .catch((error) => {
+        projects_loading.value = false;
+      });
+  } catch (error) { 
+    if (error instanceof Error)
+      toast.error(`Error loading projects: ${error.message}`)
+  }
 };
 
 const createNewProject = () => {
-  new_project.editor_id = user.value?.id;
-  projectApi.createProject(new_project).then((project) => {
-    projects.push(project);
-  });
+  try {
+    new_project.editor_id = user.value?.id;
+    projectApi.createProject(new_project).then((project) => {
+      projects.push(project);
+    });
+  } catch (error) {
+    if (error instanceof Error)
+      toast.error(`Error creating new projec: ${error.message}`)
+  }
 };
 
 watch(user, () => {
