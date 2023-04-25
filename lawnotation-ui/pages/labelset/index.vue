@@ -1,7 +1,12 @@
 <template>
   <div v-if="labelsets">
-    <ul>
-      <li v-for="labelset of labelsets">{{ labelset.name }}</li>
+    <h3 class="text-lg font-semibold mb-2">Available labelsets: {{ labelsets.length }}</h3>
+    <ul class="list-disc list-inside">
+      <li v-for="labelset of labelsets">
+        <span
+          >{{ labelset.id }}. <NuxtLink :to="`/labelset/${labelset.id}`">{{ labelset.name }}</NuxtLink></span
+        >
+      </li>
     </ul>
   </div>
 </template>
@@ -15,7 +20,7 @@ const labelsetApi = useLabelsetApi();
 const labelsets = reactive<Labelset[]>([]);
 
 onMounted(() => {
-  labelsetApi.findLabelsets(route.params.labelset_id.toString()).then((_labelsets) => {
+  labelsetApi.findLabelsets().then((_labelsets) => {
     labelsets.push(..._labelsets)
   });
 });
