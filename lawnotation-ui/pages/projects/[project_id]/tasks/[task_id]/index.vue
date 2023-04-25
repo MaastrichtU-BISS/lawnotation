@@ -91,7 +91,9 @@ const createAssignment = async () => {
           assignmentApi.updateAssignment(new_ca.id.toString(), new_ca);
         });
   
-        update_assignments_lists(created_assignments);
+        update_assignments_lists(created_assignments).then(() => {
+          toast.success("Assignment created")
+        })
       });
   } catch (error) {
     if (error instanceof Error)

@@ -132,6 +132,7 @@ const createTask = () => {
     // For some reason casting as Omit<Task, "id"> is necessary here.
     taskApi.createTask(new_task as Omit<Task, "id">).then((task) => {
       tasks.push(task);
+      toast.success("Task created")
     });
   } catch (error) {
     if (error instanceof Error)

@@ -65,6 +65,7 @@ const createNewProject = () => {
     new_project.editor_id = user.value?.id;
     projectApi.createProject(new_project).then((project) => {
       projects.push(project);
+      toast.success("Project created")
     });
   } catch (error) {
     if (error instanceof Error)
