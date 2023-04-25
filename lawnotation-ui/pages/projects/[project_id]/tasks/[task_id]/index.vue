@@ -19,10 +19,10 @@
     </ul>
     <div class="my-3">
       <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-        <label for="label_id">Annotator email</label>
-        <input type="email" name="email" v-model="email" />
-        <label for="label_id">Number of Documents (randomly selected)</label>
-        <input type="number" name="" id="number_of_docs" v-model="number_of_docs" />
+        <label for="annotator_email">Annotator email</label>
+        <input id="annotator_email" type="email" name="email" v-model="email" />
+        <label for="number_of_docs">Number of Documents (randomly selected)</label>
+        <input id="number_of_docs" type="number" name="" v-model="number_of_docs" />
         <button class="btn-primary" @click="createAssignment">Create Assignment</button>
       </div>
     </div>

@@ -58,7 +58,7 @@ export const useAssignmentApi = () => {
   };
 
   const findNextAssignmentsByUserAndTask = async (annotator_id: string, task_id: number): Promise<Assignment> => {
-    const { data, error } = await supabase.from("assignments").select().eq("annotator_id", annotator_id).eq("task_id", task_id).eq("status", "pending").order('id').single();
+    const { data, error } = await supabase.from("assignments").select().eq("annotator_id", annotator_id).eq("task_id", task_id).eq("status", "pending").order('id').limit(1).single();
     
     if (error)
       throw Error(`Error in findNextAssignmentsByUserAndTask: ${error.message}`)

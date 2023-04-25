@@ -46,12 +46,12 @@
 
         <label for="label_id">Labelset</label>
         <div>
-          <select v-model="new_task.labelset_id" class="w-64">
-            <option v-if="(labelsets.length = 0)">No labelsets</option>
+          <select v-if="labelsets.length" v-model="new_task.labelset_id" class="w-64">
             <option v-for="labelset of labelsets" :value="labelset.id">
-              "{{ labelset.name }}"
+              {{ labelset.name }}
             </option>
           </select>
+          <span v-else>No labelsets found</span>
           <button class="btn-secondary" @click="() => navigateTo('/labelset/new')">
             Create new labelset
           </button>
@@ -67,12 +67,13 @@
 import { Project, useProjectApi } from "~/data/project";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
-import { Labelset } from "~/data/labelset";
+import { Labelset, useLabelsetApi } from "~/data/labelset";
 
 const user = useSupabaseUser();
 const projectApi = useProjectApi();
 const documentApi = useDocumentApi();
 const taskApi = useTaskApi();
+const labelsetApi = useLabelsetApi();
 
 const route = useRoute();
 const project = ref<Project>();
@@ -81,16 +82,18 @@ const tasks = reactive<Task[]>([]);
 
 const labelsets = reactive<Labelset[]>([]);
 
-const new_task = reactive<Omit<Task, "id">>({
+type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
+
+const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id">>({
   name: "",
   desc: "",
   ann_guidelines: "",
-  labelset_id: 1,
-  project_id: 0,
+  labelset_id: undefined,
+  project_id: undefined,
 });
 
 const change_file = (event: Event) => {
-  Array.from(event.target.files).forEach((file: File) => {
+  Array.from((event.target as HTMLInputElement).files ?? []).forEach((file: File) => {
     var reader = new FileReader();
     reader.onload = () => {
       documentApi
@@ -117,7 +120,16 @@ const createTask = () => {
     alert("desc required");
     return;
   }
-  taskApi.createTask(new_task).then((task) => {
+  if (!new_task.project_id === undefined) {
+    alert("task must be part of project")
+    return;
+  }
+  if (!new_task.labelset_id === undefined) {
+    alert("task must have labelset")
+    return;
+  }
+  // For some reason casting as Omit<Task, "id"> is necessary here.
+  taskApi.createTask(new_task as Omit<Task, "id">).then((task) => {
     tasks.push(task);
   });
 };
@@ -133,7 +145,12 @@ onMounted(() => {
       tasks.splice(0) && tasks.push(..._tasks);
     });
   });
+  
+  labelsetApi.findLabelsets().then((_labelsets) => {
+    labelsets.push(..._labelsets)
+  });
 });
+
 
 definePageMeta({
   middleware: ["auth"],

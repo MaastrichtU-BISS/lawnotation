@@ -2,6 +2,7 @@ export type Labelset = {
   id: string,
   name: string,
   desc: string,
+  editor_id: string,
   labels: {name: string, color: string}[]
 }
 
@@ -59,5 +60,5 @@ export const useLabelsetApi = () => {
       return true;
   };
 
-  return { createLabelset, findLabelset, updateLabelset, deleteLabelset }
+  return { createLabelset, findLabelset, findLabelsets, updateLabelset, deleteLabelset }
 }
