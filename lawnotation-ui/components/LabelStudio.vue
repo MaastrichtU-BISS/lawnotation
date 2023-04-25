@@ -7,7 +7,7 @@
 import "@heartexlabs/label-studio/build/static/css/main.css";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { LsLabel } from "~/data/labelset";
+import { LsLabels } from "~/data/labelset";
 
 const annotationApi = useAnnotationApi();
 const assignmentApi = useAssignmentApi();
@@ -21,7 +21,7 @@ const props = defineProps<{
   assignment: Assignment | undefined;
   annotations: LSSerializedAnnotation | undefined;
   text: string | undefined;
-  labels: LsLabel | undefined;
+  labels: LsLabels | undefined;
   isEditor: boolean | undefined;
 }>();
 

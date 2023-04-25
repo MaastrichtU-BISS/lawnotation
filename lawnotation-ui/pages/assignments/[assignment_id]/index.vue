@@ -12,11 +12,10 @@
   </div>
 </template>
 <script setup lang="ts">
-import "@heartexlabs/label-studio/build/static/css/main.css";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
-import { Labelset, LsLabel, useLabelsetApi } from "~/data/labelset.js";
+import { Labelset, LsLabels, useLabelsetApi } from "~/data/labelset.js";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 
 const user = useSupabaseUser();
@@ -36,7 +35,7 @@ const loadedData = ref(false);
 
 const annotations = reactive<Annotation[]>([]);
 const ls_annotations = reactive<LSSerializedAnnotation>([]);
-const labels = reactive<LsLabel>([]);
+const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
 
 const loadData = async () => {
