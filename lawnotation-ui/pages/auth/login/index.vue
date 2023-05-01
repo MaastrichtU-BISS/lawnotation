@@ -31,11 +31,18 @@ const email = ref<string>("");
 const signIn = () => {
   try {
     if (email.value.length == 0) {
-      toast.error("Enter your email")
+      toast.error("Enter your email");
       return;
     }
-  
-    userApi.otpLogin(email.value, `${config.public.baseURL}/projects`);
+
+    userApi
+      .otpLogin(email.value, `${config.public.baseURL}/projects`)
+      .then((user) => {
+        toast.success(`Login link has been sent to: ${email.value}`);
+      })
+      .catch((error) => {
+        toast.error(`Error logging in with OTP: ${error.message}`);
+      });
   } catch (error) {
     if (error instanceof Error)
       toast.error(`Error logging in with OTP: ${error.message}`);
