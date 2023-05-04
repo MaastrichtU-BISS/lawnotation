@@ -13,16 +13,21 @@
         </span>
       </li>
     </ul>
-    <div class="my-3">
-      <span class="mr-3">Add Docs</span>
-      <input
-        type="file"
-        name="data-set"
-        id=""
-        accept=".txt"
-        multiple
-        @change="change_file($event)"
-      />
+    <div class="my-3 dimmer-wrapper">
+      <Dimmer v-model="loading_docs" />
+      <div class="dimmer-content">
+        <span class="mr-3">Add Docs</span>
+        <input
+          type="file"
+          name="data-set"
+          id="doc_input"
+          accept=".txt"
+          webkitdirectory
+          directory
+          multiple
+          @change="change_file($event)"
+        />
+      </div>
     </div>
     <h3 class="my-3 text-lg font-semibold">Tasks: {{ tasks.length }}</h3>
     <ul v-for="t in tasks" :key="'task_' + t.id" class="list-disc list-inside">
@@ -81,6 +86,7 @@ const labelsetApi = useLabelsetApi();
 const route = useRoute();
 const project = ref<Project>();
 const documents = reactive<Document[]>([]);
+const loading_docs = ref(false);
 const tasks = reactive<Task[]>([]);
 
 const labelsets = reactive<Labelset[]>([]);
@@ -95,49 +101,57 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id">>({
   project_id: undefined,
 });
 
-const change_file = (event: Event) => {
+const change_file = async (event: Event) => {
+  var text_promises: Promise<string>[] = [];
+  var new_docs: Omit<Document, "id">[] = [];
+  loading_docs.value = true;
+
   Array.from((event.target as HTMLInputElement).files ?? []).forEach((file: File) => {
-    var reader = new FileReader();
-    reader.onload = () => {
-      documentApi
-        .createDocument({
-          name: file.name,
-          source: "local_upload",
-          full_text: reader.result?.toString(),
-          project_id: route.params.project_id.toString(),
-        })
-        .then((doc) => {
-          documents.push(doc);
-        });
-    };
-    reader.readAsText(file);
+    text_promises.push(file.text());
+    new_docs.push({
+      name: file.name,
+      source: "local_upload",
+      full_text: "",
+      project_id: route.params.project_id.toString(),
+    });
   });
+
+  const texts = await Promise.all(text_promises);
+
+  texts.forEach((t, index) => {
+    new_docs[index].full_text = t;
+  });
+
+  documents.push(...(await documentApi.createDocuments(new_docs)));
+
+  (event.target as HTMLInputElement).value = "";
+  loading_docs.value = false;
 };
 
 const createTask = () => {
   try {
     if (!new_task.project_id === undefined) {
-      throw new Error("Task must be part of project")
+      throw new Error("Task must be part of project");
     }
     if (!new_task.labelset_id === undefined) {
-      throw new Error("Task must have a labelset")
+      throw new Error("Task must have a labelset");
     }
     if (new_task.name == "") {
-      throw new Error("Task name is required")
+      throw new Error("Task name is required");
     }
     if (new_task.desc == "") {
-      throw new Error("Task description is required")
+      throw new Error("Task description is required");
     }
-  
+
     // For some reason casting as Omit<Task, "id"> is necessary here.
     taskApi.createTask(new_task as Omit<Task, "id">).then((task) => {
       tasks.push(task);
-      toast.success("Task created")
+      toast.success("Task created");
     });
   } catch (error) {
     if (error instanceof Error)
       // alert(`CAUGHT: ${error.message}`)
-      toast.error(`Error creating task: ${error.message}`)
+      toast.error(`Error creating task: ${error.message}`);
   }
 };
 
@@ -153,16 +167,14 @@ onMounted(() => {
         tasks.splice(0) && tasks.push(..._tasks);
       });
     });
-    
+
     labelsetApi.findLabelsets().then((_labelsets) => {
-      labelsets.push(..._labelsets)
+      labelsets.push(..._labelsets);
     });
   } catch (error) {
-    if (error instanceof Error)
-      toast.error(`Error loading data: ${error.message}`)
+    if (error instanceof Error) toast.error(`Error loading data: ${error.message}`);
   }
 });
-
 
 definePageMeta({
   middleware: ["auth"],

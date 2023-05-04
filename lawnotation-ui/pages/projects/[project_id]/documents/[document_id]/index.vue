@@ -1,7 +1,7 @@
 <template>
   <div>
     <h3 class="text-lg font-semibold mb-2">Document:</h3>
-    {{ document }}
+    <pre>{{ document }}</pre>
   </div>
 </template>
 <script setup lang="ts">

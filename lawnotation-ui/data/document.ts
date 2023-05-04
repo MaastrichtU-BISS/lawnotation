@@ -18,6 +18,14 @@ export const useDocumentApi = () => {
       return data as Document;
   };
 
+  const createDocuments = async (fields: Omit<Document, 'id'>[]): Promise<Document[]> => {
+    const { data, error } = await supabase.from("documents").insert(fields).select();
+    if (error)
+      throw Error(`Error in createDocument: ${error.message}`)
+    else
+      return data as Document[];
+  };
+
   // Read
   const findDocument = async (id: string): Promise<Document>   => {
     const { data, error } = await supabase.from("documents").select().eq("id", id).single();
@@ -78,5 +86,5 @@ export const useDocumentApi = () => {
       return true;
   };
 
-  return {createDocument, findDocument, findDocuments, takeUpToNRandomDocuments, updateDocument, deleteDocument, getName}
+  return {createDocument, createDocuments, findDocument, findDocuments, takeUpToNRandomDocuments, updateDocument, deleteDocument, getName}
 }
