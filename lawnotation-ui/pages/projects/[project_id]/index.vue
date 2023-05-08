@@ -125,6 +125,7 @@ const change_file = async (event: Event) => {
   documents.push(...(await documentApi.createDocuments(new_docs)));
 
   (event.target as HTMLInputElement).value = "";
+  toast.success(`${new_docs.length} documents uploaded!`);
   loading_docs.value = false;
 };
 

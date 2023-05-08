@@ -1,29 +1,74 @@
 <template>
   <div v-if="task">
     <h3 class="my-3 text-lg font-semibold">Task:</h3>
-    <h3>{{ task }}</h3>
-    <h3 class="my-3 text-lg font-semibold">Assignments: {{ assignments.length }}</h3>
-    <ul
-      v-for="fa in formatted_assignments"
-      :key="'assignments_' + fa.id"
-      class="list-disc list-inside"
-    >
-      <li>
-        <span
-          >{{ fa.id }}.
-          <NuxtLink :to="`/assignments/${fa.id}`">
-            {{ fa.annotator_email }} - {{ fa.document_name }}</NuxtLink
-          ></span
+    <pre>{{ task }}</pre>
+    <div class="dimmer-wrapper">
+      <Dimmer v-model="loading" />
+      <div class="dimmer-content">
+        <h3 class="my-3 text-lg font-semibold">Assignments: {{ assignments.length }}</h3>
+        <ul
+          v-for="fa in formatted_assignments"
+          :key="'assignments_' + fa.id"
+          class="list-disc list-inside"
         >
-      </li>
-    </ul>
-    <div class="my-3">
-      <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-        <label for="annotator_email">Annotator email</label>
-        <input id="annotator_email" type="email" name="email" v-model="email" />
-        <label for="number_of_docs">Number of Documents (randomly selected)</label>
-        <input id="number_of_docs" type="number" name="" v-model="number_of_docs" />
-        <button class="btn-primary" @click="createAssignment">Create Assignment</button>
+          <li>
+            <span
+              >{{ fa.id }}.
+              <NuxtLink :to="`/assignments/${fa.id}`">
+                {{ fa.annotator_email }} - {{ fa.document_name }}</NuxtLink
+              ><span
+                class="ml-2"
+                :style="fa.status == 'pending' ? 'color: red' : 'color: green'"
+                >{{ fa.status }}</span
+              ></span
+            >
+          </li>
+        </ul>
+        <div class="my-3">
+          <div
+            class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3"
+          >
+            <h3 class="mt-3 text-lg font-semibold">
+              Annotators: {{ annotators_email.length }}
+            </h3>
+            <ul class="list-disc list-inside">
+              <li v-for="ann_email in annotators_email" :key="ann_email">
+                <span>{{ ann_email }}</span>
+              </li>
+            </ul>
+            <input
+              id="annotator_email"
+              type="email"
+              name="email"
+              v-model="email"
+              @keydown="inputEmail($event)"
+            />
+            <button class="btn-primary" @click="addAnnotator">Add</button>
+            <label for="amount_of_docs">Amount of Documents (total)</label>
+            <input
+              id="amount_of_docs"
+              type="number"
+              name=""
+              v-model="amount_of_docs"
+              :max="total_docs"
+              min="1"
+            />
+            <label for="fixed_docs"
+              >Amount of Fixed Documents (to share among annotators)</label
+            >
+            <input
+              id="fixed_docs"
+              type="number"
+              name=""
+              v-model="amount_of_fixed_docs"
+              :max="total_docs"
+              min="0"
+            />
+            <button class="btn-primary" @click="createAssignments">
+              Create Assignments
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -46,58 +91,100 @@ const userApi = useUserApi();
 
 const route = useRoute();
 const task = ref<Task>();
-const number_of_docs = ref<number>(100);
+const total_docs = ref<number>(0);
+const amount_of_docs = ref<number>(0);
+const amount_of_fixed_docs = ref<number>(0);
+const annotators_email = reactive<string[]>([]);
 const assignments = reactive<Assignment[]>([]);
 const formatted_assignments = reactive<any[]>([]);
+const loading = ref(false);
 
 const email = ref("");
 
-const createAssignment = async () => {
-  try {
-    if (!task.value)
-      throw new Error("Task not found")
+const addAnnotator = () => {
+  if (email.value == "") throw new Error("Email field is required");
+  annotators_email.push(email.value);
+  email.value = "";
+};
 
-    if (email.value == "")
-      throw new Error("Email field is required")
-  
+const inputEmail = (event: KeyboardEvent) => {
+  if (event.key == "Enter") addAnnotator();
+};
+
+const createAssignments = async () => {
+  try {
+    loading.value = true;
+    if (!task.value) throw new Error("Task not found");
+
+    // Get the documents
     const docs = await documentApi.takeUpToNRandomDocuments(
       task.value.project_id.toString(),
-      number_of_docs.value
+      amount_of_docs.value
     );
-  
+
     const new_assignments: Omit<Assignment, "id" | "annotator_id" | "status">[] = [];
-  
-    docs.map((doc) => {
+
+    // Create shared assignments (only with docs info, no users yet)
+    for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
+      for (let j = 0; j < annotators_email.length; ++j) {
+        const new_assignment: Omit<Assignment, "id" | "annotator_id" | "status"> = {
+          task_id: task.value!.id,
+          document_id: docs[i],
+        };
+        new_assignments.push(new_assignment);
+      }
+    }
+
+    // Create unique assignments (only with docs info, no users yet)
+    for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
       const new_assignment: Omit<Assignment, "id" | "annotator_id" | "status"> = {
         task_id: task.value!.id,
-        document_id: doc.id,
+        document_id: docs[i],
       };
       new_assignments.push(new_assignment);
-    });
-  
+    }
+
     const created_assignments: Assignment[] = await assignmentApi.createAssignments(
       new_assignments
     );
-  
-    userApi
-      .otpLogin(
-        email.value,
-        `${config.public.baseURL}/annotate/${created_assignments[0].task_id}`
-      )
-      .then((_user) => {
-        created_assignments.map((ca) => {
-          var new_ca = ca;
-          new_ca.annotator_id = _user.id;
-          assignmentApi.updateAssignment(new_ca.id.toString(), new_ca);
-        });
-  
-        update_assignments_lists(created_assignments).then(() => {
-          toast.success("Assignment created")
-        })
-      });
+
+    console.log(new_assignments, created_assignments);
+
+    // Get Users
+    const usersPromises: Promise<User>[] = [];
+    for (let i = 0; i < annotators_email.length; ++i) {
+      usersPromises.push(
+        userApi.otpLogin(
+          annotators_email[i],
+          `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
+        )
+      );
+    }
+
+    const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
+
+    // Assign users to assignments
+    const assignmentsPromises: Promise<Boolean>[] = [];
+    for (let i = 0; i < created_assignments.length; ++i) {
+      created_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
+      assignmentsPromises.push(
+        assignmentApi.updateAssignment(
+          created_assignments[i].id.toString(),
+          created_assignments[i]
+        )
+      );
+    }
+
+    const updated_assignments = await Promise.all(assignmentsPromises);
+
+    update_assignments_lists(created_assignments).then(() => {
+      loading.value = false;
+      toast.success("Assignments created");
+    });
   } catch (error) {
+    loading.value = false;
     if (error instanceof Error)
-      toast.error(`Error creating assignment: ${error.message}`)
+      toast.error(`Error creating assignment: ${error.message}`);
   }
 };
 
@@ -107,10 +194,10 @@ const update_assignments_lists = async (_assignments: Assignment[]): Promise<voi
       assignments.push(a);
       const document_name = await documentApi.getName(a.document_id.toString());
       const annotator_email = await userApi.getEmail(a.annotator_id);
-      const fa: Assignment & {document_name: string, annotator_email: string} = { 
-        ...a, 
+      const fa: Assignment & { document_name: string; annotator_email: string } = {
+        ...a,
         document_name: document_name,
-        annotator_email: annotator_email
+        annotator_email: annotator_email,
       };
       formatted_assignments.push(fa);
     });
@@ -123,6 +210,10 @@ const update_assignments_lists = async (_assignments: Assignment[]): Promise<voi
 onMounted(() => {
   taskApi.findTask(route.params.task_id.toString()).then((_task) => {
     task.value = _task;
+    documentApi.totalAmountOfDocs(_task.project_id.toString()).then((count) => {
+      amount_of_docs.value = count ? count : 0;
+      total_docs.value = amount_of_docs.value;
+    });
     assignmentApi.findAssignmentsByTask(_task.id.toString()).then((_assignments) => {
       update_assignments_lists(_assignments);
     });

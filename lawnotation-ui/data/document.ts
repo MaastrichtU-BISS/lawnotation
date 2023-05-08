@@ -46,13 +46,21 @@ export const useDocumentApi = () => {
       return data as Document[]
   };
 
-  const takeUpToNRandomDocuments = async (project_id: string  | undefined, N: number): Promise<Document[]> => {
-    const { data, error } = await supabase.rpc("random_sample", {n: N});
+  const takeUpToNRandomDocuments = async (project_id: string  | undefined, N: number): Promise<number[]> => {
+    const { data, error } = await supabase.rpc("random_sample", {n: N, pid: project_id});
     
     if (error)
       throw Error(`Error in findDocument: ${error.message}`)
     else
-      return data as Document[]
+      return data as number[]
+  };
+
+  const totalAmountOfDocs = async (project_id: string): Promise<number | null> => {
+    const { data, error } = await supabase.from("documents").select("count").eq("project_id", project_id).single();
+    if (error)
+      throw Error(`Error in totalAmountOfDocs: ${error.message}`)
+    else
+      return data.count as number;
   };
 
   const getName = async (id: string): Promise<any> => {
@@ -86,5 +94,5 @@ export const useDocumentApi = () => {
       return true;
   };
 
-  return {createDocument, createDocuments, findDocument, findDocuments, takeUpToNRandomDocuments, updateDocument, deleteDocument, getName}
+  return {createDocument, createDocuments, findDocument, findDocuments, takeUpToNRandomDocuments, totalAmountOfDocs, updateDocument, deleteDocument, getName}
 }
