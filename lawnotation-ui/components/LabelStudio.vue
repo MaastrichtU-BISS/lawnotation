@@ -1,5 +1,5 @@
 <template>
-  <div id="label-studio-container">
+  <div id="label-studio-container" class="m-4">
     <div id="label-studio"></div>
   </div>
 </template>

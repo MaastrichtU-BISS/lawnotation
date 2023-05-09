@@ -61,10 +61,6 @@ const assignmentCounts = ref<{ done: number; total: number; pending: number }>({
 const loading = ref(false);
 const key = ref("ls-default");
 
-definePageMeta({
-  layout: "wide",
-});
-
 const loadData = async () => {
   try {
     loading.value = true;
@@ -156,5 +152,6 @@ onMounted(async () => {
 
 definePageMeta({
   middleware: ["auth"],
+  layout: "wide",
 });
 </script>

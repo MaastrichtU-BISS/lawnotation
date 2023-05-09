@@ -94,11 +94,8 @@ onMounted(() => {
   loadData();
 });
 
-watch(user, () => {
-  // loadData();
-});
-
 definePageMeta({
   middleware: ["auth", "assignment"],
+  layout: "wide",
 });
 </script>
