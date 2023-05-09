@@ -3,17 +3,38 @@
     <div class="dimmer-wrapper" style="min-height: 200px">
       <Dimmer v-model="loading" />
       <div class="dimmer-content">
-        <h3 class="text-lg font-semibold mb-2">My Projects: {{ projects.length }}</h3>
-        <ul v-for="p in projects" :key="p.id" class="list-disc list-inside">
-          <li>
-            <span
-              >{{ p.id }}.
-              <NuxtLink :to="`/projects/${p.id}`">{{ p.name }}</NuxtLink></span
-            >
-          </li>
-        </ul>
+        <h3 class="text-lg font-semibold mb-2">Projects</h3>
+
+        <Table :tabledata="projectsTable">
+          <template #head>
+            <tr>
+              <th scope="col" class="px-6 py-3" v-for="colname in ['Id', 'Name', 'Action']">
+                {{ colname }}
+              </th>
+            </tr>
+          </template>
+          <template #body>
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              v-for="project in projectsTable.rows"
+              :key="project.id">
+              <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                {{ project.id }}
+              </th>
+              <td class="px-6 py-2">
+                {{ project.name }}
+              </td>
+              <td class="px-6 py-2">
+                <NuxtLink class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                  :to="`/projects/${project.id}`">Edit</NuxtLink>
+              </td>
+            </tr>
+          </template>
+        </Table>
+
       </div>
     </div>
+    
+    <h2 class="text-lg mt-8">Create new project</h2>
     <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
       <input type="text" placeholder="Project name" v-model="new_project.name" />
       <textarea placeholder="Project description" v-model="new_project.desc"></textarea>
@@ -23,12 +44,26 @@
 </template>
 <script setup lang="ts">
 import { Project, useProjectApi } from "~/data/project";
+import Table, { TableData } from "@/components/Table.vue";
 const projectApi = useProjectApi();
 const user = useSupabaseUser();
 const { $toast } = useNuxtApp();
 
-const projects = reactive<Project[]>([]);
 const loading = ref(true);
+
+const projectsTable = reactive<TableData<Project>>({
+  total: 0,
+  rows: [],
+
+  page: 1,
+  items_per_page: 10,
+
+  async load() {
+    const { rows, count } = await projectApi.tableProjects(user.value!.id, (this.page-1)*this.items_per_page, this.items_per_page);
+    if (rows) this.rows = rows;
+    if (count) this.total = count;
+  }
+});
 
 const new_project = reactive<Omit<Project, "id">>({
   name: "",
@@ -38,38 +73,21 @@ const new_project = reactive<Omit<Project, "id">>({
 
 onMounted(() => {
   $toast.success("Toast works!");
-  if (user.value) loadProjects();
+  if (user.value) projectsTable.load();
   else {
     watch(user, () => {
       if (user.value) {
-        loadProjects();
+        projectsTable.load();
       }
     });
   }
 });
 
-const loadProjects = () => {
-  try {
-    loading.value = true;
-    projectApi
-      .findProjects(user.value!.id.toString())
-      .then((_projects) => {
-        projects.splice(0) && projects.push(..._projects);
-        loading.value = false;
-      })
-      .catch((error) => {
-        loading.value = false;
-      });
-  } catch (error) {
-    if (error instanceof Error) $toast.error(`Error loading projects: ${error.message}`);
-  }
-};
-
 const createNewProject = () => {
   try {
     new_project.editor_id = user.value?.id;
     projectApi.createProject(new_project).then((project) => {
-      projects.push(project);
+      projectsTable.load();
       $toast.success("Project created");
     });
   } catch (error) {
