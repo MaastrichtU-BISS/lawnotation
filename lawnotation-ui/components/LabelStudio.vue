@@ -155,4 +155,9 @@ onMounted(() => {
 .lsf-annotations-list {
   display: none;
 }
+
+[aria-label="skip-task"],
+[aria-label="reject-annotation"] {
+  order: 1;
+}
 </style>
