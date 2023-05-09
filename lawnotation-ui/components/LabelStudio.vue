@@ -23,6 +23,7 @@ const props = defineProps<{
   text: string | undefined;
   labels: LsLabels | undefined;
   isEditor: boolean | undefined;
+  guidelines: string | undefined;
 }>();
 
 const initLS = async () => {
@@ -53,7 +54,7 @@ const initLS = async () => {
                   </View>
                 </View>
                 `,
-    // description: "<html>Description</html>",
+    description: `<html><pre>${props.guidelines}</pre></html>`,
     interfaces: [
       "panel",
       "update",
@@ -158,6 +159,7 @@ onMounted(() => {
 [aria-label="Reset"],
 [aria-label="Copy Annotation"],
 [aria-label="Settings"],
+[aria-label="Delete"],
 .lsf-annotations-list {
   display: none;
 }

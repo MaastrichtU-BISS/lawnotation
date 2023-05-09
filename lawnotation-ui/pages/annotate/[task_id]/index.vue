@@ -16,6 +16,7 @@
         :text="doc?.full_text"
         :annotations="ls_annotations"
         :labels="labels"
+        :guidelines="task?.ann_guidelines"
         :key="key"
         @nextAssignment="loadDataAndCount"
       ></LabelStudio>
@@ -119,7 +120,8 @@ const loadCounters = async () => {
       route.params.task_id.toString()
     );
   } catch (error) {
-    if (error instanceof Error) $toast.error(`Problem loading counters: ${error.message}`);
+    if (error instanceof Error)
+      $toast.error(`Problem loading counters: ${error.message}`);
   }
 };
 

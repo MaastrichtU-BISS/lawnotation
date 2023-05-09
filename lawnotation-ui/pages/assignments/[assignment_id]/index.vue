@@ -9,6 +9,7 @@
         :isEditor="isEditor"
         :text="doc?.full_text"
         :annotations="ls_annotations"
+        :guidelines="task?.ann_guidelines"
         :labels="labels"
       ></LabelStudio>
     </div>

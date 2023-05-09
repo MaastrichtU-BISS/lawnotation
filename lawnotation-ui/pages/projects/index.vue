@@ -37,7 +37,6 @@ const new_project = reactive<Omit<Project, "id">>({
 });
 
 onMounted(() => {
-  $toast.success("Toast works!");
   if (user.value) loadProjects();
   else {
     watch(user, () => {
@@ -73,7 +72,8 @@ const createNewProject = () => {
       $toast.success("Project created");
     });
   } catch (error) {
-    if (error instanceof Error) $toast.error(`Error creating new projec: ${error.message}`);
+    if (error instanceof Error)
+      $toast.error(`Error creating new projec: ${error.message}`);
   }
 };
 
