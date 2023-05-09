@@ -28,7 +28,6 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 import { Labelset, LsLabels, useLabelsetApi } from "~/data/labelset.js";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
-import { useToast } from "vue-toastification";
 
 const user = useSupabaseUser();
 const supabase = useSupabaseClient();
@@ -38,7 +37,7 @@ const taskApi = useTaskApi();
 const labelsetApi = useLabelsetApi();
 const annotationApi = useAnnotationApi();
 
-const toast = useToast();
+const { $toast } = useNuxtApp();
 
 type Id = number;
 
@@ -106,7 +105,7 @@ const loadData = async () => {
     loading.value = false;
     key.value = "ls-" + assignment.value.id;
   } catch (error) {
-    if (error instanceof Error) toast.error(`Problem loading data: ${error.message}`);
+    if (error instanceof Error) $toast.error(`Problem loading data: ${error.message}`);
     loading.value = false;
   }
 };
@@ -120,7 +119,7 @@ const loadCounters = async () => {
       route.params.task_id.toString()
     );
   } catch (error) {
-    if (error instanceof Error) toast.error(`Problem loading counters: ${error.message}`);
+    if (error instanceof Error) $toast.error(`Problem loading counters: ${error.message}`);
   }
 };
 

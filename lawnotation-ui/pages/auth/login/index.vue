@@ -23,9 +23,8 @@
 </template>
 <script setup lang="ts">
 import { User, useUserApi } from "~/data/user";
-import { useToast } from "vue-toastification";
 
-const toast = useToast();
+const { $toast } = useNuxtApp();
 
 const userApi = useUserApi();
 const config = useRuntimeConfig();
@@ -41,7 +40,7 @@ const signIn = () => {
   loading.value = true;
   try {
     if (email.value.length == 0) {
-      toast.error("Enter your email");
+      $toast.error("Enter your email");
       loading.value = false;
       return;
     }
@@ -49,16 +48,16 @@ const signIn = () => {
     userApi
       .otpLogin(email.value, `${config.public.baseURL}/projects`)
       .then((user) => {
-        toast.success(`Login link has been sent to: ${email.value}`);
+        $toast.success(`Login link has been sent to: ${email.value}`);
         loading.value = false;
       })
       .catch((error) => {
-        toast.error(`Error logging in with OTP: ${error.message}`);
+        $toast.error(`Error logging in with OTP: ${error.message}`);
         loading.value = false;
       });
   } catch (error) {
     if (error instanceof Error)
-      toast.error(`Error logging in with OTP: ${error.message}`);
+      $toast.error(`Error logging in with OTP: ${error.message}`);
     loading.value = false;
   }
 };

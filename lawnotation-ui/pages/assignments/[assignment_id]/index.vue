@@ -20,7 +20,6 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 import { Labelset, LsLabels, useLabelsetApi } from "~/data/labelset.js";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
-import { useToast } from "vue-toastification";
 
 const user = useSupabaseUser();
 const assignmentApi = useAssignmentApi();
@@ -28,7 +27,8 @@ const documentApi = useDocumentApi();
 const taskApi = useTaskApi();
 const labelsetApi = useLabelsetApi();
 const annotationApi = useAnnotationApi();
-const toast = useToast();
+
+const { $toast } = useNuxtApp();
 
 type Id = number;
 
@@ -85,7 +85,8 @@ const loadData = async () => {
     loadedData.value = true;
     loading.value = false;
   } catch (error) {
-    if (error instanceof Error) toast.error(`Error loading assignment: ${error.message}`);
+    if (error instanceof Error)
+      $toast.error(`Error loading assignment: ${error.message}`);
     loading.value = false;
   }
 };

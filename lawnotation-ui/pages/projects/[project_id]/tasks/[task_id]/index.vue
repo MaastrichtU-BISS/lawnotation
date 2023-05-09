@@ -78,10 +78,9 @@ import { Task, useTaskApi } from "~/data/task";
 import { Document, useDocumentApi } from "~/data/document";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { User, useUserApi } from "~/data/user";
-import { useToast } from "vue-toastification";
 
 const config = useRuntimeConfig();
-const toast = useToast();
+const { $toast } = useNuxtApp();
 
 const user = useSupabaseUser();
 const taskApi = useTaskApi();
@@ -179,12 +178,12 @@ const createAssignments = async () => {
 
     update_assignments_lists(created_assignments).then(() => {
       loading.value = false;
-      toast.success("Assignments created");
+      $toast.success("Assignments created");
     });
   } catch (error) {
     loading.value = false;
     if (error instanceof Error)
-      toast.error(`Error creating assignment: ${error.message}`);
+      $toast.error(`Error creating assignment: ${error.message}`);
   }
 };
 
@@ -203,7 +202,7 @@ const update_assignments_lists = async (_assignments: Assignment[]): Promise<voi
     });
   } catch (error) {
     if (error instanceof Error)
-      toast.error(`Error updating assignmentlist: ${error.message}`);
+      $toast.error(`Error updating assignmentlist: ${error.message}`);
   }
 };
 

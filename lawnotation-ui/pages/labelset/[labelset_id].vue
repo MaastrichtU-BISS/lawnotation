@@ -40,10 +40,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useToast } from "vue-toastification";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
 const route = useRoute();
-const toast = useToast();
+const { $toast } = useNuxtApp();
 
 const user = useSupabaseUser();
 const labelsetApi = useLabelsetApi();
@@ -87,7 +86,7 @@ const add_label = () => {
     Object.assign(new_label, get_label_default());
   } catch(error) {
     if (error instanceof Error)
-      toast.error(`Error adding label: ${error.message}`)
+      $toast.error(`Error adding label: ${error.message}`)
   }
 };
 
@@ -99,12 +98,12 @@ const save_labelset = async () => {
       throw new Error("No labelset to save")
 
     const create = await labelsetApi.updateLabelset(labelset.value.id, {...labelset.value, editor_id: user.value.id});
-    toast.success("Saved labelset")
+    $toast.success("Saved labelset")
     // alert("Saved labelset");
     // navigateTo(`/labelset`)
   } catch (error) {
     if (error instanceof Error)
-      toast.error(`Error saving labelset: ${error.message}`)
+      $toast.error(`Error saving labelset: ${error.message}`)
   }
 }
 
