@@ -141,12 +141,18 @@ onMounted(() => {
 });
 </script>
 <style>
-.lsf-current-task > div {
+#label-studio {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.lsf-current-task {
   display: none;
 }
 
-.lsf-current-task::before {
-  content: "Annotate";
+.lsf-topbar__section {
+  border-left: none !important;
+  padding: 0 !important;
+  margin-left: 0;
 }
 
 [aria-label="Reset"],
@@ -159,5 +165,22 @@ onMounted(() => {
 [aria-label="skip-task"],
 [aria-label="reject-annotation"] {
   order: 1;
+}
+
+[aria-label="skip-task"]:first-child,
+[aria-label="reject-annotation"]:first-child {
+  visibility: hidden;
+}
+
+[aria-label="skip-task"]::after {
+  content: "Next";
+  margin-left: -40px;
+  visibility: visible;
+}
+
+[aria-label="reject-annotation"]::after {
+  content: "Reject";
+  margin-left: -40px;
+  visibility: visible;
 }
 </style>
