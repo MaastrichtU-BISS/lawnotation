@@ -1,7 +1,7 @@
 <template>
   <div class="my-4 mx-auto max-w-screen-lg">
     <div class="dimmer-wrapper" style="min-height: 200px">
-      <Dimmer v-model="loading" />
+      <Dimmer v-model="projectsTable.loading" />
       <div class="dimmer-content">
         <h3 class="text-lg font-semibold mb-2">Projects</h3>
 
@@ -49,19 +49,22 @@ const projectApi = useProjectApi();
 const user = useSupabaseUser();
 const { $toast } = useNuxtApp();
 
-const loading = ref(true);
-
 const projectsTable = reactive<TableData<Project>>({
   total: 0,
   rows: [],
 
   page: 1,
   items_per_page: 10,
+  loading: false,
 
   async load() {
+    this.loading = true;
+
     const { rows, count } = await projectApi.tableProjects(user.value!.id, (this.page-1)*this.items_per_page, this.items_per_page);
     if (rows) this.rows = rows;
     if (count) this.total = count;
+
+    this.loading = false;
   }
 });
 

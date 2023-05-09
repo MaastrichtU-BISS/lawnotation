@@ -91,6 +91,7 @@ export type TableData<T> = {
   rows: T[],
   page: number,
   items_per_page: number,
+  loading: boolean,
   load: () => void
 }
 
