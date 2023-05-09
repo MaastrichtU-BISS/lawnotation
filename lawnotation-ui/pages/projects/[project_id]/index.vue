@@ -73,9 +73,8 @@ import { Project, useProjectApi } from "~/data/project";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
-import { useToast } from "vue-toastification";
 
-const toast = useToast();
+const { $toast } = useNuxtApp();
 
 const user = useSupabaseUser();
 const projectApi = useProjectApi();
@@ -125,7 +124,7 @@ const change_file = async (event: Event) => {
   documents.push(...(await documentApi.createDocuments(new_docs)));
 
   (event.target as HTMLInputElement).value = "";
-  toast.success(`${new_docs.length} documents uploaded!`);
+  $toast.success(`${new_docs.length} documents uploaded!`);
   loading_docs.value = false;
 };
 
@@ -147,12 +146,12 @@ const createTask = () => {
     // For some reason casting as Omit<Task, "id"> is necessary here.
     taskApi.createTask(new_task as Omit<Task, "id">).then((task) => {
       tasks.push(task);
-      toast.success("Task created");
+      $toast.success("Task created");
     });
   } catch (error) {
     if (error instanceof Error)
       // alert(`CAUGHT: ${error.message}`)
-      toast.error(`Error creating task: ${error.message}`);
+      $toast.error(`Error creating task: ${error.message}`);
   }
 };
 
@@ -173,7 +172,7 @@ onMounted(() => {
       labelsets.push(..._labelsets);
     });
   } catch (error) {
-    if (error instanceof Error) toast.error(`Error loading data: ${error.message}`);
+    if (error instanceof Error) $toast.error(`Error loading data: ${error.message}`);
   }
 });
 
