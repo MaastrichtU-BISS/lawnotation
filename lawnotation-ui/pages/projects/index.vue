@@ -22,11 +22,10 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useToast } from "vue-toastification";
 import { Project, useProjectApi } from "~/data/project";
 const projectApi = useProjectApi();
 const user = useSupabaseUser();
-const toast = useToast();
+const { $toast } = useNuxtApp();
 
 const projects = reactive<Project[]>([]);
 const loading = ref(true);
@@ -38,6 +37,7 @@ const new_project = reactive<Omit<Project, "id">>({
 });
 
 onMounted(() => {
+  $toast.success("Toast works!");
   if (user.value) loadProjects();
   else {
     watch(user, () => {
@@ -61,7 +61,7 @@ const loadProjects = () => {
         loading.value = false;
       });
   } catch (error) {
-    if (error instanceof Error) toast.error(`Error loading projects: ${error.message}`);
+    if (error instanceof Error) $toast.error(`Error loading projects: ${error.message}`);
   }
 };
 
@@ -70,11 +70,10 @@ const createNewProject = () => {
     new_project.editor_id = user.value?.id;
     projectApi.createProject(new_project).then((project) => {
       projects.push(project);
-      toast.success("Project created");
+      $toast.success("Project created");
     });
   } catch (error) {
-    if (error instanceof Error)
-      toast.error(`Error creating new projec: ${error.message}`);
+    if (error instanceof Error) $toast.error(`Error creating new projec: ${error.message}`);
   }
 };
 
