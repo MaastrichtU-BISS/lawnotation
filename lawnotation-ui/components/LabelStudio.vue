@@ -6,10 +6,16 @@
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
+import {
+  AnnotationRelation,
+  LSSerializedRelation,
+  useAnnotationRelationApi,
+} from "~/data/annotation_relations";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { LsLabels } from "~/data/labelset";
 
 const annotationApi = useAnnotationApi();
+const relationApi = useAnnotationRelationApi();
 const assignmentApi = useAssignmentApi();
 
 const label_studio = ref();
@@ -20,6 +26,7 @@ const props = defineProps<{
   user: any;
   assignment: Assignment | undefined;
   annotations: LSSerializedAnnotation | undefined;
+  relations: LSSerializedRelation[] | undefined;
   text: string | undefined;
   labels: LsLabels | undefined;
   isEditor: boolean | undefined;
@@ -46,10 +53,12 @@ const initLS = async () => {
                       <Text name="text" value="$text" />
                     </View>
                   <Relations>
-                    <Relation value="Is A" />
-                    <Relation value="Has Function" />
-                    <Relation value="Involved In" />
-                    <Relation value="Related To" />
+                    <Relation value="Is a" />
+                    <Relation value="Has a" />
+                    <Relation value="Implies" />
+                    <Relation value="Depends on" />
+                    <Relation value="Belongs to" />
+                    <Relation value="Related to" />
                   </Relations>
                   </View>
                 </View>
@@ -85,7 +94,9 @@ const initLS = async () => {
       // lastName: "Dean",
     },
     task: {
-      annotations: props.annotations?.length ? [{ result: props.annotations }] : [],
+      annotations: props.annotations?.length
+        ? [{ result: (props.annotations as any).concat(props.relations) }]
+        : [],
       // predictions: this.predictions,
       data: {
         text: props.text,
@@ -102,6 +113,7 @@ const initLS = async () => {
       }
     },
     onSkipTask() {
+      if (!props.assignment) return;
       assignmentApi
         .updateAssignment(props.assignment?.id.toString(), { status: "done" })
         .then((a) => {
@@ -110,30 +122,48 @@ const initLS = async () => {
     },
     onAcceptAnnotation() {},
     onRejectAnnotation() {},
-    onSubmitAnnotation: (
+    onSubmitAnnotation: async (
       LS: any,
       { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
     ) => {
-      if (!props.assignment) return;
-
-      const db_anns = annotationApi.convert_ls2db(
-        serializeAnnotation(),
-        props.assignment?.id
-      );
-      annotationApi.updateAssignmentAnnotations(props.assignment?.id, db_anns);
+      updateAnnotationsAndRelations(serializeAnnotation());
     },
-    onUpdateAnnotation: (
+    onUpdateAnnotation: async (
       LS: any,
       { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
     ) => {
-      if (!props.assignment) return;
-
-      const db_anns = annotationApi.convert_ls2db(
-        serializeAnnotation(),
-        props.assignment?.id
-      );
-      annotationApi.updateAssignmentAnnotations(props.assignment?.id, db_anns);
+      updateAnnotationsAndRelations(serializeAnnotation());
     },
+  });
+};
+
+const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
+  if (!props.assignment) return;
+
+  // create annotations
+  const ls_anns = serializedAnnotations.filter((x) => x.type == "labels");
+  const db_anns = annotationApi.convert_ls2db(ls_anns, props.assignment?.id);
+  const created_anns = await annotationApi.updateAssignmentAnnotations(
+    props.assignment?.id,
+    db_anns
+  );
+
+  if (!created_anns) return;
+
+  // create relations
+  const ls_rels = serializedAnnotations.filter((x) => x.type == "relation");
+
+  ls_rels.map((rel) => {
+    var from = -1;
+    var to = -1;
+    for (let i = 0; i < created_anns.length; ++i) {
+      if (created_anns[i].ls_id == ((rel as unknown) as LSSerializedRelation).from_id)
+        from = created_anns[i].id;
+
+      if (created_anns[i].ls_id == ((rel as unknown) as LSSerializedRelation).to_id)
+        to = created_anns[i].id;
+    }
+    relationApi.createRelation((rel as unknown) as LSSerializedRelation, from, to);
   });
 };
 

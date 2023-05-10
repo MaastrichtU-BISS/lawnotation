@@ -9,6 +9,7 @@
         :isEditor="isEditor"
         :text="doc?.full_text"
         :annotations="ls_annotations"
+        :relations="ls_relations"
         :guidelines="task?.ann_guidelines"
         :labels="labels"
       ></LabelStudio>
@@ -21,6 +22,11 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 import { Labelset, LsLabels, useLabelsetApi } from "~/data/labelset.js";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
+import {
+  AnnotationRelation,
+  useAnnotationRelationApi,
+  LSSerializedRelation,
+} from "~/data/annotation_relations";
 
 const user = useSupabaseUser();
 const assignmentApi = useAssignmentApi();
@@ -28,6 +34,7 @@ const documentApi = useDocumentApi();
 const taskApi = useTaskApi();
 const labelsetApi = useLabelsetApi();
 const annotationApi = useAnnotationApi();
+const relationApi = useAnnotationRelationApi();
 
 const { $toast } = useNuxtApp();
 
@@ -41,7 +48,9 @@ const loadedData = ref(false);
 const loading = ref(false);
 
 const annotations = reactive<Annotation[]>([]);
+const relations = reactive<AnnotationRelation[]>([]);
 const ls_annotations = reactive<LSSerializedAnnotation>([]);
+const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
 
@@ -79,6 +88,15 @@ const loadData = async () => {
     const db2ls_anns = annotationApi.convert_db2ls(annotations, assignment.value.id);
     if (annotations.length) {
       ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
+    }
+
+    relations.splice(0) &&
+      relations.push(...(await relationApi.findRelations(annotations)));
+
+    const db2ls_rels = relations.map((r) => relationApi.convert_db2ls(r));
+
+    if (relations.length) {
+      ls_relations.splice(0) && ls_relations.push(...db2ls_rels);
     }
 
     isEditor.value = user.value?.id != assignment.value.annotator_id;
