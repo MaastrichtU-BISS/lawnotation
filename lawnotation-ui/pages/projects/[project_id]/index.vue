@@ -1,71 +1,131 @@
 <template>
   <div v-if="project">
-    <h3 class="my-3 text-lg font-semibold mb-2">Project</h3>
-    <pre>{{ project }}</pre>
-    <h3 class="my-3 text-lg font-semibold">Documents: {{ documents.length }}</h3>
-    <ul v-for="d in documents" :key="'doc_' + d.id" class="list-disc list-inside">
-      <li>
-        <span>
-          {{ d.id }}.
-          <NuxtLink :to="`/projects/${route.params.project_id}/documents/${d.id}`">{{
-            d.name
-          }}</NuxtLink>
-        </span>
-      </li>
-    </ul>
-    <div class="my-3 dimmer-wrapper">
-      <Dimmer v-model="loading_docs" />
-      <div class="dimmer-content">
-        <span class="mr-3">Add Docs</span>
-        <input
-          type="file"
-          name="data-set"
-          id="doc_input"
-          accept=".txt"
-          webkitdirectory
-          directory
-          multiple
-          @change="change_file($event)"
-        />
-      </div>
-    </div>
-    <h3 class="my-3 text-lg font-semibold">Tasks: {{ tasks.length }}</h3>
-    <ul v-for="t in tasks" :key="'task_' + t.id" class="list-disc list-inside">
-      <li>
-        <span
-          >{{ t.id }}.
-          <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${t.id}`">{{
-            t.name
-          }}</NuxtLink></span
-        >
-      </li>
-    </ul>
-    <div class="my-3">
-      <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-        <input type="text" placeholder="Task name" v-model="new_task.name" />
-        <textarea placeholder="Task description" v-model="new_task.desc"></textarea>
-        <textarea
-          placeholder="Annotation Guidelines"
-          v-model="new_task.ann_guidelines"
-        ></textarea>
+    <h1 class="my-3 text-lg font-semibold mb-2">Project: {{ project.name }}</h1>
+    <p class="mt-1 mb-3 text-gray-700 text-sm">{{ project.desc }}</p>
 
-        <label for="label_id">Labelset</label>
-        <div>
-          <select v-if="labelsets.length" v-model="new_task.labelset_id" class="w-64">
-            <option v-for="labelset of labelsets" :value="labelset.id">
-              {{ labelset.name }}
-            </option>
-          </select>
-          <span v-else>No labelsets found</span>
-          <button class="btn-secondary" @click="() => navigateTo('/labelset/new')">
-            Create new labelset
-          </button>
-          <!-- <input type="number" name="" id="label_id" v-model="new_task.label_id" /> -->
+    <div class="tabs-holder">
+        <ul class="flex flex-wrap -mb-px">
+            <li :class="tab_active == 'tasks' ? 'tab-active' : 'tab'">
+                <button @click="tab_active = 'tasks'">Tasks</button>
+            </li>
+            <li :class="tab_active == 'documents' ? 'tab-active' : 'tab'">
+                <button @click="tab_active = 'documents'">Documents</button>
+            </li>
+        </ul>
+    </div>
+
+    <div v-show="tab_active == 'documents'">
+      <!-- <h2 class="my-3 text-lg font-semibold">Documents</h2> -->
+      <div class="my-3 dimmer-wrapper">
+        <Dimmer v-model="documentTable.loading" />
+        <Table :tabledata="documentTable">
+          <template #head>
+            <tr>
+              <th scope="col" class="px-6 py-3" v-for="colname in ['Id', 'Name', 'Action']">
+                {{ colname }}
+              </th>
+            </tr>
+          </template>
+          <template #body>
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              v-for="document in documentTable.rows"
+              :key="document.id">
+              <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                {{ document.id }}
+              </th>
+              <td class="px-6 py-2">
+                {{ document.name }}
+              </td>
+              <td class="px-6 py-2">
+                <NuxtLink class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                :to="`/projects/${route.params.project_id}/documents/${document.id}`">View</NuxtLink>
+              </td>
+            </tr>
+          </template>
+        </Table>
+      </div>
+      
+      <div class="my-3 dimmer-wrapper">
+        <Dimmer v-model="loading_docs" />
+        <div class="dimmer-content">
+          <span class="mr-3">Add documents</span>
+          <input
+            type="file"
+            name="data-set"
+            id="doc_input"
+            accept=".txt"
+            webkitdirectory
+            directory
+            multiple
+            @change="change_file($event)"
+          />
         </div>
-
-        <button class="btn-primary" @click="createTask">Create Tasks</button>
       </div>
     </div>
+
+    <div v-show="tab_active == 'tasks'">
+      <!-- <h2 class="my-3 text-lg font-semibold">Tasks</h2> -->
+
+      <div class="my-3 dimmer-wrapper">
+        <Dimmer v-model="taskTable.loading" />
+        <Table :tabledata="taskTable">
+          <template #head>
+            <tr>
+              <th scope="col" class="px-6 py-3" v-for="colname in ['Id', 'Name', 'Description', 'Action']">
+                {{ colname }}
+              </th>
+            </tr>
+          </template>
+          <template #body>
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              v-for="task in taskTable.rows"
+              :key="task.id">
+              <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                {{ task.id }}
+              </th>
+              <td class="px-6 py-2">
+                {{ task.name }}
+              </td>
+              <td class="px-6 py-2">
+                {{ task.desc }}
+              </td>
+              <td class="px-6 py-2">
+                <NuxtLink class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                :to="`/projects/${route.params.project_id}/tasks/${task.id}`">View</NuxtLink>
+              </td>
+            </tr>
+          </template>
+        </Table>
+      </div>
+
+      <div class="my-3">  
+      <h3 class="text-lg mt-8">Create new task</h3>
+        <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
+          <input type="text" placeholder="Task name" v-model="new_task.name" />
+          <textarea placeholder="Task description" v-model="new_task.desc"></textarea>
+          <textarea
+            placeholder="Annotation Guidelines"
+            v-model="new_task.ann_guidelines"
+          ></textarea>
+
+          <label for="label_id">Labelset</label>
+          <div class="flex w-full space-x-2">
+            <select v-if="labelsets.length" v-model="new_task.labelset_id" class="flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500  px-2.5 py-1.5">
+              <option v-for="labelset of labelsets" :value="labelset.id">
+                {{ labelset.name }}
+              </option>
+            </select>
+            <span v-else>No labelsets found</span>
+            <button class="btn-secondary" @click="() => navigateTo('/labelset/new')">
+              Create new labelset
+            </button>
+          </div>
+
+          <button class="btn-primary" @click="createTask">Create Tasks</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 <script setup lang="ts">
@@ -73,6 +133,7 @@ import { Project, useProjectApi } from "~/data/project";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
+import Table, { TableData } from "~/components/Table.vue";
 
 const { $toast } = useNuxtApp();
 
@@ -84,11 +145,55 @@ const labelsetApi = useLabelsetApi();
 
 const route = useRoute();
 const project = ref<Project>();
-const documents = reactive<Document[]>([]);
 const loading_docs = ref(false);
-const tasks = reactive<Task[]>([]);
+
+const tab_active = ref<"tasks" | "documents">("tasks");
 
 const labelsets = reactive<Labelset[]>([]);
+
+const documentTable = reactive<TableData<Document>>({
+  total: 0,
+  rows: [],
+
+  page: 1,
+  items_per_page: 10,
+  loading: false,
+
+  async load() {
+    if (!project.value)
+      return;
+
+    this.loading = true;
+
+    const { rows, count } = await documentApi.tableDocuments(project.value.id, (this.page-1)*this.items_per_page, this.items_per_page);
+    if (rows) this.rows = rows;
+    if (count) this.total = count;
+
+    this.loading = false;
+  }
+});
+
+const taskTable = reactive<TableData<Task>>({
+  total: 0,
+  rows: [],
+
+  page: 1,
+  items_per_page: 10,
+  loading: false,
+
+  async load() {
+    if (!project.value)
+      return;
+
+    this.loading = true;
+
+    const { rows, count } = await taskApi.tableTasks(project.value.id, (this.page-1)*this.items_per_page, this.items_per_page);
+    if (rows) this.rows = rows;
+    if (count) this.total = count;
+
+    this.loading = false;
+  }
+});
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
@@ -121,7 +226,8 @@ const change_file = async (event: Event) => {
     new_docs[index].full_text = t;
   });
 
-  documents.push(...(await documentApi.createDocuments(new_docs)));
+  // TODO: progress bar instead of instantly adding to list, and after all are added reload documents table (keep loading = true while adding?)
+  // documents.push(...(await documentApi.createDocuments(new_docs)));
 
   (event.target as HTMLInputElement).value = "";
   $toast.success(`${new_docs.length} documents uploaded!`);
@@ -145,12 +251,12 @@ const createTask = () => {
 
     // For some reason casting as Omit<Task, "id"> is necessary here.
     taskApi.createTask(new_task as Omit<Task, "id">).then((task) => {
-      tasks.push(task);
+      // tasks.push(task);
+      taskTable.load();
       $toast.success("Task created");
     });
   } catch (error) {
     if (error instanceof Error)
-      // alert(`CAUGHT: ${error.message}`)
       $toast.error(`Error creating task: ${error.message}`);
   }
 };
@@ -160,12 +266,9 @@ onMounted(() => {
     projectApi.findProject(route.params.project_id.toString()).then((p) => {
       project.value = p;
       new_task.project_id = p.id;
-      documentApi.findDocuments(p.id.toString()).then((docs) => {
-        documents.splice(0) && documents.push(...docs);
-      });
-      taskApi.findTasks(p.id.toString()).then((_tasks) => {
-        tasks.splice(0) && tasks.push(..._tasks);
-      });
+
+      documentTable.load();
+      taskTable.load();
     });
 
     labelsetApi.findLabelsets().then((_labelsets) => {
@@ -180,3 +283,16 @@ definePageMeta({
   middleware: ["auth"],
 });
 </script>
+
+
+<style lang="scss">
+div.tabs-holder {
+  @apply text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700;
+  li.tab button {
+    @apply inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300;
+  }
+  li.tab-active button {
+    @apply inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg dark:text-blue-500 dark:border-blue-500;
+  }
+}
+</style>

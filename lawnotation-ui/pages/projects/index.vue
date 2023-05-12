@@ -5,7 +5,7 @@
       <div class="dimmer-content">
         <h3 class="text-lg font-semibold mb-2">Projects</h3>
 
-        <Table :tabledata="projectsTable">
+        <Table :tabledata="projectTable">
           <template #head>
             <tr>
               <th scope="col" class="px-6 py-3" v-for="colname in ['Id', 'Name', 'Action']">
@@ -15,7 +15,7 @@
           </template>
           <template #body>
             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-              v-for="project in projectsTable.rows"
+              v-for="project in projectTable.rows"
               :key="project.id">
               <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                 {{ project.id }}
@@ -34,7 +34,7 @@
       </div>
     </div>
     
-    <h2 class="text-lg mt-8">Create new project</h2>
+    <h3 class="text-lg mt-8">Create new project</h3>
     <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
       <input type="text" placeholder="Project name" v-model="new_project.name" />
       <textarea placeholder="Project description" v-model="new_project.desc"></textarea>
@@ -49,7 +49,7 @@ const projectApi = useProjectApi();
 const user = useSupabaseUser();
 const { $toast } = useNuxtApp();
 
-const projectsTable = reactive<TableData<Project>>({
+const projectTable = reactive<TableData<Project>>({
   total: 0,
   rows: [],
 
@@ -76,11 +76,11 @@ const new_project = reactive<Omit<Project, "id">>({
 
 onMounted(() => {
   $toast.success("Toast works!");
-  if (user.value) projectsTable.load();
+  if (user.value) projectTable.load();
   else {
     watch(user, () => {
-      if (user.value) {
-        projectsTable.load();
+      if (!projectTable.total && user.value) {
+        projectTable.load();
       }
     });
   }
@@ -90,7 +90,7 @@ const createNewProject = () => {
   try {
     new_project.editor_id = user.value?.id;
     projectApi.createProject(new_project).then((project) => {
-      projectsTable.load();
+      projectTable.load();
       $toast.success("Project created");
     });
   } catch (error) {
