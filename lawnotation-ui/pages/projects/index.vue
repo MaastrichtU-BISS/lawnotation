@@ -1,7 +1,7 @@
 <template>
   <div class="my-4 mx-auto max-w-screen-lg">
     <div class="dimmer-wrapper" style="min-height: 200px">
-      <Dimmer v-model="projectsTable.loading" />
+      <Dimmer v-model="projectTable.loading" />
       <div class="dimmer-content">
         <h3 class="text-lg font-semibold mb-2">Projects</h3>
 
@@ -58,9 +58,12 @@ const projectTable = reactive<TableData<Project>>({
   loading: false,
 
   async load() {
+    if (!user.value)
+      return;
+
     this.loading = true;
 
-    const { rows, count } = await projectApi.tableProjects(user.value!.id, (this.page-1)*this.items_per_page, this.items_per_page);
+    const { rows, count } = await projectApi.tableProjects(user.value.id, (this.page-1)*this.items_per_page, this.items_per_page);
     if (rows) this.rows = rows;
     if (count) this.total = count;
 

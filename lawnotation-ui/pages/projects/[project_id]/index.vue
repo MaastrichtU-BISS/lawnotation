@@ -15,7 +15,6 @@
     </div>
 
     <div v-show="tab_active == 'documents'">
-      <!-- <h2 class="my-3 text-lg font-semibold">Documents</h2> -->
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="documentTable.loading" />
         <Table :tabledata="documentTable">
@@ -64,7 +63,6 @@
     </div>
 
     <div v-show="tab_active == 'tasks'">
-      <!-- <h2 class="my-3 text-lg font-semibold">Tasks</h2> -->
 
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="taskTable.loading" />

@@ -1,29 +1,46 @@
 <template>
   <div v-if="task">
-    <h3 class="my-3 text-lg font-semibold">Task:</h3>
+    <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
     <pre>{{ task }}</pre>
     <div class="dimmer-wrapper">
-      <Dimmer v-model="loading" />
+      <Dimmer v-model="assignmentTable.loading" />
       <div class="dimmer-content">
-        <h3 class="my-3 text-lg font-semibold">Assignments: {{ assignments.length }}</h3>
-        <ul
-          v-for="fa in formatted_assignments"
-          :key="'assignments_' + fa.id"
-          class="list-disc list-inside"
-        >
-          <li>
-            <span
-              >{{ fa.id }}.
-              <NuxtLink :to="`/assignments/${fa.id}`">
-                {{ fa.annotator_email }} - {{ fa.document_name }}</NuxtLink
-              ><span
-                class="ml-2"
-                :style="fa.status == 'pending' ? 'color: red' : 'color: green'"
-                >{{ fa.status }}</span
-              ></span
-            >
-          </li>
-        </ul>
+        
+        <h3 class="my-3 text-lg font-semibold">Assignments</h3>
+
+        <Table :tabledata="assignmentTable">
+          <template #head>
+            <tr>
+              <th scope="col" class="px-6 py-3" v-for="colname in ['Id', 'Annotator', 'Document', 'Status', 'Action']">
+                {{ colname }}
+              </th>
+            </tr>
+          </template>
+          <template #body>
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              v-for="assignment in assignmentTable.rows"
+              :key="assignment.id">
+              <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                {{ assignment.id }}
+              </th>
+              <td class="px-6 py-2">
+                {{ assignment.annotator.email }}
+              </td>
+              <td class="px-6 py-2">
+                {{ assignment.document.name }}
+              </td>
+              <td class="px-6 py-2">
+                <span :class="assignment.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{ assignment.status }}</span>
+              </td>
+              <td class="px-6 py-2">
+                <NuxtLink class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                :to="`/assignments/${assignment.id}`">View</NuxtLink>
+              </td>
+            </tr>
+          </template>
+        </Table>
+
+
         <div class="my-3">
           <div
             class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3"
@@ -76,8 +93,9 @@
 <script setup lang="ts">
 import { Task, useTaskApi } from "~/data/task";
 import { Document, useDocumentApi } from "~/data/document";
-import { Assignment, useAssignmentApi } from "~/data/assignment";
+import { Assignment, AssignmentTableData, useAssignmentApi } from "~/data/assignment";
 import { User, useUserApi } from "~/data/user";
+import { TableData } from "~/components/Table.vue";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -94,11 +112,32 @@ const total_docs = ref<number>(0);
 const amount_of_docs = ref<number>(0);
 const amount_of_fixed_docs = ref<number>(0);
 const annotators_email = reactive<string[]>([]);
-const assignments = reactive<Assignment[]>([]);
 const formatted_assignments = reactive<any[]>([]);
 const loading = ref(false);
 
 const email = ref("");
+
+const assignmentTable = reactive<TableData<AssignmentTableData>>({
+  total: 0,
+  rows: [],
+
+  page: 1,
+  items_per_page: 10,
+  loading: false,
+
+  async load() {
+    if (!task.value)
+      return;
+
+    this.loading = true;
+
+    const { rows, count } = await assignmentApi.tableAssignmentsByTask(task.value.id, (this.page-1)*this.items_per_page, this.items_per_page);
+    if (rows) this.rows = rows;
+    if (count) this.total = count;
+
+    this.loading = false;
+  }
+});
 
 const addAnnotator = () => {
   if (email.value == "") throw new Error("Email field is required");
