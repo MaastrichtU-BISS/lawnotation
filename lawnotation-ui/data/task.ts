@@ -39,6 +39,19 @@ export const useTaskApi = () => {
       return data as Task[]
   };
 
+  const tableTasks = async (project_id: number, offset: number, limit: number) => {
+    const { data, error, count } = await supabase
+      .from("tasks")
+      .select('*', { count: 'exact' })
+      .eq("project_id", project_id)
+      .range(offset, offset + limit - 1);
+    
+    if (error)
+      throw Error(`Error in tableTasks: ${error.message}`)
+    else
+      return {rows: data as Task[], count};
+  }
+
   // Update
   const updateTask = async (id: string, fields: Partial<Task>): Promise<boolean> => {
     const { data, error } = await supabase.from("tasks").update(fields).eq("id", id);
@@ -59,5 +72,12 @@ export const useTaskApi = () => {
       return true;
   };
 
-  return {createTask, findTask, findTasks, updateTask, deleteTask}
+  return {
+    createTask,
+    findTask,
+    findTasks,
+    tableTasks,
+    updateTask,
+    deleteTask
+  }
 }
