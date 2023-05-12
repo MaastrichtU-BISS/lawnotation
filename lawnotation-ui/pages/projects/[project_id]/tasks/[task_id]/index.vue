@@ -4,6 +4,7 @@
     <pre>{{ task }}</pre>
     <div class="dimmer-wrapper">
       <Dimmer v-model="assignmentTable.loading" />
+      <Dimmer v-model="loading" />
       <div class="dimmer-content">
         
         <h3 class="my-3 text-lg font-semibold">Assignments</h3>
@@ -217,8 +218,11 @@ const createAssignments = async () => {
 
     update_assignments_lists(created_assignments).then(() => {
       loading.value = false;
+      assignmentTable.load();
       $toast.success("Assignments created");
     });
+
+
   } catch (error) {
     loading.value = false;
     if (error instanceof Error)

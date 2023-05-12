@@ -226,6 +226,8 @@ const change_file = async (event: Event) => {
 
   // TODO: progress bar instead of instantly adding to list, and after all are added reload documents table (keep loading = true while adding?)
   // documents.push(...(await documentApi.createDocuments(new_docs)));
+  await documentApi.createDocuments(new_docs);
+  documentTable.load();
 
   (event.target as HTMLInputElement).value = "";
   $toast.success(`${new_docs.length} documents uploaded!`);

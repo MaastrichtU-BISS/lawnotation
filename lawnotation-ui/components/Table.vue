@@ -9,7 +9,7 @@
       </tbody>
     </table>
 
-    <nav v-if="pagination" class="flex items-center justify-between pt-4" aria-label="Table navigation">
+    <nav v-if="pagination" class="pagination-holder flex items-center justify-between pt-4" aria-label="Table navigation">
       <span class="text-sm font-normal text-gray-500">
         Showing <span class="font-semibold text-gray-900">{{ visible_start_i }} - {{ visible_end_i }}</span>
         of <span class="font-semibold text-gray-900">{{ tabledata.total }}</span>
@@ -79,11 +79,11 @@
 const props = withDefaults(defineProps<{
   pagination: boolean,
   // items_per_page: 
-  search: boolean,
+  // search: boolean,
   tabledata: TableData<any>
 }>(), {
   pagination: true,
-  search: false,
+  // search: false,
 });
 
 export type TableData<T> = {
@@ -126,21 +126,25 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
-.pagination-item-default {
-  @apply px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300;
-  &:not([disabled]) {
-    @apply hover:bg-gray-100 hover:text-gray-700;
-  }
-  &:disabled {
-    @apply bg-gray-50;
-  }
-}
+.pagination-holder {
+  font-size: 16px;
 
-.pagination-item-many {
-  @apply px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300;
-}
+  .pagination-item-default {
+    @apply px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300;
+    &:not([disabled]) {
+      @apply hover:bg-gray-100 hover:text-gray-700;
+    }
+    &:disabled {
+      @apply bg-gray-50;
+    }
+  }
 
-.pagination-item-active {
-  @apply z-10 px-3 py-2 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700;
+  .pagination-item-many {
+    @apply px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300;
+  }
+
+  .pagination-item-active {
+    @apply z-10 px-3 py-2 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700;
+  }
 }
 </style>
