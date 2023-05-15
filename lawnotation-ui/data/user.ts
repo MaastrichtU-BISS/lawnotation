@@ -34,9 +34,9 @@ export const useUserApi = () => {
     //     return data;
   }
 
-  const findByEmail = async (email: string): Promise<any> => {
+  const findByEmail = async (email: string, columns = "id"): Promise<any> => {
 
-    const { data, error } = await supabase.from("users").select("id").eq("email", email).single();
+    const { data, error } = await supabase.from("users").select(columns).eq("email", email).single();
 
     if (error)
         throw Error(`Error in inviteUser: ${error.message}`)

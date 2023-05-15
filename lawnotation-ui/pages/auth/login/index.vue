@@ -46,7 +46,7 @@ const signIn = () => {
     }
 
     userApi
-      .otpLogin(email.value, `${config.public.baseURL}/projects`)
+      .otpLogin(email.value, `${config.public.baseURL}`)
       .then((user) => {
         $toast.success(`Login link has been sent to: ${email.value}`);
         loading.value = false;

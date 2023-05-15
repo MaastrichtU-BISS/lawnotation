@@ -39,6 +39,15 @@ export const useTaskApi = () => {
       return data as Task[]
   };
 
+  const getAllAnnotatorTasks = async (annotator_id: string): Promise<Task[]> => {
+    const { data, error } = await supabase.rpc("get_all_annotator_tasks", { a_id: annotator_id });
+    console.log(data)
+    if (error)
+      throw Error(`Error in getAllAnnotatorTasks: ${error.message}`)
+    else
+      return data as Task[]
+  };
+
   // Update
   const updateTask = async (id: string, fields: Partial<Task>): Promise<boolean> => {
     const { data, error } = await supabase.from("tasks").update(fields).eq("id", id);
@@ -59,5 +68,5 @@ export const useTaskApi = () => {
       return true;
   };
 
-  return {createTask, findTask, findTasks, updateTask, deleteTask}
+  return {createTask, findTask, findTasks, getAllAnnotatorTasks, updateTask, deleteTask}
 }
