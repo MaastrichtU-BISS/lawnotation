@@ -33,10 +33,23 @@ export const useProjectApi = () => {
     const { data, error } = await supabase.from("projects").select().eq("editor_id", editor_id);
     
     if (error)
-      throw Error(`Error in findProject: ${error.message}`)
+      throw Error(`Error in findProjects: ${error.message}`)
     else
       return data as Project[]
   };
+
+  const tableProjects = async (editor_id: string, offset: number, limit: number) => {
+    const { data, error, count } = await supabase
+      .from("projects")
+      .select('*', { count: 'exact' })
+      .eq("editor_id", editor_id)
+      .range(offset, offset + limit - 1);
+    
+    if (error)
+      throw Error(`Error in tableProjects: ${error.message}`)
+    else
+      return {rows: data as Project[], count};
+  }
 
   // Update
   const updateProject = async (id: string, fields: Partial<Project>): Promise<boolean> => {
@@ -58,5 +71,5 @@ export const useProjectApi = () => {
       return true;
   };
 
-  return {createProject, findProject, findProjects, updateProject, deleteProject}
+  return {createProject, findProject, findProjects, tableProjects, updateProject, deleteProject}
 }

@@ -7,6 +7,22 @@ export type Assignment = {
   status: string
 }
 
+export type AssignmentTableData = {
+  id: number,
+  task_id: number,
+  annotator: {
+    id: string,
+    email: string
+  },
+  document: {
+    id: number,
+    name: string,
+    source: string,
+    // full_text: string
+  },
+  status: string,
+}
+
 export const useAssignmentApi = () => {
   const supabase = useSupabaseClient();
   
@@ -47,6 +63,19 @@ export const useAssignmentApi = () => {
     else
       return data as Assignment[]
   };
+
+  const tableAssignmentsByTask = async (task_id: number, offset: number, limit: number) => {
+    const { data, error, count } = await supabase
+      .from("assignments")
+      .select('id, task_id, annotator:users(id, email), document:documents(id, name, source), status', { count: 'exact' })
+      .eq("task_id", task_id)
+      .range(offset, offset + limit - 1);
+    
+    if (error)
+      throw Error(`Error in tableAssignmentsByTask: ${error.message}`)
+    else
+      return {rows: data as AssignmentTableData[], count};
+  }
 
   const findAssignmentsByUser = async (annotator_id: string): Promise<Assignment[]> => {
     const { data, error } = await supabase.from("assignments").select().eq("annotator_id", annotator_id);
@@ -93,5 +122,16 @@ export const useAssignmentApi = () => {
       return true;
   };
 
-  return {createAssignment, createAssignments, findAssignment, findAssignmentsByTask, findAssignmentsByUser, updateAssignment, deleteAssignment, findNextAssignmentsByUserAndTask, countAssignmentsByUserAndTask}
+  return {
+    createAssignment,
+    createAssignments,
+    findAssignment,
+    findAssignmentsByTask,
+    tableAssignmentsByTask,
+    findAssignmentsByUser,
+    updateAssignment,
+    deleteAssignment,
+    findNextAssignmentsByUserAndTask,
+    countAssignmentsByUserAndTask
+  }
 }
