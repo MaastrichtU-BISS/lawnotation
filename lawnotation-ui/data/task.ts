@@ -41,7 +41,6 @@ export const useTaskApi = () => {
 
   const getAllAnnotatorTasks = async (annotator_id: string): Promise<Task[]> => {
     const { data, error } = await supabase.rpc("get_all_annotator_tasks", { a_id: annotator_id });
-    console.log(data)
     if (error)
       throw Error(`Error in getAllAnnotatorTasks: ${error.message}`)
     else

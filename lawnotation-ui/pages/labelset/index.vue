@@ -1,14 +1,22 @@
 <template>
   <div v-if="labelsets === undefined">Loading labelsets...</div>
   <div v-else>
-    <h3 class="text-lg font-semibold mb-2">Available labelsets: {{ labelsets.length }}</h3>
+    <h3 class="text-lg font-semibold mb-2">
+      Available labelsets: {{ labelsets.length }}
+    </h3>
     <ul class="list-disc list-inside">
       <li v-for="labelset of labelsets">
         <span
-          >{{ labelset.id }}. <NuxtLink :to="`/labelset/${labelset.id}`">{{ labelset.name }}</NuxtLink></span
+          >{{ labelset.id }}.
+          <NuxtLink :to="`/labelset/${labelset.id}`">{{ labelset.name }}</NuxtLink></span
         >
       </li>
     </ul>
+    <div class="my-4">
+      <NuxtLink class="btn btn-primary" :to="`/labelset/new`"
+        >Create new labelset</NuxtLink
+      >
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -23,7 +31,7 @@ const labelsets = ref<Labelset[]>();
 onMounted(() => {
   labelsetApi.findLabelsets().then((_labelsets) => {
     labelsets.value = [];
-    labelsets.value.push(..._labelsets)
+    labelsets.value.push(..._labelsets);
   });
 });
 
