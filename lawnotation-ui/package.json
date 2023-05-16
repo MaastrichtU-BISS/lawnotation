@@ -18,8 +18,12 @@
   "dependencies": {
     "@heartexlabs/label-studio": "^1.4.0",
     "@nuxtjs/supabase": "^0.3.5",
+    "@pinia/nuxt": "^0.4.10",
     "@supabase/supabase-js": "^2.14.0",
     "epic-spinners": "^2.0.0",
+    "mobx": "^6.9.0",
+    "mobx-state-tree": "^5.1.8",
+    "pinia": "^2.0.36",
     "vue-toastification": "2.0.0-rc.5"
   }
 }

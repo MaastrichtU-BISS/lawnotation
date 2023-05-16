@@ -5,7 +5,10 @@ export default defineNuxtConfig({
       baseURL: process.env.NODE_ENV === 'production' ? 'https://lawnotation.vercel.app' : 'http://localhost:3000'
     }
   },
-  modules: ['@nuxtjs/supabase'],
+  modules: [
+    '@nuxtjs/supabase',
+    '@pinia/nuxt',
+  ],
   postcss: {
     plugins: {
       tailwindcss: {},

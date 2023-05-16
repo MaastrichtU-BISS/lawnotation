@@ -14,6 +14,10 @@ import {
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { LsLabels } from "~/data/labelset";
 
+import { useLabelStudioBridge } from "~/stores/useLabelStudioBridge";
+
+const labelStudioBridge = useLabelStudioBridge();
+
 const annotationApi = useAnnotationApi();
 const relationApi = useAnnotationRelationApi();
 const assignmentApi = useAssignmentApi();
@@ -34,6 +38,7 @@ const props = defineProps<{
 }>();
 
 const initLS = async () => {
+  // @ts-ignore
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
   label_studio.value = new LabelStudio("label-studio", {
     config: `
@@ -111,6 +116,11 @@ const initLS = async () => {
         });
         LS.annotationStore.selectAnnotation(c.id);
       }
+
+      console.log("LSLOAD value", LS);
+      if (LS.annotationStore)
+        labelStudioBridge.setMobxAnnotationStore(LS.annotationStore);
+
     },
     onSkipTask() {
       if (!props.assignment) return;
@@ -135,6 +145,7 @@ const initLS = async () => {
       updateAnnotationsAndRelations(serializeAnnotation());
     },
   });
+
 };
 
 const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
