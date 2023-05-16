@@ -39,6 +39,13 @@ export const useTaskApi = () => {
       return data as Task[]
   };
 
+  const getAllAnnotatorTasks = async (annotator_id: string): Promise<Task[]> => {
+    const { data, error } = await supabase.rpc("get_all_annotator_tasks", { a_id: annotator_id });
+    if (error)
+      throw Error(`Error in getAllAnnotatorTasks: ${error.message}`)
+    else
+      return data as Task[]
+  };
   const tableTasks = async (project_id: number, offset: number, limit: number) => {
     const { data, error, count } = await supabase
       .from("tasks")
@@ -72,12 +79,5 @@ export const useTaskApi = () => {
       return true;
   };
 
-  return {
-    createTask,
-    findTask,
-    findTasks,
-    tableTasks,
-    updateTask,
-    deleteTask
-  }
+  return {createTask, findTask, findTasks, getAllAnnotatorTasks, updateTask, deleteTask, tableTasks}
 }
