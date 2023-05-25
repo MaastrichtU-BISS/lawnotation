@@ -4,7 +4,8 @@ export type Assignment = {
   annotator_id: string,
   task_id: number,
   document_id: number,
-  status: string
+  status: string,
+  seq_pos: number | undefined,
 }
 
 export type AssignmentTableData = {
