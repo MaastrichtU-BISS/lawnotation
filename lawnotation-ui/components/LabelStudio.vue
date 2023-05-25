@@ -176,6 +176,10 @@ onMounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
+.lsf-richtext {
+  margin-top: 1rem;
+}
+
 .lsf-current-task {
   display: none;
 }
