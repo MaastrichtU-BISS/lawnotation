@@ -26,6 +26,7 @@
 </template>
 <script setup lang="ts">
 import { useUserApi, User } from "../data/user";
+const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 const userApi = useUserApi();
 

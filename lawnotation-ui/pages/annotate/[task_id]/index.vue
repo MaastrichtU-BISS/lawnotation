@@ -3,7 +3,7 @@
     class="text-center my-4 mx-auto max-w-screen-lg text-lg font-semibo"
     v-if="loadedData"
   >
-    {{ assignmentCounts?.done + 1 }} / {{ assignmentCounts?.total }}
+    {{ assignment?.seq_pos }} / {{ assignmentCounts?.total }}
   </div>
   <div class="dimmer-wrapper" style="min-height: 200px">
     <Dimmer v-model="loading" />
@@ -50,6 +50,7 @@ const { $toast } = useNuxtApp();
 type Id = number;
 
 const route = useRoute();
+const router = useRouter();
 const assignment = ref<Assignment>();
 const task = ref<Task>();
 const doc = ref<Document>();
@@ -75,10 +76,26 @@ const loadData = async () => {
     loading.value = true;
     if (!user.value) throw new Error("Must be logged in");
 
-    assignment.value = await assignmentApi.findNextAssignmentsByUserAndTask(
-      user.value.id,
-      route.params.task_id.toString()
-    );
+    const seq = route.query.seq;
+    if (Array.isArray(seq)) throw new Error("Invalid seq query");
+
+    if (seq && parseInt(seq) < assignmentCounts.value.done + 1) {
+      assignment.value = await assignmentApi.findAssignmentsByUserTaskSeq(
+        user.value.id,
+        route.params.task_id.toString(),
+        parseInt(seq)
+      );
+    } else {
+      assignment.value = await assignmentApi.findNextAssignmentsByUserAndTask(
+        user.value.id,
+        route.params.task_id.toString()
+      );
+
+      router.replace({
+        path: route.path,
+        query: { seq: assignment.value.seq_pos },
+      });
+    }
 
     if (!assignment.value) throw Error("Assignment not found");
 
@@ -144,12 +161,15 @@ const loadCounters = async () => {
 };
 
 const loadDataAndCount = async () => {
-  assignmentCounts.value.done++;
-  assignmentCounts.value.pending--;
-  if (assignmentCounts.value.pending == 0) {
+  await router.replace({
+    path: route.path,
+    query: { seq: assignment.value?.seq_pos + 1 },
+  });
+
+  if (assignmentCounts.value.total == assignment.value?.seq_pos) {
     // TODO: go to page /done
     alert("All tasks were done: you will be signed out");
-    supabase.auth.signOut();
+    // supabase.auth.signOut();
   } else {
     await loadData();
   }

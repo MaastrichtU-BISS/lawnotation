@@ -7,7 +7,7 @@
         <li>
           <span>
             {{ t.id }}.
-            <NuxtLink :to="`/annotate/${t.id}`">{{ t.name }}</NuxtLink>
+            <NuxtLink :to="`/tasks/${t.id}`">{{ t.name }}</NuxtLink>
           </span>
         </li>
       </ul>

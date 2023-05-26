@@ -5,7 +5,7 @@ export type Assignment = {
   task_id: number,
   document_id: number,
   status: string,
-  seq_pos: number | undefined,
+  seq_pos: number,
 }
 
 export type AssignmentTableData = {
@@ -22,6 +22,7 @@ export type AssignmentTableData = {
     // full_text: string
   },
   status: string,
+  seq_pos: number,
 }
 
 export const useAssignmentApi = () => {
@@ -65,11 +66,41 @@ export const useAssignmentApi = () => {
       return data as Assignment[]
   };
 
+  const findAssignmentsByUserTaskSeq = async (anntator_id: string, task_id: string, seq_pos: number): Promise<Assignment> => {
+    const { data, error } = await supabase.from("assignments")
+      .select()
+      .eq("task_id", task_id)
+      .eq("annotator_id", anntator_id)
+      .eq("seq_pos", seq_pos)
+      .single();
+    
+    if (error)
+      throw Error(`Error in findAssignmentsByUserTaskSeq: ${error.message}`)
+    else
+      return data as Assignment
+  };
+
   const tableAssignmentsByTask = async (task_id: number, offset: number, limit: number) => {
     const { data, error, count } = await supabase
       .from("assignments")
-      .select('id, task_id, annotator:users(id, email), document:documents(id, name, source), status', { count: 'exact' })
+      .select('id, task_id, annotator:users(id, email), document:documents(id, name, source), status, seq_pos', { count: 'exact' })
       .eq("task_id", task_id)
+      .range(offset, offset + limit - 1);
+    
+    if (error)
+      throw Error(`Error in tableAssignmentsByTask: ${error.message}`)
+    else
+      return {rows: data as AssignmentTableData[], count};
+  }
+
+  const tableAssignmentsByTaskAndUser = async (task_id: number, annotator_id: string, offset: number, limit: number) => {
+    const { data, error, count } = await supabase
+      .from("assignments")
+      .select('id, task_id, annotator:users(id, email), document:documents(id, name, source), status, seq_pos', { count: 'exact' })
+      .eq("task_id", task_id)
+      .eq("annotator_id", annotator_id)
+      .eq("status", "done")
+      .order("seq_pos")
       .range(offset, offset + limit - 1);
     
     if (error)
@@ -133,6 +164,8 @@ export const useAssignmentApi = () => {
     updateAssignment,
     deleteAssignment,
     findNextAssignmentsByUserAndTask,
-    countAssignmentsByUserAndTask
+    countAssignmentsByUserAndTask,
+    tableAssignmentsByTaskAndUser,
+    findAssignmentsByUserTaskSeq
   }
 }

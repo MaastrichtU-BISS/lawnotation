@@ -236,7 +236,7 @@ const createAssignments = async () => {
     const assignmentsPromises: Promise<Boolean>[] = [];
     for (let i = 0; i < created_assignments.length; ++i) {
       created_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
-      created_assignments[i].seq_pos = permutations[i % annotators_id.length].pop();
+      created_assignments[i].seq_pos = permutations[i % annotators_id.length].pop() + 1;
       assignmentsPromises.push(
         assignmentApi.updateAssignment(
           created_assignments[i].id.toString(),
