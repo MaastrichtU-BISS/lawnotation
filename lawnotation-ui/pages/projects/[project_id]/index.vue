@@ -4,14 +4,14 @@
     <p class="mt-1 mb-3 text-gray-700 text-sm">{{ project.desc }}</p>
 
     <div class="tabs-holder">
-        <ul class="flex flex-wrap -mb-px">
-            <li :class="tab_active == 'tasks' ? 'tab-active' : 'tab'">
-                <button @click="tab_active = 'tasks'">Tasks</button>
-            </li>
-            <li :class="tab_active == 'documents' ? 'tab-active' : 'tab'">
-                <button @click="tab_active = 'documents'">Documents</button>
-            </li>
-        </ul>
+      <ul class="flex flex-wrap -mb-px">
+        <li :class="tab_active == 'tasks' ? 'tab-active' : 'tab'">
+          <button @click="tab_active = 'tasks'">Tasks</button>
+        </li>
+        <li :class="tab_active == 'documents' ? 'tab-active' : 'tab'">
+          <button @click="tab_active = 'documents'">Documents</button>
+        </li>
+      </ul>
     </div>
 
     <div v-show="tab_active == 'documents'">
@@ -20,30 +20,42 @@
         <Table :tabledata="documentTable">
           <template #head>
             <tr>
-              <th scope="col" class="px-6 py-3" v-for="colname in ['Id', 'Name', 'Action']">
+              <th
+                scope="col"
+                class="px-6 py-3"
+                v-for="colname in ['Id', 'Name', 'Action']"
+              >
                 {{ colname }}
               </th>
             </tr>
           </template>
           <template #body>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+            <tr
+              class="bg-white border-b hover:bg-gray-50"
               v-for="document in documentTable.rows"
-              :key="document.id">
-              <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              :key="document.id"
+            >
+              <th
+                scope="row"
+                class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+              >
                 {{ document.id }}
               </th>
               <td class="px-6 py-2">
                 {{ document.name }}
               </td>
               <td class="px-6 py-2">
-                <NuxtLink class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-                :to="`/projects/${route.params.project_id}/documents/${document.id}`">View</NuxtLink>
+                <NuxtLink
+                  class="font-medium text-blue-600 hover:underline"
+                  :to="`/projects/${route.params.project_id}/documents/${document.id}`"
+                  >View</NuxtLink
+                >
               </td>
             </tr>
           </template>
         </Table>
       </div>
-      
+
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="loading_docs" />
         <div class="dimmer-content">
@@ -63,22 +75,30 @@
     </div>
 
     <div v-show="tab_active == 'tasks'">
-
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="taskTable.loading" />
         <Table :tabledata="taskTable">
           <template #head>
             <tr>
-              <th scope="col" class="px-6 py-3" v-for="colname in ['Id', 'Name', 'Description', 'Action']">
+              <th
+                scope="col"
+                class="px-6 py-3"
+                v-for="colname in ['Id', 'Name', 'Description', 'Action']"
+              >
                 {{ colname }}
               </th>
             </tr>
           </template>
           <template #body>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+            <tr
+              class="bg-white border-b hover:bg-gray-50"
               v-for="task in taskTable.rows"
-              :key="task.id">
-              <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              :key="task.id"
+            >
+              <th
+                scope="row"
+                class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+              >
                 {{ task.id }}
               </th>
               <td class="px-6 py-2">
@@ -88,16 +108,19 @@
                 {{ task.desc }}
               </td>
               <td class="px-6 py-2">
-                <NuxtLink class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-                :to="`/projects/${route.params.project_id}/tasks/${task.id}`">View</NuxtLink>
+                <NuxtLink
+                  class="font-medium text-blue-600 hover:underline"
+                  :to="`/projects/${route.params.project_id}/tasks/${task.id}`"
+                  >View</NuxtLink
+                >
               </td>
             </tr>
           </template>
         </Table>
       </div>
 
-      <div class="my-3">  
-      <h3 class="text-lg mt-8">Create new task</h3>
+      <div class="my-3">
+        <h3 class="text-lg mt-8">Create new task</h3>
         <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
           <input type="text" placeholder="Task name" v-model="new_task.name" />
           <textarea placeholder="Task description" v-model="new_task.desc"></textarea>
@@ -108,7 +131,11 @@
 
           <label for="label_id">Labelset</label>
           <div class="flex w-full space-x-2">
-            <select v-if="labelsets.length" v-model="new_task.labelset_id" class="flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500  px-2.5 py-1.5">
+            <select
+              v-if="labelsets.length"
+              v-model="new_task.labelset_id"
+              class="flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
+            >
               <option v-for="labelset of labelsets" :value="labelset.id">
                 {{ labelset.name }}
               </option>
@@ -123,7 +150,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 <script setup lang="ts">
@@ -158,17 +184,20 @@ const documentTable = reactive<TableData<Document>>({
   loading: false,
 
   async load() {
-    if (!project.value)
-      return;
+    if (!project.value) return;
 
     this.loading = true;
 
-    const { rows, count } = await documentApi.tableDocuments(project.value.id, (this.page-1)*this.items_per_page, this.items_per_page);
+    const { rows, count } = await documentApi.tableDocuments(
+      project.value.id,
+      (this.page - 1) * this.items_per_page,
+      this.items_per_page
+    );
     if (rows) this.rows = rows;
     if (count) this.total = count;
 
     this.loading = false;
-  }
+  },
 });
 
 const taskTable = reactive<TableData<Task>>({
@@ -180,17 +209,20 @@ const taskTable = reactive<TableData<Task>>({
   loading: false,
 
   async load() {
-    if (!project.value)
-      return;
+    if (!project.value) return;
 
     this.loading = true;
 
-    const { rows, count } = await taskApi.tableTasks(project.value.id, (this.page-1)*this.items_per_page, this.items_per_page);
+    const { rows, count } = await taskApi.tableTasks(
+      project.value.id,
+      (this.page - 1) * this.items_per_page,
+      this.items_per_page
+    );
     if (rows) this.rows = rows;
     if (count) this.total = count;
 
     this.loading = false;
-  }
+  },
 });
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
@@ -256,8 +288,7 @@ const createTask = () => {
       $toast.success("Task created");
     });
   } catch (error) {
-    if (error instanceof Error)
-      $toast.error(`Error creating task: ${error.message}`);
+    if (error instanceof Error) $toast.error(`Error creating task: ${error.message}`);
   }
 };
 
@@ -284,15 +315,14 @@ definePageMeta({
 });
 </script>
 
-
 <style lang="scss">
 div.tabs-holder {
-  @apply text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700;
+  @apply text-sm font-medium text-center text-gray-500 border-b border-gray-200;
   li.tab button {
-    @apply inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300;
+    @apply inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300;
   }
   li.tab-active button {
-    @apply inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg dark:text-blue-500 dark:border-blue-500;
+    @apply inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg;
   }
 }
 </style>
