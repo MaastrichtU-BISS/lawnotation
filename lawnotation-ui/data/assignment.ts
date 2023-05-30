@@ -66,11 +66,11 @@ export const useAssignmentApi = () => {
       return data as Assignment[]
   };
 
-  const findAssignmentsByUserTaskSeq = async (anntator_id: string, task_id: string, seq_pos: number): Promise<Assignment> => {
+  const findAssignmentsByUserTaskSeq = async (annotator_id: string, task_id: string, seq_pos: number): Promise<Assignment> => {
     const { data, error } = await supabase.from("assignments")
       .select()
       .eq("task_id", task_id)
-      .eq("annotator_id", anntator_id)
+      .eq("annotator_id", annotator_id)
       .eq("seq_pos", seq_pos)
       .single();
     

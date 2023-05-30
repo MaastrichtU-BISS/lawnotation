@@ -1,28 +1,35 @@
 <template>
-  <div
-    class="text-center my-4 mx-auto max-w-screen-lg text-lg font-semibo"
-    v-if="loadedData"
-  >
-    {{ assignment?.seq_pos }} / {{ assignmentCounts?.total }}
-  </div>
-  <div class="dimmer-wrapper" style="min-height: 200px">
-    <Dimmer v-model="loading" />
-    <div class="dimmer-content">
-      <LabelStudio
+  <template v-if="assignment">
+    <div class="my-4 px-8 flex justify-between">
+      <span>&nbsp;</span>
+      <div
+        class="text-lg font-semibold"
         v-if="loadedData"
-        :assignment="assignment"
-        :user="user"
-        :isEditor="isEditor"
-        :text="doc?.full_text"
-        :annotations="ls_annotations"
-        :relations="ls_relations"
-        :labels="labels"
-        :guidelines="task?.ann_guidelines"
-        :key="key"
-        @nextAssignment="loadDataAndCount"
-      ></LabelStudio>
+      >
+        {{ assignment?.seq_pos }} / {{ assignmentCounts?.total }}
+      </div>
+      <span>status: <span :class="assignmentStatusClass(assignment.status)">{{ assignment.status }}</span></span>
     </div>
-  </div>
+    <div class="dimmer-wrapper" style="min-height: 200px">
+      <Dimmer v-model="loading" />
+      <div class="dimmer-content">
+        <LabelStudio
+          v-if="loadedData"
+          :assignment="assignment"
+          :user="user"
+          :isEditor="isEditor"
+          :text="doc?.full_text"
+          :annotations="ls_annotations"
+          :relations="ls_relations"
+          :labels="labels"
+          :guidelines="task?.ann_guidelines"
+          :key="assignment.id"
+          @nextAssignment="loadNext"
+          @previousAssignment="loadPrevious"
+        ></LabelStudio>
+      </div>
+    </div>
+  </template>
 </template>
 <script setup lang="ts">
 import { Assignment, useAssignmentApi } from "~/data/assignment";
@@ -68,8 +75,47 @@ const assignmentCounts = ref<{ done: number; total: number; pending: number }>({
   pending: 0,
 });
 
+const assignmentStatusClass = (status: Assignment['status']) => {
+  return status === 'done' ? 'text-green-600' : 'text-red-500';
+}
+
 const loading = ref(false);
 const key = ref("ls-default");
+
+
+
+const loadPrevious = async () => {
+  if (!assignment.value)
+    throw Error("Assignment not found");
+  
+  if (assignment.value.seq_pos <= 1)
+    throw Error("Already at first item");
+
+  await router.replace({
+    path: route.path,
+    query: { seq: assignment.value.seq_pos - 1 },
+  });
+
+  await loadData();
+}
+
+const loadNext = async () => {
+  if (!assignment.value)
+    throw Error("Assignment not found");
+
+  await router.replace({
+    path: route.path,
+    query: { seq: assignment.value.seq_pos + 1 },
+  });
+
+  if (assignmentCounts.value.total == assignment.value?.seq_pos) {
+    // TODO: go to page /done
+    alert("All tasks were done: you will be signed out");
+    // supabase.auth.signOut();
+  } else {
+    await loadData();
+  }
+};
 
 const loadData = async () => {
   try {
@@ -157,21 +203,6 @@ const loadCounters = async () => {
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Problem loading counters: ${error.message}`);
-  }
-};
-
-const loadDataAndCount = async () => {
-  await router.replace({
-    path: route.path,
-    query: { seq: assignment.value?.seq_pos + 1 },
-  });
-
-  if (assignmentCounts.value.total == assignment.value?.seq_pos) {
-    // TODO: go to page /done
-    alert("All tasks were done: you will be signed out");
-    // supabase.auth.signOut();
-  } else {
-    await loadData();
   }
 };
 
