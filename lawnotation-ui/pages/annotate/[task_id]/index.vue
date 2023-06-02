@@ -6,7 +6,7 @@
         class="text-lg font-semibold"
         v-if="loadedData"
       >
-        {{ assignment?.seq_pos }} / {{ assignmentCounts?.total }}
+        {{ seq_pos }} / {{ assignmentCounts?.total }}
       </div>
       <span>status: <span :class="assignmentStatusClass(assignment.status)">{{ assignment.status }}</span></span>
     </div>
@@ -23,7 +23,7 @@
           :relations="ls_relations"
           :labels="labels"
           :guidelines="task?.ann_guidelines"
-          :key="assignment.id"
+          :key="key"
           @nextAssignment="loadNext"
           @previousAssignment="loadPrevious"
         ></LabelStudio>
@@ -63,13 +63,13 @@ const task = ref<Task>();
 const doc = ref<Document>();
 const loadedData = ref(false);
 
-const annotations = reactive<Annotation[]>([]);
-const relations = reactive<AnnotationRelation[]>([]);
+// const annotations = reactive<Annotation[]>([]);
+// const relations = reactive<AnnotationRelation[]>([]);
 const ls_annotations = reactive<LSSerializedAnnotation>([]);
 const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
-const assignmentCounts = ref<{ done: number; total: number; pending: number }>({
+const assignmentCounts = reactive<{ done: number; total: number; pending: number }>({
   done: 0,
   total: 0,
   pending: 0,
@@ -82,7 +82,14 @@ const assignmentStatusClass = (status: Assignment['status']) => {
 const loading = ref(false);
 const key = ref("ls-default");
 
-
+// const seq_pos = ref(assignment.value?.seq_pos ?? 1);
+const seq_pos = ref<number>(assignment.value?.seq_pos ?? 1);
+watch(seq_pos, (val) => {
+  router.replace({
+    path: route.path,
+    query: { seq: val },
+  });
+})
 
 const loadPrevious = async () => {
   if (!assignment.value)
@@ -91,10 +98,7 @@ const loadPrevious = async () => {
   if (assignment.value.seq_pos <= 1)
     throw Error("Already at first item");
 
-  await router.replace({
-    path: route.path,
-    query: { seq: assignment.value.seq_pos - 1 },
-  });
+  seq_pos.value -= 1;
 
   await loadData();
 }
@@ -103,12 +107,9 @@ const loadNext = async () => {
   if (!assignment.value)
     throw Error("Assignment not found");
 
-  await router.replace({
-    path: route.path,
-    query: { seq: assignment.value.seq_pos + 1 },
-  });
+  seq_pos.value += 1;
 
-  if (assignmentCounts.value.total == assignment.value?.seq_pos) {
+  if (assignmentCounts.total == seq_pos.value) {
     // TODO: go to page /done
     alert("All tasks were done: you will be signed out");
     // supabase.auth.signOut();
@@ -119,28 +120,24 @@ const loadNext = async () => {
 
 const loadData = async () => {
   try {
-    loading.value = true;
     if (!user.value) throw new Error("Must be logged in");
 
-    const seq = route.query.seq;
-    if (Array.isArray(seq)) throw new Error("Invalid seq query");
+    loading.value = true;
+    key.value = `ls-${seq_pos.value}`;
 
-    if (seq && parseInt(seq) < assignmentCounts.value.done + 1) {
+    if (seq_pos.value && seq_pos.value < assignmentCounts.done + 1) {
       assignment.value = await assignmentApi.findAssignmentsByUserTaskSeq(
         user.value.id,
         route.params.task_id.toString(),
-        parseInt(seq)
+        seq_pos.value
       );
     } else {
       assignment.value = await assignmentApi.findNextAssignmentsByUserAndTask(
         user.value.id,
         route.params.task_id.toString()
       );
-
-      router.replace({
-        path: route.path,
-        query: { seq: assignment.value.seq_pos },
-      });
+      
+      seq_pos.value = assignment.value.seq_pos;
     }
 
     if (!assignment.value) throw Error("Assignment not found");
@@ -151,9 +148,7 @@ const loadData = async () => {
     if (!assignment.value.task_id) throw Error("Document not found");
     task.value = await taskApi.findTask(assignment.value.task_id?.toString());
 
-    const _labelset: Labelset = await labelsetApi.findLabelset(
-      task.value.labelset_id.toString()
-    );
+    const _labelset: Labelset = await labelsetApi.findLabelset(task.value.labelset_id.toString());
 
     labels.splice(0) &&
       labels.push(
@@ -162,22 +157,21 @@ const loadData = async () => {
         })
       );
 
-    annotations.splice(0) &&
-      annotations.push(
-        ...(await annotationApi.findAnnotations(assignment.value.id.toString()))
-      );
+    const _annotations = await annotationApi.findAnnotations(assignment.value.id.toString());
 
-    const db2ls_anns = annotationApi.convert_db2ls(annotations, assignment.value.id);
-    if (annotations.length) {
+    // const annotations.splice(0) && annotations.push(..._annotations);
+
+    if (_annotations.length) {
+      const db2ls_anns = annotationApi.convert_db2ls(_annotations, assignment.value.id);
       ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
     }
 
-    relations.splice(0) &&
-      relations.push(...(await relationApi.findRelations(annotations)));
+    const _relations = await relationApi.findRelations(_annotations);
+    // relations.splice(0) &&
+    //   relations.push(..._relations);
 
-    const db2ls_rels = relations.map((r) => relationApi.convert_db2ls(r));
-
-    if (relations.length) {
+    if (_relations.length) {
+      const db2ls_rels = _relations.map((r) => relationApi.convert_db2ls(r));
       ls_relations.splice(0) && ls_relations.push(...db2ls_rels);
     }
 
@@ -196,9 +190,12 @@ const loadCounters = async () => {
   try {
     if (!user.value) throw new Error("Must be logged in");
 
-    assignmentCounts.value = await assignmentApi.countAssignmentsByUserAndTask(
-      user.value.id,
-      route.params.task_id.toString()
+    Object.assign(
+      assignmentCounts,
+      await assignmentApi.countAssignmentsByUserAndTask(
+        user.value.id,
+        route.params.task_id.toString()
+      )
     );
   } catch (error) {
     if (error instanceof Error)
@@ -206,16 +203,21 @@ const loadCounters = async () => {
   }
 };
 
+const init = async () => {
+  await loadCounters();
+  if (route.query.seq && !Array.isArray(route.query.seq) && parseInt(route.query.seq) > 0 && parseInt(route.query.seq) < assignmentCounts.total) {
+    seq_pos.value = parseInt(route.query.seq);
+  }
+  loadData();
+}
+
 onMounted(async () => {
   if (user.value) {
-    await loadCounters();
-    loadData();
+    init()
   } else {
     watch(user, async () => {
-      if (user.value) {
-        await loadCounters();
-        loadData();
-      }
+      if (user.value)
+        init();
     });
   }
 });

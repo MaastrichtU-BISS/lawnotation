@@ -39,12 +39,12 @@ const clickPrevious = async () => {
 }
 
 const serializeLSAnnotations = () => {
-  return label_studio.value.store.annotationStore.annotations.map((a: any) => a.serializeAnnotation());
+  return label_studio.value.store.annotationStore.annotations.map((a: any) => a.serializeAnnotation())[0];
 }
 
 const clickNext = async () => {
   if (!props.assignment) return;
-  console.log(label_studio.value)
+  
   if (props.assignment.status === "done")
     return emit("nextAssignment");
 
