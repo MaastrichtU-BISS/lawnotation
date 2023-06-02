@@ -59,6 +59,8 @@ const initLS = async () => {
                     <Relation value="Depends on" />
                     <Relation value="Belongs to" />
                     <Relation value="Related to" />
+                    <Relation value="Is not" />
+                    <Relation value="Part of" />
                   </Relations>
                   </View>
                 </View>

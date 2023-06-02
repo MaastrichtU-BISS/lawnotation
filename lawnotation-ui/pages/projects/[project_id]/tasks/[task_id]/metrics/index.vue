@@ -32,7 +32,12 @@ const get_options = () => {
 const compute_fleiss_kappa = () => {
   loading.value = true;
   fetch("/api/fleiss_kappa", get_options())
-    .then((res) => res.json())
+    .then((res) => {
+      console.log(res);
+      console.log(res.text());
+      // console.log(res.json());
+      return res.text();
+    })
     .then((res) => {
       console.log(res);
       loading.value = false;

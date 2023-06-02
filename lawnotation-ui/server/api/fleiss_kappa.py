@@ -11,5 +11,5 @@ class handler(BaseHTTPRequestHandler):
         content_len = int(self.headers.get('content-length', 0))
         data = self.rfile.read(content_len).decode()
         print(data)
-        self.wfile.write(json.dumps({"hello": "world"}).encode())
+        self.wfile.write("hello world").encode()
         return
