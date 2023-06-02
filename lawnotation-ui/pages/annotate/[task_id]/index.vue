@@ -150,29 +150,25 @@ const loadData = async () => {
 
     const _labelset: Labelset = await labelsetApi.findLabelset(task.value.labelset_id.toString());
 
-    labels.splice(0) &&
-      labels.push(
-        ..._labelset.labels.map((l) => {
-          return l;
-        })
-      );
+    labels.splice(0)
+    labels.push(..._labelset.labels.map((l) => l));
 
     const _annotations = await annotationApi.findAnnotations(assignment.value.id.toString());
 
-    // const annotations.splice(0) && annotations.push(..._annotations);
-
+    ls_annotations.splice(0)
     if (_annotations.length) {
       const db2ls_anns = annotationApi.convert_db2ls(_annotations, assignment.value.id);
-      ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
+      ls_annotations.push(...db2ls_anns);
     }
 
     const _relations = await relationApi.findRelations(_annotations);
     // relations.splice(0) &&
     //   relations.push(..._relations);
 
+    ls_relations.splice(0)
     if (_relations.length) {
       const db2ls_rels = _relations.map((r) => relationApi.convert_db2ls(r));
-      ls_relations.splice(0) && ls_relations.push(...db2ls_rels);
+      ls_relations.push(...db2ls_rels);
     }
 
     isEditor.value = user.value.id != assignment.value.annotator_id;

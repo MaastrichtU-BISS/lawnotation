@@ -34,12 +34,12 @@ const props = defineProps<{
   mode: "annotator.annotate" | "annotator.lookback" | "editor.check"
 }>();
 
-const clickPrevious = async () => {
-  emit("previousAssignment");
-}
-
 const serializeLSAnnotations = () => {
   return label_studio.value.store.annotationStore.annotations.map((a: any) => a.serializeAnnotation())[0];
+}
+
+const clickPrevious = async () => {
+  emit("previousAssignment");
 }
 
 const clickNext = async () => {
@@ -149,7 +149,6 @@ const initLS = async () => {
       clickNext();
     },
     onUpdateAnnotation: async (LS: any, { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }) => {
-      // updateAnnotationsAndRelations(serializeAnnotation());
       clickNext();
     },
   });
