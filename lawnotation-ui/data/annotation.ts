@@ -89,6 +89,39 @@ export const useAnnotationApi = () => {
     else
       return data as Annotation[]
   };
+
+  const findAnnotationsByTaskAndDocumentAndLabel = async (task_id: string, document_id: string | null, label: string | null): Promise<Annotation[]> => {
+    if(document_id) {
+      if(label) {
+        const { data, error } = await supabase.from("annotations")
+        .select('*, assignments!inner(id, task_id, document_id, annotator_id)')
+        .eq("assignments.task_id", task_id)
+        .eq("label", label)
+        .eq("assignments.document_id", document_id);
+        return data as Annotation[];
+      }
+      else {
+        const { data, error } = await supabase.from("annotations")
+        .select('*, assignments!inner(id, task_id, document_id, annotator_id)')
+        .eq("assignments.task_id", task_id)
+        .eq("assignments.document_id", document_id);
+        return data as Annotation[];
+      }
+    } else {
+      if(label) {
+        const { data, error } = await supabase.from("annotations")
+        .select('*, assignments!inner(id, task_id, document_id, annotator_id)')
+        .eq("assignments.task_id", task_id)
+        .eq("label", label)
+        return data as Annotation[];
+      } else {
+        const { data, error } = await supabase.from("annotations")
+        .select('*, assignments!inner(id, task_id, document_id, annotator_id)')
+        .eq("assignments.task_id", task_id)
+        return data as Annotation[];
+      }
+    }
+  };
   
   // Update
   const updateAnnotation = async (id: string, fields: Partial<Annotation>): Promise<boolean> => {
@@ -127,5 +160,5 @@ export const useAnnotationApi = () => {
       return true;
   };
   
-  return {createAnnotation, findAnnotation, findAnnotations, updateAnnotation, updateAssignmentAnnotations, deleteAnnotation, convert_ls2db, convert_db2ls}
+  return {createAnnotation, findAnnotation, findAnnotations, findAnnotationsByTaskAndDocumentAndLabel, updateAnnotation, updateAssignmentAnnotations, deleteAnnotation, convert_ls2db, convert_db2ls}
 }
