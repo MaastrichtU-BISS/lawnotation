@@ -46,6 +46,16 @@ export const useDocumentApi = () => {
       return data as Document[]
   };
 
+  // Read all
+  const findSharedDocumentsByTask = async (task_id: string): Promise<Document[]> => {
+    const { data, error } = await supabase.rpc("get_all_shared_docs_from_task", {t_id: task_id});
+    
+    if (error)
+      throw Error(`Error in findDocumentsByTask: ${error.message}`)
+    else
+      return data as Document[]
+  };
+
   const tableDocuments = async (project_id: number, offset: number, limit: number) => {
     const { data, error, count } = await supabase
       .from("documents")
@@ -112,6 +122,7 @@ export const useDocumentApi = () => {
     createDocuments,
     findDocument,
     findDocuments,
+    findSharedDocumentsByTask,
     tableDocuments,
     takeUpToNRandomDocuments,
     totalAmountOfDocs,

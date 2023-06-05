@@ -90,37 +90,48 @@ export const useAnnotationApi = () => {
       return data as Annotation[]
   };
 
-  const findAnnotationsByTaskAndDocumentAndLabel = async (task_id: string, document_id: string | null, label: string | null): Promise<Annotation[]> => {
-    if(document_id) {
-      if(label) {
-        const { data, error } = await supabase.from("annotations")
-        .select('*, assignments!inner(id, task_id, document_id, annotator_id)')
-        .eq("assignments.task_id", task_id)
-        .eq("label", label)
-        .eq("assignments.document_id", document_id);
-        return data as Annotation[];
-      }
-      else {
-        const { data, error } = await supabase.from("annotations")
-        .select('*, assignments!inner(id, task_id, document_id, annotator_id)')
-        .eq("assignments.task_id", task_id)
-        .eq("assignments.document_id", document_id);
-        return data as Annotation[];
-      }
+  const findAnnotationsByTaskAndDocumentAndLabel = async (task_id: string, document_id: string, label: string | null): Promise<Annotation[]> => {
+    var res;
+    if(label) {
+      res = await supabase.from("annotations")
+      .select('start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, annotator:users!inner(email))')
+      .eq("assignments.task_id", task_id)
+      .eq("assignments.document_id", document_id)
+      .eq("label", label);
     } else {
-      if(label) {
-        const { data, error } = await supabase.from("annotations")
-        .select('*, assignments!inner(id, task_id, document_id, annotator_id)')
-        .eq("assignments.task_id", task_id)
-        .eq("label", label)
-        return data as Annotation[];
-      } else {
-        const { data, error } = await supabase.from("annotations")
-        .select('*, assignments!inner(id, task_id, document_id, annotator_id)')
-        .eq("assignments.task_id", task_id)
-        return data as Annotation[];
-      }
+      res = await supabase.from("annotations")
+      .select('start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, annotator:users!inner(email))')
+      .eq("assignments.task_id", task_id)
+      .eq("assignments.document_id", document_id)
     }
+
+    if (res.error)
+      throw Error(`Error in findAnnotationsByTaskAndDocumentAndLabel: ${res.error.message}`)
+    else
+      return res.data as Annotation[]
+  };
+
+  const exportCSVAnnotationsByTaskAndDocumentAndLabel = async (task_id: string, document_id: string, label: string | null): Promise<string> => {
+    var res;
+    if(label) {
+      res = await supabase.from("annotations")
+      .select('start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, annotator:users!inner(email))')
+      .eq("assignments.task_id", task_id)
+      .eq("assignments.document_id", document_id)
+      .eq("label", label)
+      .csv();
+    } else {
+      res = await supabase.from("annotations")
+      .select('start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, annotator:users!inner(email))')
+      .eq("assignments.task_id", task_id)
+      .eq("assignments.document_id", document_id)
+      .csv()
+    }
+
+    if (res.error)
+      throw Error(`Error in findAnnotationsByTaskAndDocumentAndLabel: ${res.error.message}`)
+    else
+      return res.data;
   };
   
   // Update
@@ -160,5 +171,5 @@ export const useAnnotationApi = () => {
       return true;
   };
   
-  return {createAnnotation, findAnnotation, findAnnotations, findAnnotationsByTaskAndDocumentAndLabel, updateAnnotation, updateAssignmentAnnotations, deleteAnnotation, convert_ls2db, convert_db2ls}
+  return {createAnnotation, findAnnotation, findAnnotations, findAnnotationsByTaskAndDocumentAndLabel, exportCSVAnnotationsByTaskAndDocumentAndLabel, updateAnnotation, updateAssignmentAnnotations, deleteAnnotation, convert_ls2db, convert_db2ls}
 }
