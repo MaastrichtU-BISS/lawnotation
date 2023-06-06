@@ -32,6 +32,11 @@
       </div>
     </div>
     <button class="btn btn-primary" @click="compute_fleiss_kappa">Fleiss Kappa</button>
+    <div v-if="fleiss_kappa_result">
+      <h5 class="text-lg font-semibold">Result: {{ fleiss_kappa_result.result }}</h5>
+      <div>P0: {{ fleiss_kappa_result.p0 }}</div>
+      <div>Pe: {{ fleiss_kappa_result.pe }}</div>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -59,6 +64,8 @@ const labels = reactive<{ name: string; color: string }[]>([]);
 const label = ref<string>("All");
 const loading = ref(false);
 
+const fleiss_kappa_result = ref();
+
 const get_annotations = async () => {
   if (!task.value) throw new Error("Invalid Task");
   if (!document.value) throw new Error("Document Task");
@@ -78,10 +85,29 @@ const compute_fleiss_kappa = async () => {
 
   console.log(annotations);
 
-  const data = await $fetch("/api/metrics/fleiss_kappa", {
-    method: "POST",
-    body: JSON.stringify({ annotations: annotations }),
+  var annotators_set = new Set<string>();
+
+  annotations.map((ann) => {
+    annotators_set.add((ann as any).assignment.annotator.email);
   });
+
+  fleiss_kappa_result.value = await $fetch("/api/metrics/fleiss_kappa", {
+    method: "POST",
+    body: JSON.stringify({
+      annotations: annotations.map((a) => {
+        return {
+          start: a.start_index,
+          end: a.end_index,
+          label: a.label,
+          annotator: (a as any).assignment.annotator.email,
+        };
+      }),
+      labels: labels.map((l) => l.name),
+      annotators: Array.from(annotators_set.values()),
+    }),
+  });
+
+  console.log(fleiss_kappa_result.value);
 
   loading.value = false;
 };
@@ -100,7 +126,6 @@ onMounted(async () => {
     );
 
   document.value = documents[0].id.toString();
-  console.log(documents);
 });
 
 definePageMeta({
