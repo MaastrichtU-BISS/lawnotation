@@ -4,40 +4,25 @@
       <Dimmer v-model="projectTable.loading" />
       <div class="dimmer-content">
         <h3 class="text-lg font-semibold mb-2">Projects</h3>
-
-        <Table :tabledata="projectTable">
-          <template #head>
-            <tr>
-              <th
-                scope="col"
-                class="px-6 py-3"
-                v-for="colname in ['Id', 'Name', 'Action']"
-              >
-                {{ colname }}
-              </th>
-            </tr>
-          </template>
-          <template #body>
-            <tr
-              class="bg-white border-b hover:bg-gray-50"
-              v-for="project in projectTable.rows"
-              :key="project.id"
-            >
+        <Table :tabledata="projectTable" sort="true" search="true">
+          <template #row="{ item }: { item: Project }">
+            <tr class="bg-white border-b hover:bg-gray-50">
               <th
                 scope="row"
                 class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
               >
-                {{ project.id }}
+                {{ item.id }}
               </th>
               <td class="px-6 py-2">
-                {{ project.name }}
+                {{ item.name }}
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
                   class="font-medium text-blue-600 hover:underline"
-                  :to="`/projects/${project.id}`"
-                  >Edit</NuxtLink
+                  :to="`/projects/${item.id}`"
                 >
+                  Edit
+                </NuxtLink>
               </td>
             </tr>
           </template>
@@ -55,35 +40,31 @@
 </template>
 <script setup lang="ts">
 import { Project, useProjectApi } from "~/data/project";
-import Table, { TableData } from "@/components/Table.vue";
+import Table from "@/components/Table.vue";
+import { TableData, createTableData } from "@/utils/table"
 const projectApi = useProjectApi();
 const user = useSupabaseUser();
 const { $toast } = useNuxtApp();
 
-const projectTable = reactive<TableData<Project>>({
-  total: 0,
-  rows: [],
-
-  page: 1,
-  items_per_page: 10,
-  loading: false,
-
-  async load() {
-    if (!user.value) return;
-
-    this.loading = true;
-
-    const { rows, count } = await projectApi.tableProjects(
-      user.value.id,
-      (this.page - 1) * this.items_per_page,
-      this.items_per_page
-    );
-    if (rows) this.rows = rows;
-    if (count) this.total = count;
-
-    this.loading = false;
+const projectTable = createTableData<Project>(
+  {
+    'Id': {
+      field: 'id',
+      sort: true,
+    },
+    'Name': {
+      field: 'name',
+      sort: true,
+      search: true,
+    },
+    'Action': {}
   },
-});
+  {
+    type: 'table',
+    from: 'projects',
+    filter: { editor_id: user.value?.id }
+  }
+);
 
 const new_project = reactive<Omit<Project, "id">>({
   name: "",
@@ -92,6 +73,8 @@ const new_project = reactive<Omit<Project, "id">>({
 });
 
 onMounted(() => {
+  console.log("supaclient", useSupabaseClient());
+
   if (user.value) projectTable.load();
   else {
     watch(user, () => {

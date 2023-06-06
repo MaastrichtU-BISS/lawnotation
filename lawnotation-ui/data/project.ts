@@ -42,8 +42,8 @@ export const useProjectApi = () => {
     const { data, error, count } = await supabase
       .from("projects")
       .select('*', { count: 'exact' })
+      .range(offset, offset + limit - 1)
       .eq("editor_id", editor_id)
-      .range(offset, offset + limit - 1);
     
     if (error)
       throw Error(`Error in tableProjects: ${error.message}`)
