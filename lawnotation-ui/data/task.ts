@@ -67,5 +67,5 @@ export const useTaskApi = () => {
       return true;
   };
 
-  return {createTask, findTask, findTasks, getAllAnnotatorTasks, updateTask, deleteTask}
+  return { createTask, findTask, findTasks, getAllAnnotatorTasks, updateTask, deleteTask }
 }
