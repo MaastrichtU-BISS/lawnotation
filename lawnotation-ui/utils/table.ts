@@ -59,14 +59,16 @@ export const createTableData = <T>(columns: TableData<unknown>['columns'], src_o
       
       const offset = (td.page - 1) * td.items_per_page;
       const limit = td.items_per_page;
-      
+
       switch (src_options.type) {
         case 'table': {
+
+          const filter: object = (typeof src_options.filter === "function" ? src_options.filter() : src_options.filter) ?? {}
           
           let query = supabase
             .from(src_options.from)
             .select(src_options.select ?? '*', {count: 'exact'})
-            .match(src_options.filter ?? {})
+            .match(filter)
             .range(offset, offset + limit - 1);
           
           if (td.search.column && td.search.query) {
@@ -80,9 +82,18 @@ export const createTableData = <T>(columns: TableData<unknown>['columns'], src_o
             // Approach 3: search on one, valid (text) field
             query = query.ilike(td.search.column, `%${td.search.query}%`);
           }
+          
+          if (td.sort && td.sort.column) {
+            let sort_column = td.sort.column;
 
-          if (td.sort && td.sort.column)
-            query = query.order(td.sort.column, {ascending: td.sort.dir === "ASC"})
+            const sort_options: any = {ascending: td.sort.dir === "ASC"};
+            if (td.sort.column.includes('.')) {
+              sort_options.foreignTable = td.sort.column.split('.')[0];
+              sort_column = td.sort.column.split('.')[1];
+            }
+            
+            query = query.order(sort_column, sort_options)
+          }
             
           const { data, error, count } = await query;
           

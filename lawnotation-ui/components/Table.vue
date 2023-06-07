@@ -30,16 +30,16 @@
         >
           <span class="flex">
             {{ colname }}
-            <span class="ml-2 w-4 h-4 cursor-pointer" v-if="sort && col.field" @click="sortClick(col.field)">
+            <span class="ml-2 w-4 h-4 cursor-pointer" v-if="sort && col.sort && col.field" @click="sortClick(col.field)">
               <svg v-if="!tabledata.sort || tabledata.sort.column !== col.field" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" stroke-linecap="round" stroke-linejoin="round"></path>
               </svg>
               <template v-else-if="tabledata.sort && tabledata.sort.column == col.field">
                 <svg v-if="tabledata.sort.dir === 'ASC'" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19.5 8.25l-7.5 7.5-7.5-7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path d="M4.5 15.75l7.5-7.5 7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
                 </svg>
                 <svg v-else-if="tabledata.sort.dir === 'DESC'" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M4.5 15.75l7.5-7.5 7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path d="M19.5 8.25l-7.5 7.5-7.5-7.5" stroke-linecap="round" stroke-linejoin="round"></path>
                 </svg>
               </template>
             </span>
@@ -224,7 +224,10 @@ const sortClick = (colname: string) => {
   props.tabledata.load();
 }
 
-watch(() => [props.tabledata.search.query, props.tabledata.search.column], () => props.tabledata.load())
+watch(() => [props.tabledata.search.query, props.tabledata.search.column], () => {
+  props.tabledata.page = 1; // when filtering, page always needs to be reset
+  props.tabledata.load();
+})
 
 const setPage = (page: number) => {
   props.tabledata.page = Math.max(1, page);
