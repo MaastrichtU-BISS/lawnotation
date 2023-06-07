@@ -1,10 +1,10 @@
 <template>
   <div class="my-4 mx-auto max-w-screen-lg">
+    <h3 class="text-lg font-semibold mb-2">Projects</h3>
     <div class="dimmer-wrapper" style="min-height: 200px">
       <Dimmer v-model="projectTable.loading" />
       <div class="dimmer-content">
-        <h3 class="text-lg font-semibold mb-2">Projects</h3>
-        <Table :tabledata="projectTable" sort="true" search="true">
+        <Table :tabledata="projectTable" :sort="true" :search="true">
           <template #row="{ item }: { item: Project }">
             <tr class="bg-white border-b hover:bg-gray-50">
               <th
@@ -73,8 +73,6 @@ const new_project = reactive<Omit<Project, "id">>({
 });
 
 onMounted(() => {
-  console.log("supaclient", useSupabaseClient());
-
   if (user.value) projectTable.load();
   else {
     watch(user, () => {

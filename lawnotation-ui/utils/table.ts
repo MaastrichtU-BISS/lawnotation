@@ -14,11 +14,11 @@ export type TableData<T> = {
   }>,
 
   sort: {
-    column: null | keyof TableData<T>['columns'],
+    column: null | TableData<T>['columns'][keyof TableData<T>['columns']]['field']
     dir: "ASC" | "DESC"
   },
   search: {
-    column: null | keyof TableData<T>['columns'],
+    column: null | TableData<T>['columns'][keyof TableData<T>['columns']]['field'],
     query: string,
   },
 };
@@ -34,9 +34,12 @@ export type CreateTableDataSource = {
   args?: object
 }
 
-export const createTableData = <T>(columns: TableData<unknown>['columns'], src_options: CreateTableDataSource): TableData<T> => {
+export const createTableData = <T>(columns: TableData<unknown>['columns'], src_options: CreateTableDataSource, default_sort?: TableData<T>['sort']): TableData<T> => {
 
   const supabase = useSupabaseClient();
+
+  const default_search_column = Object.values(columns).filter(x => x.search).map(x => x.field)[0] ?? null;
+  const default_sort_column = Object.values(columns).filter(x => x.sort).map(x => x.field)[0] ?? null; 
 
   const td: TableData<T> = reactive({
     total: 0,
@@ -46,8 +49,8 @@ export const createTableData = <T>(columns: TableData<unknown>['columns'], src_o
     items_per_page: 10,
     loading: false,
 
-    sort: {column: null, dir: "ASC"},
-    search: {column: null, query: ""},
+    sort: default_sort ?? {column: default_sort_column, dir: "ASC"},
+    search: {column: default_search_column, query: ""},
 
     columns,
 
@@ -72,10 +75,10 @@ export const createTableData = <T>(columns: TableData<unknown>['columns'], src_o
             // query = query.or(search_conds);
 
             // Approach 2: textSearch method (produces inconsistent results)
-            // query = query.textSearch('name', td.search);
+            // query = query.textSearch(td.search.column, td.search.query);
 
             // Approach 3: search on one, valid (text) field
-            query = query.like(td.search.column, `%${td.search.query}%`);
+            query = query.ilike(td.search.column, `%${td.search.query}%`);
           }
 
           if (td.sort && td.sort.column)
@@ -83,30 +86,33 @@ export const createTableData = <T>(columns: TableData<unknown>['columns'], src_o
             
           const { data, error, count } = await query;
           
-          if (data && count) {
+          if (data !== null && count !== null && !error) {
             td.rows = data as T[];
             td.total = count;
           }
+
+          if (error)
+            throw Error(`Error in tablequery from ${src_options.from}: ${error.message}`)
 
           break;
         }
         case 'rpc': {
           
-          throw Error("RPC-tables are not yet fully supported");
+          throw Error("RPC-tables are not yet supported");
           // TODO: *counting*, sorting and filtering
-
-          const { data, error, count } = await supabase
+          /*
+          const { data, error } = await supabase
             .rpc(src_options.func, src_options.args)
             .range(
               (td.page - 1) * td.items_per_page,
               td.items_per_page
             );
           
-          if (data && count) {
+          if (data !== null && count !== null && !error) {
             td.rows = data as T[];
             td.total = count;
           }
-
+          */
           break;
         }
         default:

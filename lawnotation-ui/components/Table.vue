@@ -2,16 +2,20 @@
   <div class="relative overflow-x-auto sm:rounded-lg">
 
     <div class="flex justify-end m-2" v-if="search">
-      <select v-model="tabledata.search.column" class="block w-32 p-2 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500">
-        <option v-for="[colname, col] of Object.entries(tabledata.columns).filter(x => x[1].search)" :value="col.field">{{ colname }}</option>
+      <select v-model="tabledata.search.column" class="w-40 p-2 text-sm text-gray-900 ring-1 ring-inset ring-gray-300 shadow-sm rounded-md bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+        <option 
+          v-for="[colname, col] of Object.entries(tabledata.columns).filter(x => x[1].search)"
+          :value="col.field"
+        >
+          {{ colname }}
+        </option>
       </select>
       <div class="ml-2 block bg-white">
-        <label for="table-search" class="sr-only">Search</label>
         <div class="relative">
           <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <svg class="w-5 h-5 text-gray-500" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg>
           </div>
-          <input v-model="tabledata.search.query" type="text" id="table-search" class="block text-gray-900 bg-gray-50 p-2 pl-10 text-sm w-80" placeholder="Search for items">
+          <input v-model="tabledata.search.query" type="text" class="block text-gray-900 bg-gray-50 p-2 pl-10 text-sm w-80" :placeholder="`Search for ${tabledata.search.column}`">
         </div>
       </div>
     </div>
@@ -54,9 +58,12 @@
     >
       <span class="text-sm font-normal text-gray-500">
         Showing
-        <span class="font-semibold text-gray-900"
-          >{{ visible_start_i }} - {{ visible_end_i }}</span
-        >
+        <span class="font-semibold text-gray-900">
+          <template v-if="tabledata.total > 0">
+            {{ visible_start_i }} - {{ visible_end_i }}
+          </template>
+          <template v-else>0</template>
+        </span>
         of <span class="font-semibold text-gray-900">{{ tabledata.total }}</span>
       </span>
       <ul class="inline-flex items-center -space-x-px">
