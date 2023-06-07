@@ -224,17 +224,7 @@ const sortClick = (colname: string) => {
   props.tabledata.load();
 }
 
-// const computedSearch = computed({
-//   get() {
-//     return props.tabledata.search === null ? "" : props.tabledata.search;
-//   },
-//   set(val) {
-//     props.tabledata.search = (val === "" ? null : val);
-//     props.tabledata.load()
-//   }
-// })
-
-watch(() => props.tabledata.search.query, () => props.tabledata.load())
+watch(() => [props.tabledata.search.query, props.tabledata.search.column], () => props.tabledata.load())
 
 const setPage = (page: number) => {
   props.tabledata.page = Math.max(1, page);

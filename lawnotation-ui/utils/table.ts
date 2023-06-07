@@ -27,7 +27,7 @@ export type CreateTableDataSource = {
   type: 'table',
   select?: string,
   from: string,
-  filter?: object,
+  filter?: object | (() => object),
 } | {
   type: 'rpc',
   func: string,
@@ -56,7 +56,10 @@ export const createTableData = <T>(columns: TableData<unknown>['columns'], src_o
 
     load: async () => {
       td.loading = true;
-
+      
+      const offset = (td.page - 1) * td.items_per_page;
+      const limit = td.items_per_page;
+      
       switch (src_options.type) {
         case 'table': {
           
@@ -64,10 +67,7 @@ export const createTableData = <T>(columns: TableData<unknown>['columns'], src_o
             .from(src_options.from)
             .select(src_options.select ?? '*', {count: 'exact'})
             .match(src_options.filter ?? {})
-            .range(
-              (td.page - 1) * td.items_per_page,
-              td.items_per_page
-            );
+            .range(offset, offset + limit - 1);
           
           if (td.search.column && td.search.query) {
             // Approach 1: using 'or' method (fails due to cast and in general)
