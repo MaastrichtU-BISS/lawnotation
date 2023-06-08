@@ -59,7 +59,7 @@
     <div class="text-center" v-if="kappa_result">
       <div class="my=5">
         <h5 class="text-lg font-semibold">
-          Kappa:
+          Result:
           <span :style="'color:' + (kappa_result.result > 0 ? 'green' : 'red')">{{
             kappa_result.result
           }}</span>
@@ -75,6 +75,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import { ExportToCsv } from "export-to-csv";
 import Multiselect from "@vueform/multiselect";
 import { Task, useTaskApi } from "~/data/task";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
@@ -170,6 +171,37 @@ const compute_kappa = async (variant: string) => {
   console.log(kappa_result.value);
 
   loading.value = false;
+};
+
+const downloadCSV = async () => {
+  const options = {
+    fieldSeparator: ",",
+    quoteStrings: '"',
+    decimalSeparator: ".",
+    showLabels: true,
+    showTitle: true,
+    title: `Task ${task.value?.id}: ${task.value?.name} | Label: ${selectedLabel.value} | ${kappa_result.value.variant}Kappa: ${kappa_result.value.result} | Po: ${kappa_result.value.po} | Pe: ${kappa_result.value.pe}`,
+    useTextFile: false,
+    useBom: true,
+    useKeysAsHeaders: true,
+  };
+
+  const csvExporter = new ExportToCsv(options);
+
+  var rows: any[] = [];
+  kappa_result.value.table.forEach((r: any) => {
+    Object.entries(r.annotators).forEach(([k, v]) => {
+      rows.push({
+        annotator: k,
+        start: r.start,
+        end: r.end,
+        text: r.text,
+        value: v,
+      });
+    });
+  });
+
+  csvExporter.generateCsv(rows);
 };
 
 onMounted(async () => {

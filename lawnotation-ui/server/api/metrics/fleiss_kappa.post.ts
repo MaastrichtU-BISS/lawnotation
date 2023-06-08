@@ -18,6 +18,7 @@ type KappaResult = {
   pe: number;
   result: number;
   table: RangeLabel[];
+  variant: string;
 };
 
 function containsRangeLabel(
@@ -99,6 +100,7 @@ function computeFleissKappa(table: RangeLabel[]): KappaResult {
     pe: pe,
     result: kappa,
     table: table,
+    variant: "Fleiss",
   } as KappaResult;
 }
 

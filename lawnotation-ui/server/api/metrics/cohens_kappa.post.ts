@@ -18,6 +18,7 @@ type KappaResult = {
   pe: number;
   result: number;
   table: RangeLabel[];
+  variant: string;
 };
 
 function containsRangeLabel(
@@ -108,6 +109,7 @@ function computeCohensKappa(table: RangeLabel[]): KappaResult {
     pe: pe,
     result: kappa,
     table: table,
+    variant: "Cohens",
   } as KappaResult;
 }
 
