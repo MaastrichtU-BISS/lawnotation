@@ -1,133 +1,165 @@
 export default eventHandler(async (event) => {
   const data = await readBody(event);
-//   var data = {
-//     annotators: ['ann1', 'ann2', 'ann3'],
-//     labels: ['A', 'B'],
-//     annotations: [
-//         {
-//             label: "A",
-//             start: 10,
-//             end: 21,
-//             annotator: "ann1"
-//         },
-//         {
-//             label: "B",
-//             start: 25,
-//             end: 31,
-//             annotator: "ann1"
-//         },
-//         {
-//             label: "A",
-//             start: 35,
-//             end: 41,
-//             annotator: "ann1"
-//         },
-//         {
-//             label: "A",
-//             start: 10,
-//             end: 21,
-//             annotator: "ann2"
-//         },
-//         {
-//             label: "B",
-//             start: 25,
-//             end: 31,
-//             annotator: "ann2"
-//         },
-//         {
-//             label: "A",
-//             start: 35,
-//             end: 42,
-//             annotator: "ann2"
-//         },
-//         {
-//             label: "B",
-//             start: 10,
-//             end: 21,
-//             annotator: "ann3"
-//         },
-//         {
-//             label: "B",
-//             start: 25,
-//             end: 31,
-//             annotator: "ann3"
-//         },
-//         {
-//             label: "A",
-//             start: 35,
-//             end: 42,
-//             annotator: "ann3"
-//         },
-//     ]
-
-//   };
-  const table = createContingencyTable(data.annotations, data.labels, data.annotators);
+  //   const table = getExample();
+  const table = createContingencyTable(data.annotations, data.annotators);
   return computeFleissKappa(table);
 });
 
 type RangeLabel = {
-    start: string,
-    end: string,
-    label: string,
-    annotators: any
+  start: string;
+  end: string;
+  label: string;
+  text: string;
+  annotators: any;
 };
 
-type FleissKappaResult = {
-    p0: number,
-    pe: number,
-    result: number,
-    table: RangeLabel[]
+type KappaResult = {
+  po: number;
+  pe: number;
+  result: number;
+  table: RangeLabel[];
 };
 
-function containsRangeLabel(list: RangeLabel[], range: RangeLabel, tolerance: number = 0) : number {
-    for (let i = 0; i < list.length; i++) {
-        const x = list[i];
-        if (x.start == range.start && x.end == range.end && x.label == range.label)
-            return i;
+function containsRangeLabel(
+  list: RangeLabel[],
+  range: RangeLabel,
+  tolerance: number = 0
+): number {
+  for (let i = 0; i < list.length; i++) {
+    const x = list[i];
+    if (
+      x.start == range.start &&
+      x.end == range.end &&
+      x.label == range.label
+    ) {
+      return i;
     }
-    return -1;
+  }
+  return -1;
 }
 
-function createContingencyTable(annotations: any[], labels: string[], annotators: string[]) : RangeLabel[] {
+function createContingencyTable(
+  annotations: any[],
+  annotators: string[]
+): RangeLabel[] {
+  var ranges: RangeLabel[] = [];
 
-    var ranges: RangeLabel[] = [];
-    
-    annotations.forEach(x => {
-        const ann: RangeLabel = { start: x.start, end: x.end, label: x.label, annotators: {} };
-        const index = containsRangeLabel(ranges, ann);
-        if(index < 0) {
-            ranges.push(ann);
-            annotators.forEach(a => {
-                ranges[ranges.length - 1].annotators[a] = x.annotator == a ? 1 : 0;
-            });
-        } else {
-            ranges[index].annotators[x.annotator]++;
-        }
-    });
+  annotations.forEach((x) => {
+    const ann: RangeLabel = {
+      start: x.start,
+      end: x.end,
+      label: x.label,
+      text: x.text,
+      annotators: {},
+    };
+    const index = containsRangeLabel(ranges, ann);
+    if (index < 0) {
+      ranges.push(ann);
+      annotators.forEach((a) => {
+        ranges[ranges.length - 1].annotators[a] = x.annotator == a ? 1 : 0;
+      });
+    } else {
+      ranges[index].annotators[x.annotator] = 1;
+    }
+  });
 
-    return ranges;
+  return ranges;
 }
 
-function computeFleissKappa(table: RangeLabel[]) : FleissKappaResult {
-    var nN: number = table.length * Object.entries(table[0].annotators).length;
-    var total_sum: number = 0;
-    var pe: number = 0;
+function computeFleissKappa(table: RangeLabel[]): KappaResult {
+  var n: number = Object.entries(table[0].annotators).length;
+  var N: number = table.length;
+  var nN: number = n * N;
 
-    table.forEach(range => {
-        Object.entries(range.annotators).forEach(([k,v]) => {
-            pe += (v as number / nN) * (v as number / nN);
-            total_sum += v as number;
-        });
+  var po_square_sum: number = 0;
+  var pe_0_sum: number = 0;
+  var pe_1_sum: number = 0;
+
+  table.forEach((range) => {
+    var pe_0_row_sum: number = 0;
+    var pe_1_row_sum: number = 0;
+    Object.entries(range.annotators).forEach(([k, v]) => {
+      if (v == 0) pe_0_row_sum += 1;
+      else pe_1_row_sum += 1;
     });
+    po_square_sum += pe_0_row_sum * pe_0_row_sum + pe_1_row_sum * pe_1_row_sum;
+    pe_0_sum += pe_0_row_sum;
+    pe_1_sum += pe_1_row_sum;
+  });
 
-    var p0: number = total_sum / nN;
+  var pe: number =
+    (pe_0_sum / nN) * (pe_0_sum / nN) + (pe_1_sum / nN) * (pe_1_sum / nN);
 
-    var kappa: number = (p0 - pe) / (1 - pe);
+  var po = (1 / (nN * (n - 1))) * (po_square_sum - nN);
 
-    return {
-        p0: p0,
-        pe: pe,
-        result: kappa,
-        table: table
-    } as FleissKappaResult;
+  var kappa: number = (po - pe) / (1 - pe);
+
+  return {
+    po: po,
+    pe: pe,
+    result: kappa,
+    table: table,
+  } as KappaResult;
+}
+
+function getExample() {
+  var table = [];
+
+  table.push({
+    start: "1",
+    end: "1",
+    label: "Happy",
+    text: "Happy",
+    annotators: { ann1: 0, ann2: 0, ann3: 0 },
+  });
+
+  table.push({
+    start: "2",
+    end: "2",
+    label: "Happy",
+    text: "Happy",
+    annotators: { ann1: 0, ann2: 1, ann3: 0 },
+  });
+
+  table.push({
+    start: "3",
+    end: "3",
+    label: "Happy",
+    text: "Happy",
+    annotators: { ann1: 1, ann2: 1, ann3: 1 },
+  });
+
+  table.push({
+    start: "4",
+    end: "4",
+    label: "Happy",
+    text: "Happy",
+    annotators: { ann1: 1, ann2: 0, ann3: 0 },
+  });
+
+  table.push({
+    start: "5",
+    end: "5",
+    label: "Happy",
+    text: "Happy",
+    annotators: { ann1: 0, ann2: 0, ann3: 0 },
+  });
+
+  table.push({
+    start: "6",
+    end: "6",
+    label: "Happy",
+    text: "Happy",
+    annotators: { ann1: 1, ann2: 1, ann3: 0 },
+  });
+
+  table.push({
+    start: "7",
+    end: "7",
+    label: "Happy",
+    text: "Happy",
+    annotators: { ann1: 0, ann2: 0, ann3: 1 },
+  });
+
+  return table;
 }

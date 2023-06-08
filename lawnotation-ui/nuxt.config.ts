@@ -14,5 +14,6 @@ export default defineNuxtConfig({
   },
   css: [
     '@/style/main.scss',
+    '@vueform/multiselect/themes/default.css'
   ]
 })
