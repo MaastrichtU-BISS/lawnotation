@@ -83,8 +83,11 @@ const loading = ref(false);
 const key = ref("ls-default");
 
 // const seq_pos = ref(assignment.value?.seq_pos ?? 1);
-const seq_pos = ref<number>(assignment.value?.seq_pos ?? 1);
+const seq_pos = ref<number>(assignment.value?.seq_pos ?? 0);
 watch(seq_pos, (val) => {
+  if (!Array.isArray(route.query.seq) && route.query.seq == val.toString())
+    return;
+  
   router.replace({
     path: route.path,
     query: { seq: val },
@@ -124,8 +127,8 @@ const loadData = async () => {
 
     loading.value = true;
     key.value = `ls-${seq_pos.value}`;
-
-    if (seq_pos.value && seq_pos.value < assignmentCounts.done + 1) {
+    
+    if (seq_pos.value) {
       assignment.value = await assignmentApi.findAssignmentsByUserTaskSeq(
         user.value.id,
         route.params.task_id.toString(),

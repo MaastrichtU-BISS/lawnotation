@@ -162,7 +162,7 @@ const documentTable = createTableData<Document>(
   {
     type: 'table',
     from: 'documents',
-    filter: () => { project_id: project.value?.id }
+    filter: () => ({ project_id: project.value?.id })
   }
 );
 
