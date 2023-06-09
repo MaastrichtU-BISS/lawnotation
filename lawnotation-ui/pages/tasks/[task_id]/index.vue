@@ -9,42 +9,27 @@
           ><button class="btn-primary">Annotate Next Assignment</button></NuxtLink
         >
       </div>
-      <Table :tabledata="assignmentTable">
-        <template #head>
-          <tr>
-            <th
-              scope="col"
-              class="px-6 py-3"
-              v-for="colname in ['Order', 'Document', 'Status', 'Action']"
-            >
-              {{ colname }}
-            </th>
-          </tr>
-        </template>
-        <template #body>
-          <tr
-            class="bg-white border-b hover:bg-gray-50"
-            v-for="assignment in assignmentTable.rows"
-            :key="assignment.id"
-          >
+      <Table :tabledata="assignmentTable" :sort="true" :search="true">
+        <template #row="{item}: {item: AssignmentTableData}">
+          <tr class="bg-white border-b hover:bg-gray-50">
             <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-              {{ assignment.seq_pos }}
+              {{ item.seq_pos }}
             </th>
             <td class="px-6 py-2">
-              {{ assignment.document.name }}
+              {{ item.document.name }}
             </td>
             <td class="px-6 py-2">
               <span
                 :class="
-                  assignment.status == 'done' ? 'text-green-600' : 'text-orange-700'
+                  item.status == 'done' ? 'text-green-600' : 'text-orange-700'
                 "
-                >{{ assignment.status }}</span
+                >{{ item.status }}</span
               >
             </td>
             <td class="px-6 py-2">
               <NuxtLink
                 class="font-medium text-blue-600 hover:underline"
-                :to="`/annotate/${task.id}?seq=${assignment.seq_pos}`"
+                :to="`/annotate/${task.id}?seq=${item.seq_pos}`"
                 >View</NuxtLink
               >
             </td>
@@ -58,7 +43,7 @@
 import { Task, useTaskApi } from "~/data/task";
 import { Assignment, AssignmentTableData, useAssignmentApi } from "~/data/assignment";
 import { User, useUserApi } from "~/data/user";
-import { TableData } from "~/components/Table.vue";
+import { createTableData   } from "~/utils/table";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -72,34 +57,34 @@ const route = useRoute();
 const task = ref<Task>();
 const loading = ref(false);
 
-const assignmentTable = reactive<TableData<AssignmentTableData>>({
-  total: 0,
-  rows: [],
-
-  page: 1,
-  items_per_page: 10,
-  loading: false,
-
-  async load() {
-    if (!task.value) return;
-    if (!user.value) return;
-
-    this.loading = true;
-
-    try {
-      const { rows, count } = await assignmentApi.tableAssignmentsByTaskAndUser(
-        task.value.id,
-        user.value.id,
-        (this.page - 1) * this.items_per_page,
-        this.items_per_page
-      );
-
-      if (rows) this.rows = rows;
-      if (count) this.total = count;
-    } catch (error) {}
-    this.loading = false;
+const assignmentTable = createTableData<AssignmentTableData>(
+  {
+    'Order': {
+      field: 'seq_pos',
+      sort: true,
+    },
+    'Document': {
+      field: 'document.name',
+      // sort: true,
+      search: true,
+    },
+    'Status': {
+      field: 'status',
+      sort: true,
+    },
+    'Action': {}
   },
-});
+  {
+    type: 'table',
+    from: 'assignments',
+    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, seq_pos',
+    filter: () => ({
+      task_id: task.value?.id,
+      'annotator.id': user.value?.id,
+      status: 'done'
+    })
+  }
+);
 
 onMounted(() => {
   taskApi.findTask(route.params.task_id.toString()).then((_task) => {

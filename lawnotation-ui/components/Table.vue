@@ -1,11 +1,53 @@
 <template>
   <div class="relative overflow-x-auto sm:rounded-lg">
+
+    <div class="flex justify-end m-2" v-if="search">
+      <select v-model="tabledata.search.column" class="w-40 p-2 text-sm text-gray-900 ring-1 ring-inset ring-gray-300 shadow-sm rounded-md bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+        <option 
+          v-for="[colname, col] of Object.entries(tabledata.columns).filter(x => x[1].search)"
+          :value="col.field"
+        >
+          {{ colname }}
+        </option>
+      </select>
+      <div class="ml-2 block bg-white">
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <svg class="w-5 h-5 text-gray-500" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg>
+          </div>
+          <input v-model="tabledata.search.query" type="text" class="block text-gray-900 bg-gray-50 p-2 pl-10 text-sm w-80" :placeholder="`Search for ${tabledata.search.column}`">
+        </div>
+      </div>
+    </div>
+
     <table class="w-full text-sm text-left text-gray-500">
       <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-        <slot name="head"></slot>
+        <!-- <slot name="head"></slot> -->
+        <th
+          scope="col"
+          class="px-6 py-3"
+          v-for="[colname, col] of Object.entries(tabledata.columns)"
+        >
+          <span class="flex">
+            {{ colname }}
+            <span class="ml-2 w-4 h-4 cursor-pointer" v-if="sort && col.sort && col.field" @click="sortClick(col.field)">
+              <svg v-if="!tabledata.sort || tabledata.sort.column !== col.field" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              <template v-else-if="tabledata.sort && tabledata.sort.column == col.field">
+                <svg v-if="tabledata.sort.dir === 'ASC'" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4.5 15.75l7.5-7.5 7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <svg v-else-if="tabledata.sort.dir === 'DESC'" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.5 8.25l-7.5 7.5-7.5-7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </template>
+            </span>
+          </span>
+        </th>
       </thead>
       <tbody>
-        <slot name="body"></slot>
+        <slot name="row" v-for="item in tabledata.rows" :item="item" :key="item.id"></slot>
       </tbody>
     </table>
 
@@ -16,9 +58,12 @@
     >
       <span class="text-sm font-normal text-gray-500">
         Showing
-        <span class="font-semibold text-gray-900"
-          >{{ visible_start_i }} - {{ visible_end_i }}</span
-        >
+        <span class="font-semibold text-gray-900">
+          <template v-if="tabledata.total > 0">
+            {{ visible_start_i }} - {{ visible_end_i }}
+          </template>
+          <template v-else>0</template>
+        </span>
         of <span class="font-semibold text-gray-900">{{ tabledata.total }}</span>
       </span>
       <ul class="inline-flex items-center -space-x-px">
@@ -152,27 +197,37 @@
 </template>
 
 <script setup lang="ts">
+import { TableData } from '~/utils/table';
+
+const supabase = useSupabaseClient();
+
 const props = withDefaults(
   defineProps<{
     pagination?: boolean;
+    sort?: boolean;
+    search: boolean,
     // items_per_page:
-    // search: boolean,
+
     tabledata: TableData<any>;
   }>(),
   {
     pagination: true,
-    // search: false,
+    sort: false,
+    search: false,
   }
 );
 
-export type TableData<T> = {
-  total: number;
-  rows: T[];
-  page: number;
-  items_per_page: number;
-  loading: boolean;
-  load: () => void;
-};
+const sortClick = (colname: string) => {
+  const dir = (props.tabledata.sort && props.tabledata.sort.column === colname) && props.tabledata.sort.dir === 'ASC' ? 'DESC' : 'ASC';
+  props.tabledata.sort = {column: colname, dir}
+
+  props.tabledata.load();
+}
+
+watch(() => [props.tabledata.search.query, props.tabledata.search.column], () => {
+  props.tabledata.page = 1; // when filtering, page always needs to be reset
+  props.tabledata.load();
+})
 
 const setPage = (page: number) => {
   props.tabledata.page = Math.max(1, page);
@@ -204,6 +259,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
+
 .pagination-holder {
   font-size: 16px;
 
