@@ -17,37 +17,22 @@
     <div v-show="tab_active == 'documents'">
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="documentTable.loading" />
-        <Table :tabledata="documentTable">
-          <template #head>
-            <tr>
-              <th
-                scope="col"
-                class="px-6 py-3"
-                v-for="colname in ['Id', 'Name', 'Action']"
-              >
-                {{ colname }}
-              </th>
-            </tr>
-          </template>
-          <template #body>
-            <tr
-              class="bg-white border-b hover:bg-gray-50"
-              v-for="document in documentTable.rows"
-              :key="document.id"
-            >
+        <Table :tabledata="documentTable" :sort="true" :search="true">
+          <template #row="{item}: {item: Document}">
+            <tr class="bg-white border-b hover:bg-gray-50">
               <th
                 scope="row"
                 class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
               >
-                {{ document.id }}
+                {{ item.id }}
               </th>
               <td class="px-6 py-2">
-                {{ document.name }}
+                {{ item.name }}
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
                   class="font-medium text-blue-600 hover:underline"
-                  :to="`/projects/${route.params.project_id}/documents/${document.id}`"
+                  :to="`/projects/${route.params.project_id}/documents/${item.id}`"
                   >View</NuxtLink
                 >
               </td>
@@ -77,40 +62,25 @@
     <div v-show="tab_active == 'tasks'">
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="taskTable.loading" />
-        <Table :tabledata="taskTable">
-          <template #head>
-            <tr>
-              <th
-                scope="col"
-                class="px-6 py-3"
-                v-for="colname in ['Id', 'Name', 'Description', 'Action']"
-              >
-                {{ colname }}
-              </th>
-            </tr>
-          </template>
-          <template #body>
-            <tr
-              class="bg-white border-b hover:bg-gray-50"
-              v-for="task in taskTable.rows"
-              :key="task.id"
-            >
+        <Table :tabledata="taskTable" :sort="true" :search="true">
+          <template #row="{item}: {item: Task}">
+            <tr class="bg-white border-b hover:bg-gray-50">
               <th
                 scope="row"
                 class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
               >
-                {{ task.id }}
+                {{ item.id }}
               </th>
               <td class="px-6 py-2">
-                {{ task.name }}
+                {{ item.name }}
               </td>
               <td class="px-6 py-2">
-                {{ task.desc }}
+                {{ item.desc }}
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
                   class="font-medium text-blue-600 hover:underline"
-                  :to="`/projects/${route.params.project_id}/tasks/${task.id}`"
+                  :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
                   >View</NuxtLink
                 >
               </td>
@@ -130,7 +100,7 @@
           ></textarea>
 
           <label for="label_id">Labelset</label>
-          <div class="flex w-full space-x-2">
+          <div class="flex items-start w-full space-x-2">
             <select
               v-if="labelsets.length"
               v-model="new_task.labelset_id"
@@ -157,7 +127,8 @@ import { Project, useProjectApi } from "~/data/project";
 import { Document, useDocumentApi } from "~/data/document";
 import { Task, useTaskApi } from "~/data/task";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
-import Table, { TableData } from "~/components/Table.vue";
+import Table from "~/components/Table.vue";
+import { TableData, createTableData } from "~/utils/table";
 
 const { $toast } = useNuxtApp();
 
@@ -175,55 +146,52 @@ const tab_active = ref<"tasks" | "documents">("tasks");
 
 const labelsets = reactive<Labelset[]>([]);
 
-const documentTable = reactive<TableData<Document>>({
-  total: 0,
-  rows: [],
-
-  page: 1,
-  items_per_page: 10,
-  loading: false,
-
-  async load() {
-    if (!project.value) return;
-
-    this.loading = true;
-
-    const { rows, count } = await documentApi.tableDocuments(
-      project.value.id,
-      (this.page - 1) * this.items_per_page,
-      this.items_per_page
-    );
-    if (rows) this.rows = rows;
-    if (count) this.total = count;
-
-    this.loading = false;
+const documentTable = createTableData<Document>(
+  {
+    'Id': {
+      field: 'id',
+      sort: true,
+    },
+    'Name': {
+      field: 'name',
+      sort: true,
+      search: true,
+    },
+    'Action': {}
   },
-});
+  {
+    type: 'table',
+    from: 'documents',
+    filter: () => { project_id: project.value?.id }
+  }
+);
 
-const taskTable = reactive<TableData<Task>>({
-  total: 0,
-  rows: [],
-
-  page: 1,
-  items_per_page: 10,
-  loading: false,
-
-  async load() {
-    if (!project.value) return;
-
-    this.loading = true;
-
-    const { rows, count } = await taskApi.tableTasks(
-      project.value.id,
-      (this.page - 1) * this.items_per_page,
-      this.items_per_page
-    );
-    if (rows) this.rows = rows;
-    if (count) this.total = count;
-
-    this.loading = false;
+const taskTable = createTableData<Task>(
+  {
+    'Id': {
+      field: 'id',
+      sort: true,
+    },
+    'Name': {
+      field: 'name',
+      sort: true,
+      search: true,
+    },
+    'Description': {
+      field: 'desc',
+      search: true,
+    },
+    'Action': {}
   },
-});
+  {
+    type: 'table',
+    from: 'tasks',
+    filter: () => ({ project_id: project.value?.id })
+  }
+);
+
+
+
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 

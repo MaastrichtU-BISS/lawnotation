@@ -46,19 +46,6 @@ export const useDocumentApi = () => {
       return data as Document[]
   };
 
-  const tableDocuments = async (project_id: number, offset: number, limit: number) => {
-    const { data, error, count } = await supabase
-      .from("documents")
-      .select('*', { count: 'exact' })
-      .eq("project_id", project_id)
-      .range(offset, offset + limit - 1);
-    
-    if (error)
-      throw Error(`Error in tableDocuments: ${error.message}`)
-    else
-      return {rows: data as Document[], count};
-  }
-
   const takeUpToNRandomDocuments = async (project_id: string  | undefined, N: number): Promise<number[]> => {
     const { data, error } = await supabase.rpc("random_sample", {n: N, pid: project_id});
     
@@ -112,7 +99,6 @@ export const useDocumentApi = () => {
     createDocuments,
     findDocument,
     findDocuments,
-    tableDocuments,
     takeUpToNRandomDocuments,
     totalAmountOfDocs,
     updateDocument,
