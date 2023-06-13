@@ -98,11 +98,14 @@ export const useAssignmentApi = () => {
       return data as Assignment
   };
 
-  const countAssignmentsByUserAndTask = async (annotator_id: string, task_id: string): Promise<any> => {
-    const pending = await supabase.from("assignments").select("count").eq("annotator_id", annotator_id).eq("task_id", task_id).eq("status", "pending").single();
-    const total = await supabase.from("assignments").select("count").eq("annotator_id", annotator_id).eq("task_id", task_id).single();
+  const countAssignmentsByUserAndTask = async (annotator_id: string, task_id: number) => {
+    const { data: next } = await supabase.from("assignments").select("seq_pos").eq("annotator_id", annotator_id).eq("task_id", task_id).eq("status", "pending").order('seq_pos', {ascending: true}).limit(1).single();
+    const { data: total } = await supabase.from("assignments").select("count").eq("annotator_id", annotator_id).eq("task_id", task_id).single();
 
-    return { pending: pending.data?.count, done: total.data?.count - pending.data?.count , total: total.data?.count}
+    return {
+      next: next?.seq_pos ?? 0,
+      total: total?.count ?? 0
+    }
   };
 
   // Update
