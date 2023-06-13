@@ -79,6 +79,7 @@ const initLS = async () => {
       props.isEditor ? "review" : "",
       "instruction",
       "side-column",
+      // "ground-truth",
       // "annotations:history",
       // "annotations:tabs",
       // "annotations:menu",
@@ -106,6 +107,7 @@ const initLS = async () => {
       },
     },
     onLabelStudioLoad: (LS: any) => {
+      LS.settings.showLabels = true;
       if (props.annotations?.length) {
         LS.annotationStore.selectAnnotation(LS.annotationStore.annotations);
       } else {
