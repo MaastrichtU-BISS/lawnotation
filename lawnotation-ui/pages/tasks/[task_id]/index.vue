@@ -1,7 +1,7 @@
 <template>
   <div v-if="task">
     <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
-    <div class="" v-if="assignmentCounts">
+    <div class="max-w-screen-md w-full mx-auto" v-if="assignmentCounts">
       <div class="flex justify-between mb-1">
         <span class="text-base font-medium text-gray-500 text-muted dark:text-white">Assignment</span>
         <span class="text-sm font-medium text-blue-700 dark:text-white">{{ assignmentCounts.next }} / {{ assignmentCounts.total }}</span>
