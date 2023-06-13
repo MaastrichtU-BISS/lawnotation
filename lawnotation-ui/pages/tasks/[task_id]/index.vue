@@ -1,14 +1,14 @@
 <template>
   <div v-if="task">
     <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
+    <div class="text-center my-10">
+      <NuxtLink :to="`/annotate/${task.id}`">
+        <button class="btn-primary">Annotate Next Assignment</button>
+      </NuxtLink>
+    </div>
     <div class="dimmer-wrapper">
       <Dimmer v-model="assignmentTable.loading" />
       <Dimmer v-model="loading" />
-      <div class="text-center my-10">
-        <NuxtLink :to="`/annotate/${task.id}`"
-          ><button class="btn-primary">Annotate Next Assignment</button></NuxtLink
-        >
-      </div>
       <Table :tabledata="assignmentTable" :sort="true" :search="true">
         <template #row="{item}: {item: AssignmentTableData}">
           <tr class="bg-white border-b hover:bg-gray-50">
