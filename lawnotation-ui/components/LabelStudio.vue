@@ -227,6 +227,7 @@ onMounted(() => {
 
 .lsf-label__text {
   white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .lsf-label {
