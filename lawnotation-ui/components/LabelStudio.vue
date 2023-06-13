@@ -31,31 +31,39 @@ const props = defineProps<{
   labels: LsLabels | undefined;
   isEditor: boolean | undefined;
   guidelines: string | undefined;
-  mode: "annotator.annotate" | "annotator.lookback" | "editor.check"
+  mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
 
 const serializeLSAnnotations = () => {
-  return label_studio.value.store.annotationStore.annotations.map((a: any) => a.serializeAnnotation())[0];
-}
+  return label_studio.value.store.annotationStore.annotations.map((a: any) =>
+    a.serializeAnnotation()
+  )[0];
+};
 
 const clickPrevious = async () => {
   emit("previousAssignment");
-}
+};
 
 const clickNext = async () => {
   if (!props.assignment) return;
-  
-  if (props.assignment.status === "done")
-    return emit("nextAssignment");
+
+  if (props.assignment.status === "done") return emit("nextAssignment");
 
   const serializedAnnotations = serializeLSAnnotations();
-  if (serializedAnnotations.length === 0 && !confirm("No annotations were made in this document.\nAre you sure you want to continue?"))
+  if (
+    serializedAnnotations.length === 0 &&
+    !confirm(
+      "No annotations were made in this document.\nAre you sure you want to continue?"
+    )
+  )
     return;
 
   await updateAnnotationsAndRelations(serializedAnnotations);
-  await assignmentApi.updateAssignment(props.assignment.id.toString(), { status: "done" });
+  await assignmentApi.updateAssignment(props.assignment.id.toString(), {
+    status: "done",
+  });
   emit("nextAssignment");
-}
+};
 
 const initLS = async () => {
   // @ts-expect-error
@@ -150,10 +158,16 @@ const initLS = async () => {
       clickPrevious();
     },
     // 'next'
-    onSubmitAnnotation: async (LS: any, { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }) => {
+    onSubmitAnnotation: async (
+      LS: any,
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+    ) => {
       clickNext();
     },
-    onUpdateAnnotation: async (LS: any, { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }) => {
+    onUpdateAnnotation: async (
+      LS: any,
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+    ) => {
       clickNext();
     },
   });
@@ -190,13 +204,13 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
 };
 
 function waitForElement(selector: string): Promise<Element> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const el = document.querySelector(selector);
     if (el) {
       return resolve(el);
     }
 
-    const observer = new MutationObserver(mutations => {
+    const observer = new MutationObserver((mutations) => {
       const ob_el = document.querySelector(selector);
       if (ob_el) {
         resolve(ob_el);
@@ -206,16 +220,20 @@ function waitForElement(selector: string): Promise<Element> {
 
     observer.observe(document.body, {
       childList: true,
-      subtree: true
+      subtree: true,
     });
   });
 }
 
 onMounted(() => {
   initLS();
-  
-  waitForElement('.lsf-button[aria-label="skip-task"]').then(el => el.innerHTML = "Back")
-  waitForElement('.lsf-button[aria-label="submit"]').then(el => el.innerHTML = "Next")
+
+  waitForElement('.lsf-button[aria-label="skip-task"]').then(
+    (el) => (el.innerHTML = "Back")
+  );
+  waitForElement('.lsf-button[aria-label="submit"]').then(
+    (el) => (el.innerHTML = "Next")
+  );
 });
 </script>
 <style>
@@ -270,7 +288,7 @@ onMounted(() => {
 
 .lsf-label__text {
   white-space: pre-wrap;
-  word-break: break-all;
+  /* word-break: break-all; */
 }
 
 .lsf-label {
