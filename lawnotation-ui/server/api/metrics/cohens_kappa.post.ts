@@ -1,13 +1,17 @@
 export default eventHandler(async (event) => {
   const data = await readBody(event);
-  const table = createContingencyTable(data.annotations, data.annotators);
+  const table = createContingencyTable(
+    data.annotations,
+    data.annotators,
+    data.tolerance
+  );
   // const table = getExample();
   return computeCohensKappa(table);
 });
 
 type RangeLabel = {
-  start: string;
-  end: string;
+  start: number;
+  end: number;
   label: string;
   text: string;
   annotators: any;
@@ -28,12 +32,15 @@ function containsRangeLabel(
 ): number {
   for (let i = 0; i < list.length; i++) {
     const x = list[i];
-    if (
-      x.start == range.start &&
-      x.end == range.end &&
-      x.label == range.label
-    ) {
-      return i;
+    if (x.label == range.label) {
+      for (let t = 0; t <= tolerance; t++) {
+        if (
+          Math.abs(x.start - range.start) <= t &&
+          Math.abs(x.end - range.end) <= tolerance - t
+        ) {
+          return i;
+        }
+      }
     }
   }
   return -1;
@@ -41,7 +48,8 @@ function containsRangeLabel(
 
 function createContingencyTable(
   annotations: any[],
-  annotators: string[]
+  annotators: string[],
+  tolerance: number = 0
 ): RangeLabel[] {
   var ranges: RangeLabel[] = [];
 
@@ -53,7 +61,7 @@ function createContingencyTable(
       text: x.text,
       annotators: {},
     };
-    const index = containsRangeLabel(ranges, ann);
+    const index = containsRangeLabel(ranges, ann, tolerance);
     if (index < 0) {
       ranges.push(ann);
       ranges[ranges.length - 1].annotators[annotators[0]] =

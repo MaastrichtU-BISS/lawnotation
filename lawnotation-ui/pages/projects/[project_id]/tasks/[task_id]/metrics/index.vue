@@ -30,6 +30,10 @@
           placeholder="All"
         />
       </div>
+      <div class="ml-5 w-full">
+        <label>Tolerance</label>
+        <input class="flex" type="number" v-model="tolerance" min="0" max="10" step="1" />
+      </div>
     </div>
     <div class="flex my-10">
       <div class="mx-auto">
@@ -108,6 +112,8 @@ const selectedAnnotators = ref<string[]>();
 const labelsOptions = reactive<string[]>([]);
 const selectedLabel = ref<string>();
 
+const tolerance = ref<number>(0);
+
 const loading = ref(false);
 
 const kappa_result = ref();
@@ -153,17 +159,28 @@ const compute_kappa = async (variant: string) => {
   kappa_result.value = await $fetch(`/api/metrics/${variant}_kappa`, {
     method: "POST",
     body: JSON.stringify({
-      annotations: annotations.map((a) => {
-        return {
-          start: a.start_index,
-          end: a.end_index,
-          text: a.text,
-          label: a.label,
-          annotator: (a as any).assignment.annotator.email,
-        };
-      }),
-      label: selectedLabel,
+      annotations: annotations
+        .map((a) => {
+          return {
+            start: a.start_index,
+            end: a.end_index,
+            text: a.text,
+            label: a.label,
+            annotator: (a as any).assignment.annotator.email,
+          };
+        })
+        .concat([
+          {
+            start: 0,
+            end: 1,
+            text:
+              "TESTING: If we have at least one true negative, kappa results make a lot more sense!!! (working on adding real true negatives to replace this dummy example)",
+            label: annotations[0].label,
+            annotator: "test@gmail.com",
+          },
+        ]),
       annotators: selectedAnnotators.value,
+      tolerance: tolerance.value,
     }),
   });
 
@@ -180,7 +197,7 @@ const downloadCSV = async () => {
     decimalSeparator: ".",
     showLabels: true,
     showTitle: true,
-    title: `Task ${task.value?.id}: ${task.value?.name} | Label: ${selectedLabel.value} | ${kappa_result.value.variant}Kappa: ${kappa_result.value.result} | Po: ${kappa_result.value.po} | Pe: ${kappa_result.value.pe}`,
+    title: `Task ${task.value?.id}: ${task.value?.name} | Label: ${selectedLabel.value} | ${kappa_result.value.variant}Kappa: ${kappa_result.value.result} | Po: ${kappa_result.value.po} | Pe: ${kappa_result.value.pe} | Tolerance: ${tolerance.value}`,
     useTextFile: false,
     useBom: true,
     useKeysAsHeaders: true,
