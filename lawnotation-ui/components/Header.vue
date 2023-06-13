@@ -3,15 +3,13 @@
     <div class="w-40">
       <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
     </div>
-    <template v-if="user">
-      <div v-if="role == 'editor'">
-        <NuxtLink class="mx-3" to="/projects">Projects</NuxtLink>
+    <div v-if="user" class="space-x-4">
+      <template v-if="role == 'editor'">
+        <NuxtLink to="/projects">Projects</NuxtLink>
         <NuxtLink to="/labelset">Labelsets</NuxtLink>
-      </div>
-      <div v-else>
-        <NuxtLink to="/tasks">Tasks</NuxtLink>
-      </div>
-    </template>
+      </template>
+      <NuxtLink to="/tasks">Tasks</NuxtLink>
+    </div>
     <div class="auth">
       <template v-if="user">
         <span v-if="user?.email">Hello {{ user.email?.split("@")[0] }}</span>
