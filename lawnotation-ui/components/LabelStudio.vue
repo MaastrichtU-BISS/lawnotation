@@ -43,7 +43,8 @@ const initLS = async () => {
                     <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
                       ${props.labels
                         ?.map(
-                          (l) => `<Label value="${l.name}" background="${l.color}" />`
+                          (l) =>
+                            `<Label value="${l.name}" background="${l.color}" style="display: inline-table"/>`
                         )
                         .join("\n")}
                     </Labels>
@@ -220,5 +221,14 @@ onMounted(() => {
   content: "Reject";
   margin-left: -40px;
   visibility: visible;
+}
+
+.lsf-label__text {
+  white-space: pre-wrap;
+}
+
+.lsf-label {
+  display: inline-table;
+  margin: 0px 8px 8px 0px !important;
 }
 </style>
