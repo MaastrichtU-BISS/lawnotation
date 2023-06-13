@@ -20,7 +20,7 @@ const assignmentApi = useAssignmentApi();
 
 const label_studio = ref();
 
-const emit = defineEmits(["nextAssignment"]);
+const emit = defineEmits(["previousAssignment", "nextAssignment"]);
 
 const props = defineProps<{
   user: any;
@@ -31,9 +31,34 @@ const props = defineProps<{
   labels: LsLabels | undefined;
   isEditor: boolean | undefined;
   guidelines: string | undefined;
+  mode: "annotator.annotate" | "annotator.lookback" | "editor.check"
 }>();
 
+const serializeLSAnnotations = () => {
+  return label_studio.value.store.annotationStore.annotations.map((a: any) => a.serializeAnnotation())[0];
+}
+
+const clickPrevious = async () => {
+  emit("previousAssignment");
+}
+
+const clickNext = async () => {
+  if (!props.assignment) return;
+  
+  if (props.assignment.status === "done")
+    return emit("nextAssignment");
+
+  const serializedAnnotations = serializeLSAnnotations();
+  if (serializedAnnotations.length === 0 && !confirm("No annotations were made in this document.\nAre you sure you want to continue?"))
+    return;
+
+  await updateAnnotationsAndRelations(serializedAnnotations);
+  await assignmentApi.updateAssignment(props.assignment.id.toString(), { status: "done" });
+  emit("nextAssignment");
+}
+
 const initLS = async () => {
+  // @ts-expect-error
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
   label_studio.value = new LabelStudio("label-studio", {
     config: `
@@ -117,27 +142,19 @@ const initLS = async () => {
         LS.annotationStore.selectAnnotation(c.id);
       }
     },
-    onSkipTask() {
-      if (!props.assignment) return;
-      assignmentApi
-        .updateAssignment(props.assignment?.id.toString(), { status: "done" })
-        .then((a) => {
-          emit("nextAssignment");
-        });
-    },
     onAcceptAnnotation() {},
     onRejectAnnotation() {},
-    onSubmitAnnotation: async (
-      LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
-    ) => {
-      updateAnnotationsAndRelations(serializeAnnotation());
+
+    // 'back'
+    onSkipTask() {
+      clickPrevious();
     },
-    onUpdateAnnotation: async (
-      LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
-    ) => {
-      updateAnnotationsAndRelations(serializeAnnotation());
+    // 'next'
+    onSubmitAnnotation: async (LS: any, { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }) => {
+      clickNext();
+    },
+    onUpdateAnnotation: async (LS: any, { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }) => {
+      clickNext();
     },
   });
 };
@@ -159,21 +176,46 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
   const ls_rels = serializedAnnotations.filter((x) => x.type == "relation");
 
   ls_rels.map((rel) => {
-    var from = -1;
-    var to = -1;
+    let from = -1;
+    let to = -1;
     for (let i = 0; i < created_anns.length; ++i) {
-      if (created_anns[i].ls_id == ((rel as unknown) as LSSerializedRelation).from_id)
+      if (created_anns[i].ls_id == (rel as LSSerializedRelation).from_id)
         from = created_anns[i].id;
 
-      if (created_anns[i].ls_id == ((rel as unknown) as LSSerializedRelation).to_id)
+      if (created_anns[i].ls_id == (rel as LSSerializedRelation).to_id)
         to = created_anns[i].id;
     }
-    relationApi.createRelation((rel as unknown) as LSSerializedRelation, from, to);
+    relationApi.createRelation(rel as LSSerializedRelation, from, to);
   });
 };
 
+function waitForElement(selector: string): Promise<Element> {
+  return new Promise(resolve => {
+    const el = document.querySelector(selector);
+    if (el) {
+      return resolve(el);
+    }
+
+    const observer = new MutationObserver(mutations => {
+      const ob_el = document.querySelector(selector);
+      if (ob_el) {
+        resolve(ob_el);
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  });
+}
+
 onMounted(() => {
   initLS();
+  
+  waitForElement('.lsf-button[aria-label="skip-task"]').then(el => el.innerHTML = "Back")
+  waitForElement('.lsf-button[aria-label="submit"]').then(el => el.innerHTML = "Next")
 });
 </script>
 <style>
@@ -203,21 +245,22 @@ onMounted(() => {
   display: none;
 }
 
-[aria-label="skip-task"],
+/* [aria-label="skip-task"], */
 [aria-label="reject-annotation"] {
   order: 1;
 }
 
-[aria-label="skip-task"]:first-child,
+/* [aria-label="skip-task"]:first-child, */
 [aria-label="reject-annotation"]:first-child {
   visibility: hidden;
 }
 
-[aria-label="skip-task"]::after {
-  content: "Next";
+/* [aria-label="skip-task"]::after {
+  content: "Back";
   margin-left: -40px;
   visibility: visible;
 }
+*/
 
 [aria-label="reject-annotation"]::after {
   content: "Reject";
