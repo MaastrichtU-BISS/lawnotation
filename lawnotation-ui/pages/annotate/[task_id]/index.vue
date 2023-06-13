@@ -3,7 +3,7 @@
     <div class="my-4 px-8 flex justify-between">
       <span>&nbsp;</span>
       <div
-        class="max-w-screen-lg w-full flex-1"
+        class="max-w-screen-md w-full"
         v-if="loadedData && seq_pos && assignmentCounts"
       >
         <div class="flex justify-between mb-1">
