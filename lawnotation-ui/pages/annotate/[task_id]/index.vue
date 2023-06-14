@@ -7,10 +7,10 @@
         v-if="loadedData && seq_pos && assignmentCounts"
       >
         <div class="flex justify-between mb-1">
-          <span class="text-base font-medium text-gray-500 text-muted dark:text-white">Assignment</span>
-          <span class="text-sm font-medium text-blue-700 dark:text-white">{{ seq_pos }} / {{ assignmentCounts.total }}</span>
+          <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
+          <span class="text-sm font-medium text-blue-700">{{ seq_pos }} / {{ assignmentCounts.total }}</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
           <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="{'width': `${(seq_pos / assignmentCounts.total)*100}%`}"></div>
         </div>
       </div>
