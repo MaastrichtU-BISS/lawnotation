@@ -1,58 +1,30 @@
+import {
+  RangeLabel,
+  KappaResult,
+  sortByRange,
+  containsRangeLabel,
+} from "~/utils/metrics";
+
 export default eventHandler(async (event) => {
   const data = await readBody(event);
-  //   const table = getExample();
   const table = createContingencyTable(
     data.annotations,
     data.annotators,
+    data.text,
     data.tolerance
   );
   return computeFleissKappa(table);
 });
 
-type RangeLabel = {
-  start: number;
-  end: number;
-  label: string;
-  text: string;
-  annotators: any;
-};
-
-type KappaResult = {
-  po: number;
-  pe: number;
-  result: number;
-  table: RangeLabel[];
-  variant: string;
-};
-
-function containsRangeLabel(
-  list: RangeLabel[],
-  range: RangeLabel,
-  tolerance: number = 0
-): number {
-  for (let i = 0; i < list.length; i++) {
-    const x = list[i];
-    if (x.label == range.label) {
-      for (let t = 0; t <= tolerance; t++) {
-        if (
-          Math.abs(x.start - range.start) <= t &&
-          Math.abs(x.end - range.end) <= tolerance - t
-        ) {
-          return i;
-        }
-      }
-    }
-  }
-  return -1;
-}
-
 function createContingencyTable(
   annotations: any[],
   annotators: string[],
+  text: string,
   tolerance: number
 ): RangeLabel[] {
   var ranges: RangeLabel[] = [];
 
+  // Add annotated ranges (True positives, False Positives and False Negatives)
   annotations.forEach((x) => {
     const ann: RangeLabel = {
       start: x.start,
@@ -71,6 +43,42 @@ function createContingencyTable(
       ranges[index].annotators[x.annotator] = 1;
     }
   });
+
+  // sort annotated ranges by range
+  sortByRange(ranges);
+
+  // Add non annotated ranges (TRUE NEGATIVES) (text in between every pair of neighbour annotations)
+  const trueRangesLength = ranges.length;
+  var last_end = 0;
+  for (let i = 0; i < trueRangesLength; ++i) {
+    var current_start = ranges[i].start;
+    if (last_end <= current_start) {
+      ranges.push({
+        start: last_end,
+        end: current_start,
+        label: "NON ANNOTATED",
+        text: text.substring(last_end, current_start),
+        annotators: {},
+      });
+      annotators.forEach((a) => {
+        ranges[ranges.length - 1].annotators[a] = 0;
+      });
+    }
+    var last_end = ranges[i].end;
+  }
+
+  ranges.push({
+    start: last_end,
+    end: text.length,
+    label: "NON ANNOTATED",
+    text: text.substring(last_end, text.length),
+    annotators: {},
+  });
+  annotators.forEach((a) => {
+    ranges[ranges.length - 1].annotators[a] = 0;
+  });
+
+  sortByRange(ranges);
 
   return ranges;
 }
@@ -110,66 +118,4 @@ function computeFleissKappa(table: RangeLabel[]): KappaResult {
     table: table,
     variant: "Fleiss",
   } as KappaResult;
-}
-
-function getExample() {
-  var table = [];
-
-  table.push({
-    start: "1",
-    end: "1",
-    label: "Happy",
-    text: "Happy",
-    annotators: { ann1: 0, ann2: 0, ann3: 0 },
-  });
-
-  table.push({
-    start: "2",
-    end: "2",
-    label: "Happy",
-    text: "Happy",
-    annotators: { ann1: 0, ann2: 1, ann3: 0 },
-  });
-
-  table.push({
-    start: "3",
-    end: "3",
-    label: "Happy",
-    text: "Happy",
-    annotators: { ann1: 1, ann2: 1, ann3: 1 },
-  });
-
-  table.push({
-    start: "4",
-    end: "4",
-    label: "Happy",
-    text: "Happy",
-    annotators: { ann1: 1, ann2: 0, ann3: 0 },
-  });
-
-  table.push({
-    start: "5",
-    end: "5",
-    label: "Happy",
-    text: "Happy",
-    annotators: { ann1: 0, ann2: 0, ann3: 0 },
-  });
-
-  table.push({
-    start: "6",
-    end: "6",
-    label: "Happy",
-    text: "Happy",
-    annotators: { ann1: 1, ann2: 1, ann3: 0 },
-  });
-
-  table.push({
-    start: "7",
-    end: "7",
-    label: "Happy",
-    text: "Happy",
-    annotators: { ann1: 0, ann2: 0, ann3: 1 },
-  });
-
-  return table;
 }
