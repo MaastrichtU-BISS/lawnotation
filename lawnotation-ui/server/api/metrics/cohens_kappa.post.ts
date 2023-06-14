@@ -1,58 +1,30 @@
+import {
+  RangeLabel,
+  KappaResult,
+  sortByRange,
+  containsRangeLabel,
+} from "~/utils/metrics";
+
 export default eventHandler(async (event) => {
   const data = await readBody(event);
   const table = createContingencyTable(
     data.annotations,
     data.annotators,
+    data.text,
     data.tolerance
   );
-  // const table = getExample();
   return computeCohensKappa(table);
 });
-
-type RangeLabel = {
-  start: number;
-  end: number;
-  label: string;
-  text: string;
-  annotators: any;
-};
-
-type KappaResult = {
-  po: number;
-  pe: number;
-  result: number;
-  table: RangeLabel[];
-  variant: string;
-};
-
-function containsRangeLabel(
-  list: RangeLabel[],
-  range: RangeLabel,
-  tolerance: number = 0
-): number {
-  for (let i = 0; i < list.length; i++) {
-    const x = list[i];
-    if (x.label == range.label) {
-      for (let t = 0; t <= tolerance; t++) {
-        if (
-          Math.abs(x.start - range.start) <= t &&
-          Math.abs(x.end - range.end) <= tolerance - t
-        ) {
-          return i;
-        }
-      }
-    }
-  }
-  return -1;
-}
 
 function createContingencyTable(
   annotations: any[],
   annotators: string[],
+  text: string,
   tolerance: number = 0
 ): RangeLabel[] {
   var ranges: RangeLabel[] = [];
 
+  // Add annotated ranges (True positives, False Positives and False Negatives)
   annotations.forEach((x) => {
     const ann: RangeLabel = {
       start: x.start,
@@ -72,6 +44,40 @@ function createContingencyTable(
       ranges[index].annotators[x.annotator] = 1;
     }
   });
+
+  // sort annotated ranges by range
+  sortByRange(ranges);
+
+  // Add non annotated ranges (TRUE NEGATIVES) (text in between every pair of neighbour annotations)
+  const trueRangesLength = ranges.length;
+  var last_end = 0;
+  for (let i = 0; i < trueRangesLength; ++i) {
+    var current_start = ranges[i].start;
+    if (last_end <= current_start) {
+      ranges.push({
+        start: last_end,
+        end: current_start,
+        label: "NON ANNOTATED",
+        text: text.substring(last_end, current_start),
+        annotators: {},
+      });
+      ranges[ranges.length - 1].annotators[annotators[0]] = 0;
+      ranges[ranges.length - 1].annotators[annotators[1]] = 0;
+    }
+    var last_end = ranges[i].end;
+  }
+
+  ranges.push({
+    start: last_end,
+    end: text.length,
+    label: "NON ANNOTATED",
+    text: text.substring(last_end, text.length),
+    annotators: {},
+  });
+  ranges[ranges.length - 1].annotators[annotators[0]] = 0;
+  ranges[ranges.length - 1].annotators[annotators[1]] = 0;
+
+  sortByRange(ranges);
 
   return ranges;
 }
@@ -119,48 +125,4 @@ function computeCohensKappa(table: RangeLabel[]): KappaResult {
     table: table,
     variant: "Cohens",
   } as KappaResult;
-}
-
-function getExample() {
-  var table = [];
-  for (let i = 1; i <= 17; i++) {
-    table.push({
-      start: i.toString(),
-      end: i.toString(),
-      label: "TP",
-      text: i.toString(),
-      annotators: { ann1: 1, ann2: 1 },
-    });
-  }
-
-  for (let i = 18; i <= 36; i++) {
-    table.push({
-      start: i.toString(),
-      end: i.toString(),
-      label: "TN",
-      text: i.toString(),
-      annotators: { ann1: 0, ann2: 0 },
-    });
-  }
-
-  for (let i = 37; i <= 44; i++) {
-    table.push({
-      start: i.toString(),
-      end: i.toString(),
-      label: "FP",
-      text: i.toString(),
-      annotators: { ann1: 0, ann2: 1 },
-    });
-  }
-
-  for (let i = 45; i <= 50; i++) {
-    table.push({
-      start: i.toString(),
-      end: i.toString(),
-      label: "FN",
-      text: i.toString(),
-      annotators: { ann1: 1, ann2: 0 },
-    });
-  }
-  return table;
 }

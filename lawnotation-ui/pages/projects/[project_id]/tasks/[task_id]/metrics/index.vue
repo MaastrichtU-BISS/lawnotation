@@ -88,6 +88,7 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
 import { User, useUserApi } from "~/data/user";
 import { result } from "lodash";
+import { KappaResult } from "~/utils/metrics";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -105,6 +106,7 @@ const task = ref<Task>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
 const selectedDocument = ref<string>();
+const selectedDocumentText = ref<string>();
 
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotators = ref<string[]>();
@@ -116,7 +118,7 @@ const tolerance = ref<number>(0);
 
 const loading = ref(false);
 
-const kappa_result = ref();
+const kappa_result = ref<KappaResult>();
 
 const get_annotations = async () => {
   if (!task.value) throw new Error("Invalid Task");
@@ -128,10 +130,15 @@ const get_annotations = async () => {
     selectedAnnotators.value.push(...annotatorsOptions);
   }
 
+  selectedDocumentText.value = (
+    await documentApi.findDocument(selectedDocument.value)
+  ).full_text;
+
   console.log("selected params:");
   console.log(selectedAnnotators.value);
   console.log(selectedLabel.value);
   console.log(selectedDocument.value);
+  console.log(selectedDocumentText.value);
 
   const annotations = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
     task.value?.id.toString(),
@@ -139,6 +146,7 @@ const get_annotations = async () => {
     selectedLabel.value,
     selectedAnnotators.value
   );
+
   return annotations;
 };
 
@@ -150,36 +158,28 @@ const compute_kappa = async (variant: string) => {
   console.log("annotations:");
   console.log(annotations);
 
+  if (!selectedDocumentText.value) throw new Error("Invalid Document Text");
+
   if (!annotations || annotations.length == 0) {
     $toast.error(`There are no annotations for the specified criteria.`);
-    kappa_result.value = null;
+    kappa_result.value = undefined;
     return;
   }
 
   kappa_result.value = await $fetch(`/api/metrics/${variant}_kappa`, {
     method: "POST",
     body: JSON.stringify({
-      annotations: annotations
-        .map((a) => {
-          return {
-            start: a.start_index,
-            end: a.end_index,
-            text: a.text,
-            label: a.label,
-            annotator: (a as any).assignment.annotator.email,
-          };
-        })
-        .concat([
-          {
-            start: 0,
-            end: 1,
-            text:
-              "TESTING: If we have at least one true negative, kappa results make a lot more sense!!! (working on adding real true negatives to replace this dummy example)",
-            label: annotations[0].label,
-            annotator: "test@gmail.com",
-          },
-        ]),
+      annotations: annotations.map((a) => {
+        return {
+          start: a.start_index,
+          end: a.end_index,
+          text: a.text,
+          label: a.label,
+          annotator: (a as any).assignment.annotator.email,
+        };
+      }),
       annotators: selectedAnnotators.value,
+      text: selectedDocumentText.value,
       tolerance: tolerance.value,
     }),
   });
@@ -197,7 +197,7 @@ const downloadCSV = async () => {
     decimalSeparator: ".",
     showLabels: true,
     showTitle: true,
-    title: `Task ${task.value?.id}: ${task.value?.name} | Label: ${selectedLabel.value} | ${kappa_result.value.variant}Kappa: ${kappa_result.value.result} | Po: ${kappa_result.value.po} | Pe: ${kappa_result.value.pe} | Tolerance: ${tolerance.value}`,
+    title: `Task ${task.value?.id}: ${task.value?.name} | Label: ${selectedLabel.value} | ${kappa_result.value?.variant}Kappa: ${kappa_result.value?.result} | Po: ${kappa_result.value?.po} | Pe: ${kappa_result.value?.pe} | Tolerance: ${tolerance.value}`,
     useTextFile: false,
     useBom: true,
     useKeysAsHeaders: true,
@@ -206,7 +206,7 @@ const downloadCSV = async () => {
   const csvExporter = new ExportToCsv(options);
 
   var rows: any[] = [];
-  kappa_result.value.table.forEach((r: any) => {
+  kappa_result.value?.table.forEach((r: any) => {
     Object.entries(r.annotators).forEach(([k, v]) => {
       rows.push({
         annotator: k,
