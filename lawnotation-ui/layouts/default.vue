@@ -2,9 +2,11 @@
 import Header from "@/components/Header.vue";
 import Footer from "@/components/Footer.vue";
 </script>
+
 <template>
   <div>
     <Header></Header>
+    <div id="breadcrumb-holder"></div>
     <div class="mx-auto max-w-screen-lg py-4">
       <slot />
     </div>
