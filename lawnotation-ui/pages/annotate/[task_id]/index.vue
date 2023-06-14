@@ -1,5 +1,21 @@
 <template>
-  <template v-if="assignment">
+  <Breadcrumb v-if="task" :crumbs="[
+    {
+      name: 'Tasks',
+      link: '/tasks',
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/tasks/${task.id}`,
+    },
+    {
+      name: `Assignment ${seq_pos}`,
+      link: `/annotate/${task.id}?seq=${seq_pos}`,
+    }
+  ]" />
+
+  <template v-if="assignment && task">
+
     <div class="my-4 px-8 flex justify-between">
       <span>&nbsp;</span>
       <div
@@ -49,6 +65,8 @@ import {
   useAnnotationRelationApi,
   LSSerializedRelation,
 } from "~/data/annotation_relations";
+import Breadcrumb from '~/components/Breadcrumb.vue';
+
 const relationApi = useAnnotationRelationApi();
 
 const user = useSupabaseUser();

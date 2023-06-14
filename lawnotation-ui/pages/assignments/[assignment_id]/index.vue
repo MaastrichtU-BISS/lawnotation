@@ -1,4 +1,23 @@
 <template>
+  <Breadcrumb v-if="project && task && assignment" :crumbs="[
+    {
+      name: 'Projects',
+      link: '/projects',
+    },
+    {
+      name: `Project ${project.name}`,
+      link: `/projects/${project.id}`,
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/projects/${project.id}/tasks/${task.id}`,
+    },
+    {
+      name: `Assignment ${assignment.id}`,
+      link: `/assignments/${assignment.id}`,
+    },
+  ]" />
+
   <div class="dimmer-wrapper">
     <Dimmer v-model="loading" />
     <div class="dimmer-content" style="min-height: 200px">
@@ -19,6 +38,7 @@
 <script setup lang="ts">
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { Document, useDocumentApi } from "~/data/document";
+import { Project, useProjectApi } from "~/data/project";
 import { Task, useTaskApi } from "~/data/task";
 import { Labelset, LsLabels, useLabelsetApi } from "~/data/labelset.js";
 import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
@@ -31,6 +51,7 @@ import {
 const user = useSupabaseUser();
 const assignmentApi = useAssignmentApi();
 const documentApi = useDocumentApi();
+const projectApi = useProjectApi();
 const taskApi = useTaskApi();
 const labelsetApi = useLabelsetApi();
 const annotationApi = useAnnotationApi();
@@ -43,6 +64,7 @@ type Id = number;
 const route = useRoute();
 const assignment = ref<Assignment>();
 const task = ref<Task>();
+const project = ref<Project>();
 const doc = ref<Document>();
 const loadedData = ref(false);
 const loading = ref(false);
@@ -66,8 +88,10 @@ const loadData = async () => {
     doc.value = await documentApi.findDocument(assignment.value.document_id.toString());
     if (!doc.value) throw Error("Document not found");
 
-    if (!assignment.value.task_id) throw Error("Document not found");
+    if (!assignment.value.task_id) throw Error("Task not found");
     task.value = await taskApi.findTask(assignment.value.task_id?.toString());
+
+    project.value = await projectApi.findProject(task.value.project_id.toString());
 
     const _labelset: Labelset = await labelsetApi.findLabelset(
       task.value.labelset_id.toString()
@@ -110,7 +134,7 @@ const loadData = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   loadData();
 });
 

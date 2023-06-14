@@ -1,5 +1,17 @@
-<template>
+<template>  
+  <Breadcrumb v-if="project" :crumbs="[
+    {
+      name: 'Projects',
+      link: '/projects',
+    },
+    {
+      name: `Project ${project.name}`,
+      link: `/projects/${project.id}`,
+    },
+  ]" />
+
   <div v-if="project">
+
     <h1 class="my-3 text-lg font-semibold mb-2">Project: {{ project.name }}</h1>
     <p class="mt-1 mb-3 text-gray-700 text-sm">{{ project.desc }}</p>
 
