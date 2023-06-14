@@ -5,6 +5,7 @@ import Footer from '@/components/Footer.vue'
 <template>
   <div>
     <Header></Header>
+    <div id="breadcrumb-holder"></div>
     <slot />
     <Footer></Footer>
   </div>

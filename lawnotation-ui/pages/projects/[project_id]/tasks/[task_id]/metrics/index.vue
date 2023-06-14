@@ -1,4 +1,23 @@
 <template>
+  <Breadcrumb v-if="task && project" :crumbs="[
+    {
+      name: 'Projects',
+      link: '/projects',
+    },
+    {
+      name: `Project ${project.name}`,
+      link: `/projects/${project.id}`,
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/projects/${project.id}/tasks/${task.id}`,
+    },
+    {
+      name: `Metrics`,
+      link: `/projects/${project.id}/tasks/${task.id}/metrics`,
+    },
+  ]" />
+
   <div class="my-3">
     <div class="flex my-10">
       <div class="mr-5 w-full">
@@ -78,19 +97,19 @@
 import { ExportToCsv } from "export-to-csv";
 import Multiselect from "@vueform/multiselect";
 import { Task, useTaskApi } from "~/data/task";
-import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { Annotation, useAnnotationApi } from "~/data/annotation";
 import { Document, useDocumentApi } from "~/data/document";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
 import { User, useUserApi } from "~/data/user";
 import { result } from "lodash";
+import { Project, useProjectApi } from "~/data/project";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
 
 // const user = useSupabaseUser();
 const taskApi = useTaskApi();
-const assignmentApi = useAssignmentApi();
+const projectApi = useProjectApi();
 const annotationApi = useAnnotationApi();
 const documentApi = useDocumentApi();
 const labelsetApi = useLabelsetApi();
@@ -98,6 +117,7 @@ const userApi = useUserApi();
 
 const route = useRoute();
 const task = ref<Task>();
+const project = ref<Project>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
 const selectedDocument = ref<string>();
@@ -206,6 +226,8 @@ const downloadCSV = async () => {
 
 onMounted(async () => {
   task.value = await taskApi.findTask(route.params.task_id.toString());
+  
+  project.value = await projectApi.findProject(route.params.project_id as string);
 
   labelsOptions.push(
     ...(await labelsetApi.findLabelset(task.value.labelset_id.toString())).labels.map(

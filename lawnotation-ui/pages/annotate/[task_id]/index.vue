@@ -1,20 +1,20 @@
 <template>
+  <Breadcrumb v-if="task" :crumbs="[
+    {
+      name: 'Tasks',
+      link: '/tasks',
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/tasks/${task.id}`,
+    },
+    {
+      name: `Assignment ${seq_pos}`,
+      link: `/annotate/${task.id}?seq=${seq_pos}`,
+    }
+  ]" />
+
   <template v-if="assignment && task">
-    
-    <Breadcrumb :crumbs="[
-      {
-        name: 'Tasks',
-        link: '/tasks',
-      },
-      {
-        name: `Task ${task.name}`,
-        link: `/tasks/${task.id}`,
-      },
-      {
-        name: `Assignment ${seq_pos}`,
-        link: `/annotate/${task.id}?seq=${seq_pos}`,
-      }
-    ]" />
 
     <div class="my-4 px-8 flex justify-between">
       <span>&nbsp;</span>

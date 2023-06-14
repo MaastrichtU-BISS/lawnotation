@@ -1,4 +1,19 @@
 <template>
+  <Breadcrumb v-if="task && project" :crumbs="[
+    {
+      name: 'Projects',
+      link: '/projects',
+    },
+    {
+      name: `Project ${project.name}`,
+      link: `/projects/${project.id}`,
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/projects/${project.id}/tasks/${task.id}`,
+    },
+  ]" />
+
   <div v-if="task">
     <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
     <div class="text-center my-3">
@@ -99,18 +114,21 @@ import { Assignment, AssignmentTableData, useAssignmentApi } from "~/data/assign
 import { User, useUserApi } from "~/data/user";
 import { TableData } from "~/utils/table";
 import { shuffle } from "lodash";
+import { Project, useProjectApi } from "~/data/project";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
 
 const user = useSupabaseUser();
 const taskApi = useTaskApi();
+const projectApi = useProjectApi();
 const documentApi = useDocumentApi();
 const assignmentApi = useAssignmentApi();
 const userApi = useUserApi();
 
 const route = useRoute();
 const task = ref<Task>();
+const project = ref<Project>();
 const total_docs = ref<number>(0);
 const amount_of_docs = ref<number>(0);
 const amount_of_fixed_docs = ref<number>(0);
@@ -248,14 +266,15 @@ const createAssignments = async () => {
   }
 };
 
-onMounted(() => {
-  taskApi.findTask(route.params.task_id.toString()).then((_task) => {
-    task.value = _task;
-    documentApi.totalAmountOfDocs(_task.project_id.toString()).then((count) => {
-      amount_of_docs.value = count ? count : 0;
-      total_docs.value = amount_of_docs.value;
-    });
+onMounted(async () => {
+  task.value = await taskApi.findTask(route.params.task_id as string)
+
+  documentApi.totalAmountOfDocs(task.value.project_id.toString()).then((count) => {
+    amount_of_docs.value = count ? count : 0;
+    total_docs.value = amount_of_docs.value;
   });
+
+  project.value = await projectApi.findProject(route.params.project_id as string);
 });
 
 definePageMeta({

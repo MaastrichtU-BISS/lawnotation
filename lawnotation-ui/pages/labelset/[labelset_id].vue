@@ -1,6 +1,17 @@
 <template>
+  <Breadcrumb v-if="labelset" :crumbs="[
+    {
+      name: 'Labelsets',
+      link: '/labelset',
+    },
+    {
+      name: `Labelset ${labelset.name}`,
+      link: `/labelset/${labelset.id}`
+    }
+  ]" />
+
   <div v-if="labelset === undefined">Loading labelset...</div>
-  <div v-else class="">
+  <div v-else>
     <div class="flex flex-row justify-between">
       <h2 class="text-2xl">Editing labelset: {{ labelset.name }}</h2>
       <button class="btn btn-primary" @click="save_labelset">Save changes</button>

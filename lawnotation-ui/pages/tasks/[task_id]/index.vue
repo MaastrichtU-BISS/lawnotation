@@ -1,4 +1,15 @@
 <template>
+  <Breadcrumb v-if="task" :crumbs="[
+    {
+      name: 'Tasks',
+      link: '/tasks',
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/tasks/${task.id}`,
+    }
+  ]" />
+  
   <div v-if="task">
     <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
     <div class="" v-if="assignmentCounts">
@@ -116,9 +127,7 @@ const assignmentTable = createTableData<AssignmentTableData>(
 );
 
 onMounted(async () => {
-  await taskApi.findTask(route.params.task_id.toString()).then((_task) => {
-    task.value = _task;
-  });
+  task.value = await taskApi.findTask(route.params.task_id as string);
   await loadCounters()
 });
 
