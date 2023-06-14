@@ -5,12 +5,8 @@
 </template>
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
-import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
-import {
-  AnnotationRelation,
-  LSSerializedRelation,
-  useAnnotationRelationApi,
-} from "~/data/annotation_relations";
+import { LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
+import { LSSerializedRelation, useAnnotationRelationApi } from "~/data/annotation_relations";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { LsLabels } from "~/data/labelset";
 
@@ -47,16 +43,13 @@ const clickPrevious = async () => {
 const clickNext = async () => {
   if (!props.assignment) return;
 
-  if (props.assignment.status === "done") return emit("nextAssignment");
-
   const serializedAnnotations = serializeLSAnnotations();
-  if (
+
+  if (props.assignment.status !== "done" &&
     serializedAnnotations.length === 0 &&
-    !confirm(
-      "No annotations were made in this document.\nAre you sure you want to continue?"
-    )
-  )
+    !confirm("No annotations were made in this document.\nAre you sure you want to continue?")) {
     return;
+  }
 
   await updateAnnotationsAndRelations(serializedAnnotations);
   await assignmentApi.updateAssignment(props.assignment.id.toString(), {

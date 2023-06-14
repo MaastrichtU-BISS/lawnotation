@@ -3,11 +3,18 @@
     <div class="my-4 px-8 flex justify-between">
       <span>&nbsp;</span>
       <div
-        class="text-lg font-semibold"
-        v-if="loadedData"
+        class="max-w-screen-md w-full"
+        v-if="loadedData && seq_pos && assignmentCounts"
       >
-        {{ seq_pos }} / {{ assignmentCounts?.total }}
+        <div class="flex justify-between mb-1">
+          <span class="text-base font-medium text-gray-500 text-muted dark:text-white">Assignment</span>
+          <span class="text-sm font-medium text-blue-700 dark:text-white">{{ seq_pos }} / {{ assignmentCounts.total }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+          <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="{'width': `${(seq_pos / assignmentCounts.total)*100}%`}"></div>
+        </div>
       </div>
+
       <span>status: <span :class="assignmentStatusClass(assignment.status)">{{ assignment.status }}</span></span>
     </div>
     <div class="dimmer-wrapper" style="min-height: 200px">
@@ -69,11 +76,7 @@ const ls_annotations = reactive<LSSerializedAnnotation>([]);
 const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
-const assignmentCounts = reactive<{ done: number; total: number; pending: number }>({
-  done: 0,
-  total: 0,
-  pending: 0,
-});
+const assignmentCounts = ref<{ next: number ; total: number }>();
 
 const assignmentStatusClass = (status: Assignment['status']) => {
   return status === 'done' ? 'text-green-600' : 'text-red-500';
@@ -112,7 +115,7 @@ const loadNext = async () => {
 
   seq_pos.value += 1;
 
-  if (assignmentCounts.total == seq_pos.value) {
+  if (assignmentCounts.value && assignmentCounts.value.total == seq_pos.value) {
     // TODO: go to page /done
     alert("All tasks were done: you will be signed out");
     // supabase.auth.signOut();
@@ -188,14 +191,15 @@ const loadData = async () => {
 const loadCounters = async () => {
   try {
     if (!user.value) throw new Error("Must be logged in");
+    if (!route.params.task_id || Array.isArray(route.params.task_id)) throw new Error("Invalid task");
 
-    Object.assign(
-      assignmentCounts,
-      await assignmentApi.countAssignmentsByUserAndTask(
-        user.value.id,
-        route.params.task_id.toString()
-      )
+    const counts = await assignmentApi.countAssignmentsByUserAndTask(
+      user.value.id,
+      parseInt(route.params.task_id)
     );
+
+    assignmentCounts.value = counts;
+
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Problem loading counters: ${error.message}`);
@@ -204,7 +208,7 @@ const loadCounters = async () => {
 
 const init = async () => {
   await loadCounters();
-  if (route.query.seq && !Array.isArray(route.query.seq) && parseInt(route.query.seq) > 0 && parseInt(route.query.seq) < assignmentCounts.total) {
+  if (route.query.seq && !Array.isArray(route.query.seq) && parseInt(route.query.seq) > 0 && parseInt(route.query.seq) < assignmentCounts.value!.total) {
     seq_pos.value = parseInt(route.query.seq);
   }
   loadData();

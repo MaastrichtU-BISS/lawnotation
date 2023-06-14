@@ -1,14 +1,23 @@
 <template>
   <div v-if="task">
     <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
+    <div class="max-w-screen-md w-full mx-auto" v-if="assignmentCounts">
+      <div class="flex justify-between mb-1">
+        <span class="text-base font-medium text-gray-500 text-muted dark:text-white">Assignment</span>
+        <span class="text-sm font-medium text-blue-700 dark:text-white">{{ assignmentCounts.next }} / {{ assignmentCounts.total }}</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+        <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="{'width': `${(assignmentCounts.next / assignmentCounts.total)*100}%`}"></div>
+      </div>
+    </div>
+    <div class="text-center my-10">
+      <NuxtLink :to="`/annotate/${task.id}`">
+        <button class="btn-primary">Annotate Next Assignment</button>
+      </NuxtLink>
+    </div>
     <div class="dimmer-wrapper">
       <Dimmer v-model="assignmentTable.loading" />
       <Dimmer v-model="loading" />
-      <div class="text-center my-10">
-        <NuxtLink :to="`/annotate/${task.id}`"
-          ><button class="btn-primary">Annotate Next Assignment</button></NuxtLink
-        >
-      </div>
       <Table :tabledata="assignmentTable" :sort="true" :search="true">
         <template #row="{item}: {item: AssignmentTableData}">
           <tr class="bg-white border-b hover:bg-gray-50">
@@ -57,6 +66,26 @@ const route = useRoute();
 const task = ref<Task>();
 const loading = ref(false);
 
+const assignmentCounts = ref<{ next: number ; total: number }>();
+
+const loadCounters = async () => {
+  try {
+    if (!user.value) throw new Error("Must be logged in");
+    if (!task.value) throw new Error("Invalid task");
+
+    const counts = await assignmentApi.countAssignmentsByUserAndTask(
+      user.value.id,
+      task.value?.id
+    );
+
+    assignmentCounts.value = counts;
+
+  } catch (error) {
+    if (error instanceof Error)
+      $toast.error(`Problem loading counters: ${error.message}`);
+  }
+};
+
 const assignmentTable = createTableData<AssignmentTableData>(
   {
     'Order': {
@@ -86,10 +115,11 @@ const assignmentTable = createTableData<AssignmentTableData>(
   }
 );
 
-onMounted(() => {
-  taskApi.findTask(route.params.task_id.toString()).then((_task) => {
+onMounted(async () => {
+  await taskApi.findTask(route.params.task_id.toString()).then((_task) => {
     task.value = _task;
   });
+  await loadCounters()
 });
 
 definePageMeta({

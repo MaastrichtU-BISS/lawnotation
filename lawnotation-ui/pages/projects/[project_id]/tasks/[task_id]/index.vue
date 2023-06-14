@@ -1,15 +1,15 @@
 <template>
   <div v-if="task">
     <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
+    <div class="text-center my-3">
+      <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
+        <button class="btn btn-primary">Analyze Agreement Metrics</button>
+      </NuxtLink>
+    </div>
     <div class="dimmer-wrapper">
       <Dimmer v-model="assignmentTable.loading" />
       <Dimmer v-model="loading" />
       <div class="dimmer-content">
-        <div class="text-center my-3">
-          <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`"
-            ><button class="btn btn-primary">Analyze Agreement Metrics</button></NuxtLink
-          >
-        </div>
         <h3 class="my-3 text-lg font-semibold">Assignments</h3>
         <Table :tabledata="assignmentTable" :sort="true" :search="true">
           <template #row="{item}: {item: AssignmentTableData}">
@@ -35,8 +35,9 @@
                 <NuxtLink
                   class="font-medium text-blue-600 hover:underline"
                   :to="`/assignments/${item.id}`"
-                  >View</NuxtLink
                 >
+                  View
+                </NuxtLink>
               </td>
             </tr>
           </template>
@@ -71,9 +72,9 @@
               :max="total_docs"
               min="1"
             />
-            <label for="fixed_docs"
-              >Amount of Fixed Documents (to share among annotators)</label
-            >
+            <label for="fixed_docs">
+              Amount of Fixed Documents (to share among annotators)
+            </label>
             <input
               id="fixed_docs"
               type="number"
