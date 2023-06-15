@@ -1,82 +1,97 @@
 <template>
-  <Breadcrumb v-if="task && project" :crumbs="[
-    {
-      name: 'Projects',
-      link: '/projects',
-    },
-    {
-      name: `Project ${project.name}`,
-      link: `/projects/${project.id}`,
-    },
-    {
-      name: `Task ${task.name}`,
-      link: `/projects/${project.id}/tasks/${task.id}`,
-    },
-    {
-      name: `Metrics`,
-      link: `/projects/${project.id}/tasks/${task.id}/metrics`,
-    },
-  ]" />
+  <Breadcrumb
+    v-if="task && project"
+    :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+      {
+        name: `Task ${task.name}`,
+        link: `/projects/${project.id}/tasks/${task.id}`,
+      },
+      {
+        name: `Metrics`,
+        link: `/projects/${project.id}/tasks/${task.id}/metrics`,
+      },
+    ]"
+  />
 
   <div class="my-3">
-    <div class="flex my-10">
-      <div class="mr-5 w-full">
-        <label>Document</label>
-        <Multiselect
-          v-model="selectedDocument"
-          :options="documentsOptions"
-          :searchable="true"
-          placeholder="Select a Document"
-        />
-      </div>
-      <div class="w-full">
-        <label>Label</label>
-        <Multiselect
-          v-model="selectedLabel"
-          :options="labelsOptions"
-          :searchable="true"
-          placeholder="Select a Label"
-        />
-      </div>
-      <div class="ml-5 w-full">
-        <label>Annotators</label>
-        <Multiselect
-          v-model="selectedAnnotators"
-          :options="annotatorsOptions"
-          mode="tags"
-          :searchable="true"
-          :close-on-select="false"
-          placeholder="All"
-        />
-      </div>
-      <div class="ml-5 w-full">
-        <label>Tolerance</label>
-        <input class="flex" type="number" v-model="tolerance" min="0" max="10" step="1" />
-      </div>
-    </div>
-    <div class="flex my-10">
-      <div class="mx-auto">
-        <button
-          :disabled="
-            !selectedDocument ||
-            !selectedLabel ||
-            selectedAnnotators?.length == 1 ||
-            selectedAnnotators?.length == 2
-          "
-          class="btn btn-primary mx-5"
-          @click="compute_kappa('fleiss')"
-        >
-          Fleiss Kappa
-        </button>
-        <button
-          :disabled="
-            !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
-          "
-          class="btn btn-primary mx-5"
-          @click="compute_kappa('cohens')"
-        >
-          Cohens Kappa
-        </button>
+    <div class="dimmer-wrapper" style="min-height: 200px">
+      <Dimmer v-model="loading" />
+      <div class="dimmer-content">
+        <div class="flex my-10">
+          <div class="mr-5 w-full">
+            <label>Document</label>
+            <Multiselect
+              v-model="selectedDocument"
+              :options="documentsOptions"
+              :searchable="true"
+              placeholder="Select a Document"
+            />
+          </div>
+          <div class="w-full">
+            <label>Label</label>
+            <Multiselect
+              v-model="selectedLabel"
+              :options="labelsOptions"
+              :searchable="true"
+              placeholder="Select a Label"
+            />
+          </div>
+          <div class="ml-5 w-full">
+            <label>Annotators</label>
+            <Multiselect
+              v-model="selectedAnnotators"
+              :options="annotatorsOptions"
+              mode="tags"
+              :searchable="true"
+              :close-on-select="false"
+              placeholder="All"
+            />
+          </div>
+          <div class="ml-5 w-full">
+            <label>Tolerance</label>
+            <input
+              class="flex"
+              type="number"
+              v-model="tolerance"
+              min="0"
+              max="10"
+              step="1"
+            />
+          </div>
+        </div>
+        <div class="flex my-10">
+          <div class="mx-auto">
+            <button
+              :disabled="
+                !selectedDocument ||
+                !selectedLabel ||
+                selectedAnnotators?.length == 1 ||
+                selectedAnnotators?.length == 2
+              "
+              class="btn btn-primary mx-5"
+              @click="compute_kappa('fleiss')"
+            >
+              Fleiss Kappa
+            </button>
+            <button
+              :disabled="
+                !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
+              "
+              class="btn btn-primary mx-5"
+              @click="compute_kappa('cohens')"
+            >
+              Cohens Kappa
+            </button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="text-center" v-if="kappa_result">
@@ -91,7 +106,12 @@
         <div><b>Pe:</b> {{ kappa_result.pe }}</div>
       </div>
       <div class="my-5">
-        <button class="btn btn-primary mx-5" @click="downloadCSV">Download as CSV</button>
+        <button
+          class="btn btn-primary mx-5"
+          @click="downloadCSV(selectedDocument, selectedLabel)"
+        >
+          Download as CSV
+        </button>
         <pre class="text-left">{{ kappa_result.table }}</pre>
       </div>
     </div>
@@ -124,15 +144,18 @@ const route = useRoute();
 const task = ref<Task>();
 const project = ref<Project>();
 
-const documentsOptions = reactive<{ value: string; label: string }[]>([]);
-const selectedDocument = ref<string>();
+const documentsOptions = reactive<{ value: string; label: string }[]>([
+  { value: "All", label: "All" },
+]);
+const selectedDocument = ref<string>("All");
 const selectedDocumentText = ref<string>();
+const selectedDocumentName = ref<string>();
 
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotators = ref<string[]>();
 
-const labelsOptions = reactive<string[]>([]);
-const selectedLabel = ref<string>();
+const labelsOptions = reactive<string[]>(["All"]);
+const selectedLabel = ref<string>("All");
 
 const tolerance = ref<number>(0);
 
@@ -140,30 +163,20 @@ const loading = ref(false);
 
 const kappa_result = ref<KappaResult>();
 
-const get_annotations = async () => {
-  if (!task.value) throw new Error("Invalid Task");
-  if (!selectedDocument.value) throw new Error("Invalid Document");
-  if (!selectedLabel.value) throw new Error("Invalid Label");
-
+const get_annotations = async (task_id: string, doc_id: string, label: string) => {
   if (!selectedAnnotators.value || selectedAnnotators.value.length == 0) {
     selectedAnnotators.value = [];
     selectedAnnotators.value.push(...annotatorsOptions);
   }
 
-  selectedDocumentText.value = (
-    await documentApi.findDocument(selectedDocument.value)
-  ).full_text;
-
-  console.log("selected params:");
-  console.log(selectedAnnotators.value);
-  console.log(selectedLabel.value);
-  console.log(selectedDocument.value);
-  console.log(selectedDocumentText.value);
+  const d = await documentApi.findDocument(doc_id);
+  selectedDocumentText.value = d.full_text;
+  selectedDocumentName.value = d.name.substring(0, d.name.length - 4);
 
   const annotations = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
-    task.value?.id.toString(),
-    selectedDocument.value,
-    selectedLabel.value,
+    task_id,
+    doc_id,
+    label,
     selectedAnnotators.value
   );
 
@@ -171,53 +184,81 @@ const get_annotations = async () => {
 };
 
 const compute_kappa = async (variant: string) => {
+  if (!task.value) throw new Error("Invalid Task");
+
   loading.value = true;
 
-  const annotations = await get_annotations();
-
-  console.log("annotations:");
-  console.log(annotations);
-
-  if (!selectedDocumentText.value) throw new Error("Invalid Document Text");
-
-  if (!annotations || annotations.length == 0) {
-    $toast.error(`There are no annotations for the specified criteria.`);
-    kappa_result.value = undefined;
-    return;
+  var docs: string[] = [];
+  if (selectedDocument.value == "All") {
+    docs.push(...documentsOptions.slice(1).map((x) => x.value));
+  } else {
+    docs.push(selectedDocument.value);
   }
 
-  kappa_result.value = await $fetch(`/api/metrics/${variant}_kappa`, {
-    method: "POST",
-    body: JSON.stringify({
-      annotations: annotations.map((a) => {
-        return {
-          start: a.start_index,
-          end: a.end_index,
-          text: a.text,
-          label: a.label,
-          annotator: (a as any).assignment.annotator.email,
-        };
-      }),
-      annotators: selectedAnnotators.value,
-      text: selectedDocumentText.value,
-      tolerance: tolerance.value,
-    }),
-  });
+  var labels: string[] = [];
+  if (selectedLabel.value == "All") {
+    labels.push(...labelsOptions.slice(1));
+  } else {
+    labels.push(selectedLabel.value);
+  }
 
-  console.log("table:");
-  console.log(kappa_result.value);
+  for (let i = 0; i < docs.length; i++) {
+    const d = docs[i];
+    for (let j = 0; j < labels.length; j++) {
+      const l = labels[j];
+      try {
+        const annotations = await get_annotations(task.value?.id.toString(), d, l);
+
+        if (!selectedDocumentText.value || !selectedDocumentName.value)
+          throw new Error("Invalid Document");
+
+        if (!annotations || annotations.length == 0) {
+          $toast.error(
+            `There are no annotations for document ${selectedDocumentName.value} and label ${l}`
+          );
+          kappa_result.value = undefined;
+          continue;
+        }
+
+        kappa_result.value = await $fetch(`/api/metrics/${variant}_kappa`, {
+          method: "POST",
+          body: JSON.stringify({
+            annotations: annotations.map((a) => {
+              return {
+                start: a.start_index,
+                end: a.end_index,
+                text: a.text,
+                label: a.label,
+                annotator: (a as any).assignment.annotator.email,
+              };
+            }),
+            annotators: selectedAnnotators.value,
+            text: selectedDocumentText.value,
+            tolerance: tolerance.value,
+          }),
+        });
+
+        if (selectedDocument.value == "All" || selectedLabel.value == "All") {
+          await downloadCSV(selectedDocumentName.value, l);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  }
 
   loading.value = false;
 };
 
-const downloadCSV = async () => {
+const downloadCSV = async (doc: string, label: string) => {
   const options = {
+    filename: `${doc}_${label}`,
     fieldSeparator: ",",
     quoteStrings: '"',
     decimalSeparator: ".",
     showLabels: true,
     showTitle: true,
-    title: `Task ${task.value?.id}: ${task.value?.name} | Label: ${selectedLabel.value} | ${kappa_result.value?.variant}Kappa: ${kappa_result.value?.result} | Po: ${kappa_result.value?.po} | Pe: ${kappa_result.value?.pe} | Tolerance: ${tolerance.value}`,
+    title: `${kappa_result.value?.variant}Kappa: ${kappa_result.value?.result} | Po: ${kappa_result.value?.po} | Pe: ${kappa_result.value?.pe} | Tolerance: ${tolerance.value}`,
     useTextFile: false,
     useBom: true,
     useKeysAsHeaders: true,
@@ -243,7 +284,7 @@ const downloadCSV = async () => {
 
 onMounted(async () => {
   task.value = await taskApi.findTask(route.params.task_id.toString());
-  
+
   project.value = await projectApi.findProject(route.params.project_id as string);
 
   labelsOptions.push(
@@ -263,11 +304,6 @@ onMounted(async () => {
   annotatorsOptions.push(
     ...(await userApi.findUsersByTask(task.value.id.toString())).map((a) => a.email)
   );
-
-  console.log("options:");
-  console.log(annotatorsOptions);
-  console.log(labelsOptions);
-  console.log(documentsOptions);
 });
 
 definePageMeta({
