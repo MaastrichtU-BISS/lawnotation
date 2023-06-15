@@ -108,7 +108,7 @@
       <div class="my-5">
         <button
           class="btn btn-primary mx-5"
-          @click="downloadCSV(selectedDocument, selectedLabel)"
+          @click="downloadCSV(selectedDocumentName || selectedDocument, selectedLabel)"
         >
           Download as CSV
         </button>
