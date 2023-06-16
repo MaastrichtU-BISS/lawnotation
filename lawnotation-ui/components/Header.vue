@@ -7,8 +7,9 @@
       <template v-if="role == 'editor'">
         <NuxtLink to="/projects">Projects</NuxtLink>
         <NuxtLink to="/labelset">Labelsets</NuxtLink>
+        <span class="text-gray-400 select-none">|</span>
       </template>
-      <NuxtLink to="/tasks">Tasks</NuxtLink>
+      <NuxtLink to="/tasks">Assigned Tasks</NuxtLink>
     </div>
     <div class="auth">
       <template v-if="user">
