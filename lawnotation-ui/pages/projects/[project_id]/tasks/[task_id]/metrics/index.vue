@@ -121,18 +121,16 @@ const userApi = useUserApi();
 const route = useRoute();
 const task = ref<Task>();
 
-const documentsOptions = reactive<{ value: string; label: string }[]>([
-  { value: "All", label: "All" },
-]);
-const selectedDocument = ref<string>("All");
+const documentsOptions = reactive<{ value: string; label: string }[]>([]);
+const selectedDocument = ref<string>();
 const selectedDocumentText = ref<string>();
 const selectedDocumentName = ref<string>();
 
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotators = ref<string[]>();
 
-const labelsOptions = reactive<string[]>(["All"]);
-const selectedLabel = ref<string>("All");
+const labelsOptions = reactive<string[]>([]);
+const selectedLabel = ref<string>();
 
 const tolerance = ref<number>(0);
 
@@ -140,7 +138,7 @@ const loading = ref(false);
 
 const kappa_result = ref<KappaResult>();
 
-const get_annotations = async (task_id: string, doc_id: string, label: string) => {
+const getAnnotations = async (task_id: string, doc_id: string, label: string) => {
   if (!selectedAnnotators.value || selectedAnnotators.value.length == 0) {
     selectedAnnotators.value = [];
     selectedAnnotators.value.push(...annotatorsOptions);
@@ -162,67 +160,45 @@ const get_annotations = async (task_id: string, doc_id: string, label: string) =
 
 const compute_kappa = async (variant: string) => {
   if (!task.value) throw new Error("Invalid Task");
+  if (!selectedDocument.value) throw new Error("Invalid Document");
+  if (!selectedLabel.value) throw new Error("Invalid Label");
 
   loading.value = true;
 
-  var docs: string[] = [];
-  if (selectedDocument.value == "All") {
-    docs.push(...documentsOptions.slice(1).map((x) => x.value));
-  } else {
-    docs.push(selectedDocument.value);
+  const annotations = await getAnnotations(
+    task.value?.id.toString(),
+    selectedDocument.value,
+    selectedLabel.value
+  );
+
+  if (!selectedDocumentText.value || !selectedDocumentName.value)
+    throw new Error("Invalid Document");
+
+  if (!annotations || annotations.length == 0) {
+    $toast.error(
+      `There are no annotations for document ${selectedDocumentName.value} and label ${l}`
+    );
+    kappa_result.value = undefined;
+    return;
   }
 
-  var labels: string[] = [];
-  if (selectedLabel.value == "All") {
-    labels.push(...labelsOptions.slice(1));
-  } else {
-    labels.push(selectedLabel.value);
-  }
-
-  for (let i = 0; i < docs.length; i++) {
-    const d = docs[i];
-    for (let j = 0; j < labels.length; j++) {
-      const l = labels[j];
-      try {
-        const annotations = await get_annotations(task.value?.id.toString(), d, l);
-
-        if (!selectedDocumentText.value || !selectedDocumentName.value)
-          throw new Error("Invalid Document");
-
-        if (!annotations || annotations.length == 0) {
-          $toast.error(
-            `There are no annotations for document ${selectedDocumentName.value} and label ${l}`
-          );
-          kappa_result.value = undefined;
-          continue;
-        }
-
-        kappa_result.value = await $fetch(`/api/metrics/${variant}_kappa`, {
-          method: "POST",
-          body: JSON.stringify({
-            annotations: annotations.map((a) => {
-              return {
-                start: a.start_index,
-                end: a.end_index,
-                text: a.text,
-                label: a.label,
-                annotator: (a as any).assignment.annotator.email,
-              };
-            }),
-            annotators: selectedAnnotators.value,
-            text: selectedDocumentText.value,
-            tolerance: tolerance.value,
-          }),
-        });
-
-        if (selectedDocument.value == "All" || selectedLabel.value == "All") {
-          await downloadCSV(selectedDocumentName.value, l);
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    }
-  }
+  kappa_result.value = await $fetch(`/api/metrics/${variant}_kappa`, {
+    method: "POST",
+    body: JSON.stringify({
+      annotations: annotations.map((a) => {
+        return {
+          start: a.start_index,
+          end: a.end_index,
+          text: a.text,
+          label: a.label,
+          annotator: (a as any).assignment.annotator.email,
+        };
+      }),
+      annotators: selectedAnnotators.value,
+      text: selectedDocumentText.value,
+      tolerance: tolerance.value,
+    }),
+  });
 
   loading.value = false;
 };
