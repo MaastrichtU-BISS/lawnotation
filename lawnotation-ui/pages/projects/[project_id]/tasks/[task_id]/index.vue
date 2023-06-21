@@ -75,7 +75,7 @@
               type="email"
               name="email"
               v-model="email"
-              @keydown="inputEmail($event)"
+              @keydown.enter="addAnnotator()"
             />
             <button class="btn-primary" @click="addAnnotator">Add</button>
             <label for="amount_of_docs">Amount of Documents (total)</label>
@@ -171,10 +171,6 @@ const addAnnotator = () => {
   if (email.value == "") throw new Error("Email field is required");
   annotators_email.push(email.value);
   email.value = "";
-};
-
-const inputEmail = (event: KeyboardEvent) => {
-  if (event.key == "Enter") addAnnotator();
 };
 
 const createAssignments = async () => {

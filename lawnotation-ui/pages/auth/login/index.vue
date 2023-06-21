@@ -11,7 +11,7 @@
             name="email"
             autocomplete="off"
             class="border"
-            @keydown="inputEmail($event)"
+            @keydown.enter="signIn()"
           />
         </div>
         <div class="my-2">
@@ -31,10 +31,6 @@ const config = useRuntimeConfig();
 const loading = ref(false);
 
 const email = ref<string>("");
-
-const inputEmail = (event: KeyboardEvent) => {
-  if (event.key == "Enter") signIn();
-};
 
 const signIn = () => {
   loading.value = true;
