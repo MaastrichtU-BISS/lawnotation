@@ -1,3 +1,5 @@
+import { BasicAnnotation } from "~/data/annotation";
+
 export type RangeLabel = {
   start: number;
   end: number;
@@ -14,7 +16,7 @@ export type KappaResult = {
   variant: string;
 };
 
-export function sortByRange(ranges: RangeLabel[]): void {
+export function sortByRange(ranges: RangeLabel[] | BasicAnnotation[]): void {
   ranges.sort((x, y) => {
     if (x.start < y.start) {
       return -1;
