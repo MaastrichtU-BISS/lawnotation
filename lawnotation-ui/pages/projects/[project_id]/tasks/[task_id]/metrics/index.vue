@@ -33,20 +33,16 @@
               placeholder="All"
             />
           </div>
-          <div class="ml-5 w-full">
-            <label>Tolerance</label>
-            <input
-              class="flex"
-              type="number"
-              v-model="tolerance"
-              min="0"
-              max="10"
-              step="1"
-            />
-          </div>
         </div>
         <div class="flex my-10">
           <div class="mx-auto">
+            <button class="btn btn-primary mx-5" @click="getAnnotations">
+              Get Annotations
+            </button>
+          </div>
+        </div>
+        <div class="flex my-10" v-if="annotations && annotations.length">
+          <div class="mx-auto inline-flex">
             <button
               :disabled="
                 !selectedDocument ||
@@ -59,6 +55,17 @@
             >
               Fleiss Kappa
             </button>
+            <div class="">
+              <label class="mr-2">Tolerance</label>
+              <input
+                class=""
+                type="number"
+                v-model="tolerance"
+                min="0"
+                max="10"
+                step="1"
+              />
+            </div>
             <button
               :disabled="
                 !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
@@ -84,14 +91,29 @@
         <div><b>Pe:</b> {{ kappa_result.pe }}</div>
       </div>
       <div class="my-5">
-        <button
-          class="btn btn-primary mx-5"
-          @click="downloadCSV(selectedDocumentName || selectedDocument, selectedLabel)"
-        >
+        <button class="btn btn-primary mx-5" @click="downloadCSV()">
           Download as CSV
         </button>
-        <pre class="text-left">{{ kappa_result.table }}</pre>
       </div>
+    </div>
+    <div v-if="annotations && annotations.length">
+      <h5 class="text-lg font-semibold my-5">Annotations</h5>
+      <ul>
+        <li v-for="(ann, index) in annotations">
+          <RangeLabelCmpt
+            :annotation="ann"
+            :editable="ann.label == 'NOT ANNOTATED'"
+            :index="index"
+            :has-previous-non-annotation="hasPreviousNonAnnotation(index)"
+            :has-next-non-annotation="hasNextNonAnnotation(index)"
+            @separate="emitSeparate"
+            @mergeUp="emitMergeUp"
+            @mergeDown="emitMergeDown"
+            @set-hidden="emitSetHidden"
+            :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"
+          ></RangeLabelCmpt>
+        </li>
+      </ul>
     </div>
   </div>
 </template>
@@ -100,12 +122,12 @@ import { ExportToCsv } from "export-to-csv";
 import Multiselect from "@vueform/multiselect";
 import { Task, useTaskApi } from "~/data/task";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { Annotation, useAnnotationApi } from "~/data/annotation";
+import { BasicAnnotation, useAnnotationApi } from "~/data/annotation";
 import { Document, useDocumentApi } from "~/data/document";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
 import { User, useUserApi } from "~/data/user";
-import { result } from "lodash";
-import { KappaResult } from "~/utils/metrics";
+import { KappaResult, RangeLabel, sortByRange } from "~/utils/metrics";
+import { clone } from "lodash";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -136,47 +158,113 @@ const tolerance = ref<number>(0);
 
 const loading = ref(false);
 
+const annotations = reactive<BasicAnnotation[]>([]);
 const kappa_result = ref<KappaResult>();
 
-const getAnnotations = async (task_id: string, doc_id: string, label: string) => {
+const getAnnotations = async () => {
+  if (!task.value) {
+    $toast.error(`Invalid Task`);
+    return;
+  }
+  if (!selectedDocument.value) {
+    $toast.error(`Invalid Document`);
+    return;
+  }
+  if (!selectedLabel.value) {
+    $toast.error(`Invalid Label`);
+    return;
+  }
+
   if (!selectedAnnotators.value || selectedAnnotators.value.length == 0) {
     selectedAnnotators.value = [];
     selectedAnnotators.value.push(...annotatorsOptions);
   }
 
-  const d = await documentApi.findDocument(doc_id);
+  loading.value = true;
+  kappa_result.value = undefined;
+  annotations.splice(0);
+
+  const d = await documentApi.findDocument(selectedDocument.value);
   selectedDocumentText.value = d.full_text;
   selectedDocumentName.value = d.name.substring(0, d.name.length - 4);
 
-  const annotations = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
-    task_id,
-    doc_id,
-    label,
+  const anns = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
+    task.value.id.toString(),
+    selectedDocument.value,
+    selectedLabel.value,
     selectedAnnotators.value
   );
 
-  return annotations;
+  annotations.splice(0) &&
+    annotations.push(
+      ...anns.map((a) => {
+        return {
+          start: a.start_index,
+          end: a.end_index,
+          text: a.text,
+          label: a.label,
+          annotator: (a as any).assignment.annotator.email,
+          hidden: false,
+        };
+      })
+    );
+
+  getNonAnnotations();
+
+  loading.value = false;
+};
+
+const getNonAnnotations = async () => {
+  if (!selectedDocumentText.value) {
+    $toast.error(`Invalid Document`);
+    return;
+  }
+
+  sortByRange(annotations);
+  var new_annotations: BasicAnnotation[] = [];
+
+  var last_end = 0;
+  for (let i = 0; i < annotations.length; ++i) {
+    var current_start = annotations[i].start;
+    if (last_end <= current_start) {
+      new_annotations.push({
+        start: last_end,
+        end: current_start,
+        label: "NOT ANNOTATED",
+        text: selectedDocumentText.value.substring(last_end, current_start),
+        annotator: "",
+        hidden: false,
+      });
+    } else {
+      new_annotations.push(annotations[i]);
+    }
+    var last_end = annotations[i].end;
+  }
+
+  new_annotations.push({
+    start: last_end,
+    end: selectedDocumentText.value.length,
+    label: "NOT ANNOTATED",
+    text: selectedDocumentText.value.substring(
+      last_end,
+      selectedDocumentText.value.length
+    ),
+    annotator: "",
+    hidden: false,
+  });
+
+  annotations.splice(0) && annotations.push(...new_annotations);
 };
 
 const compute_kappa = async (variant: string) => {
-  if (!task.value) throw new Error("Invalid Task");
-  if (!selectedDocument.value) throw new Error("Invalid Document");
-  if (!selectedLabel.value) throw new Error("Invalid Label");
-
   loading.value = true;
-
-  const annotations = await getAnnotations(
-    task.value?.id.toString(),
-    selectedDocument.value,
-    selectedLabel.value
-  );
 
   if (!selectedDocumentText.value || !selectedDocumentName.value)
     throw new Error("Invalid Document");
 
   if (!annotations || annotations.length == 0) {
     $toast.error(
-      `There are no annotations for document ${selectedDocumentName.value} and label ${l}`
+      `There are no annotations for document ${selectedDocumentName.value} and label ${selectedLabel.value}`
     );
     kappa_result.value = undefined;
     return;
@@ -185,27 +273,28 @@ const compute_kappa = async (variant: string) => {
   kappa_result.value = await $fetch(`/api/metrics/${variant}_kappa`, {
     method: "POST",
     body: JSON.stringify({
-      annotations: annotations.map((a) => {
-        return {
-          start: a.start_index,
-          end: a.end_index,
-          text: a.text,
-          label: a.label,
-          annotator: (a as any).assignment.annotator.email,
-        };
-      }),
+      annotations: annotations.filter((x) => !x.hidden),
       annotators: selectedAnnotators.value,
-      text: selectedDocumentText.value,
       tolerance: tolerance.value,
     }),
   });
 
+  console.log(kappa_result.value);
+
   loading.value = false;
 };
 
-const downloadCSV = async (doc: string, label: string) => {
+const downloadCSV = async () => {
+  if (!selectedDocumentName.value) {
+    $toast.error(`Invalid Document`);
+    return;
+  }
+  if (!selectedLabel.value) {
+    $toast.error(`Invalid Label`);
+    return;
+  }
   const options = {
-    filename: `${doc}_${label}`,
+    filename: `${selectedDocumentName.value}_${selectedLabel.value}`,
     fieldSeparator: ",",
     quoteStrings: '"',
     decimalSeparator: ".",
@@ -233,6 +322,66 @@ const downloadCSV = async (doc: string, label: string) => {
   });
 
   csvExporter.generateCsv(rows);
+};
+
+const hasPreviousNonAnnotation = (index: number): Boolean => {
+  return (
+    index > 0 &&
+    annotations[index - 1].label == "NOT ANNOTATED" &&
+    annotations[index].label == "NOT ANNOTATED"
+  );
+};
+
+const hasNextNonAnnotation = (index: number): Boolean => {
+  return (
+    index < annotations.length - 1 &&
+    annotations[index + 1].label == "NOT ANNOTATED" &&
+    annotations[index].label == "NOT ANNOTATED"
+  );
+};
+
+const emitSeparate = (ann_index: number, split_pos: number) => {
+  const curr_end = annotations[ann_index].end;
+  const curr_start = annotations[ann_index].start;
+  const curr_text = annotations[ann_index].text;
+
+  annotations[ann_index].end = curr_start + split_pos;
+  annotations[ann_index].text = curr_text.substring(0, split_pos);
+
+  annotations.splice(ann_index + 1, 0, {
+    start: curr_start + split_pos,
+    end: curr_end,
+    label: "NOT ANNOTATED",
+    text: curr_text.substring(split_pos, curr_end),
+    annotator: "",
+    hidden: false,
+  });
+};
+
+const emitMergeUp = (ann_index: number): void => {
+  const curr_end = annotations[ann_index].end;
+  const curr_text = annotations[ann_index].text;
+
+  annotations[ann_index - 1].end = curr_end;
+  annotations[ann_index - 1].text += curr_text;
+
+  annotations[ann_index].hidden = false;
+  annotations.splice(ann_index, 1);
+};
+
+const emitMergeDown = (ann_index: number): void => {
+  const curr_start = annotations[ann_index].start;
+  const curr_text = annotations[ann_index].text;
+
+  annotations[ann_index + 1].start = curr_start;
+  annotations[ann_index + 1].text = curr_text + annotations[ann_index + 1].text;
+
+  annotations[ann_index].hidden = false;
+  annotations.splice(ann_index, 1);
+};
+
+const emitSetHidden = (ann_index: number, hidden: Boolean): void => {
+  annotations[ann_index].hidden = hidden;
 };
 
 onMounted(async () => {
@@ -267,5 +416,15 @@ button:disabled {
   cursor: not-allowed;
   background-color: rgb(229, 229, 229) !important;
   pointer-events: none;
+}
+
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s ease;
+}
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
 </style>

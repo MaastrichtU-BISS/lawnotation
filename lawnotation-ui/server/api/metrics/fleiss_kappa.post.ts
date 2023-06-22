@@ -1,16 +1,10 @@
-import {
-  RangeLabel,
-  KappaResult,
-  sortByRange,
-  containsRangeLabel,
-} from "~/utils/metrics";
+import { RangeLabel, KappaResult, containsRangeLabel } from "~/utils/metrics";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
   const table = createContingencyTable(
     data.annotations,
     data.annotators,
-    data.text,
     data.tolerance
   );
   return computeFleissKappa(table);
@@ -19,12 +13,10 @@ export default eventHandler(async (event) => {
 function createContingencyTable(
   annotations: any[],
   annotators: string[],
-  text: string,
   tolerance: number
 ): RangeLabel[] {
   var ranges: RangeLabel[] = [];
 
-  // Add annotated ranges (True positives, False Positives and False Negatives)
   annotations.forEach((x) => {
     const ann: RangeLabel = {
       start: x.start,
@@ -43,42 +35,6 @@ function createContingencyTable(
       ranges[index].annotators[x.annotator] = 1;
     }
   });
-
-  // sort annotated ranges by range
-  sortByRange(ranges);
-
-  // Add non annotated ranges (TRUE NEGATIVES) (text in between every pair of neighbour annotations)
-  const trueRangesLength = ranges.length;
-  var last_end = 0;
-  for (let i = 0; i < trueRangesLength; ++i) {
-    var current_start = ranges[i].start;
-    if (last_end <= current_start) {
-      ranges.push({
-        start: last_end,
-        end: current_start,
-        label: "NON ANNOTATED",
-        text: text.substring(last_end, current_start),
-        annotators: {},
-      });
-      annotators.forEach((a) => {
-        ranges[ranges.length - 1].annotators[a] = 0;
-      });
-    }
-    var last_end = ranges[i].end;
-  }
-
-  ranges.push({
-    start: last_end,
-    end: text.length,
-    label: "NON ANNOTATED",
-    text: text.substring(last_end, text.length),
-    annotators: {},
-  });
-  annotators.forEach((a) => {
-    ranges[ranges.length - 1].annotators[a] = 0;
-  });
-
-  sortByRange(ranges);
 
   return ranges;
 }

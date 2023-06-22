@@ -9,6 +9,15 @@ export type Annotation = {
   label: string;
 };
 
+export type BasicAnnotation = {
+  start: number;
+  end: number;
+  text: string;
+  label: string;
+  annotator: string;
+  hidden: Boolean;
+};
+
 export type LSSerializedAnnotation = {
   id: string;
   from_name: string;
