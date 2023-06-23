@@ -16,7 +16,7 @@
         <i v-if="!editable">{{ annotation.label + " | " }}</i>
         <i>{{ annotation.annotator }}</i></span
       >
-      <span v-if="editable">
+      <span class="flex" v-if="editable">
         <button
           v-if="hasPreviousNonAnnotation"
           @click="emit('mergeUp', index)"
