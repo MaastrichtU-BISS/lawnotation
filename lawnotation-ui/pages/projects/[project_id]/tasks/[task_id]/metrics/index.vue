@@ -250,7 +250,7 @@ const getNonAnnotations = async () => {
   var last_end = 0;
   for (let i = 0; i < annotations.length; ++i) {
     var current_start = annotations[i].start;
-    if (last_end <= current_start) {
+    if (last_end < current_start) {
       new_annotations.push({
         start: last_end,
         end: current_start,
@@ -259,10 +259,9 @@ const getNonAnnotations = async () => {
         annotator: "",
         hidden: false,
       });
-    } else {
-      new_annotations.push(annotations[i]);
     }
-    var last_end = annotations[i].end;
+    new_annotations.push(annotations[i]);
+    var last_end = Math.max(last_end, annotations[i].end);
   }
 
   new_annotations.push({
@@ -278,6 +277,7 @@ const getNonAnnotations = async () => {
   });
 
   annotations.splice(0) && annotations.push(...new_annotations);
+  console.log("ann", annotations);
 };
 
 const compute_kappa = async (variant: string) => {
