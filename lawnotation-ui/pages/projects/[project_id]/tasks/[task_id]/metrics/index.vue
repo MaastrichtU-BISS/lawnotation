@@ -37,7 +37,13 @@
         <div class="flex my-10">
           <div class="mx-auto">
             <button class="btn btn-primary mx-5" @click="getAnnotations">
-              Get Annotations
+              Get Annotations</button
+            ><button
+              v-if="annotations && annotations.length"
+              class="btn btn-primary mx-5"
+              @click="separateIntoWords"
+            >
+              Words
             </button>
           </div>
         </div>
@@ -97,7 +103,7 @@
       </div>
     </div>
     <div v-if="annotations && annotations.length">
-      <h5 class="text-lg font-semibold my-5">Annotations</h5>
+      <h5 class="text-lg font-semibold my-5">Annotations: {{ annotations.length }}</h5>
       <ul>
         <li v-for="(ann, index) in annotations">
           <RangeLabelCmpt
@@ -253,7 +259,6 @@ const getNonAnnotations = async () => {
   });
 
   annotations.splice(0) && annotations.push(...new_annotations);
-  console.log("ann", annotations);
 };
 
 const compute_kappa = async (variant: string) => {
@@ -358,23 +363,63 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
   });
 };
 
+const separateIntoWords = () => {
+  kappa_result.value = undefined;
+  let limit = 10 ** 6;
+  loading.value = true;
+  var new_annotations: BasicAnnotation[] = [];
+
+  annotations.forEach((ann) => {
+    const words = ann.text.matchAll(/\S+/g);
+    while (limit > 0) {
+      const w = words.next();
+      if (w.done) break;
+      new_annotations.push({
+        start: ann.start + w.value.index!,
+        end: ann.start + w.value.index! + w.value[0].length,
+        text: w.value[0],
+        label: ann.label,
+        annotator: ann.annotator,
+        hidden: false,
+      });
+      limit--;
+    }
+  });
+  annotations.splice(0) && annotations.push(...new_annotations);
+  loading.value = false;
+};
+
 const emitMergeUp = (ann_index: number): void => {
+  if (!selectedDocumentText.value) {
+    $toast.error(`Invalid Document`);
+    return;
+  }
   const curr_end = annotations[ann_index].end;
-  const curr_text = annotations[ann_index].text;
+  const previous_start = annotations[ann_index - 1].start;
 
   annotations[ann_index - 1].end = curr_end;
-  annotations[ann_index - 1].text += curr_text;
+  annotations[ann_index - 1].text = selectedDocumentText.value.substring(
+    previous_start,
+    curr_end
+  )!;
 
   annotations[ann_index].hidden = false;
   annotations.splice(ann_index, 1);
 };
 
 const emitMergeDown = (ann_index: number): void => {
+  if (!selectedDocumentText.value) {
+    $toast.error(`Invalid Document`);
+    return;
+  }
   const curr_start = annotations[ann_index].start;
-  const curr_text = annotations[ann_index].text;
+  const next_end = annotations[ann_index + 1].end;
 
   annotations[ann_index + 1].start = curr_start;
-  annotations[ann_index + 1].text = curr_text + annotations[ann_index + 1].text;
+  annotations[ann_index + 1].text = selectedDocumentText.value.substring(
+    curr_start,
+    next_end
+  );
 
   annotations[ann_index].hidden = false;
   annotations.splice(ann_index, 1);
