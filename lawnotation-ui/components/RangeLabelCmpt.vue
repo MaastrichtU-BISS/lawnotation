@@ -1,40 +1,41 @@
 <template>
-  <div class="py-3 annotation-record">
-    <div class="text-xs mb-2" :style="editable ? 'color: red' : 'color: green'">
-      <b>{{ editable ? "Not Annotated" : "Annotated" }}</b>
+  <div
+    class="py-3 annotation-record"
+    :class="canMergeUp ? 'border-top-thin' : 'border-top-thick'"
+  >
+    <div class="text-xs mb-2" :style="annotated ? 'color: green' : 'color: red'">
+      <b class="ml-1">{{ annotated ? "Annotated" : "Not Annotated" }}</b>
+      <span class="ml-3 text-xs text-gray-500">
+        <i v-if="annotated">{{ annotation.label + " | " }}</i>
+        <i v-if="annotated">{{ annotation.annotator }}</i></span
+      >
     </div>
     <div class="flex" style="align-items: center">
       <div
-        :contenteditable="editable ? 'true' : 'false'"
+        contenteditable
         @keydown="onkeydown($event)"
         :class="_hidden ? 'text-gray-500' : ''"
-        style="white-space: pre-wrap"
+        class="contenteditable-text px-1 py-1"
       >
         {{ annotation.text }}
       </div>
-      <span class="ml-3 text-xs text-gray-500">
-        <i v-if="!editable">{{ annotation.label + " | " }}</i>
-        <i>{{ annotation.annotator }}</i></span
+      <button
+        v-if="canMergeUp"
+        @click="emit('mergeUp', index)"
+        class="ml-2 btn btn-secondary"
       >
-      <span class="flex" v-if="editable">
-        <button
-          v-if="hasPreviousNonAnnotation"
-          @click="emit('mergeUp', index)"
-          class="ml-2 btn btn-secondary"
-        >
-          &#8593;
-        </button>
-        <button
-          v-if="hasNextNonAnnotation"
-          @click="emit('mergeDown', index)"
-          class="ml-2 btn btn-secondary"
-        >
-          &#8595;
-        </button>
-        <button class="ml-2 btn btn-secondary" @click="toggle_hide">
-          {{ _hidden ? "Show" : "Hide" }}
-        </button>
-      </span>
+        &#8593;
+      </button>
+      <button
+        v-if="canMergeDown"
+        @click="emit('mergeDown', index)"
+        class="ml-2 btn btn-secondary"
+      >
+        &#8595;
+      </button>
+      <button class="ml-2 btn btn-secondary" @click="toggle_hide">
+        {{ _hidden ? "Show" : "Hide" }}
+      </button>
     </div>
   </div>
 </template>
@@ -43,6 +44,7 @@ import { BasicAnnotation } from "~/data/annotation";
 
 const emit = defineEmits(["separate", "mergeUp", "mergeDown", "setHidden"]);
 const _hidden = ref<Boolean>();
+const annotated = ref<Boolean>();
 
 const onkeydown = (e: KeyboardEvent) => {
   if (e.key == "Enter") {
@@ -66,10 +68,9 @@ const toggle_hide = () => {
 
 const props = defineProps<{
   annotation: BasicAnnotation;
-  editable: Boolean;
   index: number;
-  hasNextNonAnnotation: Boolean;
-  hasPreviousNonAnnotation: Boolean;
+  canMergeUp: Boolean;
+  canMergeDown: Boolean;
 }>();
 
 watch(props.annotation, (new_val) => {
@@ -78,10 +79,23 @@ watch(props.annotation, (new_val) => {
 
 onMounted(async () => {
   _hidden.value = props.annotation.hidden;
+  annotated.value = props.annotation.label != "NOT ANNOTATED";
 });
 </script>
 <style>
-.annotation-record {
+.border-top-thick {
+  border-top: solid 1px gray;
+}
+
+.border-top-thin {
   border-top: dotted 1px lightgray;
+}
+
+.contenteditable-text {
+  white-space: pre-wrap;
+}
+
+.contenteditable-text:focus {
+  outline: dotted 1px blue;
 }
 </style>

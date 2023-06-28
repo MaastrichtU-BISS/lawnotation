@@ -108,10 +108,9 @@
         <li v-for="(ann, index) in annotations">
           <RangeLabelCmpt
             :annotation="ann"
-            :editable="ann.label == 'NOT ANNOTATED'"
             :index="index"
-            :has-previous-non-annotation="hasPreviousNonAnnotation(index)"
-            :has-next-non-annotation="hasNextNonAnnotation(index)"
+            :can-merge-up="canMergeUp(index)"
+            :can-merge-down="canMergeDown(index)"
             @separate="emitSeparate"
             @mergeUp="emitMergeUp"
             @mergeDown="emitMergeDown"
@@ -211,12 +210,12 @@ const getAnnotations = async () => {
           label: a.label,
           annotator: (a as any).assignment.annotator.email,
           hidden: false,
+          ann_id: a.id,
         };
       })
     );
 
   getNonAnnotations();
-
   loading.value = false;
 };
 
@@ -240,6 +239,7 @@ const getNonAnnotations = async () => {
         text: selectedDocumentText.value.substring(last_end, current_start),
         annotator: "",
         hidden: false,
+        ann_id: -1,
       });
     }
     new_annotations.push(annotations[i]);
@@ -256,6 +256,7 @@ const getNonAnnotations = async () => {
     ),
     annotator: "",
     hidden: false,
+    ann_id: -1,
   });
 
   annotations.splice(0) && annotations.push(...new_annotations);
@@ -329,37 +330,31 @@ const downloadCSV = async () => {
   csvExporter.generateCsv(rows);
 };
 
-const hasPreviousNonAnnotation = (index: number): Boolean => {
-  return (
-    index > 0 &&
-    annotations[index - 1].label == "NOT ANNOTATED" &&
-    annotations[index].label == "NOT ANNOTATED"
-  );
+const canMergeUp = (index: number): Boolean => {
+  return index > 0 && annotations[index - 1].ann_id == annotations[index].ann_id;
 };
 
-const hasNextNonAnnotation = (index: number): Boolean => {
+const canMergeDown = (index: number): Boolean => {
   return (
     index < annotations.length - 1 &&
-    annotations[index + 1].label == "NOT ANNOTATED" &&
-    annotations[index].label == "NOT ANNOTATED"
+    annotations[index + 1].ann_id == annotations[index].ann_id
   );
 };
 
 const emitSeparate = (ann_index: number, split_pos: number) => {
-  const curr_end = annotations[ann_index].end;
-  const curr_start = annotations[ann_index].start;
-  const curr_text = annotations[ann_index].text;
+  const current = clone(annotations[ann_index]);
 
-  annotations[ann_index].end = curr_start + split_pos;
-  annotations[ann_index].text = curr_text.substring(0, split_pos);
+  annotations[ann_index].end = current.start + split_pos;
+  annotations[ann_index].text = current.text.substring(0, split_pos);
 
   annotations.splice(ann_index + 1, 0, {
-    start: curr_start + split_pos,
-    end: curr_end,
-    label: "NOT ANNOTATED",
-    text: curr_text.substring(split_pos, curr_end),
-    annotator: "",
+    start: current.start + split_pos,
+    end: current.end,
+    label: current.label,
+    text: current.text.substring(split_pos, current.end),
+    annotator: current.annotator,
     hidden: false,
+    ann_id: current.ann_id,
   });
 };
 
@@ -381,6 +376,7 @@ const separateIntoWords = () => {
         label: ann.label,
         annotator: ann.annotator,
         hidden: false,
+        ann_id: ann.ann_id,
       });
       limit--;
     }
@@ -394,13 +390,13 @@ const emitMergeUp = (ann_index: number): void => {
     $toast.error(`Invalid Document`);
     return;
   }
-  const curr_end = annotations[ann_index].end;
-  const previous_start = annotations[ann_index - 1].start;
+  const current = clone(annotations[ann_index]);
+  const previous = clone(annotations[ann_index - 1]);
 
-  annotations[ann_index - 1].end = curr_end;
+  annotations[ann_index - 1].end = current.end;
   annotations[ann_index - 1].text = selectedDocumentText.value.substring(
-    previous_start,
-    curr_end
+    previous.start,
+    current.end
   )!;
 
   annotations[ann_index].hidden = false;
@@ -412,13 +408,13 @@ const emitMergeDown = (ann_index: number): void => {
     $toast.error(`Invalid Document`);
     return;
   }
-  const curr_start = annotations[ann_index].start;
-  const next_end = annotations[ann_index + 1].end;
+  const current = clone(annotations[ann_index]);
+  const next = clone(annotations[ann_index + 1]);
 
-  annotations[ann_index + 1].start = curr_start;
+  annotations[ann_index + 1].start = current.start;
   annotations[ann_index + 1].text = selectedDocumentText.value.substring(
-    curr_start,
-    next_end
+    current.start,
+    next.end
   );
 
   annotations[ann_index].hidden = false;

@@ -16,6 +16,7 @@ export type BasicAnnotation = {
   label: string;
   annotator: string;
   hidden: Boolean;
+  ann_id: number;
 };
 
 export type LSSerializedAnnotation = {
@@ -123,7 +124,7 @@ export const useAnnotationApi = () => {
     const { data, error } = await supabase
       .from("annotations")
       .select(
-        "start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, annotator:users!inner(email))"
+        "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, annotator:users!inner(email))"
       )
       .eq("assignments.task_id", task_id)
       .eq("assignments.document_id", document_id)
