@@ -91,7 +91,7 @@ export const useDocumentApi = () => {
     const { data, error } = await supabase.from("documents").select("name").eq("id", id).single();
 
     if (error)
-        throw Error(`Error in inviteUser: ${error.message}`)
+        throw Error(`Error in getName: ${error.message}`)
       else
         return data.name;
   }

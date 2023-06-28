@@ -1,4 +1,3 @@
-
 export type TableData<T> = {
   total: number;
   rows: T[];
