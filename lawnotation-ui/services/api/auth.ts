@@ -1,8 +1,5 @@
-export default {
-  inviteUser: async (
-    email: string,
-    redirectTo: string
-  ): Promise<any> => {
+const api = {
+  inviteUser: async (email: string, redirectTo: string): Promise<any> => {
     const user = await $fetch("/api/user/invite", {
       method: "POST",
       body: JSON.stringify({ email: email, redirectTo: redirectTo }),
@@ -11,3 +8,5 @@ export default {
     return user;
   }
 }
+
+export default api;

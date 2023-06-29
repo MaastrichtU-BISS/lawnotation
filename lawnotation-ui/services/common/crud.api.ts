@@ -1,24 +1,11 @@
 import type { NitroFetchRequest } from 'nitropack';
-import type { FetchError } from 'ofetch';
 
 // The reason for doing <A>() => <B>(v: B) => ({...}), is that it is apparently
 const crud = <ResT extends (object & {id: string | number})>() => <ReqT extends NitroFetchRequest>(base_url: ReqT) => ({
   
   // Create
   create: async (new_data: Omit<ResT, "id">): Promise<ResT> => {
-    const { data, error } = await useFetch<ResT, FetchError<any>, ReqT>(base_url, { method: 'POST', body: { new_data } })
-
-    if (data.value && !error.value)
-      return data.value;
-    else if (error.value)
-      throw Error(`Error in ${getFunctionCaller()}: ${error.value.message}`)
-    else
-      throw Error(`Error in ${getFunctionCaller()}: no data received`);
-  },
-
-  // Read
-  findById: async (id: ResT['id']): Promise<ResT>   => {
-    const { data, error } = await useFetch<ResT>(`${base_url}/${id}`, { method: 'GET' })
+    const { data, error } = await useFetch<ResT>(base_url, { method: 'POST', body: { new_data } })
 
     if (data.value && !error.value)
       return data.value;
@@ -31,6 +18,18 @@ const crud = <ResT extends (object & {id: string | number})>() => <ReqT extends 
   // Read many
   find: async ({filter, offset, limit}: {filter: Partial<ResT>, offset: number, limit: number}): Promise<ResT[]> => {
     const { data, error } = await useFetch<ResT[]>(base_url, { method: 'GET' })
+
+    if (data.value && !error.value)
+      return data.value;
+    else if (error.value)
+      throw Error(`Error in ${getFunctionCaller()}: ${error.value.message}`)
+    else
+      throw Error(`Error in ${getFunctionCaller()}: no data received`);
+  },
+
+  // Read
+  findById: async (id: ResT['id']): Promise<ResT>   => {
+    const { data, error } = await useFetch<ResT>(`${base_url}/${id}`, { method: 'GET' })
 
     if (data.value && !error.value)
       return data.value;
