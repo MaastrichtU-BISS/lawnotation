@@ -1,5 +1,5 @@
 import { H3Event} from 'h3';
-import { User } from '~/data/user';
+import { User } from '~/types/user';
 
 export function userIsAuthenticated(event: H3Event): asserts event is H3Event & { context: { auth: { authenticated: true } } } {
   if (!event.context.auth.authenticated)

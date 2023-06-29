@@ -1,10 +1,5 @@
 import { AuthError } from "@supabase/supabase-js";
-
-export type User = {
-  id: string;
-  email: string;
-  role: string;
-};
+import { User } from "@/types/user";
 
 export const useUserApi = () => {
   const supabase = useSupabaseClient();

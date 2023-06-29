@@ -1,7 +1,8 @@
 import type { NitroFetchRequest } from 'nitropack';
 import type { FetchError } from 'ofetch';
 
-const crudApi = <ResT extends (object & {id: string | number}), ReqT extends NitroFetchRequest>(base_url: ReqT) => ({
+// The reason for doing <A>() => <B>(v: B) => ({...}), is that it is apparently
+const crud = <ResT extends (object & {id: string | number})>() => <ReqT extends NitroFetchRequest>(base_url: ReqT) => ({
   
   // Create
   create: async (new_data: Omit<ResT, "id">): Promise<ResT> => {
@@ -17,7 +18,7 @@ const crudApi = <ResT extends (object & {id: string | number}), ReqT extends Nit
 
   // Read
   findById: async (id: ResT['id']): Promise<ResT>   => {
-    const { data, error } = await useFetch<ResT>(`/api/relation/${id}`, { method: 'GET' })
+    const { data, error } = await useFetch<ResT>(`${base_url}/${id}`, { method: 'GET' })
 
     if (data.value && !error.value)
       return data.value;
@@ -28,8 +29,8 @@ const crudApi = <ResT extends (object & {id: string | number}), ReqT extends Nit
   },
   
   // Read many
-  find: async (filter: Partial<ResT>, offset: number, limit: number): Promise<ResT[]> => {
-    const { data, error } = await useFetch<ResT[]>('/api/relation', { method: 'GET' })
+  find: async ({filter, offset, limit}: {filter: Partial<ResT>, offset: number, limit: number}): Promise<ResT[]> => {
+    const { data, error } = await useFetch<ResT[]>(base_url, { method: 'GET' })
 
     if (data.value && !error.value)
       return data.value;
@@ -41,7 +42,7 @@ const crudApi = <ResT extends (object & {id: string | number}), ReqT extends Nit
   
   // Update
   update: async (id: ResT['id'], updates: Partial<ResT>): Promise<void> => {
-    const { error } = await useFetch<ResT>(`/api/relation/${id}`, { method: 'PATCH', body: updates });
+    const { error } = await useFetch<ResT>(`${base_url}/${id}`, { method: 'PATCH', body: updates });
 
     if (error.value)
       throw Error(`Error in ${getFunctionCaller()}: ${error.value.message}`)
@@ -49,7 +50,7 @@ const crudApi = <ResT extends (object & {id: string | number}), ReqT extends Nit
   
   // Delete
   delete: async (id: ResT['id']): Promise<void> => {
-    const { error } = await useFetch(`/api/relation/${id}`, { method: 'DELETE', body: {} });
+    const { error } = await useFetch(`${base_url}/${id}`, { method: 'DELETE' });
 
     if (error.value)
       throw Error(`Error in ${getFunctionCaller()}: ${error.value.message}`)
@@ -57,4 +58,4 @@ const crudApi = <ResT extends (object & {id: string | number}), ReqT extends Nit
 
 })
 
-export default crudApi
+export default crud

@@ -1,10 +1,4 @@
-
-export type Project = {
-  id: number,
-  name: string,
-  desc: string,
-  editor_id: string | undefined
-}
+import { Project } from "@/types/project";
 
 export const useProjectApi = () => {
   const supabase = useSupabaseClient();

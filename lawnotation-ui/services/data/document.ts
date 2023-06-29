@@ -1,10 +1,4 @@
-export type Document = {
-  id: number,
-  name: string,
-  project_id: string,
-  source: string,
-  full_text: string | undefined,
-}
+import { Document } from "@/types/document"
 
 export const useDocumentApi = () => {
   const supabase = useSupabaseClient();
