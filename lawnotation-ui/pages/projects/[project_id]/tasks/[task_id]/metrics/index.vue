@@ -132,7 +132,7 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
 import { User, useUserApi } from "~/data/user";
 import { KappaResult, RangeLabel, sortByRange } from "~/utils/metrics";
-import { clone } from "lodash";
+import _ from "lodash";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -342,7 +342,7 @@ const canMergeDown = (index: number): Boolean => {
 };
 
 const emitSeparate = (ann_index: number, split_pos: number) => {
-  const current = clone(annotations[ann_index]);
+  const current = _.clone(annotations[ann_index]);
 
   annotations[ann_index].end = current.start + split_pos;
   annotations[ann_index].text = current.text.substring(0, split_pos);
@@ -390,8 +390,8 @@ const emitMergeUp = (ann_index: number): void => {
     $toast.error(`Invalid Document`);
     return;
   }
-  const current = clone(annotations[ann_index]);
-  const previous = clone(annotations[ann_index - 1]);
+  const current = _.clone(annotations[ann_index]);
+  const previous = _.clone(annotations[ann_index - 1]);
 
   annotations[ann_index - 1].end = current.end;
   annotations[ann_index - 1].text = selectedDocumentText.value.substring(
@@ -408,8 +408,8 @@ const emitMergeDown = (ann_index: number): void => {
     $toast.error(`Invalid Document`);
     return;
   }
-  const current = clone(annotations[ann_index]);
-  const next = clone(annotations[ann_index + 1]);
+  const current = _.clone(annotations[ann_index]);
+  const next = _.clone(annotations[ann_index + 1]);
 
   annotations[ann_index + 1].start = current.start;
   annotations[ann_index + 1].text = selectedDocumentText.value.substring(
