@@ -288,4 +288,8 @@ onMounted(() => {
   display: inline-table;
   margin: 0px 8px 8px 0px !important;
 }
+
+.lsf-tooltip {
+  display: none !important;
+}
 </style>
