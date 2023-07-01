@@ -131,13 +131,11 @@ const loadNext = async () => {
   if (!assignment.value)
     throw Error("Assignment not found");
 
-  seq_pos.value += 1;
-
-  if (assignmentCounts.value && assignmentCounts.value.total == seq_pos.value) {
+  if (assignmentCounts.value && seq_pos.value + 1 > assignmentCounts.value.total) {
     // TODO: go to page /done
-    alert("All tasks were done: you will be signed out");
-    // supabase.auth.signOut();
+    $toast.success(`All assignments were completed!`);
   } else {
+    seq_pos.value++;
     await loadData();
   }
 };
@@ -148,21 +146,14 @@ const loadData = async () => {
 
     loading.value = true;
     key.value = `ls-${seq_pos.value}`;
-    
-    if (seq_pos.value) {
-      assignment.value = await assignmentApi.findAssignmentsByUserTaskSeq(
-        user.value.id,
-        route.params.task_id.toString(),
-        seq_pos.value
-      );
-    } else {
-      assignment.value = await assignmentApi.findNextAssignmentsByUserAndTask(
-        user.value.id,
-        route.params.task_id.toString()
-      );
-      
-      seq_pos.value = assignment.value.seq_pos;
-    }
+
+    assignment.value = await assignmentApi.findAssignmentsByUserTaskSeq(
+      user.value.id,
+      route.params.task_id.toString(),
+      seq_pos.value
+    );
+
+    console.log(assignment.value.id)
 
     if (!assignment.value) throw Error("Assignment not found");
 
@@ -186,8 +177,6 @@ const loadData = async () => {
     }
 
     const _relations = await relationApi.findRelations(_annotations);
-    // relations.splice(0) &&
-    //   relations.push(..._relations);
 
     ls_relations.splice(0)
     if (_relations.length) {
@@ -217,6 +206,7 @@ const loadCounters = async () => {
     );
 
     assignmentCounts.value = counts;
+    console.log(assignmentCounts.value)
 
   } catch (error) {
     if (error instanceof Error)
@@ -226,7 +216,7 @@ const loadCounters = async () => {
 
 const init = async () => {
   await loadCounters();
-  if (route.query.seq && !Array.isArray(route.query.seq) && parseInt(route.query.seq) > 0 && parseInt(route.query.seq) < assignmentCounts.value!.total) {
+  if (route.query.seq && !Array.isArray(route.query.seq) && parseInt(route.query.seq) > 0 && parseInt(route.query.seq) <= assignmentCounts.value!.total) {
     seq_pos.value = parseInt(route.query.seq);
   }
   loadData();
