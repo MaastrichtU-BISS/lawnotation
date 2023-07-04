@@ -20,12 +20,16 @@ async function sh(cmd: string) {
 
 export default eventHandler(async (event) => {
 
-    const { cmd } = await readBody(event);
+    const body = await readBody(event);
 
-    const resp = await sh(cmd)
-    
-    console.log(`[SERVER] $${ cmd }: ${resp}`)
+    if (body && body.cmd) {
+      const resp = await sh(body.cmd)
+      
+      console.log(`[SERVER] $${ body.cmd }: ${resp}`)
+  
+      return resp;
+    }
 
-    return resp;
+    return {error: "no command"}
 
 })
