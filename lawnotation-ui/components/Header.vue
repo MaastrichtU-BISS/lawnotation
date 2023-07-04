@@ -4,7 +4,7 @@
       <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
     </div>
     <div v-if="user" class="space-x-4">
-      <template v-if="role == 'editor'">
+      <template v-if="user.role == 'editor'">
         <NuxtLink to="/projects">Projects</NuxtLink>
         <NuxtLink to="/labelset">Labelsets</NuxtLink>
         <span class="text-gray-400 select-none">|</span>
@@ -24,25 +24,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useUserApi, User } from "../data/user";
+import { User } from "@/types/user";
+import userApi from "@/services/api/user"
 const supabase = useSupabaseClient();
-const user = useSupabaseUser();
-const userApi = useUserApi();
-
-const role = ref<string>();
-
-onMounted(async () => {
-  if (user.value) {
-    role.value = ((await userApi.findByEmail(user.value?.email, "role")) as User).role;
-  } else {
-    watch(user, async () => {
-      if (user.value) {
-        role.value = ((await userApi.findByEmail(
-          user.value?.email,
-          "role"
-        )) as User).role;
-      }
-    });
-  }
-});
+const user = ref<User | undefined>(await userApi.me());
 </script>
