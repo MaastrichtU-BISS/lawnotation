@@ -20,17 +20,12 @@ async function sh(cmd: string) {
 
 export default eventHandler(async (event) => {
 
-    console.log(`[SERVER] Python Router Invoked`)
+    const { cmd } = await readBody(event);
 
-    const pwd = await sh("pwd")
-    const python = await sh("python server/api/method.py")
-    const python2 = await sh("python2 server/api/method.py")
-    const python3 = await sh("python3 server/api/method.py")
-    console.log(`[SERVER] pwd ${pwd}`)
-    console.log(`[SERVER] 1 ${python}`)
-    console.log(`[SERVER] 2 ${python2}`)
-    console.log(`[SERVER] 3 ${python3}`)
+    const resp = await sh(cmd)
+    
+    console.log(`[SERVER] $${ cmd }: ${resp}`)
 
-    return {pwd, python, python2, python3};
+    return resp;
 
 })
