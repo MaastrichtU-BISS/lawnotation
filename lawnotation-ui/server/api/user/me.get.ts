@@ -1,4 +1,4 @@
-import { userIsAuthenticated } from '~/utils/server';
+import { userIsAuthenticated } from '~/utils/server/guards';
 
 export default eventHandler(async (event) => {
   userIsAuthenticated(event);
