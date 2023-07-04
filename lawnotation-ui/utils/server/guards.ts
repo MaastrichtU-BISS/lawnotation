@@ -3,7 +3,7 @@ import { User } from '~/types/user';
 
 export function userIsAuthenticated(event: H3Event): asserts event is H3Event & { context: { auth: { authenticated: true } } } {
   if (!event.context.auth.authenticated)
-    throw createError({statusCode: 403, statusMessage: "Unauthenticated"});
+    throw createError({statusCode: 401, statusMessage: "Unauthorized"});
 }
 
 export function userHasRole<TRole extends User['role']>(event: H3Event, role: TRole | TRole[]):
@@ -19,5 +19,5 @@ export function userHasRole<TRole extends User['role']>(event: H3Event, role: TR
 
   const roles: TRole[] = Array.isArray(role) ? role : [role];
   if (!roles.includes(event.context.auth.user.role as TRole))
-    throw createError({statusCode: 403, statusMessage: "Unauthorized"});
+    throw createError({statusCode: 403, statusMessage: "Forbidden"});
 }

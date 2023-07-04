@@ -1,6 +1,5 @@
 import { AnnotationRelation, LSSerializedRelation } from '@/types/relation';
-  
-    
+
 export const useAnnotationRelationApi = () => {
   const supabase = useSupabaseClient();
 

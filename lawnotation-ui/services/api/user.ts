@@ -1,4 +1,5 @@
 import { User } from "@/types/user";
+import request from "../common/request.api";
 
 export default {
 
@@ -6,13 +7,13 @@ export default {
     //
   },
 
-  findUsersByTask: async (task_id: string) => {
+  findByTask: async (task_id: string) => {
     //
   },
 
   me: async () => {
-    const me = await useFetch<User>('/api/auth/me');
-    return me.data.value;
+    const me = await request<User>('/api/user/me');
+    return me;
   }
   
 };
