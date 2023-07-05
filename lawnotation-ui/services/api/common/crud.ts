@@ -1,7 +1,8 @@
 import type { NitroFetchRequest } from 'nitropack';
 
-// The reason for doing <A>() => <B>(v: B) => ({...}), is that it is apparently
-const crud = <ResT extends (object & {id: string | number})>() => <ReqT extends NitroFetchRequest>(base_url: ReqT) => ({
+// The reason for doing <A>() => <B>(v: B) => ({...}), is that it is apparently a function
+// with multiple generics can't have some generics infered from arguments and some generics passed.
+export const crud_api = <ResT extends (object & {id: string | number})>() => <ReqT extends NitroFetchRequest>(base_url: ReqT) => ({
   
   // Create
   create: async (new_data: Omit<ResT, "id">): Promise<ResT> => {
@@ -57,4 +58,4 @@ const crud = <ResT extends (object & {id: string | number})>() => <ReqT extends 
 
 })
 
-export default crud
+export default crud_api
