@@ -21,4 +21,6 @@ export interface LSSerializedAnnotation {
     text: string;
     labels: string[];
   };
-}[];
+};
+
+export type LSSerializedAnnotations = LSSerializedAnnotation[];
