@@ -6,15 +6,54 @@ export type RangeLabel = {
   label: string;
   text: string;
   annotators: any;
+  zeros: number;
+  ones: number;
 };
 
-export type KappaResult = {
+export type MetricResult = {
+  name: string;
   po: number;
   pe: number;
   result: number;
   table: RangeLabel[];
   variant: string;
 };
+
+export function createContingencyTable(
+  annotations: any[],
+  annotators: string[],
+  tolerance: number = 0
+): RangeLabel[] {
+  var table: RangeLabel[] = [];
+
+  annotations.forEach((x) => {
+    const ann: RangeLabel = {
+      start: x.start,
+      end: x.end,
+      label: x.label,
+      text: x.text,
+      annotators: {},
+      zeros: 0,
+      ones: 0,
+    };
+    const index = containsRangeLabel(table, ann, tolerance);
+    if (index < 0) {
+      table.push(ann);
+      annotators.forEach((a) => {
+        const owns_annotation = x.annotator == a;
+        table[table.length - 1].annotators[a] = owns_annotation ? 1 : 0;
+        if (owns_annotation) table[table.length - 1].ones++;
+        else table[table.length - 1].zeros++;
+      });
+    } else {
+      table[index].ones++;
+      table[index].zeros--;
+      table[index].annotators[x.annotator] = 1;
+    }
+  });
+
+  return table;
+}
 
 export function sortByRange(ranges: RangeLabel[] | BasicAnnotation[]): void {
   ranges.sort((x, y) => {

@@ -1,4 +1,8 @@
-import { RangeLabel, KappaResult, containsRangeLabel } from "~/utils/metrics";
+import {
+  RangeLabel,
+  MetricResult,
+  createContingencyTable,
+} from "~/utils/metrics";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
@@ -10,37 +14,7 @@ export default eventHandler(async (event) => {
   return computeCohensKappa(table);
 });
 
-function createContingencyTable(
-  annotations: any[],
-  annotators: string[],
-  tolerance: number = 0
-): RangeLabel[] {
-  var ranges: RangeLabel[] = [];
-
-  annotations.forEach((x) => {
-    const ann: RangeLabel = {
-      start: x.start,
-      end: x.end,
-      label: x.label,
-      text: x.text,
-      annotators: {},
-    };
-    const index = containsRangeLabel(ranges, ann, tolerance);
-    if (index < 0) {
-      ranges.push(ann);
-      ranges[ranges.length - 1].annotators[annotators[0]] =
-        x.annotator == annotators[0] ? 1 : 0;
-      ranges[ranges.length - 1].annotators[annotators[1]] =
-        x.annotator == annotators[1] ? 1 : 0;
-    } else {
-      ranges[index].annotators[x.annotator] = 1;
-    }
-  });
-
-  return ranges;
-}
-
-function computeCohensKappa(table: RangeLabel[]): KappaResult {
+function computeCohensKappa(table: RangeLabel[]): MetricResult {
   const N: number = table.length;
 
   var agree_1_1: number = 0;
@@ -74,13 +48,13 @@ function computeCohensKappa(table: RangeLabel[]): KappaResult {
 
   const po = (agree_1_1 + agree_0_0) / N;
 
-  const kappa: number = (po - pe) / (1 - pe);
+  const result: number = (po - pe) / (1 - pe);
 
   return {
+    name: "cohens_kappa",
     po: po,
     pe: pe,
-    result: kappa,
+    result: result,
     table: table,
-    variant: "Cohens",
-  } as KappaResult;
+  } as MetricResult;
 }
