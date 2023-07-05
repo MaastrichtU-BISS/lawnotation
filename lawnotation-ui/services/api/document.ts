@@ -1,8 +1,8 @@
-import crud from '@/services/common/crud.api';
+import crud_api from './common/crud';
 import { Document } from "@/types/document"
 
-const api = {
-  ...crud<Document>()('/api/document'),
+export const documentApiService = {
+  ...crud_api<Document>()('/api/document'),
 }
 
-export default api;
+export default documentApiService;

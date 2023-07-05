@@ -1,7 +1,7 @@
+import request from "./common/request";
 import { User } from "@/types/user";
-import request from "../common/request.api";
 
-export default {
+export const userApiService = {
 
   findByEmail: async (email: string, columns = "id") => {
     //
@@ -17,3 +17,5 @@ export default {
   }
   
 };
+
+export default userApiService;

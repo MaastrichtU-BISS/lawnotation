@@ -1,8 +1,8 @@
-import crud from '@/services/common/crud.api';
+import crud_api from './common/crud';
 import { AnnotationRelation } from "@/types/relation"
 
-const api = {
-  ...crud<AnnotationRelation>()('/api/relation'),
+const relationApiService = {
+  ...crud_api<AnnotationRelation>()('/api/relation'),
 }
 
-export default api;
+export default relationApiService;

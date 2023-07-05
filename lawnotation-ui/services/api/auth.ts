@@ -1,7 +1,7 @@
 import { User } from "@/types/user";
 
-const api = {
-/*
+export const authApiService = {
+  
   inviteUser: async (email: string, redirectTo: string): Promise<any> => {
     const user = await $fetch("/api/user/invite", {
       method: "POST",
@@ -10,8 +10,7 @@ const api = {
 
     return user;
   },
-*/
 
 }
 
-export default api;
+export default authApiService;

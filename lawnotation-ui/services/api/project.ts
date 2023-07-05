@@ -1,8 +1,8 @@
-import crud from '@/services/common/crud.api';
+import crud_api from './common/crud';
 import { Project } from "@/types/project"
 
-const api = {
-  ...crud<Project>()('/api/project'),
+const projectApiService = {
+  ...crud_api<Project>()('/api/project'),
 }
 
-export default api;
+export default projectApiService;
