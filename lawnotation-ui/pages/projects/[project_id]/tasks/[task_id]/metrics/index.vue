@@ -70,6 +70,22 @@
           </div>
         </div>
         <div class="flex my-10" v-if="annotations && annotations.length">
+          <div class="mx-auto">
+            <button
+              :disabled="
+                !selectedDocument ||
+                !selectedLabel ||
+                selectedAnnotators?.length == 1 ||
+                selectedAnnotators?.length == 2
+              "
+              class="btn btn-primary mx-5"
+              @click="compute_metric('krippendorff')"
+            >
+              Krippendorff's alfa
+            </button>
+          </div>
+        </div>
+        <div class="flex my-10" v-if="annotations && annotations.length">
           <div class="mx-auto inline-flex">
             <button
               :disabled="
@@ -79,7 +95,7 @@
                 selectedAnnotators?.length == 2
               "
               class="btn btn-primary mx-5"
-              @click="compute_kappa('fleiss')"
+              @click="compute_metric('fleiss_kappa')"
             >
               Fleiss Kappa
             </button>
@@ -99,7 +115,7 @@
                 !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
               "
               class="btn btn-primary mx-5"
-              @click="compute_kappa('cohens')"
+              @click="compute_metric('cohens_kappa')"
             >
               Cohens Kappa
             </button>
@@ -107,16 +123,16 @@
         </div>
       </div>
     </div>
-    <div class="text-center" v-if="kappa_result">
+    <div class="text-center" v-if="metric_result">
       <div class="my=5">
         <h5 class="text-lg font-semibold">
           Result:
-          <span :style="'color:' + (kappa_result.result > 0 ? 'green' : 'red')">{{
-            kappa_result.result
+          <span :style="'color:' + (metric_result.result > 0 ? 'green' : 'red')">{{
+            metric_result.result
           }}</span>
         </h5>
-        <div><b>Po:</b> {{ kappa_result.po }}</div>
-        <div><b>Pe:</b> {{ kappa_result.pe }}</div>
+        <div><b>Po:</b> {{ metric_result.po }}</div>
+        <div><b>Pe:</b> {{ metric_result.pe }}</div>
       </div>
       <div class="my-5">
         <button class="btn btn-primary mx-5" @click="downloadCSV()">
@@ -154,7 +170,7 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
 import { Project, useProjectApi } from "~/data/project";
 import { User, useUserApi } from "~/data/user";
-import { KappaResult, RangeLabel, sortByRange } from "~/utils/metrics";
+import { MetricResult, RangeLabel, sortByRange } from "~/utils/metrics";
 import _ from "lodash";
 
 const config = useRuntimeConfig();
@@ -188,7 +204,7 @@ const tolerance = ref<number>(0);
 const loading = ref(false);
 
 const annotations = reactive<BasicAnnotation[]>([]);
-const kappa_result = ref<KappaResult>();
+const metric_result = ref<MetricResult>();
 
 const getAnnotations = async () => {
   if (!task.value) {
@@ -210,7 +226,7 @@ const getAnnotations = async () => {
   }
 
   loading.value = true;
-  kappa_result.value = undefined;
+  metric_result.value = undefined;
   annotations.splice(0);
 
   const d = await documentApi.findDocument(selectedDocument.value);
@@ -286,7 +302,7 @@ const getNonAnnotations = async () => {
   annotations.splice(0) && annotations.push(...new_annotations);
 };
 
-const compute_kappa = async (variant: string) => {
+const compute_metric = async (metric: string) => {
   loading.value = true;
 
   if (!selectedDocumentText.value || !selectedDocumentName.value)
@@ -296,11 +312,11 @@ const compute_kappa = async (variant: string) => {
     $toast.error(
       `There are no annotations for document ${selectedDocumentName.value} and label ${selectedLabel.value}`
     );
-    kappa_result.value = undefined;
+    metric_result.value = undefined;
     return;
   }
 
-  kappa_result.value = await $fetch(`/api/metrics/${variant}_kappa`, {
+  metric_result.value = await $fetch(`/api/metrics/${metric}`, {
     method: "POST",
     body: JSON.stringify({
       annotations: annotations.filter((x) => !x.hidden),
@@ -309,7 +325,7 @@ const compute_kappa = async (variant: string) => {
     }),
   });
 
-  console.log(kappa_result.value);
+  console.log(metric_result.value);
 
   loading.value = false;
 };
@@ -330,7 +346,7 @@ const downloadCSV = async () => {
     decimalSeparator: ".",
     showLabels: true,
     showTitle: true,
-    title: `${kappa_result.value?.variant}Kappa: ${kappa_result.value?.result} | Po: ${kappa_result.value?.po} | Pe: ${kappa_result.value?.pe} | Tolerance: ${tolerance.value}`,
+    title: `${metric_result.value?.name} result: ${metric_result.value?.result} | Po: ${metric_result.value?.po} | Pe: ${metric_result.value?.pe} | Tolerance: ${tolerance.value}`,
     useTextFile: false,
     useBom: true,
     useKeysAsHeaders: true,
@@ -339,7 +355,7 @@ const downloadCSV = async () => {
   const csvExporter = new ExportToCsv(options);
 
   var rows: any[] = [];
-  kappa_result.value?.table.forEach((r: any) => {
+  metric_result.value?.table.forEach((r: any) => {
     Object.entries(r.annotators).forEach(([k, v]) => {
       rows.push({
         annotator: k,
@@ -383,7 +399,7 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
 };
 
 const separateIntoWords = () => {
-  kappa_result.value = undefined;
+  metric_result.value = undefined;
   let limit = 10 ** 6;
   loading.value = true;
   var new_annotations: BasicAnnotation[] = [];
