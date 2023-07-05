@@ -1,4 +1,4 @@
-import crud_api from '@/services/common/api/crud.';
+import crud_api from './common/crud';
 import { Labelset } from "@/types/labelset"
 
 export const labelsetApiService = {
