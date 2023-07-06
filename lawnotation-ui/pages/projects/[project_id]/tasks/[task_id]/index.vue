@@ -47,6 +47,11 @@
                 >
               </td>
               <td class="px-6 py-2">
+                <span
+                  >{{ item.difficulty_rating }}</span
+                >
+              </td>
+              <td class="px-6 py-2">
                 <NuxtLink
                   class="font-medium text-blue-600 hover:underline"
                   :to="`/assignments/${item.id}`"
@@ -157,12 +162,16 @@ const assignmentTable = createTableData<AssignmentTableData>(
       field: 'status',
       sort: true,
     },
+    'Difficulty': {
+      field: 'difficulty_rating',
+      sort: true,
+    },
     'Action': {}
   },
   {
     type: 'table',
     from: 'assignments',
-    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, seq_pos',
+    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, difficulty_rating, seq_pos',
     filter: () => ({ task_id: task.value?.id })
   }
 );
