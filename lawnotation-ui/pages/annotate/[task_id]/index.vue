@@ -153,8 +153,6 @@ const loadData = async () => {
       seq_pos.value
     );
 
-    console.log(assignment.value.id)
-
     if (!assignment.value) throw Error("Assignment not found");
 
     doc.value = await documentApi.findDocument(assignment.value.document_id.toString());
@@ -206,7 +204,6 @@ const loadCounters = async () => {
     );
 
     assignmentCounts.value = counts;
-    console.log(assignmentCounts.value)
 
   } catch (error) {
     if (error instanceof Error)

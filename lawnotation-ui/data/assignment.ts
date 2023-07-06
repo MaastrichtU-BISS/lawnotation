@@ -5,6 +5,7 @@ export type Assignment = {
   document_id: number;
   status: string;
   seq_pos: number;
+  difficulty_rating: number;
 };
 
 export type AssignmentTableData = {
@@ -22,6 +23,7 @@ export type AssignmentTableData = {
   };
   status: string;
   seq_pos: number;
+  difficulty_rating: number;
 };
 
 export const useAssignmentApi = () => {
