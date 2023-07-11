@@ -37,29 +37,35 @@
         <div class="flex my-10">
           <div class="mx-auto">
             <button class="btn btn-primary mx-5" @click="getAnnotations">
-              Get Annotations</button
-            ><button
-              v-if="annotations && annotations.length"
-              class="btn btn-primary mx-5"
-              @click="separateIntoWords"
-            >
-              Words
+              Get Annotations
             </button>
-          </div>
-        </div>
-        <div class="flex my-10" v-if="annotations && annotations.length">
-          <div class="mx-auto">
-            <button
-              :disabled="
-                !selectedDocument ||
-                !selectedLabel ||
-                selectedAnnotators?.length == 1 ||
-                selectedAnnotators?.length == 2
-              "
-              class="btn btn-primary mx-5"
-              @click="compute_metric('krippendorff')"
+            <span>
+              <input
+                checked
+                id="radio-default"
+                type="radio"
+                @click="defaultClicked"
+                name="radio"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+              />
+              <label for="radio-default" class="ml-2 text-sm font-medium text-gray-900"
+                >Default</label
+              >
+            </span>
+            <span class="ml-4">
+              <input
+                id="radio-words"
+                type="radio"
+                @click="wordsClicked"
+                name="radio"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+              />
+              <label for="radio-words" class="ml-2 text-sm font-medium text-gray-900"
+                >Words</label
+              ></span
             >
-              Krippendorff's alfa
+            <button class="btn btn-primary mx-5" @click="downloadAll">
+              Download All
             </button>
           </div>
         </div>
@@ -73,9 +79,30 @@
                 selectedAnnotators?.length == 2
               "
               class="btn btn-primary mx-5"
+              @click="compute_metric('krippendorff')"
+            >
+              Krippendorff's alfa
+            </button>
+            <button
+              :disabled="
+                !selectedDocument ||
+                !selectedLabel ||
+                selectedAnnotators?.length == 1 ||
+                selectedAnnotators?.length == 2
+              "
+              class="btn btn-primary mx-5"
               @click="compute_metric('fleiss_kappa')"
             >
               Fleiss Kappa
+            </button>
+            <button
+              :disabled="
+                !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
+              "
+              class="btn btn-primary mx-5"
+              @click="compute_metric('cohens_kappa')"
+            >
+              Cohens Kappa
             </button>
             <div class="">
               <label class="mr-2">Tolerance</label>
@@ -88,15 +115,6 @@
                 step="1"
               />
             </div>
-            <button
-              :disabled="
-                !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
-              "
-              class="btn btn-primary mx-5"
-              @click="compute_metric('cohens_kappa')"
-            >
-              Cohens Kappa
-            </button>
           </div>
         </div>
       </div>
@@ -178,6 +196,7 @@ const selectedLabel = ref<string>();
 const tolerance = ref<number>(0);
 
 const loading = ref(false);
+const separate_into_words = ref(false);
 
 const annotations = reactive<BasicAnnotation[]>([]);
 const metric_result = ref<MetricResult>();
@@ -232,6 +251,10 @@ const getAnnotations = async () => {
     );
 
   getNonAnnotations();
+
+  if (separate_into_words.value) {
+    separateIntoWords();
+  }
   loading.value = false;
 };
 
@@ -399,6 +422,20 @@ const separateIntoWords = () => {
   });
   annotations.splice(0) && annotations.push(...new_annotations);
   loading.value = false;
+};
+
+const defaultClicked = () => {
+  separate_into_words.value = false;
+  if (annotations && annotations.length) {
+    getAnnotations();
+  }
+};
+
+const wordsClicked = () => {
+  separate_into_words.value = true;
+  if (annotations && annotations.length) {
+    getAnnotations();
+  }
 };
 
 const emitMergeUp = (ann_index: number): void => {
