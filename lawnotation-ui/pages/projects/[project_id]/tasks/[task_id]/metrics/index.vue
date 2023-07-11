@@ -59,29 +59,35 @@
         <div class="flex my-10">
           <div class="mx-auto">
             <button class="btn btn-primary mx-5" @click="getAnnotations">
-              Get Annotations</button
-            ><button
-              v-if="annotations && annotations.length"
-              class="btn btn-primary mx-5"
-              @click="separateIntoWords"
-            >
-              Words
+              Get Annotations
             </button>
-          </div>
-        </div>
-        <div class="flex my-10" v-if="annotations && annotations.length">
-          <div class="mx-auto">
-            <button
-              :disabled="
-                !selectedDocument ||
-                !selectedLabel ||
-                selectedAnnotators?.length == 1 ||
-                selectedAnnotators?.length == 2
-              "
-              class="btn btn-primary mx-5"
-              @click="compute_metric('krippendorff')"
+            <span>
+              <input
+                checked
+                id="radio-default"
+                type="radio"
+                @click="defaultClicked"
+                name="radio"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+              />
+              <label for="radio-default" class="ml-2 text-sm font-medium text-gray-900"
+                >Default</label
+              >
+            </span>
+            <span class="ml-4">
+              <input
+                id="radio-words"
+                type="radio"
+                @click="wordsClicked"
+                name="radio"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+              />
+              <label for="radio-words" class="ml-2 text-sm font-medium text-gray-900"
+                >Words</label
+              ></span
             >
-              Krippendorff's alfa
+            <button class="btn btn-primary mx-5" @click="downloadAll">
+              Download All
             </button>
           </div>
         </div>
@@ -95,9 +101,30 @@
                 selectedAnnotators?.length == 2
               "
               class="btn btn-primary mx-5"
+              @click="compute_metric('krippendorff')"
+            >
+              Krippendorff's alfa
+            </button>
+            <button
+              :disabled="
+                !selectedDocument ||
+                !selectedLabel ||
+                selectedAnnotators?.length == 1 ||
+                selectedAnnotators?.length == 2
+              "
+              class="btn btn-primary mx-5"
               @click="compute_metric('fleiss_kappa')"
             >
               Fleiss Kappa
+            </button>
+            <button
+              :disabled="
+                !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
+              "
+              class="btn btn-primary mx-5"
+              @click="compute_metric('cohens_kappa')"
+            >
+              Cohens Kappa
             </button>
             <div class="">
               <label class="mr-2">Tolerance</label>
@@ -110,15 +137,6 @@
                 step="1"
               />
             </div>
-            <button
-              :disabled="
-                !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
-              "
-              class="btn btn-primary mx-5"
-              @click="compute_metric('cohens_kappa')"
-            >
-              Cohens Kappa
-            </button>
           </div>
         </div>
       </div>
@@ -136,7 +154,7 @@
       </div>
       <div class="my-5">
         <button class="btn btn-primary mx-5" @click="downloadCSV()">
-          Download as CSV
+          Download Result
         </button>
       </div>
     </div>
@@ -202,6 +220,7 @@ const selectedLabel = ref<string>();
 const tolerance = ref<number>(0);
 
 const loading = ref(false);
+const separate_into_words = ref(false);
 
 const annotations = reactive<BasicAnnotation[]>([]);
 const metric_result = ref<MetricResult>();
@@ -256,6 +275,11 @@ const getAnnotations = async () => {
     );
 
   getNonAnnotations();
+
+  if (separate_into_words.value) {
+    separateIntoWords();
+  }
+
   loading.value = false;
 };
 
@@ -325,9 +349,23 @@ const compute_metric = async (metric: string) => {
     }),
   });
 
-  console.log(metric_result.value);
-
   loading.value = false;
+};
+
+const getDownloadOptions = async (d: string, l: string) => {
+  const options = await {
+    filename: `${d}_${l}_${metric_result.value?.name}`,
+    fieldSeparator: ",",
+    quoteStrings: '"',
+    decimalSeparator: ".",
+    showLabels: true,
+    showTitle: true,
+    title: `${metric_result.value?.name} result: ${metric_result.value?.result} | Po: ${metric_result.value?.po} | Pe: ${metric_result.value?.pe} | Tolerance: ${tolerance.value}`,
+    useTextFile: false,
+    useBom: true,
+    useKeysAsHeaders: true,
+  };
+  return options;
 };
 
 const downloadCSV = async () => {
@@ -339,18 +377,10 @@ const downloadCSV = async () => {
     $toast.error(`Invalid Label`);
     return;
   }
-  const options = {
-    filename: `${selectedDocumentName.value}_${selectedLabel.value}`,
-    fieldSeparator: ",",
-    quoteStrings: '"',
-    decimalSeparator: ".",
-    showLabels: true,
-    showTitle: true,
-    title: `${metric_result.value?.name} result: ${metric_result.value?.result} | Po: ${metric_result.value?.po} | Pe: ${metric_result.value?.pe} | Tolerance: ${tolerance.value}`,
-    useTextFile: false,
-    useBom: true,
-    useKeysAsHeaders: true,
-  };
+  const options = await getDownloadOptions(
+    selectedDocumentName.value,
+    selectedLabel.value
+  );
 
   const csvExporter = new ExportToCsv(options);
 
@@ -368,6 +398,23 @@ const downloadCSV = async () => {
   });
 
   csvExporter.generateCsv(rows);
+};
+
+const downloadAll = async () => {
+  let count: number = 0;
+  for (let i = 0; i < documentsOptions.length; i++) {
+    for (let j = 0; j < labelsOptions.length; j++) {
+      selectedDocument.value = documentsOptions[i].value;
+      selectedLabel.value = labelsOptions[j];
+      await getAnnotations();
+      if (annotations.length > 0) count++;
+      await compute_metric("fleiss_kappa");
+      await downloadCSV();
+      await compute_metric("krippendorff");
+      await downloadCSV();
+    }
+  }
+  $toast.success(`${count * 2} csv files have been downloaded!`);
 };
 
 const canMergeUp = (index: number): Boolean => {
@@ -423,6 +470,20 @@ const separateIntoWords = () => {
   });
   annotations.splice(0) && annotations.push(...new_annotations);
   loading.value = false;
+};
+
+const defaultClicked = () => {
+  separate_into_words.value = false;
+  if (annotations && annotations.length) {
+    getAnnotations();
+  }
+};
+
+const wordsClicked = () => {
+  separate_into_words.value = true;
+  if (annotations && annotations.length) {
+    getAnnotations();
+  }
 };
 
 const emitMergeUp = (ann_index: number): void => {
