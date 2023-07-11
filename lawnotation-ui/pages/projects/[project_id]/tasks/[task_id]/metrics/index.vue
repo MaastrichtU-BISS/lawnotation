@@ -132,7 +132,7 @@
       </div>
       <div class="my-5">
         <button class="btn btn-primary mx-5" @click="downloadCSV()">
-          Download as CSV
+          Download Result
         </button>
       </div>
     </div>
@@ -255,6 +255,7 @@ const getAnnotations = async () => {
   if (separate_into_words.value) {
     separateIntoWords();
   }
+
   loading.value = false;
 };
 
@@ -324,9 +325,23 @@ const compute_metric = async (metric: string) => {
     }),
   });
 
-  console.log(metric_result.value);
-
   loading.value = false;
+};
+
+const getDownloadOptions = async (d: string, l: string) => {
+  const options = await {
+    filename: `${d}_${l}_${metric_result.value?.name}`,
+    fieldSeparator: ",",
+    quoteStrings: '"',
+    decimalSeparator: ".",
+    showLabels: true,
+    showTitle: true,
+    title: `${metric_result.value?.name} result: ${metric_result.value?.result} | Po: ${metric_result.value?.po} | Pe: ${metric_result.value?.pe} | Tolerance: ${tolerance.value}`,
+    useTextFile: false,
+    useBom: true,
+    useKeysAsHeaders: true,
+  };
+  return options;
 };
 
 const downloadCSV = async () => {
@@ -338,18 +353,10 @@ const downloadCSV = async () => {
     $toast.error(`Invalid Label`);
     return;
   }
-  const options = {
-    filename: `${selectedDocumentName.value}_${selectedLabel.value}`,
-    fieldSeparator: ",",
-    quoteStrings: '"',
-    decimalSeparator: ".",
-    showLabels: true,
-    showTitle: true,
-    title: `${metric_result.value?.name} result: ${metric_result.value?.result} | Po: ${metric_result.value?.po} | Pe: ${metric_result.value?.pe} | Tolerance: ${tolerance.value}`,
-    useTextFile: false,
-    useBom: true,
-    useKeysAsHeaders: true,
-  };
+  const options = await getDownloadOptions(
+    selectedDocumentName.value,
+    selectedLabel.value
+  );
 
   const csvExporter = new ExportToCsv(options);
 
@@ -367,6 +374,23 @@ const downloadCSV = async () => {
   });
 
   csvExporter.generateCsv(rows);
+};
+
+const downloadAll = async () => {
+  let count: number = 0;
+  for (let i = 0; i < documentsOptions.length; i++) {
+    for (let j = 0; j < labelsOptions.length; j++) {
+      selectedDocument.value = documentsOptions[i].value;
+      selectedLabel.value = labelsOptions[j];
+      await getAnnotations();
+      if (annotations.length > 0) count++;
+      await compute_metric("fleiss_kappa");
+      await downloadCSV();
+      await compute_metric("krippendorff");
+      await downloadCSV();
+    }
+  }
+  $toast.success(`${count * 2} csv files have been downloaded!`);
 };
 
 const canMergeUp = (index: number): Boolean => {
