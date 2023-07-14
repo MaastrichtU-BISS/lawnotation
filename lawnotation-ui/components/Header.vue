@@ -57,7 +57,7 @@ onMounted(async () => {
 
 <style lang="scss">
 .header-link {
-  @apply text-gray-700 no-underline;
+  @apply text-gray-600 no-underline;
   transition: color 0.2s;
 
   &:hover {
