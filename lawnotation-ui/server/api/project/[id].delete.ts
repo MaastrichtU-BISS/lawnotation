@@ -1,3 +1,10 @@
+import { userHasRole, userIsAuthenticated } from "~/utils/server/guards"
+
 export default eventHandler(async (event) => {
-  return "Server handler for deletion of project entity";
+  userIsAuthenticated(event);
+  userHasRole(event, "editor")
+  
+  const query = getQuery(event)
+  console.log("ID: ", query.id);
+
 })
