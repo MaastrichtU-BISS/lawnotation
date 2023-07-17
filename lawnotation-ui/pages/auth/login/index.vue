@@ -55,7 +55,7 @@
       <h2 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">Sign in with email</h2>
     </div>
 
-    <div class="mt-10 mx-auto sm:w-full sm:max-w-sm bg-white px-6 py-6 shadow rounded">
+    <div class="mt-10 mx-auto sm:w-full sm:max-w-sm bg-white px-6 py-6 shadow rounded-md">
       <div class="space-y-6">
         <div>
           <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email address</label>

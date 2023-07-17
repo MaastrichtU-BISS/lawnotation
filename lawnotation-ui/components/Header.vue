@@ -13,12 +13,12 @@
     </div>
     <div class="auth">
       <template v-if="user">
-        <span v-if="user?.email">Hello {{ user.email?.split("@")[0] }}</span>
-        |
-        <button @click="supabase.auth.signOut">Sign Out</button>
+        <span class="text-slate-800" v-if="user?.email">{{ user.email?.split("@")[0] }}</span>
+        <span class="text-gray-400 select-none mx-3">|</span>
+        <button class="header-link" @click="supabase.auth.signOut">Sign Out</button>
       </template>
       <template v-else>
-        <NuxtLink to="/auth/login">Sign In</NuxtLink>
+        <NuxtLink class="header-link" to="/auth/login" :class="{'active': routeIsActive('/auth/login')}">Sign In</NuxtLink>
       </template>
     </div>
   </div>
@@ -57,7 +57,7 @@ onMounted(async () => {
 
 <style lang="scss">
 .header-link {
-  @apply text-gray-600 no-underline;
+  @apply text-gray-600;
   transition: color 0.2s;
 
   &:hover {
