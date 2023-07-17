@@ -27,10 +27,11 @@
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
-                  class="font-medium text-blue-600 hover:underline"
+                  class="base"
                   :to="`/labelset/${item.id}`"
-                  >View</NuxtLink
                 >
+                  View
+                </NuxtLink>
               </td>
             </tr>
           </template>
@@ -39,7 +40,7 @@
     </div>
     
     <div class="my-4">
-      <button class="btn-primary" @click="navigateTo('/labelset/new')">
+      <button class="base btn-primary" @click="navigateTo('/labelset/new')">
         Create new labelset
       </button>
     </div>

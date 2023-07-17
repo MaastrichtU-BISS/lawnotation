@@ -10,12 +10,12 @@
             type="email"
             name="email"
             autocomplete="off"
-            class="border"
+            class="base border"
             @keydown.enter="signIn()"
           />
         </div>
         <div class="my-2">
-          <button class="btn-primary rounded-full" @click="signIn()">Log In</button>
+          <button class="base btn-primary rounded-full" @click="signIn()">Log In</button>
         </div>
       </div>
     </div>

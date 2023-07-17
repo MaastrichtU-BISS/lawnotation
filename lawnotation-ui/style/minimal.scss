@@ -1,10 +1,15 @@
 // Minimal styling uing tailwind
 
-a {
-    @apply text-blue-800 underline;
+a.base {
+    @apply text-blue-600;
+
+    &:hover {
+        @apply underline;
+    }
 }
 
-input[type="text"], input[type="file"], input[type="number"] {
+input[type="text"].base, input[type="number"].base,
+input[type="file"].base, input[type="email"].base {
     // from: https://tailwindui.com/components/application-ui/forms/form-layouts
 
     @apply rounded-md border-0 px-2 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400;
@@ -18,7 +23,7 @@ input[type="text"], input[type="file"], input[type="number"] {
     }
 }
 
-textarea {
+textarea.base {
     @apply p-2 rounded-md border-0 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400;
     
     &:focus {
@@ -30,7 +35,7 @@ textarea {
     }
 }
 
-button {
+button.base {
     &.btn-secondary {
         @apply rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300;
         &:hover {

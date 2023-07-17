@@ -17,10 +17,11 @@
             </td>
             <td class="px-6 py-2">
               <NuxtLink
-                class="font-medium text-blue-600 hover:underline"
+                class="base"
                 :to="`/tasks/${item.id}`"
-                >View</NuxtLink
               >
+                View
+              </NuxtLink>
             </td>
           </tr>
         </template>

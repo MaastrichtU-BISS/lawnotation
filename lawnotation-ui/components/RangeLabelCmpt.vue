@@ -22,18 +22,18 @@
       <button
         v-if="canMergeUp"
         @click="emit('mergeUp', index)"
-        class="ml-2 btn btn-secondary"
+        class="ml-2 base btn-secondary"
       >
         &#8593;
       </button>
       <button
         v-if="canMergeDown"
         @click="emit('mergeDown', index)"
-        class="ml-2 btn btn-secondary"
+        class="ml-2 base btn-secondary"
       >
         &#8595;
       </button>
-      <button class="ml-2 btn btn-secondary" @click="toggle_hide">
+      <button class="ml-2 base btn-secondary" @click="toggle_hide">
         {{ _hidden ? "Show" : "Hide" }}
       </button>
     </div>

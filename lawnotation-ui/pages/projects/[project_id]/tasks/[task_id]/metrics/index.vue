@@ -58,7 +58,7 @@
         </div>
         <div class="flex my-10">
           <div class="mx-auto">
-            <button class="btn btn-primary mx-5" @click="getAnnotations">
+            <button class="base btn-primary mx-5" @click="getAnnotations">
               Get Annotations
             </button>
             <span>
@@ -86,7 +86,7 @@
                 >Words</label
               ></span
             >
-            <button class="btn btn-primary mx-5" @click="downloadAll">
+            <button class="base btn-primary mx-5" @click="downloadAll">
               Download All
             </button>
           </div>
@@ -100,7 +100,7 @@
                 selectedAnnotators?.length == 1 ||
                 selectedAnnotators?.length == 2
               "
-              class="btn btn-primary mx-5"
+              class="base btn-primary mx-5"
               @click="compute_metric('krippendorff')"
             >
               Krippendorff's alfa
@@ -112,7 +112,7 @@
                 selectedAnnotators?.length == 1 ||
                 selectedAnnotators?.length == 2
               "
-              class="btn btn-primary mx-5"
+              class="base btn-primary mx-5"
               @click="compute_metric('fleiss_kappa')"
             >
               Fleiss Kappa
@@ -121,7 +121,7 @@
               :disabled="
                 !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
               "
-              class="btn btn-primary mx-5"
+              class="base btn-primary mx-5"
               @click="compute_metric('cohens_kappa')"
             >
               Cohens Kappa
@@ -153,7 +153,7 @@
         <div><b>Pe:</b> {{ metric_result.pe }}</div>
       </div>
       <div class="my-5">
-        <button class="btn btn-primary mx-5" @click="downloadCSV()">
+        <button class="base btn-primary mx-5" @click="downloadCSV()">
           Download Result
         </button>
       </div>

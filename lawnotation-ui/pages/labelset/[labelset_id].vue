@@ -14,13 +14,14 @@
   <div v-else>
     <div class="flex flex-row justify-between">
       <h2 class="text-2xl">Editing labelset: {{ labelset.name }}</h2>
-      <button class="btn btn-primary" @click="save_labelset">Save changes</button>
+      <button class="base btn btn-primary" @click="save_labelset">Save changes</button>
     </div>
     <hr class="pb-4 mt-2" />
     <div class="row">
       <div class="flex flex-col space-y-2">
-        <input type="text" v-model="labelset.name" placeholder="Labelset name" />
+        <input class="base" type="text" v-model="labelset.name" placeholder="Labelset name" />
         <textarea
+          class="base"
           :value="labelset.desc"
           @input="labelset.desc = ($event.target as HTMLTextAreaElement)?.value"
           placeholder="Labelset description"
@@ -28,15 +29,15 @@
       </div>
       <hr class="my-3" />
       <div class="flex space-x-4">
-        <input v-model="new_label.color" type="color" class="self-center" />
+        <input v-model="new_label.color" type="color" class="base self-center" />
         <input
+          class="base grow"
           v-model="new_label.name"
           placeholder="Label name"
           type="text"
-          style="flex-grow: 1"
           @keydown.enter="add_label()"
         />
-        <button @click="add_label()" class="btn btn-primary">Add</button>
+        <button @click="add_label()" class="base btn btn-primary">Add</button>
         <!-- <button @click="export_label_collection()" class="btn btn-secondary">Export</button>
         <button @click="click_import_label_collection()" class="btn btn-secondary">Import</button> -->
         <input
@@ -53,7 +54,7 @@
           v-for="(label, i) of labelset.labels"
           :key="label.name"
         >
-          <button class="btn btn-secondary" @click="labelset.labels.splice(i, 1)">
+          <button class="base btn btn-secondary" @click="labelset.labels.splice(i, 1)">
             <svg
               style="width: 1rem"
               xmlns="http://www.w3.org/2000/svg"

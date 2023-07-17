@@ -23,7 +23,7 @@
     <div class="text-center my-10">
       <div v-if="assignmentCounts && assignmentCounts.next <= assignmentCounts.total">
         <NuxtLink :to="`/annotate/${task.id}?seq=${assignmentCounts?.next}`">
-          <button class="btn-primary">Annotate Next Assignment</button>
+          <button class="base btn-primary">Annotate Next Assignment</button>
         </NuxtLink>
       </div>
     </div>
@@ -54,10 +54,11 @@
             </td>
             <td class="px-6 py-2">
               <NuxtLink
-                class="font-medium text-blue-600 hover:underline"
+                class="base"
                 :to="`/annotate/${task.id}?seq=${item.seq_pos}`"
-                >View</NuxtLink
               >
+                View
+              </NuxtLink>
             </td>
           </tr>
         </template>

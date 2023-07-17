@@ -43,10 +43,11 @@
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
-                  class="font-medium text-blue-600 hover:underline"
+                  class="base"
                   :to="`/projects/${route.params.project_id}/documents/${item.id}`"
-                  >View</NuxtLink
                 >
+                  View
+                </NuxtLink>
               </td>
             </tr>
           </template>
@@ -58,6 +59,7 @@
         <div class="dimmer-content">
           <span class="mr-3">Add documents</span>
           <input
+            class="base"
             type="file"
             name="data-set"
             id="doc_input"
@@ -91,10 +93,11 @@
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
-                  class="font-medium text-blue-600 hover:underline"
+                  class="base"
                   :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-                  >View</NuxtLink
                 >
+                  View
+                </NuxtLink>
               </td>
             </tr>
           </template>
@@ -104,9 +107,10 @@
       <div class="my-3">
         <h3 class="text-lg mt-8">Create new task</h3>
         <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-          <input type="text" placeholder="Task name" v-model="new_task.name" />
-          <textarea placeholder="Task description" v-model="new_task.desc"></textarea>
+          <input class="base" type="text" placeholder="Task name" v-model="new_task.name" />
+          <textarea class="base" placeholder="Task description" v-model="new_task.desc"></textarea>
           <textarea
+            class="base"
             placeholder="Annotation Guidelines"
             v-model="new_task.ann_guidelines"
           ></textarea>
@@ -123,12 +127,12 @@
               </option>
             </select>
             <span v-else>No labelsets found</span>
-            <button class="btn-secondary" @click="() => navigateTo('/labelset/new')">
+            <button class="base btn-secondary" style="flex: 0 0 content" @click="() => navigateTo('/labelset/new')">
               Create new labelset
             </button>
           </div>
 
-          <button class="btn-primary" @click="createTask">Create Tasks</button>
+          <button class="base btn-primary" @click="createTask">Create Tasks</button>
         </div>
       </div>
     </div>

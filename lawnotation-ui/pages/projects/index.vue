@@ -18,7 +18,7 @@
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
-                  class="font-medium text-blue-600 hover:underline"
+                  class="base"
                   :to="`/projects/${item.id}`"
                 >
                   Edit
@@ -32,9 +32,9 @@
 
     <h3 class="text-lg mt-8">Create new project</h3>
     <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-      <input type="text" placeholder="Project name" v-model="new_project.name" />
-      <textarea placeholder="Project description" v-model="new_project.desc"></textarea>
-      <button class="flex-none btn-primary" @click="createNewProject">Add</button>
+      <input class="base" type="text" placeholder="Project name" v-model="new_project.name" />
+      <textarea class="base" placeholder="Project description" v-model="new_project.desc"></textarea>
+      <button class="flex-none base btn-primary" @click="createNewProject">Add</button>
     </div>
   </div>
 </template>

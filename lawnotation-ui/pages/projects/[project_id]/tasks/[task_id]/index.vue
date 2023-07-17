@@ -18,7 +18,7 @@
     <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
     <div class="text-center my-3">
       <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
-        <button class="btn btn-primary">Analyze Agreement Metrics</button>
+        <button class="base btn-primary">Analyze Agreement Metrics</button>
       </NuxtLink>
     </div>
     <div class="dimmer-wrapper">
@@ -53,7 +53,7 @@
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
-                  class="font-medium text-blue-600 hover:underline"
+                  class="base"
                   :to="`/assignments/${item.id}`"
                 >
                   View
@@ -76,15 +76,17 @@
               </li>
             </ul>
             <input
+              class="base"
               id="annotator_email"
               type="email"
               name="email"
               v-model="email"
               @keydown.enter="addAnnotator()"
             />
-            <button class="btn-primary" @click="addAnnotator">Add</button>
+            <button class="base btn-primary" @click="addAnnotator">Add</button>
             <label for="amount_of_docs">Amount of Documents (total)</label>
             <input
+              class="base"
               id="amount_of_docs"
               type="number"
               name=""
@@ -96,6 +98,7 @@
               Amount of Fixed Documents (to share among annotators)
             </label>
             <input
+              class="base"
               id="fixed_docs"
               type="number"
               name=""
@@ -103,7 +106,7 @@
               :max="total_docs"
               min="0"
             />
-            <button class="btn-primary" @click="createAssignments">
+            <button class="base btn-primary" @click="createAssignments">
               Create Assignments
             </button>
           </div>
