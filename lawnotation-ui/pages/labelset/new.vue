@@ -15,7 +15,7 @@
       <h2 class="text-2xl">
         {{ new_labelset.name ? `New labelset: ${new_labelset.name}` : "New labelset" }}
       </h2>
-      <button class="base btn btn-primary" @click="create_new_labelset">Create</button>
+      <button class="base btn-primary" @click="create_new_labelset">Create</button>
     </div>
     <hr class="pb-4 mt-2" />
     <div class="row">
@@ -38,12 +38,10 @@
           type="text"
           @keydown.enter="add_label()"
         />
-        <button @click="add_label()" class="base btn btn-primary">Add</button>
-        <!-- <button @click="export_label_collection()" class="btn btn-secondary">Export</button>
-        <button @click="click_import_label_collection()" class="btn btn-secondary">Import</button> -->
+        <button @click="add_label()" class="base btn-primary">Add</button>
         <input
+          class="hidden"
           type="file"
-          style="display: none"
           @change="import_labels_file_changed"
           id="import_file_holder"
         />
