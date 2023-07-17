@@ -1,13 +1,13 @@
 <template>
   <NuxtLayout>
-    <div class="main">
+    <!-- <div class="main"> -->
       <NuxtPage />
-    </div>
+    <!-- </div> -->
   </NuxtLayout>
 </template>
 <script setup lang="ts"></script>
 <style>
-.main {
+/* .main {
   min-height: 80vh;
-}
+} */
 </style>
