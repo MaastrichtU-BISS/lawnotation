@@ -129,7 +129,7 @@
             <div class="">
               <label class="mr-2">Tolerance</label>
               <input
-                class=""
+                class="base"
                 type="number"
                 v-model="tolerance"
                 min="0"
