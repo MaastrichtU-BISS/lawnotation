@@ -4,6 +4,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import "@heartexlabs/label-studio/build/static/css/main.css";
 import { LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 import { LSSerializedRelation, useAnnotationRelationApi } from "~/data/annotation_relations";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
@@ -250,10 +251,7 @@ onMounted(() => {
   );
 });
 </script>
-
-<style scoped lang="scss">
-@import "@heartexlabs/label-studio/build/static/css/main.css";
-
+<style>
 #label-studio {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
