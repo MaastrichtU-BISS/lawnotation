@@ -1,5 +1,6 @@
 <template>
-  <div class="bg-neutral-100 px-4 py-4 flex justify-between items-center">
+  <!-- <div class="bg-neutral-100 px-4 py-4 flex justify-between items-center"> -->
+  <div class="bg-neutral-50 border-b border-neutral-200 px-4 py-4 flex justify-between items-center">
     <div class="w-40">
       <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
     </div>
