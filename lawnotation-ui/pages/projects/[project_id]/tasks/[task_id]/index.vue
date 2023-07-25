@@ -228,14 +228,16 @@ const createAssignments = async () => {
     const usersPromises: Promise<User>[] = [];
     for (let i = 0; i < annotators_email.length; ++i) {
       usersPromises.push(
-        userApi.otpLogin(
-          annotators_email[i],
-          `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
-        )
+        // userApi.otpLogin(
+        //   annotators_email[i],
+        //   `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
+        // )
+        userApi.findByEmail(annotators_email[i])
       );
     }
 
     const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
+    console.log('xxxx', annotators_id);
 
     // Assign users and order to assignments
     let unshuffled: number[] = [
