@@ -226,14 +226,14 @@ const createAssignments = async () => {
 
     // Get Users
     const usersPromises: Promise<User>[] = [];
-    for (let i = 0; i < annotators_email.length; ++i) {
-      usersPromises.push(
-        userApi.otpLogin(
-          annotators_email[i],
-          `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
-        )
-      );
-    }
+    // for (let i = 0; i < annotators_email.length; ++i) {
+    //   usersPromises.push(
+    //     userApi.otpLogin(
+    //       annotators_email[i],
+    //       `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
+    //     )
+    //   );
+    // }
 
     const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
 
