@@ -1,21 +1,23 @@
 <template>
-  <Breadcrumb v-if="task && project" :crumbs="[
-    {
-      name: 'Projects',
-      link: '/projects',
-    },
-    {
-      name: `Project ${project.name}`,
-      link: `/projects/${project.id}`,
-    },
-    {
-      name: `Task ${task.name}`,
-      link: `/projects/${project.id}/tasks/${task.id}`,
-    },
-  ]" />
+  <Breadcrumb
+    v-if="task && project"
+    :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+      {
+        name: `Task ${task.name}`,
+        link: `/projects/${project.id}/tasks/${task.id}`,
+      },
+    ]"
+  />
 
   <div v-if="task">
-    <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
     <div class="text-center my-3">
       <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
         <button class="base btn-primary">Analyze Agreement Metrics</button>
@@ -26,12 +28,30 @@
       <Dimmer v-model="loading" />
       <div class="dimmer-content">
         <h3 class="my-3 text-lg font-semibold">Assignments</h3>
-        <Table :tabledata="assignmentTable" :sort="true" :search="true">
-          <template #row="{item}: {item: AssignmentTableData}">
+        <Table
+          :tabledata="assignmentTable"
+          :sort="true"
+          :search="true"
+          :remove="true"
+          @remove-rows="removeAssignments"
+          @remove-all-rows="removeAllAssignments"
+        >
+          <template #row="{ item }: { item: AssignmentTableData }">
             <tr class="bg-white border-b hover:bg-gray-50">
-              <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
+              <td class="px-6 py-2">
+                <input
+                  type="checkbox"
+                  :data-id="item.id.toString()"
+                  name="checkbox_table"
+                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                />
+              </td>
+              <td
+                scope="row"
+                class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+              >
                 {{ item.id }}
-              </th>
+              </td>
               <td class="px-6 py-2">
                 {{ item.annotator.email }}
               </td>
@@ -40,24 +60,15 @@
               </td>
               <td class="px-6 py-2">
                 <span
-                  :class="
-                    item.status == 'done' ? 'text-green-600' : 'text-orange-700'
-                  "
+                  :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'"
                   >{{ item.status }}</span
                 >
               </td>
               <td class="px-6 py-2">
-                <span
-                  >{{ item.difficulty_rating }}</span
-                >
+                <span>{{ item.difficulty_rating }}</span>
               </td>
               <td class="px-6 py-2">
-                <NuxtLink
-                  class="base"
-                  :to="`/assignments/${item.id}`"
-                >
-                  View
-                </NuxtLink>
+                <NuxtLink class="base" :to="`/assignments/${item.id}`"> View </NuxtLink>
               </td>
             </tr>
           </template>
@@ -147,35 +158,34 @@ const email = ref("");
 
 const assignmentTable = createTableData<AssignmentTableData>(
   {
-    'Id': {
-      field: 'id',
+    Id: {
+      field: "id",
       sort: true,
     },
-    'Annotator': {
-      field: 'annotator.email',
-      // sort: true,
+    Annotator: {
+      field: "annotator.email",
       search: true,
     },
-    'Document': {
-      field: 'document.name',
-      // sort: true,
+    Document: {
+      field: "document.name",
       search: true,
     },
-    'Status': {
-      field: 'status',
+    Status: {
+      field: "status",
       sort: true,
     },
-    'Difficulty': {
-      field: 'difficulty_rating',
+    Difficulty: {
+      field: "difficulty_rating",
       sort: true,
     },
-    'Action': {}
+    Action: {},
   },
   {
-    type: 'table',
-    from: 'assignments',
-    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, difficulty_rating, seq_pos',
-    filter: () => ({ task_id: task.value?.id })
+    type: "table",
+    from: "assignments",
+    select:
+      "id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, difficulty_rating, seq_pos",
+    filter: () => ({ task_id: task.value?.id }),
   }
 );
 
@@ -222,8 +232,6 @@ const createAssignments = async () => {
       new_assignments
     );
 
-    console.log(new_assignments, created_assignments);
-
     // Get Users
     const usersPromises: Promise<User>[] = [];
     for (let i = 0; i < annotators_email.length; ++i) {
@@ -268,7 +276,7 @@ const createAssignments = async () => {
 
     loading.value = false;
     assignmentTable.load();
-    $toast.success("Assignments created");
+    $toast.success("Assignments successfully created");
   } catch (error) {
     loading.value = false;
     if (error instanceof Error)
@@ -276,8 +284,27 @@ const createAssignments = async () => {
   }
 };
 
+const removeAssignments = async (ids: string[], callback: Function) => {
+  loading.value = true;
+  const promises: Promise<Boolean>[] = [];
+  promises.push(...ids.map((id) => assignmentApi.deleteAssignment(id)));
+  await Promise.all(promises);
+  await assignmentTable.load();
+  await callback();
+  loading.value = false;
+  $toast.success("Assignments successfully deleted!");
+};
+const removeAllAssignments = async (callback: Function) => {
+  loading.value = true;
+  await assignmentApi.deleteAllAssignments(task.value?.id);
+  await assignmentTable.load();
+  await callback();
+  loading.value = false;
+  $toast.success("Assignments successfully deleted!");
+};
+
 onMounted(async () => {
-  task.value = await taskApi.findTask(route.params.task_id as string)
+  task.value = await taskApi.findTask(route.params.task_id as string);
 
   documentApi.totalAmountOfDocs(task.value.project_id.toString()).then((count) => {
     amount_of_docs.value = count ? count : 0;
