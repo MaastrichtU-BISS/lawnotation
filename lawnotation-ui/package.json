@@ -23,6 +23,7 @@
     "@vueform/multiselect": "^2.6.2",
     "epic-spinners": "^2.0.0",
     "export-to-csv": "^0.2.1",
+    "sweetalert2": "^11.7.20",
     "vue-toastification": "2.0.0-rc.5"
   }
 }
