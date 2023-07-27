@@ -12,7 +12,7 @@ export type TableData<T> = {
       field?: string;
       sort?: true;
       search?: true;
-      select?: false;
+      remove?: false;
     }
   >;
   sort: {

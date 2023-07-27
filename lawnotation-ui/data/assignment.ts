@@ -164,7 +164,7 @@ export const useAssignmentApi = () => {
     else return true;
   };
 
-  // Update
+  // Delete
   const deleteAssignment = async (id: string) => {
     const { data, error } = await supabase
       .from("assignments")
@@ -172,6 +172,16 @@ export const useAssignmentApi = () => {
       .eq("id", id);
 
     if (error) throw Error(`Error in deleteAssignment: ${error.message}`);
+    else return true;
+  };
+
+  const deleteAllAssignments = async (task_id: string) => {
+    const { data, error } = await supabase
+      .from("assignments")
+      .delete()
+      .eq("task_id", task_id);
+
+    if (error) throw Error(`Error in deleteAllAssignment: ${error.message}`);
     else return true;
   };
 
@@ -183,6 +193,7 @@ export const useAssignmentApi = () => {
     findAssignmentsByUser,
     updateAssignment,
     deleteAssignment,
+    deleteAllAssignments,
     findNextAssignmentsByUserAndTask,
     countAssignmentsByUserAndTask,
     findAssignmentsByUserTaskSeq,

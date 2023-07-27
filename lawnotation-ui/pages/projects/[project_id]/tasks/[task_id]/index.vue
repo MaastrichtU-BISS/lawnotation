@@ -33,8 +33,8 @@
           :sort="true"
           :search="true"
           :remove="true"
-          @remove-assignments="removeAssignments"
-          @remove-all-assignments="removeAllAssignments"
+          @remove-rows="removeAssignments"
+          @remove-all-rows="removeAllAssignments"
         >
           <template #row="{ item }: { item: AssignmentTableData }">
             <tr class="bg-white border-b hover:bg-gray-50">
@@ -232,8 +232,6 @@ const createAssignments = async () => {
       new_assignments
     );
 
-    console.log(new_assignments, created_assignments);
-
     // Get Users
     const usersPromises: Promise<User>[] = [];
     for (let i = 0; i < annotators_email.length; ++i) {
@@ -276,7 +274,7 @@ const createAssignments = async () => {
 
     loading.value = false;
     assignmentTable.load();
-    $toast.success("Assignments created");
+    $toast.success("Assignments successfully created");
   } catch (error) {
     loading.value = false;
     if (error instanceof Error)
@@ -284,11 +282,23 @@ const createAssignments = async () => {
   }
 };
 
-const removeAssignments = (ids: string[]) => {
-  console.log("remove", ids);
+const removeAssignments = async (ids: string[], callback: Function) => {
+  loading.value = true;
+  const promises: Promise<Boolean>[] = [];
+  promises.push(...ids.map((id) => assignmentApi.deleteAssignment(id)));
+  await Promise.all(promises);
+  await assignmentTable.load();
+  await callback();
+  loading.value = false;
+  $toast.success("Assignments successfully deleted!");
 };
-const removeAllAssignments = () => {
-  console.log("remove all");
+const removeAllAssignments = async (callback: Function) => {
+  loading.value = true;
+  await assignmentApi.deleteAllAssignments(task.value?.id);
+  await assignmentTable.load();
+  await callback();
+  loading.value = false;
+  $toast.success("Assignments successfully deleted!");
 };
 
 onMounted(async () => {

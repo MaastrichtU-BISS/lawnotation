@@ -1,18 +1,19 @@
-<template>  
-  <Breadcrumb v-if="project" :crumbs="[
-    {
-      name: 'Projects',
-      link: '/projects',
-    },
-    {
-      name: `Project ${project.name}`,
-      link: `/projects/${project.id}`,
-    },
-  ]" />
+<template>
+  <Breadcrumb
+    v-if="project"
+    :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+    ]"
+  />
 
   <div v-if="project">
-
-    <h1 class="my-3 text-lg font-semibold mb-2">Project: {{ project.name }}</h1>
     <p class="mt-1 mb-3 text-gray-700 text-sm">{{ project.desc }}</p>
 
     <div class="tabs-holder">
@@ -30,7 +31,7 @@
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="documentTable.loading" />
         <Table :tabledata="documentTable" :sort="true" :search="true">
-          <template #row="{item}: {item: Document}">
+          <template #row="{ item }: { item: Document }">
             <tr class="bg-white border-b hover:bg-gray-50">
               <th
                 scope="row"
@@ -77,7 +78,7 @@
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="taskTable.loading" />
         <Table :tabledata="taskTable" :sort="true" :search="true">
-          <template #row="{item}: {item: Task}">
+          <template #row="{ item }: { item: Task }">
             <tr class="bg-white border-b hover:bg-gray-50">
               <th
                 scope="row"
@@ -107,8 +108,17 @@
       <div class="my-3">
         <h3 class="text-lg mt-8">Create new task</h3>
         <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-          <input class="base" type="text" placeholder="Task name" v-model="new_task.name" />
-          <textarea class="base" placeholder="Task description" v-model="new_task.desc"></textarea>
+          <input
+            class="base"
+            type="text"
+            placeholder="Task name"
+            v-model="new_task.name"
+          />
+          <textarea
+            class="base"
+            placeholder="Task description"
+            v-model="new_task.desc"
+          ></textarea>
           <textarea
             class="base"
             placeholder="Annotation Guidelines"
@@ -122,13 +132,19 @@
               v-model="new_task.labelset_id"
               class="flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
             >
-              <option :value="undefined" disabled selected hidden>Select from list</option>
+              <option :value="undefined" disabled selected hidden>
+                Select from list
+              </option>
               <option v-for="labelset of labelsets" :value="labelset.id">
                 {{ labelset.name }}
               </option>
             </select>
             <span v-else>No labelsets found</span>
-            <button class="base btn-secondary" style="flex: 0 0 content" @click="() => navigateTo('/labelset/new')">
+            <button
+              class="base btn-secondary"
+              style="flex: 0 0 content"
+              @click="() => navigateTo('/labelset/new')"
+            >
               Create new labelset
             </button>
           </div>
@@ -165,50 +181,47 @@ const labelsets = reactive<Labelset[]>([]);
 
 const documentTable = createTableData<Document>(
   {
-    'Id': {
-      field: 'id',
+    Id: {
+      field: "id",
       sort: true,
     },
-    'Name': {
-      field: 'name',
+    Name: {
+      field: "name",
       sort: true,
       search: true,
     },
-    'Action': {}
+    Action: {},
   },
   {
-    type: 'table',
-    from: 'documents',
-    filter: () => ({ project_id: project.value?.id })
+    type: "table",
+    from: "documents",
+    filter: () => ({ project_id: project.value?.id }),
   }
 );
 
 const taskTable = createTableData<Task>(
   {
-    'Id': {
-      field: 'id',
+    Id: {
+      field: "id",
       sort: true,
     },
-    'Name': {
-      field: 'name',
+    Name: {
+      field: "name",
       sort: true,
       search: true,
     },
-    'Description': {
-      field: 'desc',
+    Description: {
+      field: "desc",
       search: true,
     },
-    'Action': {}
+    Action: {},
   },
   {
-    type: 'table',
-    from: 'tasks',
-    filter: () => ({ project_id: project.value?.id })
+    type: "table",
+    from: "tasks",
+    filter: () => ({ project_id: project.value?.id }),
   }
 );
-
-
-
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 

@@ -300,7 +300,7 @@ import { confirmBox } from "~/utils/confirmBox";
 
 const supabase = useSupabaseClient();
 
-const emit = defineEmits(["removeAssignments", "removeAllAssignments"]);
+const emit = defineEmits(["removeRows", "removeAllRows", "refresh"]);
 const selectedRows = reactive<string[]>([]);
 const allChecked = ref(false);
 
@@ -380,6 +380,7 @@ const toggleAllCheckboxes = () => {
 const prepareCheckboxes = () => {
   selectedRows.splice(0, selectedRows.length);
   const checkboxes = document.getElementsByName("checkbox_table");
+  if (!checkboxes.length) return;
   checkboxes.forEach((cb) => {
     if ((cb as HTMLInputElement).checked) cb?.click();
     cb.onclick = () => {
@@ -406,28 +407,30 @@ const handleClickOnCheckbox = (cb: HTMLInputElement) => {
   }
 };
 
-const removeSelected = (ids: string[]) => {
+const removeSelected = async (ids: string[]) => {
   confirmBox(
-    `Are you sure you want to delete ${ids.length} assignment${
-      ids.length > 1 ? "s" : ""
-    }?`,
+    `Are you sure you want to delete ${ids.length} row${ids.length > 1 ? "s" : ""}?`,
     "You won't be able to revert this!",
     "warning"
   ).then((result) => {
     if (result.isConfirmed) {
-      emit("removeAssignments", ids);
+      emit("removeRows", ids, () => {
+        prepareCheckboxes();
+      });
     }
   });
 };
 
 const removeAll = () => {
   confirmBox(
-    "Are you sure you want to delete all the assignments?",
+    "Are you sure you want to delete all the rows?",
     "You won't be able to revert this!",
     "warning"
   ).then((result) => {
     if (result.isConfirmed) {
-      emit("removeAllAssignments");
+      emit("removeAllRows", () => {
+        prepareCheckboxes();
+      });
     }
   });
 };
