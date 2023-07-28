@@ -66,7 +66,7 @@ export const createTableData = <T>(
     items_per_page: 10,
     loading: false,
 
-    sort: default_sort ?? { column: default_sort_column, dir: "ASC" },
+    sort: default_sort ?? { column: default_sort_column, dir: "DESC" },
     search: { column: default_search_column, query: "" },
 
     columns,
