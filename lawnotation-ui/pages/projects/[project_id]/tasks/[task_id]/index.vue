@@ -29,6 +29,7 @@
       <div class="dimmer-content">
         <h3 class="my-3 text-lg font-semibold">Assignments</h3>
         <Table
+          :name="'assignments'"
           :tabledata="assignmentTable"
           :sort="true"
           :search="true"
@@ -42,7 +43,7 @@
                 <input
                   type="checkbox"
                   :data-id="item.id.toString()"
-                  name="checkbox_table"
+                  name="assignments_table_checkbox"
                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
                 />
               </td>
@@ -282,22 +283,17 @@ const createAssignments = async () => {
   }
 };
 
-const removeAssignments = async (ids: string[], callback: Function) => {
-  loading.value = true;
+const removeAssignments = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
   promises.push(...ids.map((id) => assignmentApi.deleteAssignment(id)));
   await Promise.all(promises);
   await assignmentTable.load();
-  await callback();
-  loading.value = false;
   $toast.success("Assignments successfully deleted!");
 };
-const removeAllAssignments = async (callback: Function) => {
-  loading.value = true;
-  await assignmentApi.deleteAllAssignments(task.value?.id);
+const removeAllAssignments = async () => {
+  if (!task.value) throw new Error("Invalid Task!");
+  await assignmentApi.deleteAllAssignments(task.value?.id.toString());
   await assignmentTable.load();
-  await callback();
-  loading.value = false;
   $toast.success("Assignments successfully deleted!");
 };
 
