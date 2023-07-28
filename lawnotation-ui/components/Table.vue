@@ -342,16 +342,16 @@ watch(
     props.tabledata.total,
   ],
   async () => {
-    console.log("Fired 1");
     props.tabledata.page = 1;
     await props.tabledata.load();
     prepareCheckboxes();
   }
 );
 
-const setPage = (page: number) => {
+const setPage = async (page: number) => {
   props.tabledata.page = Math.max(1, page);
-  props.tabledata.load();
+  await props.tabledata.load();
+  prepareCheckboxes();
 };
 
 const visible_start_i = computed(() => {

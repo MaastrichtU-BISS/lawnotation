@@ -20,7 +20,6 @@
   <div v-if="task">
     <div class="dimmer-wrapper">
       <Dimmer v-model="assignmentTable.loading" />
-      <Dimmer v-model="loading" />
       <div class="dimmer-content">
         <div v-show="assignmentTable.total">
           <div class="text-center my-3">
@@ -30,6 +29,7 @@
           </div>
           <h3 class="my-3 text-lg font-semibold">Assignments</h3>
           <Table
+            :name="'assignments'"
             :tabledata="assignmentTable"
             :sort="true"
             :search="true"
@@ -43,7 +43,7 @@
                   <input
                     type="checkbox"
                     :data-id="item.id.toString()"
-                    name="checkbox_table"
+                    name="assignments_table_checkbox"
                     class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
                   />
                 </td>
