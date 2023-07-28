@@ -30,15 +30,31 @@
     <div v-show="tab_active == 'documents'">
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="documentTable.loading" />
-        <Table :tabledata="documentTable" :sort="true" :search="true">
+        <Table
+          :name="'documents'"
+          :tabledata="documentTable"
+          :sort="true"
+          :search="true"
+          :remove="true"
+          @remove-rows="removeDocuments"
+          @remove-all-rows="removeAllDocuments"
+        >
           <template #row="{ item }: { item: Document }">
             <tr class="bg-white border-b hover:bg-gray-50">
-              <th
+              <td class="px-6 py-2">
+                <input
+                  type="checkbox"
+                  :data-id="item.id.toString()"
+                  name="documents_table_checkbox"
+                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                />
+              </td>
+              <td
                 scope="row"
                 class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
               >
                 {{ item.id }}
-              </th>
+              </td>
               <td class="px-6 py-2">
                 {{ item.name }}
               </td>
@@ -77,15 +93,31 @@
     <div v-show="tab_active == 'tasks'">
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="taskTable.loading" />
-        <Table :tabledata="taskTable" :sort="true" :search="true">
+        <Table
+          :name="'tasks'"
+          :tabledata="taskTable"
+          :sort="true"
+          :search="true"
+          :remove="true"
+          @remove-rows="removeTasks"
+          @remove-all-rows="removeAllTasks"
+        >
           <template #row="{ item }: { item: Task }">
             <tr class="bg-white border-b hover:bg-gray-50">
-              <th
+              <td class="px-6 py-2">
+                <input
+                  type="checkbox"
+                  :data-id="item.id.toString()"
+                  name="tasks_table_checkbox"
+                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                />
+              </td>
+              <td
                 scope="row"
                 class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
               >
                 {{ item.id }}
-              </th>
+              </td>
               <td class="px-6 py-2">
                 {{ item.name }}
               </td>
@@ -288,6 +320,33 @@ const createTask = () => {
   } catch (error) {
     if (error instanceof Error) $toast.error(`Error creating task: ${error.message}`);
   }
+};
+
+const removeDocuments = async (ids: string[]) => {
+  const promises: Promise<Boolean>[] = [];
+  promises.push(...ids.map((id) => documentApi.deleteDocument(id)));
+  await Promise.all(promises);
+  await documentTable.load();
+  $toast.success("Documents successfully deleted!");
+};
+const removeAllDocuments = async () => {
+  if (!project.value) throw new Error("Invalid Project!");
+  await documentApi.deleteAllDocuments(project.value?.id.toString());
+  await documentTable.load();
+  $toast.success("Documents successfully deleted!");
+};
+const removeTasks = async (ids: string[]) => {
+  const promises: Promise<Boolean>[] = [];
+  promises.push(...ids.map((id) => taskApi.deleteTask(id)));
+  await Promise.all(promises);
+  await taskTable.load();
+  $toast.success("Tasks successfully deleted!");
+};
+const removeAllTasks = async () => {
+  if (!project.value) throw new Error("Invalid Project!");
+  await taskApi.deleteAllTasks(project.value?.id.toString());
+  await taskTable.load();
+  $toast.success("Tasks successfully deleted!");
 };
 
 onMounted(() => {

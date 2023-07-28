@@ -282,23 +282,17 @@ const createAssignments = async () => {
   }
 };
 
-const removeAssignments = async (ids: string[], callback: Function) => {
-  loading.value = true;
+const removeAssignments = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
   promises.push(...ids.map((id) => assignmentApi.deleteAssignment(id)));
   await Promise.all(promises);
   await assignmentTable.load();
-  await callback();
-  loading.value = false;
   $toast.success("Assignments successfully deleted!");
 };
-const removeAllAssignments = async (callback: Function) => {
-  if (!task.value) throw new Error("Invalid task!");
-  loading.value = true;
+const removeAllAssignments = async () => {
+  if (!task.value) throw new Error("Invalid Task!");
   await assignmentApi.deleteAllAssignments(task.value?.id.toString());
   await assignmentTable.load();
-  await callback();
-  loading.value = false;
   $toast.success("Assignments successfully deleted!");
 };
 

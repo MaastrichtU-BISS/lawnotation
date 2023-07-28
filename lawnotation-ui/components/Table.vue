@@ -73,7 +73,7 @@
             type="checkbox"
             @click="toggleAllCheckboxes"
             class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-            id="checkbox_header"
+            :id="`${name}_header_checkbox`"
           />
         </th>
         <th
@@ -310,6 +310,7 @@ const props = withDefaults(
     sort?: boolean;
     search: boolean;
     remove: boolean;
+    name: string;
     // items_per_page:
 
     tabledata: TableData<any>;
@@ -348,10 +349,9 @@ watch(
   }
 );
 
-const setPage = async (page: number) => {
+const setPage = (page: number) => {
   props.tabledata.page = Math.max(1, page);
-  await props.tabledata.load();
-  prepareCheckboxes();
+  props.tabledata.load();
 };
 
 const visible_start_i = computed(() => {
@@ -374,7 +374,7 @@ const range = (from: number, to: number): number[] => {
 };
 
 const toggleAllCheckboxes = () => {
-  const checkboxes = document.getElementsByName("checkbox_table");
+  const checkboxes = document.getElementsByName(`${props.name}_table_checkbox`);
   checkboxes.forEach((cb) => {
     if (!allChecked.value && !(cb as HTMLInputElement).checked) cb.click();
     if (allChecked.value && (cb as HTMLInputElement).checked) cb.click();
@@ -384,7 +384,7 @@ const toggleAllCheckboxes = () => {
 
 const prepareCheckboxes = () => {
   selectedRows.splice(0, selectedRows.length);
-  const checkboxes = document.getElementsByName("checkbox_table");
+  const checkboxes = document.getElementsByName(`${props.name}_table_checkbox`);
   if (!checkboxes.length) return;
   checkboxes.forEach((cb) => {
     if ((cb as HTMLInputElement).checked) cb?.click();
@@ -392,7 +392,7 @@ const prepareCheckboxes = () => {
       handleClickOnCheckbox(cb as HTMLInputElement);
     };
   });
-  const cbh = document.getElementById("checkbox_header");
+  const cbh = document.getElementById(`${props.name}_header_checkbox`);
   if ((cbh as HTMLInputElement).checked) cbh?.click();
 };
 
@@ -419,9 +419,7 @@ const removeSelected = async (ids: string[]) => {
     "warning"
   ).then((result) => {
     if (result.isConfirmed) {
-      emit("removeRows", ids, () => {
-        prepareCheckboxes();
-      });
+      emit("removeRows", ids);
     }
   });
 };
@@ -433,9 +431,7 @@ const removeAll = () => {
     "warning"
   ).then((result) => {
     if (result.isConfirmed) {
-      emit("removeAllRows", () => {
-        prepareCheckboxes();
-      });
+      emit("removeAllRows");
     }
   });
 };
