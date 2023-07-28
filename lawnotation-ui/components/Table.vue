@@ -300,7 +300,7 @@ import { confirmBox } from "~/utils/confirmBox";
 
 const supabase = useSupabaseClient();
 
-const emit = defineEmits(["removeRows", "removeAllRows", "refresh"]);
+const emit = defineEmits(["removeRows", "removeAllRows"]);
 const selectedRows = reactive<string[]>([]);
 const allChecked = ref(false);
 
@@ -335,8 +335,13 @@ const sortClick = async (colname: string) => {
 };
 
 watch(
-  () => [props.tabledata.search.query, props.tabledata.search.column],
+  () => [
+    props.tabledata.search.query,
+    props.tabledata.search.column,
+    props.tabledata.total,
+  ],
   async () => {
+    console.log("Fired 1");
     props.tabledata.page = 1;
     await props.tabledata.load();
     prepareCheckboxes();

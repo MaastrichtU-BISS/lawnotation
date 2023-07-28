@@ -18,67 +18,67 @@
   />
 
   <div v-if="task">
-    <div class="text-center my-3">
-      <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
-        <button class="base btn-primary">Analyze Agreement Metrics</button>
-      </NuxtLink>
-    </div>
     <div class="dimmer-wrapper">
       <Dimmer v-model="assignmentTable.loading" />
       <Dimmer v-model="loading" />
       <div class="dimmer-content">
-        <h3 class="my-3 text-lg font-semibold">Assignments</h3>
-        <Table
-          :tabledata="assignmentTable"
-          :sort="true"
-          :search="true"
-          :remove="true"
-          @remove-rows="removeAssignments"
-          @remove-all-rows="removeAllAssignments"
-        >
-          <template #row="{ item }: { item: AssignmentTableData }">
-            <tr class="bg-white border-b hover:bg-gray-50">
-              <td class="px-6 py-2">
-                <input
-                  type="checkbox"
-                  :data-id="item.id.toString()"
-                  name="checkbox_table"
-                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                />
-              </td>
-              <td
-                scope="row"
-                class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-              >
-                {{ item.id }}
-              </td>
-              <td class="px-6 py-2">
-                {{ item.annotator.email }}
-              </td>
-              <td class="px-6 py-2">
-                {{ item.document.name }}
-              </td>
-              <td class="px-6 py-2">
-                <span
-                  :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'"
-                  >{{ item.status }}</span
-                >
-              </td>
-              <td class="px-6 py-2">
-                <span>{{ item.difficulty_rating }}</span>
-              </td>
-              <td class="px-6 py-2">
-                <NuxtLink class="base" :to="`/assignments/${item.id}`"> View </NuxtLink>
-              </td>
-            </tr>
-          </template>
-        </Table>
-
-        <div class="my-3">
-          <div
-            class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3"
+        <div v-show="assignmentTable.total">
+          <div class="text-center my-3">
+            <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
+              <button class="base btn-primary">Analyze Agreement Metrics</button>
+            </NuxtLink>
+          </div>
+          <h3 class="my-3 text-lg font-semibold">Assignments</h3>
+          <Table
+            :tabledata="assignmentTable"
+            :sort="true"
+            :search="true"
+            :remove="true"
+            @remove-rows="removeAssignments"
+            @remove-all-rows="removeAllAssignments"
           >
-            <h3 class="mt-3 text-lg font-semibold">
+            <template #row="{ item }: { item: AssignmentTableData }">
+              <tr class="bg-white border-b hover:bg-gray-50">
+                <td class="px-6 py-2">
+                  <input
+                    type="checkbox"
+                    :data-id="item.id.toString()"
+                    name="checkbox_table"
+                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                  />
+                </td>
+                <td
+                  scope="row"
+                  class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+                >
+                  {{ item.id }}
+                </td>
+                <td class="px-6 py-2">
+                  {{ item.annotator.email }}
+                </td>
+                <td class="px-6 py-2">
+                  {{ item.document.name }}
+                </td>
+                <td class="px-6 py-2">
+                  <span
+                    :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'"
+                    >{{ item.status }}</span
+                  >
+                </td>
+                <td class="px-6 py-2">
+                  <span>{{ item.difficulty_rating }}</span>
+                </td>
+                <td class="px-6 py-2">
+                  <NuxtLink class="base" :to="`/assignments/${item.id}`"> View </NuxtLink>
+                </td>
+              </tr>
+            </template>
+          </Table>
+        </div>
+        <div v-show="!assignmentTable.total" class="flex justify-center">
+          <div class="flex flex-col w-1/2 space-y-2 border-neutral-300">
+            <h3 class="mt-3 text-lg font-semibold text-center">Create assignments</h3>
+            <h3 class="mt-3 text-sm font-semibold">
               Annotators: {{ annotators_email.length }}
             </h3>
             <ul class="list-disc list-inside">
@@ -245,7 +245,6 @@ const createAssignments = async () => {
     }
 
     const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
-    console.log('xxxx', annotators_id);
 
     // Assign users and order to assignments
     let unshuffled: number[] = [
@@ -273,9 +272,8 @@ const createAssignments = async () => {
     }
 
     const updated_assignments = await Promise.all(assignmentsPromises);
-
-    loading.value = false;
     assignmentTable.load();
+    loading.value = false;
     $toast.success("Assignments successfully created");
   } catch (error) {
     loading.value = false;
@@ -295,8 +293,9 @@ const removeAssignments = async (ids: string[], callback: Function) => {
   $toast.success("Assignments successfully deleted!");
 };
 const removeAllAssignments = async (callback: Function) => {
+  if (!task.value) throw new Error("Invalid task!");
   loading.value = true;
-  await assignmentApi.deleteAllAssignments(task.value?.id);
+  await assignmentApi.deleteAllAssignments(task.value?.id.toString());
   await assignmentTable.load();
   await callback();
   loading.value = false;
