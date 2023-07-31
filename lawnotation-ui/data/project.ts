@@ -44,6 +44,18 @@ export const useProjectApi = () => {
     else return data as Project[];
   };
 
+  // Read all
+  const getCountByUser = async (editor_id: string): Promise<number> => {
+    const { data, error } = await supabase
+      .from("projects")
+      .select("count")
+      .eq("editor_id", editor_id)
+      .single();
+
+    if (error) throw Error(`Error in getCountByUser: ${error.message}`);
+    else return data.count;
+  };
+
   // Update
   const updateProject = async (
     id: string,
@@ -84,6 +96,7 @@ export const useProjectApi = () => {
     createProject,
     findProject,
     findProjects,
+    getCountByUser,
     updateProject,
     deleteProject,
     deleteAllProjects,

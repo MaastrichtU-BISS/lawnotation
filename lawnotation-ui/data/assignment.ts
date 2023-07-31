@@ -67,6 +67,16 @@ export const useAssignmentApi = () => {
   };
 
   // Read all
+  const getCountByUser = async (editor_id: string): Promise<never> => {
+    const { data, error } = await supabase
+      .rpc("get_count_assignments", { e_id: editor_id })
+      .single();
+
+    if (error) throw Error(`Error in getCountByUser: ${error.message}`);
+    else return data;
+  };
+
+  // Read all
   const findAssignmentsByTask = async (
     task_id: string
   ): Promise<Assignment[]> => {
@@ -189,6 +199,7 @@ export const useAssignmentApi = () => {
     createAssignment,
     createAssignments,
     findAssignment,
+    getCountByUser,
     findAssignmentsByTask,
     findAssignmentsByUser,
     updateAssignment,

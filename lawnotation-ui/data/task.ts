@@ -44,6 +44,16 @@ export const useTaskApi = () => {
     else return data as Task[];
   };
 
+  // Read all
+  const getCountByUser = async (editor_id: string): Promise<never> => {
+    const { data, error } = await supabase
+      .rpc("get_count_tasks", { e_id: editor_id })
+      .single();
+
+    if (error) throw Error(`Error in getCountByUser: ${error.message}`);
+    else return data;
+  };
+
   const getAllAnnotatorTasks = async (
     annotator_id: string
   ): Promise<Task[]> => {
@@ -90,6 +100,7 @@ export const useTaskApi = () => {
     createTask,
     findTask,
     findTasks,
+    getCountByUser,
     getAllAnnotatorTasks,
     updateTask,
     deleteTask,
