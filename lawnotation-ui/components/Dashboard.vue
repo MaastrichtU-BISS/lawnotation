@@ -1,6 +1,6 @@
 <template>
   <div>
-    <section class="countups my-5">
+    <section class="countups my-5 pt-5">
       <div class="flex justify-center text-center">
         <div
           class="p-6 bg-white border border-gray-200 rounded-lg shadow"
@@ -68,6 +68,25 @@
         </div>
       </div>
     </section>
+    <ClientOnly
+      ><section
+        class="charts my-5 py-12 flex justify-center p-6 bg-white border border-gray-200 rounded-lg shadow"
+      >
+        <span style="width: 400px">
+          <apexchart
+            id="difficulty"
+            :options="chartDifficultyOptions"
+            :series="chartDifficultySeries"
+          ></apexchart>
+        </span>
+        <span style="width: 400px">
+          <apexchart
+            id="completion"
+            :options="chartCompletionOptions"
+            :series="chartCompletionSeries"
+          ></apexchart>
+        </span></section
+    ></ClientOnly>
   </div>
 </template>
 <script setup lang="ts">
@@ -85,10 +104,61 @@ const projectsCount = ref<number>(0);
 const tasksCount = ref<number>(0);
 const assignmentsCount = ref<number>(0);
 
+const chartDifficultyOptions = ref();
+const chartDifficultySeries = ref();
+const chartCompletionOptions = ref();
+const chartCompletionSeries = ref();
+
 onMounted(async () => {
   projectsCount.value = await projectApi.getCountByUser(user.value?.id!);
   tasksCount.value = await taskApi.getCountByUser(user.value?.id!);
   assignmentsCount.value = await assignmentApi.getCountByUser(user.value?.id!);
+
+  chartDifficultyOptions.value = {
+    chart: {
+      type: "donut",
+      id: "difficulty",
+    },
+    title: {
+      text: "Assignments difficulty",
+      align: "center",
+    },
+    subtitle: {
+      text: "Average: 4.2",
+      align: "center",
+    },
+    legend: {
+      position: "bottom",
+    },
+    labels: [
+      "0 (Unrated)",
+      "1 (Very Easy)",
+      "2 (Easy)",
+      "3 (Normal)",
+      "4 (Hard)",
+      "5 (Very Hard)",
+    ],
+  };
+
+  chartDifficultySeries.value = [10, 15, 20, 25, 30, 35];
+
+  chartCompletionOptions.value = {
+    chart: {
+      type: "donut",
+      id: "completion",
+    },
+    title: {
+      text: "Assignments completion",
+      align: "center",
+    },
+    legend: {
+      position: "bottom",
+    },
+    labels: ["Done", "Pending"],
+    colors: ["rgb(0, 227, 150)", "rgb(255, 69, 96)"],
+  };
+
+  chartCompletionSeries.value = [40, 85];
 });
 </script>
 <style></style>
