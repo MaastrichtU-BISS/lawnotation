@@ -84,6 +84,7 @@
             id="completion"
             :options="chartCompletionOptions"
             :series="chartCompletionSeries"
+            :ref="hello"
           ></apexchart>
         </span></section
     ></ClientOnly>
@@ -103,62 +104,83 @@ const user = useSupabaseUser();
 const projectsCount = ref<number>(0);
 const tasksCount = ref<number>(0);
 const assignmentsCount = ref<number>(0);
+const assignmentsRated = ref<number>(0);
 
-const chartDifficultyOptions = ref();
-const chartDifficultySeries = ref();
-const chartCompletionOptions = ref();
-const chartCompletionSeries = ref();
+const chartDifficultyOptions = ref({
+  chart: {
+    type: "donut",
+    id: "difficulty",
+  },
+  title: {
+    text: "Assignments difficulty",
+    align: "center",
+  },
+  subtitle: {
+    text: `Average: 0}`,
+    align: "center",
+  },
+  legend: {
+    position: "bottom",
+  },
+  labels: ["Unrated", "Very Easy", "Easy", "Normal", "Hard", "Very Hard"],
+  colors: [
+    "rgb(173, 216, 230)",
+    "rgb(0, 227, 150)",
+    "rgb(59, 130, 246)",
+    "rgb(254, 176, 25)",
+    "rgb(255, 69, 96)",
+    "rgb(119, 93, 208)",
+  ],
+});
+const chartDifficultySeries = reactive<number[]>([0, 0, 0, 0, 0, 0]);
+const chartDifficultyAverage = ref<number>(0);
+const chartCompletionOptions = ref({
+  chart: {
+    type: "donut",
+    id: "completion",
+  },
+  title: {
+    text: "Assignments completion",
+    align: "center",
+  },
+  legend: {
+    position: "bottom",
+  },
+  labels: ["Done", "Pending"],
+  colors: ["rgb(0, 227, 150)", "rgb(255, 69, 96)"],
+});
+const chartCompletionSeries = reactive<number[]>([0, 0]);
 
 onMounted(async () => {
-  projectsCount.value = await projectApi.getCountByUser(user.value?.id!);
-  tasksCount.value = await taskApi.getCountByUser(user.value?.id!);
-  assignmentsCount.value = await assignmentApi.getCountByUser(user.value?.id!);
+  projectApi.getCountByUser(user.value?.id!).then((result) => {
+    projectsCount.value = result;
+  });
+  taskApi.getCountByUser(user.value?.id!).then((result) => {
+    tasksCount.value = result;
+  });
 
-  chartDifficultyOptions.value = {
-    chart: {
-      type: "donut",
-      id: "difficulty",
-    },
-    title: {
-      text: "Assignments difficulty",
-      align: "center",
-    },
-    subtitle: {
-      text: "Average: 4.2",
-      align: "center",
-    },
-    legend: {
-      position: "bottom",
-    },
-    labels: [
-      "0 (Unrated)",
-      "1 (Very Easy)",
-      "2 (Easy)",
-      "3 (Normal)",
-      "4 (Hard)",
-      "5 (Very Hard)",
-    ],
-  };
+  assignmentApi.getDifficultiesByEditor(user.value?.id!).then((result) => {
+    result.map((r) => {
+      chartDifficultySeries[r.difficulty] += r.count;
+      chartDifficultyAverage.value += r.difficulty * r.count;
+      assignmentsCount.value += r.count;
+      if (r.difficulty > 0) assignmentsRated.value += r.count;
+    });
+    chartDifficultyAverage.value /= assignmentsRated.value;
+    chartDifficultyOptions.value = {
+      ...chartDifficultyOptions.value,
+      subtitle: {
+        text: `Average: ${chartDifficultyAverage.value.toFixed(2)}`,
+        align: "center",
+      },
+    };
+  });
 
-  chartDifficultySeries.value = [10, 15, 20, 25, 30, 35];
-
-  chartCompletionOptions.value = {
-    chart: {
-      type: "donut",
-      id: "completion",
-    },
-    title: {
-      text: "Assignments completion",
-      align: "center",
-    },
-    legend: {
-      position: "bottom",
-    },
-    labels: ["Done", "Pending"],
-    colors: ["rgb(0, 227, 150)", "rgb(255, 69, 96)"],
-  };
-
-  chartCompletionSeries.value = [40, 85];
+  assignmentApi.getCompletionByEditor(user.value?.id!).then((result) => {
+    for (let i = 0; i < result.length; i++) {
+      chartCompletionSeries[i] = result[i].count;
+    }
+  });
 });
 </script>
 <style></style>

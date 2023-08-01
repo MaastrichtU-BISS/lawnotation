@@ -66,13 +66,48 @@ export const useAssignmentApi = () => {
     else return data as Assignment;
   };
 
-  // Read all
+  //
   const getCountByUser = async (editor_id: string): Promise<never> => {
     const { data, error } = await supabase
       .rpc("get_count_assignments", { e_id: editor_id })
       .single();
 
     if (error) throw Error(`Error in getCountByUser: ${error.message}`);
+    else return data;
+  };
+
+  const getDifficultiesByEditor = async (
+    editor_id: string
+  ): Promise<{ difficulty: number; count: number }[]> => {
+    const { data, error } = await supabase.rpc("get_difficulties_by_editor", {
+      e_id: editor_id,
+    });
+
+    if (error)
+      throw Error(`Error in getDifficultiesByEditor: ${error.message}`);
+    else return data;
+  };
+
+  const getCompletionByEditor = async (
+    editor_id: string
+  ): Promise<{ status: string; count: number }[]> => {
+    const { data, error } = await supabase.rpc("get_completion_by_editor", {
+      e_id: editor_id,
+    });
+
+    if (error) throw Error(`Error in getCompletionByEditor: ${error.message}`);
+    else return data;
+  };
+
+  const getCompletionByAnnotator = async (
+    annotator_id: string
+  ): Promise<{ status: string; count: number }[]> => {
+    const { data, error } = await supabase.rpc("get_completion_by_annotator", {
+      a_id: annotator_id,
+    });
+
+    if (error)
+      throw Error(`Error in getCompletionByAnnotator: ${error.message}`);
     else return data;
   };
 
@@ -125,6 +160,26 @@ export const useAssignmentApi = () => {
   ): Promise<Assignment> => {
     const { data, error } = await supabase
       .rpc("next_random_assignment", { a_id: annotator_id, t_id: task_id })
+      .single();
+
+    if (error)
+      throw Error(
+        `Error in findNextAssignmentsByUserAndTask: ${error.message}`
+      );
+    else return data as Assignment;
+  };
+
+  const findNextAssignmentByUser = async (
+    annotator_id: string
+  ): Promise<Assignment> => {
+    const { data, error } = await supabase
+      .from("assignments")
+      .select()
+      .eq("annotator_id", annotator_id)
+      .eq("status", "pending")
+      .order("task_id", { ascending: false })
+      .order("seq_pos", { ascending: true })
+      .limit(1)
       .single();
 
     if (error)
@@ -200,12 +255,16 @@ export const useAssignmentApi = () => {
     createAssignments,
     findAssignment,
     getCountByUser,
+    getDifficultiesByEditor,
+    getCompletionByEditor,
+    getCompletionByAnnotator,
     findAssignmentsByTask,
     findAssignmentsByUser,
     updateAssignment,
     deleteAssignment,
     deleteAllAssignments,
     findNextAssignmentsByUserAndTask,
+    findNextAssignmentByUser,
     countAssignmentsByUserAndTask,
     findAssignmentsByUserTaskSeq,
   };

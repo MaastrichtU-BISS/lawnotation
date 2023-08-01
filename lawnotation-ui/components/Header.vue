@@ -42,12 +42,12 @@ const routeIsActive = computed(() => {
 
 onMounted(async () => {
   if (user.value) {
-    role.value = ((await userApi.findByEmail(user.value?.email, "role")) as User).role;
+    role.value = ((await userApi.findByEmail(user.value?.email!, "role")) as User).role;
   } else {
     watch(user, async () => {
       if (user.value) {
         role.value = ((await userApi.findByEmail(
-          user.value?.email,
+          user.value?.email!,
           "role"
         )) as User).role;
       }
