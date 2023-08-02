@@ -6,7 +6,10 @@
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
 import { LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
-import { LSSerializedRelation, useAnnotationRelationApi } from "~/data/annotation_relations";
+import {
+  LSSerializedRelation,
+  useAnnotationRelationApi,
+} from "~/data/annotation_relations";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { LsLabels } from "~/data/labelset";
 
@@ -45,23 +48,27 @@ const clickNext = async () => {
 
   const serializedAnnotations: any[] = serializeLSAnnotations();
 
-  const pos_rating: number = serializedAnnotations.findIndex(x => x.type == 'rating');
+  const pos_rating: number = serializedAnnotations.findIndex((x) => x.type == "rating");
   let rating: number = props.assignment.difficulty_rating;
-  if(pos_rating >= 0) {
+  if (pos_rating >= 0) {
     rating = serializedAnnotations[pos_rating].value.rating;
     serializedAnnotations.splice(pos_rating, 1);
   }
 
-  if (props.assignment.status !== "done" &&
+  if (
+    props.assignment.status !== "done" &&
     serializedAnnotations.length === 0 &&
-    !confirm("No annotations were made in this document.\nAre you sure you want to continue?")) {
+    !confirm(
+      "No annotations were made in this document.\nAre you sure you want to continue?"
+    )
+  ) {
     return;
   }
 
   await updateAnnotationsAndRelations(serializedAnnotations);
   await assignmentApi.updateAssignment(props.assignment.id.toString(), {
     status: "done",
-    difficulty_rating: rating
+    difficulty_rating: rating,
   });
   emit("nextAssignment");
 };
@@ -101,7 +108,7 @@ const initLS = async () => {
                     </View>
                   </View>
                   <View style="padding: .7em; border-top: 1px solid rgba(0,0,0,.1)">
-                    <Header style="margin-bottom: 0; margin: 0px" value="Rate the difficulty of this assignment"/>
+                    <Header style="margin-bottom: 0; margin: 0px" value="Confidence (1=not confident at all, 5=very confident)"/>
                     <Rating value="$diff-rating" toName="rating" name="rating" maxRating="5" icon="star" size="medium" />
                   </View>
                 </View>
@@ -144,7 +151,7 @@ const initLS = async () => {
       // predictions: this.predictions,
       data: {
         text: props.text,
-        diff_rating: props.assignment?.difficulty_rating
+        diff_rating: props.assignment?.difficulty_rating,
       },
     },
     onLabelStudioLoad: (LS: any) => {
@@ -242,13 +249,13 @@ onMounted(() => {
   waitForElement('.lsf-button[aria-label="submit"]').then(
     (el) => (el.innerHTML = "Next")
   );
-  waitForElement('.ant-rate').then(
-    (el) => {
-      if( props.assignment?.difficulty_rating! < 1) return;
-      document.getElementsByClassName('ant-rate-star-zero')
-      .item(props.assignment?.difficulty_rating! - 1)?.firstChild?.click();
-    }
-  );
+  waitForElement(".ant-rate").then((el) => {
+    if (props.assignment?.difficulty_rating! < 1) return;
+    document
+      .getElementsByClassName("ant-rate-star-zero")
+      .item(props.assignment?.difficulty_rating! - 1)
+      ?.firstChild?.click();
+  });
 });
 </script>
 <style>
