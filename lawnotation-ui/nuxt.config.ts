@@ -2,18 +2,12 @@
 export default defineNuxtConfig({
   runtimeConfig: {
     public: {
-      baseURL: process.env.NODE_ENV === 'production' ? 'https://lawnotation.vercel.app' : 'http://localhost:3000'
-    }
-  },
-  modules: ['@nuxtjs/supabase'],
-  postcss: {
-    plugins: {
-      tailwindcss: {},
-      autoprefixer: {},
+      baseURL:
+        process.env.NODE_ENV === "production"
+          ? "https://lawnotation.vercel.app"
+          : "http://localhost:3000",
     },
   },
-  css: [
-    '@/style/main.scss',
-    '@vueform/multiselect/themes/default.css'
-  ]
-})
+  modules: ["@nuxtjs/supabase", "@nuxtjs/tailwindcss"],
+  css: ["@/assets/styles/main.scss", "@vueform/multiselect/themes/default.css"],
+});
