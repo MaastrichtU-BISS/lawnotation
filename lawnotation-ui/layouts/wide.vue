@@ -1,6 +1,4 @@
-<script setup lang="ts">
-import Header from '@/components/Header.vue'
-</script>
+<script setup lang="ts"></script>
 <template>
   <div>
     <Header></Header>
@@ -8,5 +6,4 @@ import Header from '@/components/Header.vue'
     <slot />
   </div>
 </template>
-<style>
-</style>
+<style></style>
