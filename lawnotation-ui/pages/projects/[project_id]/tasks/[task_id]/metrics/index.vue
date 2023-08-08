@@ -31,84 +31,91 @@
         <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
           <ul class="space-y-2 text-sm">
             <li>
-              <label>Label</label>
+              <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                >Label</label
+              >
               <Multiselect
                 v-model="selectedLabel"
                 :options="labelsOptions"
                 :searchable="true"
                 placeholder="Select a Label"
+                @change="selectLabel"
               />
             </li>
             <li>
-              <label>Document(s)</label>
+              <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                >Document(s)</label
+              >
               <Multiselect
-                v-model="selectedDocument"
+                v-model="selectedDocuments"
+                :mode="'tags'"
+                :close-on-select="false"
                 :options="documentsOptions"
                 :searchable="true"
-                placeholder="Select a Document"
+                placeholder="All"
+                @change="selectDocument"
               />
             </li>
             <li>
-              <label>Annotators</label>
+              <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                >Annotators</label
+              >
               <Multiselect
                 v-model="selectedAnnotators"
                 :options="annotatorsOptions"
-                mode="tags"
+                :mode="'tags'"
                 :searchable="true"
                 :close-on-select="false"
                 placeholder="All"
+                @change="selectAnnotators"
               />
             </li>
             <li>
-              <button
-                class="w-full flex justify-center rounded-md bg-secondary px-3 py-1.5 text-sm font-semibold leading-6 text-primary shadow-sm hover:bg-secondary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                @click="getAnnotations"
-              >
-                Get Annotations
-              </button>
-            </li>
-            <li>
-              <label class="mr-2">Tolerance</label>
-              <input
-                class="base"
-                type="number"
-                v-model="tolerance"
-                min="0"
-                max="10"
-                step="1"
-              />
+              <div>
+                <label
+                  for="small-input"
+                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                  >Tolerance</label
+                >
+                <input
+                  type="number"
+                  id="small-input"
+                  v-model="tolerance"
+                  min="0"
+                  max="10"
+                  step="1"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                />
+              </div>
             </li>
             <li class="text-center">
-              <span>
+              <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
+                >Annotations</span
+              >
+              <label class="relative inline-flex items-center mb-4 cursor-pointer">
                 <input
-                  checked
-                  id="radio-default"
-                  type="radio"
-                  @click="defaultClicked"
-                  name="radio"
-                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                  type="checkbox"
+                  value=""
+                  class="sr-only peer"
+                  @input="
+                    ($event: Event) => {
+                      ($event.target as chec).checked ? wordsClicked() : defaultClicked();
+                    }
+                  "
                 />
-                <label for="radio-default" class="ml-2 text-sm font-medium text-gray-900"
-                  >Default</label
-                >
-              </span>
-              <span class="ml-4">
-                <input
-                  id="radio-words"
-                  type="radio"
-                  @click="wordsClicked"
-                  name="radio"
-                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                />
-                <label for="radio-words" class="ml-2 text-sm font-medium text-gray-900"
-                  >Words</label
-                ></span
+
+                <div
+                  class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+                ></div>
+              </label>
+              <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300"
+                >Words</span
               >
             </li>
             <li>
               <button
                 :disabled="
-                  !selectedDocument ||
+                  !selectedDocuments ||
                   !selectedLabel ||
                   selectedAnnotators?.length == 1 ||
                   selectedAnnotators?.length == 2
@@ -116,32 +123,7 @@
                 class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
                 @click="compute_metric('krippendorff')"
               >
-                Krippendorff's alfa
-              </button>
-            </li>
-            <li>
-              <button
-                :disabled="
-                  !selectedDocument ||
-                  !selectedLabel ||
-                  selectedAnnotators?.length == 1 ||
-                  selectedAnnotators?.length == 2
-                "
-                class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                @click="compute_metric('fleiss_kappa')"
-              >
-                Fleiss Kappa
-              </button>
-            </li>
-            <li>
-              <button
-                :disabled="
-                  !selectedDocument || !selectedLabel || selectedAnnotators?.length != 2
-                "
-                class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                @click="compute_metric('cohens_kappa')"
-              >
-                Cohens Kappa
+                Compute Metrics
               </button>
             </li>
             <li>
@@ -155,9 +137,9 @@
           </ul>
         </div>
       </aside>
-      <div class="p-4 sm:ml-64" style="margin-left: 20rem">
+      <div class="px-4 sm:ml-64" style="margin-left: 20rem">
         <div class="my-3">
-          <div class="dimmer-wrapper" style="min-height: 200px">
+          <div class="dimmer-wrapper" style="min-height: 200px; display: none">
             <Dimmer v-model="loading" />
             <div class="dimmer-content">
               <div class="flex my-10"></div>
@@ -189,14 +171,15 @@
             </div>
           </div>
           <div v-if="annotations && annotations.length">
-            <h5 class="text-lg font-semibold my-5">
+            <h3 class="text-2xl font-bold my-5 text-center">
               Annotations: {{ annotations.length }}
-            </h5>
+            </h3>
             <ul>
               <li v-for="(ann, index) in annotations">
                 <RangeLabelCmpt
                   :annotation="ann"
                   :index="index"
+                  :is-new-doc="isNewDoc(index)"
                   :can-merge-up="canMergeUp(index)"
                   :can-merge-down="canMergeDown(index)"
                   @separate="emitSeparate"
@@ -218,7 +201,7 @@ import { ExportToCsv } from "export-to-csv";
 import Multiselect from "@vueform/multiselect";
 import { Task, useTaskApi } from "~/data/task";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { BasicAnnotation, useAnnotationApi } from "~/data/annotation";
+import { RichAnnotation, useAnnotationApi } from "~/data/annotation";
 import { Document, useDocumentApi } from "~/data/document";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
 import { Project, useProjectApi } from "~/data/project";
@@ -244,9 +227,7 @@ const task = ref<Task>();
 const project = ref<Project>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
-const selectedDocument = ref<string>();
-const selectedDocumentText = ref<string>();
-const selectedDocumentName = ref<string>();
+const selectedDocuments = ref<string[]>();
 
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotators = ref<string[]>();
@@ -259,119 +240,156 @@ const tolerance = ref<number>(0);
 const loading = ref(false);
 const separate_into_words = ref(false);
 
-const annotations = reactive<BasicAnnotation[]>([]);
+const annotations = reactive<RichAnnotation[]>([]);
 const metric_result = ref<MetricResult>();
 
-const getAnnotations = async () => {
-  if (!task.value) {
-    $toast.error(`Invalid Task`);
-    return;
-  }
-  if (!selectedDocument.value) {
-    $toast.error(`Invalid Document`);
-    return;
-  }
-  if (!selectedLabel.value) {
-    $toast.error(`Invalid Label`);
-    return;
+const setSelectedDocumentsAndAnnotators = () => {
+  if (!selectedDocuments.value || selectedDocuments.value.length == 0) {
+    selectedDocuments.value = [];
+    selectedDocuments.value.push(...documentsOptions.map((d) => d.value));
   }
 
   if (!selectedAnnotators.value || selectedAnnotators.value.length == 0) {
     selectedAnnotators.value = [];
     selectedAnnotators.value.push(...annotatorsOptions);
   }
+};
 
+const selectLabel = (value: string) => {
+  if (!task.value) {
+    $toast.error(`Invalid Task`);
+    return;
+  }
+  selectedLabel.value = value;
+  setSelectedDocumentsAndAnnotators();
+  getAnnotations(
+    task.value.id.toString(),
+    selectedLabel.value,
+    selectedDocuments.value!,
+    selectedAnnotators.value!
+  );
+};
+
+const selectDocument = (value: any) => {
+  if (!task.value) {
+    $toast.error(`Invalid Task`);
+    return;
+  }
+  if (!selectedLabel.value) {
+    $toast.error(`Invalid Label`);
+    return;
+  }
+  selectedDocuments.value = [];
+  selectedDocuments.value.push(...value);
+  setSelectedDocumentsAndAnnotators();
+  getAnnotations(
+    task.value.id.toString(),
+    selectedLabel.value,
+    selectedDocuments.value,
+    selectedAnnotators.value!
+  );
+};
+
+const selectAnnotators = (value: any) => {
+  if (!task.value) {
+    $toast.error(`Invalid Task`);
+    return;
+  }
+  if (!selectedLabel.value) {
+    $toast.error(`Invalid Label`);
+    return;
+  }
+  selectedAnnotators.value = [];
+  selectedAnnotators.value.push(...value);
+  setSelectedDocumentsAndAnnotators();
+  getAnnotations(
+    task.value.id.toString(),
+    selectedLabel.value,
+    selectedDocuments.value!,
+    selectedAnnotators.value!
+  );
+};
+
+const getAnnotations = async (
+  task_id: string,
+  label: string,
+  documents: string[],
+  annotators: string[]
+) => {
   loading.value = true;
   metric_result.value = undefined;
-  annotations.splice(0);
 
-  const d = await documentApi.findDocument(selectedDocument.value);
-  selectedDocumentText.value = d.full_text;
-  selectedDocumentName.value = d.name.substring(0, d.name.length - 4);
-
-  const anns = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
-    task.value.id.toString(),
-    selectedDocument.value,
-    selectedLabel.value,
-    selectedAnnotators.value
-  );
-
-  annotations.splice(0) &&
-    annotations.push(
-      ...anns.map((a) => {
-        return {
-          start: a.start_index,
-          end: a.end_index,
-          text: a.text,
-          label: a.label,
-          annotator: (a as any).assignment.annotator.email,
-          hidden: false,
-          ann_id: a.id,
-        };
-      })
+  let result = [];
+  for (let i = 0; i < documents.length; i++) {
+    const anns = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
+      task_id,
+      documents[i],
+      label,
+      annotators
     );
-
-  getNonAnnotations();
+    const annsAndNans = await getNonAnnotations(anns);
+    result.push(...annsAndNans);
+  }
 
   if (separate_into_words.value) {
-    separateIntoWords();
+    result = separateIntoWords(result);
   }
+
+  annotations.splice(0) && annotations.push(...result);
 
   loading.value = false;
 };
 
-const getNonAnnotations = async () => {
-  if (!selectedDocumentText.value) {
-    $toast.error(`Invalid Document`);
-    return;
-  }
-
+const getNonAnnotations = async (annotations: RichAnnotation[]) => {
+  if (!annotations || !annotations.length) return [];
   sortByRange(annotations);
-  var new_annotations: BasicAnnotation[] = [];
-
-  var last_end = 0;
+  var new_annotations: RichAnnotation[] = [];
+  var last_end: number = 0;
+  var previous_ann = annotations[0];
   for (let i = 0; i < annotations.length; ++i) {
-    var current_start = annotations[i].start;
-    if (last_end < current_start) {
+    var current_ann = annotations[i];
+    if (last_end < current_ann.start) {
       new_annotations.push({
         start: last_end,
-        end: current_start,
+        end: current_ann.start,
         label: "NOT ANNOTATED",
-        text: selectedDocumentText.value.substring(last_end, current_start),
+        text: current_ann.doc_text.substring(last_end, current_ann.start),
         annotator: "",
         hidden: false,
         ann_id: -1,
+        doc_id: current_ann.doc_id,
+        doc_name: current_ann.doc_name,
+        doc_text: current_ann.doc_text,
       });
     }
-    new_annotations.push(annotations[i]);
-    var last_end = Math.max(last_end, annotations[i].end);
+    new_annotations.push(current_ann);
+    last_end = Math.max(last_end, current_ann.end);
+    previous_ann = current_ann;
   }
-
   new_annotations.push({
     start: last_end,
-    end: selectedDocumentText.value.length,
+    end: previous_ann.doc_text.length,
     label: "NOT ANNOTATED",
-    text: selectedDocumentText.value.substring(
-      last_end,
-      selectedDocumentText.value.length
-    ),
+    text: previous_ann.doc_text.substring(last_end, previous_ann.doc_text.length),
     annotator: "",
     hidden: false,
     ann_id: -1,
+    doc_id: previous_ann.doc_id,
+    doc_name: previous_ann.doc_name,
+    doc_text: previous_ann.doc_text,
   });
-
-  annotations.splice(0) && annotations.push(...new_annotations);
+  return new_annotations;
 };
 
 const compute_metric = async (metric: string) => {
   loading.value = true;
 
-  if (!selectedDocumentText.value || !selectedDocumentName.value)
+  if (!selectedDocumentsText.value || !selectedDocumentsName.value)
     throw new Error("Invalid Document");
 
   if (!annotations || annotations.length == 0) {
     $toast.error(
-      `There are no annotations for document ${selectedDocumentName.value} and label ${selectedLabel.value}`
+      `There are no annotations for document ${selectedDocumentsName.value} and label ${selectedLabel.value}`
     );
     metric_result.value = undefined;
     return;
@@ -406,7 +424,7 @@ const getDownloadOptions = async (d: string, l: string) => {
 };
 
 const downloadCSV = async () => {
-  if (!selectedDocumentName.value) {
+  if (!selectedDocumentsName.value) {
     $toast.error(`Invalid Document`);
     return;
   }
@@ -415,7 +433,7 @@ const downloadCSV = async () => {
     return;
   }
   const options = await getDownloadOptions(
-    selectedDocumentName.value,
+    selectedDocumentsName.value,
     selectedLabel.value
   );
 
@@ -441,7 +459,7 @@ const downloadAll = async () => {
   let count: number = 0;
   for (let i = 0; i < documentsOptions.length; i++) {
     for (let j = 0; j < labelsOptions.length; j++) {
-      selectedDocument.value = documentsOptions[i].value;
+      selectedDocuments.value = documentsOptions[i].value;
       selectedLabel.value = labelsOptions[j];
       await getAnnotations();
       if (annotations.length > 0) count++;
@@ -455,13 +473,25 @@ const downloadAll = async () => {
 };
 
 const canMergeUp = (index: number): Boolean => {
-  return index > 0 && annotations[index - 1].ann_id == annotations[index].ann_id;
+  return (
+    index > 0 &&
+    annotations[index - 1].doc_id == annotations[index].doc_id &&
+    annotations[index - 1].ann_id == annotations[index].ann_id
+  );
 };
 
 const canMergeDown = (index: number): Boolean => {
   return (
     index < annotations.length - 1 &&
+    annotations[index + 1].doc_id == annotations[index].doc_id &&
     annotations[index + 1].ann_id == annotations[index].ann_id
+  );
+};
+
+const isNewDoc = (index: number): Boolean => {
+  return (
+    index == 0 ||
+    (index > 0 && annotations[index - 1].doc_id != annotations[index].doc_id)
   );
 };
 
@@ -479,14 +509,17 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
     annotator: current.annotator,
     hidden: false,
     ann_id: current.ann_id,
+    doc_id: current.doc_id,
+    doc_name: current.doc_name,
+    doc_text: current.doc_text,
   });
 };
 
-const separateIntoWords = () => {
+const separateIntoWords = (annotations: RichAnnotation[]) => {
   metric_result.value = undefined;
   let limit = 10 ** 6;
   loading.value = true;
-  var new_annotations: BasicAnnotation[] = [];
+  var new_annotations: RichAnnotation[] = [];
 
   annotations.forEach((ann) => {
     const words = ann.text.matchAll(/\S+/g);
@@ -501,38 +534,43 @@ const separateIntoWords = () => {
         annotator: ann.annotator,
         hidden: false,
         ann_id: ann.ann_id,
+        doc_id: ann.doc_id,
+        doc_name: ann.doc_name,
+        doc_text: ann.doc_text,
       });
       limit--;
     }
   });
-  annotations.splice(0) && annotations.push(...new_annotations);
   loading.value = false;
+  return new_annotations;
 };
 
 const defaultClicked = () => {
   separate_into_words.value = false;
-  if (annotations && annotations.length) {
-    getAnnotations();
-  }
+  getAnnotations(
+    task.value?.id.toString()!,
+    selectedLabel.value!,
+    selectedDocuments.value!,
+    selectedAnnotators.value!
+  );
 };
 
 const wordsClicked = () => {
   separate_into_words.value = true;
-  if (annotations && annotations.length) {
-    getAnnotations();
-  }
+  getAnnotations(
+    task.value?.id.toString()!,
+    selectedLabel.value!,
+    selectedDocuments.value!,
+    selectedAnnotators.value!
+  );
 };
 
 const emitMergeUp = (ann_index: number): void => {
-  if (!selectedDocumentText.value) {
-    $toast.error(`Invalid Document`);
-    return;
-  }
   const current = _.clone(annotations[ann_index]);
   const previous = _.clone(annotations[ann_index - 1]);
 
   annotations[ann_index - 1].end = current.end;
-  annotations[ann_index - 1].text = selectedDocumentText.value.substring(
+  annotations[ann_index - 1].text = current.doc_text.substring(
     previous.start,
     current.end
   )!;
@@ -542,18 +580,11 @@ const emitMergeUp = (ann_index: number): void => {
 };
 
 const emitMergeDown = (ann_index: number): void => {
-  if (!selectedDocumentText.value) {
-    $toast.error(`Invalid Document`);
-    return;
-  }
   const current = _.clone(annotations[ann_index]);
   const next = _.clone(annotations[ann_index + 1]);
 
   annotations[ann_index + 1].start = current.start;
-  annotations[ann_index + 1].text = selectedDocumentText.value.substring(
-    current.start,
-    next.end
-  );
+  annotations[ann_index + 1].text = current.doc_text.substring(current.start, next.end);
 
   annotations[ann_index].hidden = false;
   annotations.splice(ann_index, 1);

@@ -1,8 +1,13 @@
 <template>
   <div
     class="py-3 annotation-record"
-    :class="canMergeUp ? 'border-top-thin' : 'border-top-thick'"
+    :class="
+      canMergeUp ? 'border-top-thin' : isNewDoc ? 'border-top-thick' : 'border-top-medium'
+    "
   >
+    <h5 v-if="isNewDoc" class="text-lg font-semibold mb-3 ml-1">
+      {{ annotation.doc_name.substring(0, annotation.doc_name.length - 4) }}
+    </h5>
     <div class="text-xs mb-2" :style="annotated ? 'color: green' : 'color: red'">
       <b class="ml-1">{{ annotated ? "Annotated" : "Not Annotated" }}</b>
       <span class="ml-3 text-xs text-gray-500">
@@ -22,25 +27,28 @@
       <button
         v-if="canMergeUp"
         @click="emit('mergeUp', index)"
-        class="ml-2 base btn-secondary"
+        class="ml-2 text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700 text-xs"
       >
         &#8593;
       </button>
       <button
         v-if="canMergeDown"
         @click="emit('mergeDown', index)"
-        class="ml-2 base btn-secondary"
+        class="ml-2 text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700 text-xs"
       >
         &#8595;
       </button>
-      <button class="ml-2 base btn-secondary" @click="toggle_hide">
+      <button
+        class="ml-2 base text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700 text-xs"
+        @click="toggle_hide"
+      >
         {{ _hidden ? "Show" : "Hide" }}
       </button>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { BasicAnnotation } from "~/data/annotation";
+import { RichAnnotation } from "~/data/annotation";
 
 const emit = defineEmits(["separate", "mergeUp", "mergeDown", "setHidden"]);
 const _hidden = ref<Boolean>();
@@ -67,10 +75,11 @@ const toggle_hide = () => {
 };
 
 const props = defineProps<{
-  annotation: BasicAnnotation;
+  annotation: RichAnnotation;
   index: number;
   canMergeUp: Boolean;
   canMergeDown: Boolean;
+  isNewDoc: Boolean;
 }>();
 
 watch(props.annotation, (new_val) => {
@@ -84,6 +93,10 @@ onMounted(async () => {
 </script>
 <style>
 .border-top-thick {
+  border-top: solid 2px black;
+}
+
+.border-top-medium {
   border-top: solid 1px gray;
 }
 

@@ -4,7 +4,7 @@
       <Header></Header>
       <div id="breadcrumb-holder" class="bg-white dark:bg-gray-800"></div>
     </div>
-    <div class="mx-auto py-4 px-4">
+    <div style="height: calc(100vh - 132px); overflow: auto" class="mx-auto px-4">
       <slot />
     </div>
   </div>
