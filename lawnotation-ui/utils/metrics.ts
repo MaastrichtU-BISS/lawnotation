@@ -1,4 +1,4 @@
-import { BasicAnnotation } from "~/data/annotation";
+import { RichAnnotation } from "~/data/annotation";
 
 export type RangeLabel = {
   start: number;
@@ -6,6 +6,8 @@ export type RangeLabel = {
   label: string;
   text: string;
   annotators: any;
+  doc_id: string;
+  doc_name: string;
   zeros: number;
   ones: number;
 };
@@ -16,7 +18,6 @@ export type MetricResult = {
   pe: number;
   result: number;
   table: RangeLabel[];
-  variant: string;
 };
 
 export function createContingencyTable(
@@ -33,6 +34,8 @@ export function createContingencyTable(
       label: x.label,
       text: x.text,
       annotators: {},
+      doc_id: x.doc_id,
+      doc_name: x.doc_name,
       zeros: 0,
       ones: 0,
     };
@@ -55,7 +58,7 @@ export function createContingencyTable(
   return table;
 }
 
-export function sortByRange(ranges: RangeLabel[] | BasicAnnotation[]): void {
+export function sortByRange(ranges: RangeLabel[] | RichAnnotation[]): void {
   ranges.sort((x, y) => {
     if (x.start < y.start) {
       return -1;

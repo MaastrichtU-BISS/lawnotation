@@ -16,9 +16,6 @@ dependencies:
   epic-spinners:
     specifier: ^2.0.0
     version: 2.0.0(vue@3.3.2)
-  export-to-csv:
-    specifier: ^0.2.1
-    version: 0.2.1
   flowbite:
     specifier: ^1.8.1
     version: 1.8.1
@@ -34,6 +31,9 @@ dependencies:
   vue3-apexcharts:
     specifier: ^1.4.4
     version: 1.4.4(apexcharts@3.41.1)(vue@3.3.2)
+  xlsx:
+    specifier: https://cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz
+    version: '@cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz'
 
 devDependencies:
   '@nuxtjs/supabase':
@@ -3983,10 +3983,6 @@ packages:
       strip-final-newline: 3.0.0
     dev: true
 
-  /export-to-csv@0.2.1:
-    resolution: {integrity: sha512-KTbrd3CAZ0cFceJEZr1e5uiMasabeCpXq1/5uvVxDl53o4jXJHnltasQoj2NkzrxD8hU9kdwjnMhoir/7nNx/A==}
-    dev: false
-
   /ext@1.7.0:
     resolution: {integrity: sha512-6hxeJYaL110a9b5TEJSj0gojyHQAmA2ch5Os+ySCiA1QGdS697XWY1pzsrSjqA9LDEEgdB/KypIlR59RcLuHYw==}
     dependencies:
@@ -7772,3 +7768,11 @@ packages:
       compress-commons: 4.1.1
       readable-stream: 3.6.2
     dev: true
+
+  '@cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz':
+    resolution: {tarball: https://cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz}
+    name: xlsx
+    version: 0.20.0
+    engines: {node: '>=0.8'}
+    hasBin: true
+    dev: false
