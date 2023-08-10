@@ -93,32 +93,35 @@
                   />
                 </div>
               </li>
-              <li class="text-center flex justify-center">
-                <label
-                  class="relative grid grid-cols-[1fr_min-content_1fr] items-center mb-4 cursor-pointer"
-                >
-                  <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                    >Annotations</span
+              <li>
+                <div class="text-center flex justify-center my-4">
+                  <label
+                    class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
                   >
-                  <input
-                    type="checkbox"
-                    value=""
-                    class="sr-only peer"
-                    @input="
+                    <span
+                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
+                      >Annotations</span
+                    >
+                    <input
+                      type="checkbox"
+                      value=""
+                      class="sr-only peer"
+                      @input="
                     ($event: Event) => {
-                      $event.target.checked ? wordsClicked() : defaultClicked();
+                        modeToggle($event.target.checked);
                     }
                   "
-                  />
+                    />
 
-                  <div
-                    class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                  ></div>
-                  <span
-                    class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                    >Words</span
-                  >
-                </label>
+                    <div
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+                    ></div>
+                    <span
+                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
+                      >Words</span
+                    >
+                  </label>
+                </div>
               </li>
               <li>
                 <button
@@ -240,6 +243,7 @@
 </template>
 <script setup lang="ts">
 import * as XLSX from "xlsx";
+import JSZip from "jszip";
 import Multiselect from "@vueform/multiselect";
 import { Task, useTaskApi } from "~/data/task";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
@@ -385,25 +389,30 @@ const getAnnotations = async (
     cohens_kappa: undefined,
     loading: false,
   };
-  let result = [];
-  for (let i = 0; i < documents.length; i++) {
-    const anns = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
-      task_id,
-      documents[i],
-      label,
-      annotators
-    );
-    const annsAndNans = await getNonAnnotations(anns);
-    result.push(...annsAndNans);
+  try {
+    let result = [];
+    for (let i = 0; i < documents.length; i++) {
+      const anns = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
+        task_id,
+        documents[i],
+        label,
+        annotators
+      );
+      const annsAndNans = await getNonAnnotations(anns);
+      result.push(...annsAndNans);
+    }
+
+    if (separate_into_words.value) {
+      result = separateIntoWords(result);
+    }
+
+    annotations.splice(0) && annotations.push(...result);
+
+    loading_annotations.value = false;
+  } catch (error) {
+    console.log(error);
+    loading_annotations.value = false;
   }
-
-  if (separate_into_words.value) {
-    result = separateIntoWords(result);
-  }
-
-  annotations.splice(0) && annotations.push(...result);
-
-  loading_annotations.value = false;
 };
 
 const getNonAnnotations = async (annotations: RichAnnotation[]) => {
@@ -560,8 +569,33 @@ const getXlslTab = async (
   return [worksheetMetrics, worksheetAnnotations];
 };
 
+const getZippeableBlob = async (workBook: XLSX.WorkBook) => {
+  const b64Data = XLSX.writeXLSX(workBook, {
+    bookType: "xlsx",
+    type: "base64",
+    compression: true,
+  });
+
+  const contentType = "application/octet-stream";
+
+  const dataUrl = `data:${contentType};base64,${b64Data}`;
+  const blob = await (await fetch(dataUrl)).blob();
+  return blob;
+};
+
+const download_blob = async (blob: Blob) => {
+  const element = window.document.createElement("a");
+  element.setAttribute("href", URL.createObjectURL(blob));
+  element.setAttribute("download", `${task.value?.name}.zip`);
+  element.style.display = "none";
+  window.document.body.appendChild(element);
+  element.click();
+  window.document.body.removeChild(element);
+};
+
 const downloadAll = async () => {
   loading_download.value = true;
+  const zip = new JSZip();
   try {
     for (let i = 0; i < documentsOptions.length; i++) {
       const document = documentsOptions[i];
@@ -580,12 +614,8 @@ const downloadAll = async () => {
         XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
       }
       const filename = document.label.substring(0, document.label.length - 4);
-      XLSX.writeFile(workbookMetrics, `${filename}_metrics.xlsx`, {
-        compression: true,
-      });
-      XLSX.writeFile(workbookAnnotations, `${filename}_annotations.xlsx`, {
-        compression: true,
-      });
+      zip.file(`${filename}_metrics.xlsx`, getZippeableBlob(workbookMetrics));
+      zip.file(`${filename}_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
     }
 
     const workbookMetrics = XLSX.utils.book_new();
@@ -602,18 +632,20 @@ const downloadAll = async () => {
       XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
       XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
     }
-    XLSX.writeFile(workbookMetrics, `${task.value?.name}_metrics.xlsx`, {
-      compression: true,
-    });
-    XLSX.writeFile(workbookAnnotations, `${task.value?.name}_annotations.xlsx`, {
-      compression: true,
-    });
+    zip.file(`_metrics.xlsx`, getZippeableBlob(workbookMetrics));
+    zip.file(`_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
+
+    const blob = await zip.generateAsync({ type: "blob" });
+
+    download_blob(blob);
+
+    $toast.success(`One .zip file has been downloaded!`);
   } catch (error) {
+    console.log(error);
     loading_download.value = false;
   }
 
   loading_download.value = false;
-  $toast.success(`${documentsOptions.length * 2 + 2} .xlsx files have been downloaded!`);
 };
 
 const canMergeUp = (index: number): Boolean => {
@@ -691,18 +723,15 @@ const separateIntoWords = (annotations: RichAnnotation[]) => {
   return new_annotations;
 };
 
-const defaultClicked = () => {
-  separate_into_words.value = false;
-  getAnnotations(
-    task.value?.id.toString()!,
-    selectedLabel.value!,
-    selectedDocuments.value!,
-    selectedAnnotators.value!
-  );
-};
-
-const wordsClicked = () => {
-  separate_into_words.value = true;
+const modeToggle = (value: boolean) => {
+  separate_into_words.value = value;
+  if (!task.value) {
+    $toast.error(`Invalid Task`);
+    return;
+  }
+  if (!selectedLabel.value) {
+    return;
+  }
   getAnnotations(
     task.value?.id.toString()!,
     selectedLabel.value!,
