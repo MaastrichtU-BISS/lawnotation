@@ -131,7 +131,7 @@
                     selectedAnnotators?.length == 1
                   "
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                  @click="compute_metrics(annotations, selectedAnnotators!, tolerance)"
+                  @click="clickComputeMetrics"
                 >
                   Compute Metrics
                 </button>
@@ -252,10 +252,15 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Labelset, useLabelsetApi } from "~/data/labelset";
 import { Project, useProjectApi } from "~/data/project";
 import { User, useUserApi } from "~/data/user";
-import { MetricResult, RangeLabel, sortByRange } from "~/utils/metrics";
+import {
+  MetricResult,
+  newEmptyMetricResult,
+  RangeLabel,
+  sortByRange,
+} from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
 
-import _ from "lodash";
+import _, { mergeWith, result } from "lodash";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -326,13 +331,15 @@ const selectLabel = (value: string) => {
     return;
   }
   selectedLabel.value = value;
-  setSelectedDocumentsAndAnnotators().then((r) => {
+  setSelectedDocumentsAndAnnotators().then(() => {
     getAnnotations(
       task.value?.id.toString()!,
       selectedLabel.value!,
       selectedDocuments.value!,
       selectedAnnotators.value!
-    );
+    ).then((anns) => {
+      updateAnnotations(anns);
+    });
   });
 };
 
@@ -352,7 +359,9 @@ const selectDocument = (value: any) => {
       selectedLabel.value!,
       selectedDocuments.value!,
       selectedAnnotators.value!
-    );
+    ).then((anns) => {
+      updateAnnotations(anns);
+    });
   });
 };
 
@@ -372,8 +381,14 @@ const selectAnnotators = (value: any) => {
       selectedLabel.value!,
       selectedDocuments.value!,
       selectedAnnotators.value!
-    );
+    ).then((anns) => {
+      updateAnnotations(anns);
+    });
   });
+};
+
+const updateAnnotations = (anns: RichAnnotation[]) => {
+  annotations.splice(0) && annotations.push(...anns);
 };
 
 const getAnnotations = async (
@@ -406,12 +421,11 @@ const getAnnotations = async (
       result = separateIntoWords(result);
     }
 
-    annotations.splice(0) && annotations.push(...result);
-
     loading_annotations.value = false;
+    return result;
   } catch (error) {
-    console.log(error);
     loading_annotations.value = false;
+    return [];
   }
 };
 
@@ -459,21 +473,12 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
 const compute_metrics = async (
   annotations: RichAnnotation[],
   annotators: string[],
-  tolerance: number
-) => {
-  metrics_result.value = {
-    krippendorff: undefined,
-    fleiss_kappa: undefined,
-    cohens_kappa: undefined,
-    loading: false,
-  };
-
+  tolerance: number,
+  metrics = ["krippendorff", "fleiss_kappa", "cohens_kappa"]
+): Promise<MetricResult[]> => {
   if (!annotations || annotations.length == 0) {
-    // $toast.error(`There are no annotations!`);
-    return;
+    return Promise.resolve(metrics.map((m) => newEmptyMetricResult(m)));
   }
-
-  metrics_result.value.loading = true;
 
   const body = JSON.stringify({
     annotations: annotations.filter((x) => !x.hidden),
@@ -481,30 +486,42 @@ const compute_metrics = async (
     tolerance: tolerance,
   });
 
-  if (annotators.length > 2) {
-    const ka = await $fetch(`/api/metrics/krippendorff`, {
+  const promises: Promise<MetricResult>[] = [];
+  metrics.map((m) => {
+    const p = $fetch(`/api/metrics/${m}`, {
       method: "POST",
       body: body,
     });
+    promises.push(p as Promise<MetricResult>);
+  });
 
-    metrics_result.value.krippendorff = ka as MetricResult;
+  return Promise.all(promises);
+};
 
-    const fk = await $fetch(`/api/metrics/fleiss_kappa`, {
-      method: "POST",
-      body: body,
-    });
+const updateMetrics = (metrics: MetricResult[]) => {
+  metrics.map((m) => {
+    (metrics_result.value as any)[m.name] = m;
+  });
+};
 
-    metrics_result.value.fleiss_kappa = fk as MetricResult;
-  } else if (annotators.length == 2) {
-    const ck = await $fetch(`/api/metrics/cohens_kappa`, {
-      method: "POST",
-      body: body,
-    });
-
-    metrics_result.value.cohens_kappa = ck as MetricResult;
+const clickComputeMetrics = async () => {
+  metrics_result.value = {
+    krippendorff: undefined,
+    fleiss_kappa: undefined,
+    cohens_kappa: undefined,
+    loading: true,
+  };
+  try {
+    const metrics = await compute_metrics(
+      annotations,
+      selectedAnnotators?.value!,
+      tolerance.value
+    );
+    updateMetrics(metrics);
+    metrics_result.value.loading = false;
+  } catch (error) {
+    metrics_result.value.loading = false;
   }
-
-  metrics_result.value.loading = false;
 };
 
 const getXlslTab = async (
@@ -514,59 +531,152 @@ const getXlslTab = async (
   annotators: string[],
   tolerance: number
 ) => {
-  await getAnnotations(task_id, label, documents, annotators);
-
-  await compute_metrics(annotations, annotators, tolerance);
-  const rowsMetrics = [
-    {
-      metric: "Krippendorff's alpha",
-      annotators: "all",
-      value: metrics_result.value.krippendorff?.result,
-      p0: metrics_result.value.krippendorff?.po,
-      pe: metrics_result.value.krippendorff?.pe,
-      tolerance: tolerance,
-    },
-    {
-      metric: "Fleiss' kappa",
-      annotators: "all",
-      value: metrics_result.value.fleiss_kappa?.result,
-      p0: metrics_result.value.fleiss_kappa?.po,
-      pe: metrics_result.value.fleiss_kappa?.pe,
-      tolerance: tolerance,
-    },
-  ];
-
+  const rowsMetrics: any[] = [];
   const rowsAnnotations: any[] = [];
-  metrics_result.value?.krippendorff?.table.forEach((r: any) => {
-    Object.entries(r.annotators).forEach(([k, v]) => {
-      rowsAnnotations.push({
-        document: r.doc_id + "-" + r.doc_name,
-        annotator: k,
-        start: r.start,
-        end: r.end,
-        text: r.text,
-        value: v,
-      });
-    });
-  });
 
-  for (let i = 0; i < annotators.length; i++) {
-    for (let j = i + 1; j < annotators.length; j++) {
-      await compute_metrics(annotations, [annotators[i], annotators[j]], tolerance);
-      rowsMetrics.push({
-        metric: "Cohen's kappa",
-        annotators: annotators[i] + "," + annotators[j],
-        value: metrics_result.value.cohens_kappa?.result,
-        p0: metrics_result.value.cohens_kappa?.po,
-        pe: metrics_result.value.cohens_kappa?.pe,
-        tolerance: tolerance,
-      });
+  const anns = await getAnnotations(task_id, label, documents, annotators);
+  if (anns.length) {
+    let timeout = 100;
+    while (true) {
+      try {
+        const metrics = await compute_metrics(anns, annotators, tolerance);
+        metrics.map((m) => {
+          if (m.result)
+            rowsMetrics.push({
+              metric: m.name,
+              annotators: annotators.length > 2 ? "all" : annotators.join(","),
+              value: m.result,
+              p0: m.po,
+              pe: m.pe,
+              tolerance: tolerance,
+            });
+        });
+        const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
+        tables?.forEach((r: any) => {
+          Object.entries(r.annotators).forEach(([k, v]) => {
+            const ann = {
+              annotator: k,
+              start: r.start,
+              end: r.end,
+              text: r.text,
+              value: v,
+            };
+            rowsAnnotations.push(
+              documents.length > 1
+                ? { document: r.doc_id + "-" + r.doc_name, ...ann }
+                : ann
+            );
+          });
+        });
+        console.log("DONE");
+        break;
+      } catch (error) {
+        timeout--;
+        console.log("FAILED");
+      }
+    }
+  }
+
+  if (annotators.length > 2) {
+    for (let i = 0; i < annotators.length; i++) {
+      for (let j = i + 1; j < annotators.length; j++) {
+        const ck_anns = await getAnnotations(task_id, label, documents, [
+          annotators[i],
+          annotators[j],
+        ]);
+        if (ck_anns.length) {
+          let ck_timeout = 100;
+          while (true) {
+            try {
+              const ck_metrics = await compute_metrics(
+                ck_anns,
+                [annotators[i], annotators[j]],
+                tolerance
+              );
+              if (i == 0 && j == 1) {
+              }
+              ck_metrics.map((m) => {
+                if (m.name == "cohens_kappa") {
+                  rowsMetrics.push({
+                    metric: m.name,
+                    annotators: annotators[i] + "," + annotators[j],
+                    value: m.result,
+                    p0: m.po,
+                    pe: m.pe,
+                    tolerance: tolerance,
+                  });
+                }
+              });
+              console.log("DONE");
+              break;
+            } catch (error) {
+              ck_timeout--;
+              console.log("FAILED");
+            }
+          }
+        }
+      }
     }
   }
 
   const worksheetMetrics = XLSX.utils.json_to_sheet(rowsMetrics);
   const worksheetAnnotations = XLSX.utils.json_to_sheet(rowsAnnotations);
   return [worksheetMetrics, worksheetAnnotations];
+};
+
+const downloadAll = async () => {
+  loading_download.value = true;
+  const zip = new JSZip();
+  try {
+    for (let i = 0; i < selectedDocuments.value.length; i++) {
+      const document = selectedDocuments.value[i];
+      const workbookMetrics = XLSX.utils.book_new();
+      const workbookAnnotations = XLSX.utils.book_new();
+      for (let j = 0; j < labelsOptions.length; j++) {
+        const label = labelsOptions[j];
+        const sheets: XLSX.WorkSheet[] = await getXlslTab(
+          task.value?.id?.toString()!,
+          label,
+          [document],
+          selectedAnnotators.value,
+          tolerance.value!
+        );
+        XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
+        XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
+      }
+      const filename = document;
+      zip.file(`${filename}_metrics.xlsx`, getZippeableBlob(workbookMetrics));
+      zip.file(`${filename}_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
+    }
+
+    const workbookMetrics = XLSX.utils.book_new();
+    const workbookAnnotations = XLSX.utils.book_new();
+    for (let i = 0; i < labelsOptions.length; i++) {
+      const label = labelsOptions[i];
+      const sheets = await getXlslTab(
+        task.value?.id?.toString()!,
+        label,
+        selectedDocuments.value,
+        selectedAnnotators.value,
+        tolerance.value!
+      );
+      XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
+      XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
+    }
+    zip.file(`_metrics.xlsx`, getZippeableBlob(workbookMetrics));
+    zip.file(`_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
+
+    const blob = await zip.generateAsync({ type: "blob" });
+
+    download_blob(blob);
+
+    $toast.success(`One .zip file has been downloaded!`);
+  } catch (error) {
+    console.log(error);
+    loading_download.value = false;
+  }
+
+  loading_download.value = false;
 };
 
 const getZippeableBlob = async (workBook: XLSX.WorkBook) => {
@@ -591,61 +701,6 @@ const download_blob = async (blob: Blob) => {
   window.document.body.appendChild(element);
   element.click();
   window.document.body.removeChild(element);
-};
-
-const downloadAll = async () => {
-  loading_download.value = true;
-  const zip = new JSZip();
-  try {
-    for (let i = 0; i < documentsOptions.length; i++) {
-      const document = documentsOptions[i];
-      const workbookMetrics = XLSX.utils.book_new();
-      const workbookAnnotations = XLSX.utils.book_new();
-      for (let j = 0; j < labelsOptions.length; j++) {
-        const label = labelsOptions[j];
-        const sheets: XLSX.WorkSheet[] = await getXlslTab(
-          task.value?.id?.toString()!,
-          label,
-          [document.value],
-          annotatorsOptions,
-          tolerance.value!
-        );
-        XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-        XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-      }
-      const filename = document.label.substring(0, document.label.length - 4);
-      zip.file(`${filename}_metrics.xlsx`, getZippeableBlob(workbookMetrics));
-      zip.file(`${filename}_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
-    }
-
-    const workbookMetrics = XLSX.utils.book_new();
-    const workbookAnnotations = XLSX.utils.book_new();
-    for (let i = 0; i < labelsOptions.length; i++) {
-      const label = labelsOptions[i];
-      const sheets = await getXlslTab(
-        task.value?.id?.toString()!,
-        label,
-        documentsOptions.map((d) => d.value),
-        annotatorsOptions,
-        tolerance.value!
-      );
-      XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-      XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-    }
-    zip.file(`_metrics.xlsx`, getZippeableBlob(workbookMetrics));
-    zip.file(`_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
-
-    const blob = await zip.generateAsync({ type: "blob" });
-
-    download_blob(blob);
-
-    $toast.success(`One .zip file has been downloaded!`);
-  } catch (error) {
-    console.log(error);
-    loading_download.value = false;
-  }
-
-  loading_download.value = false;
 };
 
 const canMergeUp = (index: number): Boolean => {
@@ -723,21 +778,22 @@ const separateIntoWords = (annotations: RichAnnotation[]) => {
   return new_annotations;
 };
 
-const modeToggle = (value: boolean) => {
+const modeToggle = async (value: boolean) => {
   separate_into_words.value = value;
   if (!task.value) {
-    $toast.error(`Invalid Task`);
     return;
   }
   if (!selectedLabel.value) {
     return;
   }
-  getAnnotations(
+  const anns = await getAnnotations(
     task.value?.id.toString()!,
     selectedLabel.value!,
     selectedDocuments.value!,
     selectedAnnotators.value!
   );
+
+  updateAnnotations(anns);
 };
 
 const emitMergeUp = (ann_index: number): void => {
@@ -797,6 +853,8 @@ onMounted(async () => {
   annotatorsOptions.push(
     ...(await userApi.findUsersByTask(task.value.id.toString())).map((a) => a.email)
   );
+
+  setSelectedDocumentsAndAnnotators();
 });
 
 definePageMeta({

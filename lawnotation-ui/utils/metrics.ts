@@ -14,11 +14,21 @@ export type RangeLabel = {
 
 export type MetricResult = {
   name: string;
-  po: number;
-  pe: number;
-  result: number;
-  table: RangeLabel[];
+  po: number | undefined;
+  pe: number | undefined;
+  result: number | undefined;
+  table: RangeLabel[] | undefined;
 };
+
+export function newEmptyMetricResult(name: string): MetricResult {
+  return {
+    name: name,
+    po: undefined,
+    pe: undefined,
+    result: undefined,
+    table: undefined,
+  } as MetricResult;
+}
 
 export function createContingencyTable(
   annotations: any[],
@@ -77,7 +87,7 @@ export function containsRangeLabel(
 ): number {
   for (let i = 0; i < list.length; i++) {
     const x = list[i];
-    if (x.label == range.label) {
+    if (x.label == range.label && x.doc_id == range.doc_id) {
       for (let t = 0; t <= tolerance; t++) {
         if (
           Math.abs(x.start - range.start) <= t &&

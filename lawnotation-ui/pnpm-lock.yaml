@@ -52,7 +52,7 @@ devDependencies:
     specifier: ^10.4.14
     version: 10.4.14(postcss@8.4.23)
   nuxt:
-    specifier: ^3.3.3
+    specifier: ^3.4.3
     version: 3.4.3(@types/node@20.1.5)(sass@1.62.1)
   postcss:
     specifier: ^8.4.21

@@ -1,11 +1,15 @@
 import {
   RangeLabel,
   createContingencyTable,
+  newEmptyMetricResult,
   MetricResult,
 } from "~/utils/metrics";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
+  if (data.annotators.length < 3) {
+    return newEmptyMetricResult("krippendorff");
+  }
   const agreement_table = createContingencyTable(
     data.annotations,
     data.annotators,
