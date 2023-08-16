@@ -213,29 +213,79 @@
             </ul>
           </div>
         </aside>
-        <div class="px-4 sm:ml-64 side-panel-h relative" style="margin-left: 20rem">
-          <div class="">
-            <div v-if="!loading && annotations && annotations.length">
-              <h3 class="text-2xl font-bold mb-4 text-center">
+        <div class="px-4 sm:ml-64 side-panel-h" style="margin-left: 20rem">
+          <div v-if="!loading && annotations && annotations.length" id="annotations_list">
+            <div class="flex mb-3">
+              <span class="flex-1 text-2xl font-bold text-center">
                 Annotations: {{ annotations.length }}
-              </h3>
-              <ul>
-                <li v-for="(ann, index) in annotations">
-                  <RangeLabelCmpt
-                    :annotation="ann"
-                    :index="index"
-                    :is-new-doc="isNewDoc(index)"
-                    :can-merge-up="canMergeUp(index)"
-                    :can-merge-down="canMergeDown(index)"
-                    @separate="emitSeparate"
-                    @mergeUp="emitMergeUp"
-                    @mergeDown="emitMergeDown"
-                    @set-hidden="emitSetHidden"
-                    :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"
-                  ></RangeLabelCmpt>
-                </li>
-              </ul>
+              </span>
+              <span class="">
+                <label
+                  class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
+                >
+                  <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
+                    >Show</span
+                  >
+                  <input
+                    type="checkbox"
+                    value=""
+                    :checked="hideNonText"
+                    class="sr-only peer"
+                    @input="
+                    ($event: Event) => {
+                      toggleTextToHidden($event?.target?.checked);
+                    }
+                  "
+                  />
+
+                  <div
+                    class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+                  ></div>
+                  <span
+                    class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
+                    >Hide</span
+                  >
+                </label>
+              </span>
             </div>
+            <ul>
+              <li v-for="(ann, index) in annotations">
+                <RangeLabelCmpt
+                  :annotation="ann"
+                  :index="index"
+                  :is-new-doc="isNewDoc(index)"
+                  :can-merge-up="canMergeUp(index)"
+                  :can-merge-down="canMergeDown(index)"
+                  @separate="emitSeparate"
+                  @mergeUp="emitMergeUp"
+                  @mergeDown="emitMergeDown"
+                  @set-hidden="emitSetHidden"
+                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"
+                ></RangeLabelCmpt>
+              </li>
+            </ul>
+            <a
+              href="#annotations_list"
+              type="button"
+              class="absolute bottom-0 right-0 mb-3 mr-3 text-white bg-secondary hover:bg-secondary/80 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+            >
+              <svg
+                class="w-4 h-4 text-white dark:text-white"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 10 14"
+              >
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13V1m0 0L1 5m4-4 4 4"
+                ></path>
+              </svg>
+              <span class="sr-only">Go up</span>
+            </a>
           </div>
         </div>
       </div>
@@ -264,6 +314,7 @@ import { initFlowbite } from "flowbite";
 import _, { mergeWith, result } from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
+import { callWithAsyncErrorHandling } from "nuxt/dist/app/compat/capi";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -281,7 +332,7 @@ const task = ref<Task>();
 const project = ref<Project>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
-const selectedDocuments = ref<{ a: string; b: string }[]>();
+const selectedDocuments = ref<string[]>();
 
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotators = ref<string[]>();
@@ -292,12 +343,13 @@ const selectedLabel = ref<string>();
 const tolerance = ref<number>(0);
 
 const loading_annotations = ref(false);
-const download_progress = ref<{ current: number; total: number; loading: false }>({
-  current: undefined,
-  total: undefined,
+const download_progress = ref<{ current: number; total: number; loading: boolean }>({
+  current: 0,
+  total: 0,
   loading: false,
 });
 const separate_into_words = ref(false);
+const hideNonText = ref(true);
 
 const annotations = reactive<RichAnnotation[]>([]);
 const metrics_result = ref<{
@@ -312,12 +364,10 @@ const metrics_result = ref<{
   loading: false,
 });
 
-const loading = computed(() => {
-  return (
-    loading_annotations.value ||
+const loading = computed((): boolean => {
+  return (loading_annotations.value ||
     download_progress.value.loading ||
-    metrics_result.value?.loading
-  );
+    metrics_result.value?.loading) as boolean;
 });
 
 const setSelectedDocumentsAndAnnotators = () => {
@@ -428,6 +478,10 @@ const getAnnotations = async (
 
     if (separate_into_words.value) {
       result = separateIntoWords(result);
+    }
+
+    if (hideNonText.value) {
+      result = setTextToHidden(result, hideNonText.value);
     }
 
     loading_annotations.value = false;
@@ -637,11 +691,12 @@ const downloadAll = async () => {
   download_progress.value.loading = true;
   download_progress.value.current = 0;
   download_progress.value.total =
-    selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
+    selectedDocuments.value?.length! * labelsOptions.length * 2 +
+    labelsOptions.length * 2;
   const zip = new JSZip();
   try {
-    for (let i = 0; i < selectedDocuments.value.length; i++) {
-      const document = selectedDocuments.value[i];
+    for (let i = 0; i < selectedDocuments.value!.length; i++) {
+      const document = selectedDocuments.value![i];
       const workbookMetrics = XLSX.utils.book_new();
       const workbookAnnotations = XLSX.utils.book_new();
       for (let j = 0; j < labelsOptions.length; j++) {
@@ -650,7 +705,7 @@ const downloadAll = async () => {
           task.value?.id?.toString()!,
           label,
           [document],
-          selectedAnnotators.value,
+          selectedAnnotators.value!,
           tolerance.value!
         );
         XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
@@ -670,8 +725,8 @@ const downloadAll = async () => {
       const sheets = await getXlslTab(
         task.value?.id?.toString()!,
         label,
-        selectedDocuments.value,
-        selectedAnnotators.value,
+        selectedDocuments.value!,
+        selectedAnnotators.value!,
         tolerance.value!
       );
       XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
@@ -687,10 +742,8 @@ const downloadAll = async () => {
 
     $toast.success(`One .zip file has been downloaded!`);
   } catch (error) {
-    console.log(error);
     download_progress.value.loading = false;
   }
-
   download_progress.value.loading = false;
 };
 
@@ -838,6 +891,21 @@ const emitMergeDown = (ann_index: number): void => {
   annotations[ann_index].hidden = false;
   annotations.splice(ann_index, 1);
   loading_annotations.value = false;
+};
+
+const toggleTextToHidden = (value: boolean): RichAnnotation[] => {
+  hideNonText.value = value;
+  return setTextToHidden(annotations, value);
+};
+
+const setTextToHidden = (
+  annotations: RichAnnotation[],
+  value: boolean
+): RichAnnotation[] => {
+  for (let i = 0; i < annotations.length; i++) {
+    if (!/[ˆa-zA-Z]{2}/.test(annotations[i].text)) annotations[i].hidden = value;
+  }
+  return annotations;
 };
 
 const emitSetHidden = (ann_index: number, hidden: Boolean): void => {
