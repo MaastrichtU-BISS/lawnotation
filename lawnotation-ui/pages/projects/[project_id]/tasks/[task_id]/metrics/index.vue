@@ -22,7 +22,8 @@
       ]"
     />
     <div class="dimmer-wrapper pt-2">
-      <Dimmer v-model="loading" />
+      <DimmerProgress v-if="download_progress.loading" v-model="download_progress" />
+      <Dimmer v-else v-model="loading" />
       <div class="dimmer-content">
         <aside
           id="logo-sidebar"
@@ -261,6 +262,8 @@ import {
 import { initFlowbite } from "flowbite";
 
 import _, { mergeWith, result } from "lodash";
+import DimmerProgress from "~/components/DimmerProgress.vue";
+import Dimmer from "~/components/Dimmer.vue";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -278,7 +281,7 @@ const task = ref<Task>();
 const project = ref<Project>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
-const selectedDocuments = ref<string[]>();
+const selectedDocuments = ref<{ a: string; b: string }[]>();
 
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotators = ref<string[]>();
@@ -289,7 +292,11 @@ const selectedLabel = ref<string>();
 const tolerance = ref<number>(0);
 
 const loading_annotations = ref(false);
-const loading_download = ref(false);
+const download_progress = ref<{ current: number; total: number; loading: false }>({
+  current: undefined,
+  total: undefined,
+  loading: false,
+});
 const separate_into_words = ref(false);
 
 const annotations = reactive<RichAnnotation[]>([]);
@@ -307,7 +314,9 @@ const metrics_result = ref<{
 
 const loading = computed(() => {
   return (
-    loading_annotations.value || loading_download.value || metrics_result.value?.loading
+    loading_annotations.value ||
+    download_progress.value.loading ||
+    metrics_result.value?.loading
   );
 });
 
@@ -326,12 +335,12 @@ const setSelectedDocumentsAndAnnotators = () => {
 };
 
 const selectLabel = (value: string) => {
-  if (!task.value) {
-    $toast.error(`Invalid Task`);
-    return;
-  }
   selectedLabel.value = value;
   setSelectedDocumentsAndAnnotators().then(() => {
+    if (!task.value) {
+      $toast.error(`Invalid Task`);
+      return;
+    }
     getAnnotations(
       task.value?.id.toString()!,
       selectedLabel.value!,
@@ -343,17 +352,17 @@ const selectLabel = (value: string) => {
   });
 };
 
-const selectDocument = (value: any) => {
-  if (!task.value) {
-    $toast.error(`Invalid Task`);
-    return;
-  }
-  if (!selectedLabel.value) {
-    return;
-  }
+const selectDocument = (value: any, options: any) => {
   selectedDocuments.value = [];
   selectedDocuments.value.push(...value);
-  setSelectedDocumentsAndAnnotators().then((r) => {
+  setSelectedDocumentsAndAnnotators().then(() => {
+    if (!task.value) {
+      $toast.error(`Invalid Task`);
+      return;
+    }
+    if (!selectedLabel.value) {
+      return;
+    }
     getAnnotations(
       task.value?.id.toString()!,
       selectedLabel.value!,
@@ -366,16 +375,16 @@ const selectDocument = (value: any) => {
 };
 
 const selectAnnotators = (value: any) => {
-  if (!task.value) {
-    $toast.error(`Invalid Task`);
-    return;
-  }
-  if (!selectedLabel.value) {
-    return;
-  }
   selectedAnnotators.value = [];
   selectedAnnotators.value.push(...value);
-  setSelectedDocumentsAndAnnotators().then((r) => {
+  setSelectedDocumentsAndAnnotators().then(() => {
+    if (!task.value) {
+      $toast.error(`Invalid Task`);
+      return;
+    }
+    if (!selectedLabel.value) {
+      return;
+    }
     getAnnotations(
       task.value?.id.toString()!,
       selectedLabel.value!,
@@ -625,7 +634,10 @@ const getXlslTab = async (
 };
 
 const downloadAll = async () => {
-  loading_download.value = true;
+  download_progress.value.loading = true;
+  download_progress.value.current = 0;
+  download_progress.value.total =
+    selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
   const zip = new JSZip();
   try {
     for (let i = 0; i < selectedDocuments.value.length; i++) {
@@ -643,8 +655,10 @@ const downloadAll = async () => {
         );
         XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
         XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
+        download_progress.value.current += 2;
       }
-      const filename = document;
+      const filename =
+        document + "-" + ((await documentApi.getName(document)) as string).split(".")[0];
       zip.file(`${filename}_metrics.xlsx`, getZippeableBlob(workbookMetrics));
       zip.file(`${filename}_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
     }
@@ -662,6 +676,7 @@ const downloadAll = async () => {
       );
       XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
       XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
+      download_progress.value.current += 2;
     }
     zip.file(`_metrics.xlsx`, getZippeableBlob(workbookMetrics));
     zip.file(`_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
@@ -673,10 +688,10 @@ const downloadAll = async () => {
     $toast.success(`One .zip file has been downloaded!`);
   } catch (error) {
     console.log(error);
-    loading_download.value = false;
+    download_progress.value.loading = false;
   }
 
-  loading_download.value = false;
+  download_progress.value.loading = false;
 };
 
 const getZippeableBlob = async (workBook: XLSX.WorkBook) => {
