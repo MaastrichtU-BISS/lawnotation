@@ -88,7 +88,7 @@
                     id="small-input"
                     v-model="tolerance"
                     min="0"
-                    :max="separate_into_words ? 0 : 10"
+                    :max="separate_into_words || contained ? 0 : 10"
                     step="1"
                     @input="
                       ($event) => {
@@ -128,6 +128,37 @@
                     <span
                       class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
                       >Words</span
+                    >
+                  </label>
+                </div>
+              </li>
+              <li>
+                <div class="text-center flex justify-center my-4">
+                  <label
+                    class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
+                  >
+                    <span
+                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
+                      >Equal</span
+                    >
+                    <input
+                      type="checkbox"
+                      value=""
+                      class="sr-only peer"
+                      @input="
+                        ($event: Event) => {
+                            contained = !contained;
+                            tolerance = 0;
+                        }
+                      "
+                    />
+
+                    <div
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+                    ></div>
+                    <span
+                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
+                      >Contained</span
                     >
                   </label>
                 </div>
@@ -222,8 +253,8 @@
           </div>
         </aside>
         <div class="px-4 sm:ml-64 side-panel-h" style="margin-left: 20rem">
-          <div v-if="!loading && annotations && annotations.length" id="annotations_list">
-            <div class="flex mb-3">
+          <div id="annotations_list">
+            <div v-if="!loading && annotations && annotations.length" class="flex mb-3">
               <span class="flex-1 text-2xl font-bold text-center">
                 Annotations: {{ annotations.length }}
               </span>
@@ -358,6 +389,7 @@ const download_progress = ref<{ current: number; total: number; loading: boolean
 });
 const separate_into_words = ref(false);
 const hideNonText = ref(true);
+const contained = ref(false);
 
 const annotations = reactive<RichAnnotation[]>([]);
 const metrics_result = ref<{
@@ -545,6 +577,7 @@ const compute_metrics = async (
   annotations: RichAnnotation[],
   annotators: string[],
   tolerance: number,
+  contained: boolean,
   metrics = ["krippendorff", "fleiss_kappa", "cohens_kappa"]
 ): Promise<MetricResult[]> => {
   if (!annotations || annotations.length == 0) {
@@ -555,6 +588,7 @@ const compute_metrics = async (
     annotations: annotations.filter((x) => !x.hidden),
     annotators: annotators,
     tolerance: tolerance,
+    contained: contained,
   });
 
   const promises: Promise<MetricResult>[] = [];
@@ -586,7 +620,8 @@ const clickComputeMetrics = async () => {
     const metrics = await compute_metrics(
       annotations,
       selectedAnnotators?.value!,
-      tolerance.value
+      tolerance.value,
+      contained.value
     );
     updateMetrics(metrics);
     console.log(metrics);
@@ -601,7 +636,8 @@ const getXlslTab = async (
   label: string,
   documents: string[],
   annotators: string[],
-  tolerance: number
+  tolerance: number,
+  contained: boolean
 ) => {
   const rowsMetrics: any[] = [];
   const rowsAnnotations: any[] = [];
@@ -611,7 +647,7 @@ const getXlslTab = async (
     let timeout = 100;
     while (true) {
       try {
-        const metrics = await compute_metrics(anns, annotators, tolerance);
+        const metrics = await compute_metrics(anns, annotators, tolerance, contained);
         metrics.map((m) => {
           if (m.result)
             rowsMetrics.push({
@@ -621,6 +657,7 @@ const getXlslTab = async (
               p0: m.po,
               pe: m.pe,
               tolerance: tolerance,
+              consider_contained: contained ? "yes" : "no",
             });
         });
         const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
@@ -663,7 +700,8 @@ const getXlslTab = async (
               const ck_metrics = await compute_metrics(
                 ck_anns,
                 [annotators[i], annotators[j]],
-                tolerance
+                tolerance,
+                contained
               );
               if (i == 0 && j == 1) {
               }
@@ -676,6 +714,7 @@ const getXlslTab = async (
                     p0: m.po,
                     pe: m.pe,
                     tolerance: tolerance,
+                    consider_contained: contained ? "yes" : "no",
                   });
                 }
               });
@@ -715,7 +754,8 @@ const downloadAll = async () => {
           label,
           [document],
           selectedAnnotators.value!,
-          tolerance.value!
+          tolerance.value,
+          contained.value
         );
         XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
         XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
@@ -736,7 +776,8 @@ const downloadAll = async () => {
         label,
         selectedDocuments.value!,
         selectedAnnotators.value!,
-        tolerance.value!
+        tolerance.value,
+        contained.value
       );
       XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
       XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
