@@ -506,18 +506,24 @@ const getAnnotations = async (
   try {
     let result = [];
     for (let i = 0; i < documents.length; i++) {
-      const anns = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
-        task_id,
-        documents[i],
-        label,
-        annotators
-      );
+      const anns = (
+        await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
+          task_id,
+          documents[i],
+          label,
+          annotators
+        )
+      ).map((a) => {
+        a.text = a.text.replaceAll("\\n", "");
+        return a;
+      });
       const annsAndNans = await getNonAnnotations(anns);
       result.push(...annsAndNans);
     }
 
     if (separate_into_words.value) {
       result = separateIntoWords(result);
+      // sortByRange(result);
     }
 
     if (hideNonText.value) {

@@ -12,7 +12,8 @@
       <b class="ml-1">{{ annotated ? "Annotated" : "Not Annotated" }}</b>
       <span class="ml-3 text-xs text-gray-500">
         <i v-if="annotated">{{ annotation.label + " | " }}</i>
-        <i v-if="annotated">{{ annotation.annotator }}</i></span
+        <i v-if="annotated">{{ annotation.annotator + " | " }}</i>
+        <i>{{ annotation.start }} - {{ annotation.end }}</i></span
       >
     </div>
     <div class="flex" style="align-items: center">
