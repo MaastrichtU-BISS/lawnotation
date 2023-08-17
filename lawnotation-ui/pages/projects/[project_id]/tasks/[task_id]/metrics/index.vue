@@ -88,8 +88,16 @@
                     id="small-input"
                     v-model="tolerance"
                     min="0"
-                    max="10"
+                    :max="separate_into_words ? 0 : 10"
                     step="1"
+                    @input="
+                      ($event) => {
+                        if (tolerance > $event.target.max) {
+                          tolerance = $event.target.max;
+                          $event.preventDefault();
+                        }
+                      }
+                    "
                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   />
                 </div>
@@ -581,6 +589,7 @@ const clickComputeMetrics = async () => {
       tolerance.value
     );
     updateMetrics(metrics);
+    console.log(metrics);
     metrics_result.value.loading = false;
   } catch (error) {
     metrics_result.value.loading = false;
@@ -821,12 +830,14 @@ const separateIntoWords = (annotations: RichAnnotation[]) => {
   let limit = 10 ** 6;
   loading_annotations.value = true;
   var new_annotations: RichAnnotation[] = [];
+  // let min = 10 ** 6;
 
   annotations.forEach((ann) => {
     const words = ann.text.matchAll(/\S+/g);
     while (limit > 0) {
       const w = words.next();
       if (w.done) break;
+      // min = Math.min(min, w.value[0].length);
       new_annotations.push({
         start: ann.start + w.value.index!,
         end: ann.start + w.value.index! + w.value[0].length,
@@ -842,6 +853,8 @@ const separateIntoWords = (annotations: RichAnnotation[]) => {
       limit--;
     }
   });
+  tolerance.value = 0;
+  // tolerance.value = Math.min(tolerance.value, min);
   loading_annotations.value = false;
   return new_annotations;
 };

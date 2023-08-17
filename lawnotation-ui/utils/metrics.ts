@@ -87,7 +87,7 @@ export function containsRangeLabel(
 ): number {
   for (let i = 0; i < list.length; i++) {
     const x = list[i];
-    if (x.label == range.label && x.doc_id == range.doc_id) {
+    if (x.doc_id == range.doc_id && x.label == range.label && x.zeros > 0) {
       for (let t = 0; t <= tolerance; t++) {
         if (
           Math.abs(x.start - range.start) <= t &&
