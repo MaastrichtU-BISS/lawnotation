@@ -1,3 +1,11 @@
+import relationDataService from "~/services/data/annotation_relations";
+import { userIsAuthenticated } from "~/utils/server/guards";
+
 export default eventHandler(async (event) => {
-  return "Server handler for retrieval of relation entity";
+  userIsAuthenticated(event);
+
+  const user = event.context.auth.user;
+  const id = getRouterParam(event, 'id');
+
+  return await relationDataService(event).findById(id);
 })

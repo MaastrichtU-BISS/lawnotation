@@ -1,4 +1,5 @@
 import type { NitroFetchRequest } from 'nitropack';
+import { getFunctionCaller } from '~/utils/functionCaller';
 
 // The reason for doing <A>() => <B>(v: B) => ({...}), is that it is apparently a function
 // with multiple generics can't have some generics infered from arguments and some generics passed.

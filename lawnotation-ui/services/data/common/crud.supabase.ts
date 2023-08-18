@@ -4,8 +4,8 @@ import { Database } from "~/types/supabase";
 const crud_data = <
   TableName extends keyof Database['public']['Tables'],
   TableRow = Database['public']['Tables'][TableName]['Row']
->(tablename: TableName) => {
-  const client = createSupabaseClient();
+>(client: ReturnType<typeof createSupabaseClient>, tablename: TableName) => {
+  // const client = serverSupabaseClient();
   
   const create = async (fields: Partial<TableRow>) => {
     const { data, error } = await client.from(tablename).insert(fields).select().single();
