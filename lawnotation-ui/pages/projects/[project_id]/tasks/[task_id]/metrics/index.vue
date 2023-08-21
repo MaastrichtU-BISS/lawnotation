@@ -78,38 +78,37 @@
               </li>
               <li>
                 <div>
-                  <label
-                    for="small-input"
-                    class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                    >Tolerance</label
-                  >
+                  <div class="flex justify-between">
+                    <label
+                      for="small-input"
+                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                      >Tolerance</label
+                    >
+                    <InfoToolTip
+                      :id="'tooltip_tolerance'"
+                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'"
+                    />
+                  </div>
                   <input
                     type="number"
                     id="small-input"
                     v-model="tolerance"
                     min="0"
-                    :max="separate_into_words || contained ? 0 : 10"
+                    :max="10"
                     step="1"
-                    @input="
-                      ($event) => {
-                        if (tolerance > $event.target.max) {
-                          tolerance = $event.target.max;
-                          $event.preventDefault();
-                        }
-                      }
-                    "
                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   />
                 </div>
               </li>
               <li>
-                <div class="text-center flex justify-center my-4">
+                <div class="flex justify-between my-4">
+                  <span>&nbsp;</span>
                   <label
                     class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
                   >
                     <span
                       class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Annotations</span
+                      >Annotation</span
                     >
                     <input
                       type="checkbox"
@@ -121,19 +120,23 @@
                     }
                   "
                     />
-
                     <div
                       class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
                     ></div>
                     <span
                       class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Words</span
+                      >Word</span
                     >
                   </label>
+                  <InfoToolTip
+                    :id="'tooltip_annotation_word'"
+                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'"
+                  />
                 </div>
               </li>
               <li>
-                <div class="text-center flex justify-center my-4">
+                <div class="flex justify-between my-4">
+                  <span>&nbsp;</span>
                   <label
                     class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
                   >
@@ -158,9 +161,50 @@
                     ></div>
                     <span
                       class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Contained</span
+                      >Overlap</span
                     >
                   </label>
+                  <InfoToolTip
+                    :id="'tooltip_equal_overlap'"
+                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`"
+                  />
+                </div>
+              </li>
+              <li>
+                <div class="flex justify-between my-4">
+                  <span>&nbsp;</span>
+                  <label
+                    class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
+                  >
+                    <span
+                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
+                      >Include NTA</span
+                    >
+                    <input
+                      type="checkbox"
+                      value=""
+                      :checked="hideNonText"
+                      class="sr-only peer"
+                      @input="
+                    ($event: Event) => {
+                      toggleTextToHidden($event?.target?.checked);
+                    }
+                  "
+                    />
+
+                    <div
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+                    ></div>
+                    <span
+                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
+                      >Exclude NTA</span
+                    >
+                  </label>
+
+                  <InfoToolTip
+                    :id="'tooltip_nta'"
+                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'"
+                  />
                 </div>
               </li>
               <li>
@@ -252,39 +296,14 @@
             </ul>
           </div>
         </aside>
-        <div class="px-4 sm:ml-64 side-panel-h" style="margin-left: 20rem">
+        <div class="px-4 sm:ml-64 side-panel-h overflow-auto" style="margin-left: 20rem">
           <div id="annotations_list">
-            <div v-if="!loading && annotations && annotations.length" class="flex mb-3">
+            <div
+              v-if="!loading && annotations && annotations.length"
+              class="flex mb-3 justify-between"
+            >
               <span class="flex-1 text-2xl font-bold text-center">
                 Annotations: {{ annotations.length }}
-              </span>
-              <span class="">
-                <label
-                  class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                >
-                  <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                    >Show</span
-                  >
-                  <input
-                    type="checkbox"
-                    value=""
-                    :checked="hideNonText"
-                    class="sr-only peer"
-                    @input="
-                    ($event: Event) => {
-                      toggleTextToHidden($event?.target?.checked);
-                    }
-                  "
-                  />
-
-                  <div
-                    class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                  ></div>
-                  <span
-                    class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                    >Hide</span
-                  >
-                </label>
               </span>
             </div>
             <ul>
@@ -303,6 +322,7 @@
                 ></RangeLabelCmpt>
               </li>
             </ul>
+
             <a
               href="#annotations_list"
               type="button"
@@ -1025,6 +1045,5 @@ button:disabled {
 
 .side-panel-h {
   height: calc(100vh - 141px);
-  overflow: auto;
 }
 </style>
