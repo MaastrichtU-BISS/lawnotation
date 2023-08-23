@@ -16,7 +16,6 @@ export default eventHandler(async (event) => {
     data.annotators,
     data.documents
   );
-  //   [1, 1, 1, 5, 5, 5, 5, 5, 5, 2, 2, 5]
 
   return computeMetric(
     assignments.map((a) => a.difficulty_rating),
@@ -71,19 +70,20 @@ function krippendorff(
   let n = ratings.length / m;
   let rating_table: number[][] = [];
 
+  let deleted = 0;
   for (let i = 0; i < n; i++) {
     rating_table.push([]);
     let distinct_to_zero: number = 0;
     for (let j = 0; j < m; j++) {
       const diff = ratings[i * m + j];
-      rating_table[i].push(diff);
+      rating_table[i - deleted].push(diff);
       if (diff != 0) distinct_to_zero++;
     }
-    if (distinct_to_zero < 2) rating_table.splice(i, 1);
+    if (distinct_to_zero < 2) rating_table.splice(i - deleted++, 1);
   }
 
   n = rating_table.length;
-  //   console.log(rating_table);
+  //   console.log("rating_table: ", rating_table);
 
   let agreement_table: number[][] = [];
   for (let i = 0; i < n; i++) {

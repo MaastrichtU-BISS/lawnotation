@@ -209,6 +209,8 @@
               </li>
               <li class="">
                 <button
+                  data-modal-target="difficultyMetricsModal"
+                  data-modal-toggle="difficultyMetricsModal"
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
                   @click="clickComputeDifficultyMetrics"
                 >
@@ -353,6 +355,77 @@
               </svg>
               <span class="sr-only">Go up</span>
             </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      id="difficultyMetricsModal"
+      tabindex="-1"
+      aria-hidden="true"
+      class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full"
+    >
+      <div class="relative w-full max-w-2xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+          <!-- Modal header -->
+          <div
+            class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600"
+          >
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+              Difficulty Metrics
+            </h3>
+            <button
+              type="button"
+              class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+              data-modal-hide="difficultyMetricsModal"
+            >
+              <svg
+                class="w-3 h-3"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 14 14"
+              >
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                />
+              </svg>
+              <span class="sr-only">Close modal</span>
+            </button>
+          </div>
+          <!-- Modal body -->
+          <div class="p-6 space-y-6">
+            <div class="flex">
+              <div
+                v-for="(v, index) in metrics_result.difficulty?.values"
+                :key="'mr_difficulty_' + index"
+              >
+                <div class="mx-3">{{ index }} stars: {{ v }}</div>
+              </div>
+            </div>
+            <div class="flex justify-between">
+              <span>
+                <div>Total: {{ metrics_result.difficulty?.total }}</div>
+                <div>Rated: {{ metrics_result.difficulty?.rated }}</div>
+                <div>Unrated: {{ metrics_result.difficulty?.unrated }}</div>
+                <div>Minimun: {{ metrics_result.difficulty?.min }}</div>
+                <div>Maximun: {{ metrics_result.difficulty?.max }}</div>
+                <div>Average: {{ metrics_result.difficulty?.average }}</div>
+              </span>
+              <span>
+                <div>
+                  Krippendorff's alpha:
+                  {{ metrics_result.difficulty?.krippendorff?.result }}
+                </div>
+                <div>p0: {{ metrics_result.difficulty?.krippendorff?.po }}</div>
+                <div>pe: {{ metrics_result.difficulty?.krippendorff?.pe }}</div>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -682,7 +755,7 @@ const clickComputeDifficultyMetrics = async () => {
       selectedAnnotators.value ?? [],
       selectedDocuments.value ?? []
     );
-    // updateMetrics(metrics);
+    metrics_result.value.difficulty = metric;
     console.log(metric);
     metrics_result.value.loading = false;
   } catch (error) {
@@ -694,7 +767,7 @@ const computeDifficultyMetrics = async (
   task_id: string,
   annotators: string[],
   documents: string[]
-): Promise<DifficultyMetricResult[]> => {
+): Promise<DifficultyMetricResult> => {
   const body = JSON.stringify({
     task_id: task_id,
     annotators: annotators,
