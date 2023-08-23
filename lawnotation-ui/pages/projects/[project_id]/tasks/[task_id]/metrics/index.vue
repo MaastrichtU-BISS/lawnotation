@@ -207,6 +207,14 @@
                   />
                 </div>
               </li>
+              <li class="">
+                <button
+                  class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+                  @click="clickComputeDifficultyMetrics"
+                >
+                  Compute Difficulty Metrics
+                </button>
+              </li>
               <li>
                 <button
                   :disabled="
@@ -217,7 +225,7 @@
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
                   @click="clickComputeMetrics"
                 >
-                  Compute Metrics
+                  Compute Annotation Metrics
                 </button>
               </li>
               <ul
@@ -365,7 +373,7 @@ import { User, useUserApi } from "~/data/user";
 import {
   MetricResult,
   newEmptyMetricResult,
-  RangeLabel,
+  DifficultyMetricResult,
   sortByRange,
 } from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
@@ -373,7 +381,6 @@ import { initFlowbite } from "flowbite";
 import _, { mergeWith, result } from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
-import { callWithAsyncErrorHandling } from "nuxt/dist/app/compat/capi";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -417,10 +424,12 @@ const metrics_result = ref<{
   krippendorff: MetricResult | undefined;
   fleiss_kappa: MetricResult | undefined;
   cohens_kappa: MetricResult | undefined;
+  difficulty: DifficultyMetricResult | undefined;
 }>({
   krippendorff: undefined,
   fleiss_kappa: undefined,
   cohens_kappa: undefined,
+  difficulty: undefined,
   loading: false,
 });
 
@@ -521,6 +530,7 @@ const getAnnotations = async (
     krippendorff: undefined,
     fleiss_kappa: undefined,
     cohens_kappa: undefined,
+    difficulty: undefined,
     loading: false,
   };
   try {
@@ -640,6 +650,7 @@ const clickComputeMetrics = async () => {
     krippendorff: undefined,
     fleiss_kappa: undefined,
     cohens_kappa: undefined,
+    difficulty: metrics_result.value?.difficulty ?? undefined,
     loading: true,
   };
   try {
@@ -655,6 +666,45 @@ const clickComputeMetrics = async () => {
   } catch (error) {
     metrics_result.value.loading = false;
   }
+};
+
+const clickComputeDifficultyMetrics = async () => {
+  metrics_result.value = {
+    krippendorff: metrics_result.value?.krippendorff ?? undefined,
+    fleiss_kappa: metrics_result.value?.fleiss_kappa ?? undefined,
+    cohens_kappa: metrics_result.value?.cohens_kappa ?? undefined,
+    difficulty: undefined,
+    loading: true,
+  };
+  try {
+    const metric = await computeDifficultyMetrics(
+      task.value?.id.toString()!,
+      selectedAnnotators.value ?? [],
+      selectedDocuments.value ?? []
+    );
+    // updateMetrics(metrics);
+    console.log(metric);
+    metrics_result.value.loading = false;
+  } catch (error) {
+    metrics_result.value.loading = false;
+  }
+};
+
+const computeDifficultyMetrics = async (
+  task_id: string,
+  annotators: string[],
+  documents: string[]
+): Promise<DifficultyMetricResult[]> => {
+  const body = JSON.stringify({
+    task_id: task_id,
+    annotators: annotators,
+    documents: documents,
+  });
+
+  return $fetch(`/api/metrics/difficulty`, {
+    method: "POST",
+    body: body,
+  });
 };
 
 const getXlslTab = async (

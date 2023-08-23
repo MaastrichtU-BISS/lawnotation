@@ -20,6 +20,17 @@ export type MetricResult = {
   table: RangeLabel[] | undefined;
 };
 
+export type DifficultyMetricResult = {
+  average: number;
+  min: number;
+  max: number;
+  total: number;
+  rated: number;
+  unrated: number;
+  krippendorff: MetricResult | undefined;
+  values: number[];
+};
+
 export function newEmptyMetricResult(name: string): MetricResult {
   return {
     name: name,
