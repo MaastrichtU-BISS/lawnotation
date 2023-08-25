@@ -405,25 +405,29 @@
                 v-for="(v, index) in metrics_result.difficulty?.values"
                 :key="'mr_difficulty_' + index"
               >
-                <div class="mx-3">{{ index }} stars: {{ v }}</div>
+                <div v-if="index > 0" class="mx-3">{{ index }} stars: {{ v }}</div>
               </div>
             </div>
             <div class="flex justify-between">
               <span>
-                <div>Total: {{ metrics_result.difficulty?.total }}</div>
-                <div>Rated: {{ metrics_result.difficulty?.rated }}</div>
-                <div>Unrated: {{ metrics_result.difficulty?.unrated }}</div>
-                <div>Minimun: {{ metrics_result.difficulty?.min }}</div>
-                <div>Maximun: {{ metrics_result.difficulty?.max }}</div>
-                <div>Average: {{ metrics_result.difficulty?.average }}</div>
+                <div>
+                  Rated: {{ metrics_result.difficulty?.rated }}/{{
+                    metrics_result.difficulty?.total
+                  }}
+                </div>
+                <div>Median: {{ metrics_result.difficulty?.average.toFixed(5) }}</div>
               </span>
               <span>
                 <div>
                   Krippendorff's alpha:
-                  {{ metrics_result.difficulty?.krippendorff?.result }}
+                  {{ metrics_result.difficulty?.krippendorff?.result?.toFixed(5) }}
                 </div>
-                <div>p0: {{ metrics_result.difficulty?.krippendorff?.po }}</div>
-                <div>pe: {{ metrics_result.difficulty?.krippendorff?.pe }}</div>
+                <div>
+                  p0: {{ metrics_result.difficulty?.krippendorff?.po?.toFixed(5) }}
+                </div>
+                <div>
+                  pe: {{ metrics_result.difficulty?.krippendorff?.pe?.toFixed(5) }}
+                </div>
               </span>
             </div>
           </div>
