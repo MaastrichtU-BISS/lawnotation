@@ -19,7 +19,7 @@ export default eventHandler(async (event) => {
 
   return computeMetric(
     assignments.map((a) => a.difficulty_rating),
-    data.annotators.length,
+    data.annotators_length,
     5
   );
 });

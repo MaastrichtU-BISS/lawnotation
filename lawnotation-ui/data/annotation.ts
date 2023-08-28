@@ -118,22 +118,27 @@ export const useAnnotationApi = () => {
     else return data as Annotation[];
   };
 
-  const findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators = async (
+  const findAnnotationsByTaskLabelDocumentsAnnotators = async (
     task_id: string,
-    document_id: string,
     label: string,
-    annotators: string[]
+    documents: string[] | undefined,
+    annotators: string[] | undefined
   ): Promise<RichAnnotation[]> => {
-    const { data, error } = await supabase
+    let query = supabase
       .from("annotations")
       .select(
         "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, full_text, name), annotator:users!inner(email))"
       )
       .eq("assignments.task_id", task_id)
-      .eq("label", label)
-      .eq("assignments.document_id", document_id)
-      .in("assignments.users.email", annotators);
+      .eq("label", label);
 
+    if (documents && documents.length > 0)
+      query = query.in("assignments.document_id", documents);
+
+    if (annotators && annotators.length > 0)
+      query = query.in("assignments.users.email", annotators);
+
+    const { data, error } = await query;
     if (error)
       throw Error(
         `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`
@@ -213,7 +218,7 @@ export const useAnnotationApi = () => {
     createAnnotation,
     findAnnotation,
     findAnnotations,
-    findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators,
+    findAnnotationsByTaskLabelDocumentsAnnotators,
     updateAnnotation,
     updateAssignmentAnnotations,
     deleteAnnotation,

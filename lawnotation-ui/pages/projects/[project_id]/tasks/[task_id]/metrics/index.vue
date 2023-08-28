@@ -52,7 +52,7 @@
                   >Document(s)</label
                 >
                 <Multiselect
-                  v-model="selectedDocuments"
+                  v-model="selectedDocumentsOrEmpty"
                   :mode="'tags'"
                   :close-on-select="false"
                   :options="documentsOptions"
@@ -67,7 +67,7 @@
                   >Annotators</label
                 >
                 <Multiselect
-                  v-model="selectedAnnotators"
+                  v-model="selectedAnnotatorsOrEmpty"
                   :options="annotatorsOptions"
                   :mode="'tags'"
                   :searchable="true"
@@ -219,11 +219,7 @@
               </li>
               <li>
                 <button
-                  :disabled="
-                    !selectedDocuments ||
-                    !selectedLabel ||
-                    selectedAnnotators?.length == 1
-                  "
+                  :disabled="!selectedLabel"
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
                   @click="clickComputeMetrics"
                 >
@@ -415,7 +411,7 @@
                     metrics_result.difficulty?.total
                   }}
                 </div>
-                <div>Median: {{ metrics_result.difficulty?.average.toFixed(5) }}</div>
+                <div>Average: {{ metrics_result.difficulty?.average.toFixed(5) }}</div>
               </span>
               <span>
                 <div>
@@ -451,11 +447,10 @@ import {
   MetricResult,
   newEmptyMetricResult,
   DifficultyMetricResult,
-  sortByRange,
 } from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
 
-import _, { mergeWith, result } from "lodash";
+import _ from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
 
@@ -475,10 +470,10 @@ const task = ref<Task>();
 const project = ref<Project>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
-const selectedDocuments = ref<string[]>();
+const selectedDocumentsOrEmpty = ref<string[]>([]);
 
 const annotatorsOptions = reactive<string[]>([]);
-const selectedAnnotators = ref<string[]>();
+const selectedAnnotatorsOrEmpty = ref<string[]>([]);
 
 const labelsOptions = reactive<string[]>([]);
 const selectedLabel = ref<string>();
@@ -516,79 +511,53 @@ const loading = computed((): boolean => {
     metrics_result.value?.loading) as boolean;
 });
 
-const setSelectedDocumentsAndAnnotators = () => {
-  return nextTick(() => {
-    if (!selectedDocuments.value || selectedDocuments.value.length == 0) {
-      selectedDocuments.value = [];
-      selectedDocuments.value?.push(...documentsOptions.map((d) => d.value));
-    }
+const selectedAnnotators = computed((): string[] => {
+  return selectedAnnotatorsOrEmpty.value && selectedAnnotatorsOrEmpty.value.length
+    ? selectedAnnotatorsOrEmpty.value
+    : annotatorsOptions;
+});
 
-    if (!selectedAnnotators.value || selectedAnnotators.value.length == 0) {
-      selectedAnnotators.value = [];
-      selectedAnnotators.value?.push(...annotatorsOptions);
-    }
-  });
-};
+const selectedDocuments = computed((): string[] => {
+  return selectedDocumentsOrEmpty.value && selectedDocumentsOrEmpty.value.length
+    ? selectedDocumentsOrEmpty.value
+    : documentsOptions.map((d) => d.value);
+});
+
+const annotationsBig = computed((): RichAnnotation[] => {
+  if (annotations.length < 1000) {
+    return annotations;
+  } else {
+    return annotations.slice(1000);
+  }
+});
 
 const selectLabel = (value: string) => {
   selectedLabel.value = value;
-  setSelectedDocumentsAndAnnotators().then(() => {
-    if (!task.value) {
-      $toast.error(`Invalid Task`);
-      return;
-    }
-    getAnnotations(
-      task.value?.id.toString()!,
-      selectedLabel.value!,
-      selectedDocuments.value!,
-      selectedAnnotators.value!
-    ).then((anns) => {
-      updateAnnotations(anns);
-    });
-  });
+  selectAnnotators();
 };
 
-const selectDocument = (value: any, options: any) => {
-  selectedDocuments.value = [];
-  selectedDocuments.value.push(...value);
-  setSelectedDocumentsAndAnnotators().then(() => {
-    if (!task.value) {
-      $toast.error(`Invalid Task`);
-      return;
-    }
-    if (!selectedLabel.value) {
-      return;
-    }
-    getAnnotations(
-      task.value?.id.toString()!,
-      selectedLabel.value!,
-      selectedDocuments.value!,
-      selectedAnnotators.value!
-    ).then((anns) => {
-      updateAnnotations(anns);
-    });
-  });
+const selectDocument = () => {
+  selectAnnotators();
 };
 
-const selectAnnotators = (value: any) => {
-  selectedAnnotators.value = [];
-  selectedAnnotators.value.push(...value);
-  setSelectedDocumentsAndAnnotators().then(() => {
-    if (!task.value) {
-      $toast.error(`Invalid Task`);
-      return;
-    }
-    if (!selectedLabel.value) {
-      return;
-    }
-    getAnnotations(
+const selectAnnotators = async () => {
+  if (!task.value) {
+    $toast.error(`Invalid Task`);
+    return;
+  }
+  if (!selectedLabel.value) {
+    return;
+  }
+
+  nextTick(async () => {
+    const anns = await getAnnotations(
       task.value?.id.toString()!,
       selectedLabel.value!,
-      selectedDocuments.value!,
-      selectedAnnotators.value!
-    ).then((anns) => {
-      updateAnnotations(anns);
-    });
+      selectedDocumentsOrEmpty.value!,
+      selectedAnnotatorsOrEmpty.value!
+    );
+
+    updateAnnotations(anns);
   });
 };
 
@@ -612,21 +581,21 @@ const getAnnotations = async (
   };
   try {
     let result = [];
-    for (let i = 0; i < documents.length; i++) {
-      const anns = (
-        await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
-          task_id,
-          documents[i],
-          label,
-          annotators
-        )
-      ).map((a) => {
-        a.text = a.text.replaceAll("\\n", "");
-        return a;
-      });
-      const annsAndNans = await getNonAnnotations(anns);
-      result.push(...annsAndNans);
-    }
+
+    const anns = (
+      await annotationApi.findAnnotationsByTaskLabelDocumentsAnnotators(
+        task_id,
+        label,
+        documents,
+        annotators
+      )
+    ).map((a) => {
+      a.text = a.text.replaceAll("\\n", "");
+      return a;
+    });
+
+    const annsAndNans = await getNonAnnotations(anns);
+    result.push(...annsAndNans);
 
     if (separate_into_words.value) {
       result = separateIntoWords(result);
@@ -645,14 +614,50 @@ const getAnnotations = async (
   }
 };
 
+function sortByDocumentAndRange(ranges: RichAnnotation[]): void {
+  ranges.sort((x, y) => {
+    if (x.doc_id < y.doc_id) {
+      return -1;
+    } else if (x.doc_id == y.doc_id) {
+      if (x.start < y.start) {
+        return -1;
+      } else if (x.start == y.start) {
+        return x.end <= y.end ? -1 : 1;
+      } else {
+        return 1;
+      }
+    } else {
+      return 1;
+    }
+  });
+}
+
 const getNonAnnotations = async (annotations: RichAnnotation[]) => {
   if (!annotations || !annotations.length) return [];
-  sortByRange(annotations);
+  sortByDocumentAndRange(annotations);
   var new_annotations: RichAnnotation[] = [];
   var last_end: number = 0;
   var previous_ann = annotations[0];
   for (let i = 0; i < annotations.length; ++i) {
     var current_ann = annotations[i];
+
+    // new document
+    if (previous_ann.doc_id != current_ann.doc_id) {
+      new_annotations.push({
+        start: last_end,
+        end: previous_ann.doc_text.length,
+        label: "NOT ANNOTATED",
+        text: previous_ann.doc_text.substring(last_end, previous_ann.doc_text.length),
+        annotator: "",
+        hidden: false,
+        ann_id: -1,
+        doc_id: previous_ann.doc_id,
+        doc_name: previous_ann.doc_name,
+        doc_text: previous_ann.doc_text,
+      });
+      last_end = 0;
+    }
+
     if (last_end < current_ann.start) {
       new_annotations.push({
         start: last_end,
@@ -667,10 +672,12 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
         doc_text: current_ann.doc_text,
       });
     }
+
     new_annotations.push(current_ann);
     last_end = Math.max(last_end, current_ann.end);
     previous_ann = current_ann;
   }
+
   new_annotations.push({
     start: last_end,
     end: previous_ann.doc_text.length,
@@ -683,6 +690,7 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
     doc_name: previous_ann.doc_name,
     doc_text: previous_ann.doc_text,
   });
+
   return new_annotations;
 };
 
@@ -733,12 +741,11 @@ const clickComputeMetrics = async () => {
   try {
     const metrics = await compute_metrics(
       annotations,
-      selectedAnnotators?.value!,
+      selectedAnnotators.value,
       tolerance.value,
       contained.value
     );
     updateMetrics(metrics);
-    console.log(metrics);
     metrics_result.value.loading = false;
   } catch (error) {
     metrics_result.value.loading = false;
@@ -756,11 +763,11 @@ const clickComputeDifficultyMetrics = async () => {
   try {
     const metric = await computeDifficultyMetrics(
       task.value?.id.toString()!,
-      selectedAnnotators.value ?? [],
-      selectedDocuments.value ?? []
+      selectedAnnotators.value.length,
+      selectedAnnotatorsOrEmpty.value,
+      selectedDocumentsOrEmpty.value
     );
     metrics_result.value.difficulty = metric;
-    console.log(metric);
     metrics_result.value.loading = false;
   } catch (error) {
     metrics_result.value.loading = false;
@@ -769,10 +776,12 @@ const clickComputeDifficultyMetrics = async () => {
 
 const computeDifficultyMetrics = async (
   task_id: string,
+  annotators_length: number,
   annotators: string[],
   documents: string[]
 ): Promise<DifficultyMetricResult> => {
   const body = JSON.stringify({
+    annotators_length: annotators_length,
     task_id: task_id,
     annotators: annotators,
     documents: documents,
@@ -789,18 +798,20 @@ const getXlslTab = async (
   label: string,
   documents: string[],
   annotators: string[],
+  annotatorsOrEmpty: string[],
   tolerance: number,
   contained: boolean
 ) => {
   const rowsMetrics: any[] = [];
   const rowsAnnotations: any[] = [];
 
-  const anns = await getAnnotations(task_id, label, documents, annotators);
+  const anns = await getAnnotations(task_id, label, documents, annotatorsOrEmpty);
   if (anns.length) {
     let timeout = 100;
     while (true) {
       try {
         const metrics = await compute_metrics(anns, annotators, tolerance, contained);
+        // console.log(metrics);
         metrics.map((m) => {
           if (m.result)
             rowsMetrics.push({
@@ -892,10 +903,39 @@ const downloadAll = async () => {
   download_progress.value.loading = true;
   download_progress.value.current = 0;
   download_progress.value.total =
-    selectedDocuments.value?.length! * labelsOptions.length * 2 +
-    labelsOptions.length * 2;
+    selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
   const zip = new JSZip();
   try {
+    try {
+      const workbookDifficulty = XLSX.utils.book_new();
+      const dm = await computeDifficultyMetrics(
+        task.value?.id.toString()!,
+        selectedAnnotators.value.length,
+        selectedAnnotatorsOrEmpty.value,
+        selectedDocumentsOrEmpty.value
+      );
+      const worksheetDifficulty = XLSX.utils.json_to_sheet([
+        {
+          total: dm.total,
+          rated: dm.rated,
+          average_stars: dm.average,
+          "1_stars": dm.values[1],
+          "2_stars": dm.values[2],
+          "3_stars": dm.values[3],
+          "4_stars": dm.values[4],
+          "5_stars": dm.values[5],
+          krippendorff: dm.krippendorff?.result,
+          p0: dm.krippendorff?.po,
+          pe: dm.krippendorff?.pe,
+        },
+      ]);
+      XLSX.utils.book_append_sheet(
+        workbookDifficulty,
+        worksheetDifficulty,
+        "Difficulty Metrics"
+      );
+      zip.file(`_difficulty.xlsx`, getZippeableBlob(workbookDifficulty));
+    } catch (error) {}
     for (let i = 0; i < selectedDocuments.value!.length; i++) {
       const document = selectedDocuments.value![i];
       const workbookMetrics = XLSX.utils.book_new();
@@ -907,6 +947,7 @@ const downloadAll = async () => {
           label,
           [document],
           selectedAnnotators.value!,
+          selectedAnnotatorsOrEmpty.value,
           tolerance.value,
           contained.value
         );
@@ -927,8 +968,9 @@ const downloadAll = async () => {
       const sheets = await getXlslTab(
         task.value?.id?.toString()!,
         label,
-        selectedDocuments.value!,
+        selectedDocumentsOrEmpty.value!,
         selectedAnnotators.value!,
+        selectedAnnotatorsOrEmpty.value,
         tolerance.value,
         contained.value
       );
@@ -1021,7 +1063,7 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
 
 const separateIntoWords = (annotations: RichAnnotation[]) => {
   metrics_result.value = {} as any;
-  let limit = 10 ** 6;
+  let limit = 10 ** 4;
   loading_annotations.value = true;
   var new_annotations: RichAnnotation[] = [];
   // let min = 10 ** 6;
@@ -1064,8 +1106,8 @@ const modeToggle = async (value: boolean) => {
   const anns = await getAnnotations(
     task.value?.id.toString()!,
     selectedLabel.value!,
-    selectedDocuments.value!,
-    selectedAnnotators.value!
+    selectedDocumentsOrEmpty.value!,
+    selectedAnnotatorsOrEmpty.value!
   );
 
   updateAnnotations(anns);
@@ -1143,8 +1185,6 @@ onMounted(async () => {
   annotatorsOptions.push(
     ...(await userApi.findUsersByTask(task.value.id.toString())).map((a) => a.email)
   );
-
-  setSelectedDocumentsAndAnnotators();
 });
 
 definePageMeta({

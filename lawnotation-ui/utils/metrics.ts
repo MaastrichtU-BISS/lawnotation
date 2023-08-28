@@ -80,17 +80,6 @@ export function createContingencyTable(
   return table;
 }
 
-export function sortByRange(ranges: RangeLabel[] | RichAnnotation[]): void {
-  ranges.sort((x, y) => {
-    if (x.start < y.start) {
-      return -1;
-    } else if (x.start == y.start) {
-      return x.end <= y.end ? -1 : 1;
-    } else {
-      return 1;
-    }
-  });
-}
 export function isContained(x: RangeLabel, y: RangeLabel): boolean {
   return x.start >= y.start && x.end <= y.end;
 }
