@@ -91,6 +91,9 @@ export function sortByRange(ranges: RangeLabel[] | RichAnnotation[]): void {
     }
   });
 }
+export function isContained(x: RangeLabel, y: RangeLabel): boolean {
+  return x.start >= x.start && y.end <= x.end;
+}
 
 export function containsRangeLabel(
   list: RangeLabel[],
@@ -102,8 +105,8 @@ export function containsRangeLabel(
     const x = list[i];
     if (x.doc_id == range.doc_id && x.label == range.label && x.zeros > 0) {
       for (let t = 0; t <= tolerance; t++) {
-        if (contained) {
-          if (range.start >= x.start && range.end <= x.end) return i;
+        if (contained && (isContained(x, range) || isContained(range, x))) {
+          return i;
         } else {
           if (
             Math.abs(x.start - range.start) <= t &&
