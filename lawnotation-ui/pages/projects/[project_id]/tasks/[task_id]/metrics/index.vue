@@ -622,6 +622,7 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
   var previous_ann = annotations[0];
   for (let i = 0; i < annotations.length; ++i) {
     var current_ann = annotations[i];
+
     // new document
     if (previous_ann.doc_id != current_ann.doc_id) {
       new_annotations.push({
@@ -637,9 +638,8 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
         doc_text: previous_ann.doc_text,
       });
       last_end = 0;
-      previous_ann = current_ann;
-      continue;
     }
+
     if (last_end < current_ann.start) {
       new_annotations.push({
         start: last_end,
@@ -654,6 +654,7 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
         doc_text: current_ann.doc_text,
       });
     }
+
     new_annotations.push(current_ann);
     last_end = Math.max(last_end, current_ann.end);
     previous_ann = current_ann;
