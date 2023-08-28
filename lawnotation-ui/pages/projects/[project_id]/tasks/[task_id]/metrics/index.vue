@@ -52,7 +52,7 @@
                   >Document(s)</label
                 >
                 <Multiselect
-                  v-model="selectedDocuments"
+                  v-model="selectedDocumentsOrEmpty"
                   :mode="'tags'"
                   :close-on-select="false"
                   :options="documentsOptions"
@@ -67,7 +67,7 @@
                   >Annotators</label
                 >
                 <Multiselect
-                  v-model="selectedAnnotators"
+                  v-model="selectedAnnotatorsOrEmpty"
                   :options="annotatorsOptions"
                   :mode="'tags'"
                   :searchable="true"
@@ -411,7 +411,7 @@
                     metrics_result.difficulty?.total
                   }}
                 </div>
-                <div>Median: {{ metrics_result.difficulty?.average.toFixed(5) }}</div>
+                <div>Average: {{ metrics_result.difficulty?.average.toFixed(5) }}</div>
               </span>
               <span>
                 <div>
@@ -470,10 +470,10 @@ const task = ref<Task>();
 const project = ref<Project>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
-const selectedDocuments = ref<string[]>();
+const selectedDocumentsOrEmpty = ref<string[]>([]);
 
 const annotatorsOptions = reactive<string[]>([]);
-const selectedAnnotators = ref<string[]>();
+const selectedAnnotatorsOrEmpty = ref<string[]>([]);
 
 const labelsOptions = reactive<string[]>([]);
 const selectedLabel = ref<string>();
@@ -511,6 +511,26 @@ const loading = computed((): boolean => {
     metrics_result.value?.loading) as boolean;
 });
 
+const selectedAnnotators = computed((): string[] => {
+  return selectedAnnotatorsOrEmpty.value && selectedAnnotatorsOrEmpty.value.length
+    ? selectedAnnotatorsOrEmpty.value
+    : annotatorsOptions;
+});
+
+const selectedDocuments = computed((): string[] => {
+  return selectedDocumentsOrEmpty.value && selectedDocumentsOrEmpty.value.length
+    ? selectedDocumentsOrEmpty.value
+    : documentsOptions.map((d) => d.value);
+});
+
+const annotationsBig = computed((): RichAnnotation[] => {
+  if (annotations.length < 1000) {
+    return annotations;
+  } else {
+    return annotations.slice(1000);
+  }
+});
+
 const selectLabel = (value: string) => {
   selectedLabel.value = value;
   selectAnnotators();
@@ -533,8 +553,8 @@ const selectAnnotators = async () => {
     const anns = await getAnnotations(
       task.value?.id.toString()!,
       selectedLabel.value!,
-      selectedDocuments.value!,
-      selectedAnnotators.value!
+      selectedDocumentsOrEmpty.value!,
+      selectedAnnotatorsOrEmpty.value!
     );
 
     updateAnnotations(anns);
@@ -562,7 +582,6 @@ const getAnnotations = async (
   try {
     let result = [];
 
-    console.log(documents, annotators);
     const anns = (
       await annotationApi.findAnnotationsByTaskLabelDocumentsAnnotators(
         task_id,
@@ -575,7 +594,6 @@ const getAnnotations = async (
       return a;
     });
 
-    console.log(anns);
     const annsAndNans = await getNonAnnotations(anns);
     result.push(...annsAndNans);
 
@@ -723,12 +741,11 @@ const clickComputeMetrics = async () => {
   try {
     const metrics = await compute_metrics(
       annotations,
-      selectedAnnotators?.value!,
+      selectedAnnotators.value,
       tolerance.value,
       contained.value
     );
     updateMetrics(metrics);
-    console.log(metrics);
     metrics_result.value.loading = false;
   } catch (error) {
     metrics_result.value.loading = false;
@@ -746,11 +763,11 @@ const clickComputeDifficultyMetrics = async () => {
   try {
     const metric = await computeDifficultyMetrics(
       task.value?.id.toString()!,
-      selectedAnnotators.value ?? [],
-      selectedDocuments.value ?? []
+      selectedAnnotators.value.length,
+      selectedAnnotatorsOrEmpty.value,
+      selectedDocumentsOrEmpty.value
     );
     metrics_result.value.difficulty = metric;
-    console.log(metric);
     metrics_result.value.loading = false;
   } catch (error) {
     metrics_result.value.loading = false;
@@ -759,10 +776,12 @@ const clickComputeDifficultyMetrics = async () => {
 
 const computeDifficultyMetrics = async (
   task_id: string,
+  annotators_length: number,
   annotators: string[],
   documents: string[]
 ): Promise<DifficultyMetricResult> => {
   const body = JSON.stringify({
+    annotators_length: annotators_length,
     task_id: task_id,
     annotators: annotators,
     documents: documents,
@@ -779,18 +798,20 @@ const getXlslTab = async (
   label: string,
   documents: string[],
   annotators: string[],
+  annotatorsOrEmpty: string[],
   tolerance: number,
   contained: boolean
 ) => {
   const rowsMetrics: any[] = [];
   const rowsAnnotations: any[] = [];
 
-  const anns = await getAnnotations(task_id, label, documents, annotators);
+  const anns = await getAnnotations(task_id, label, documents, annotatorsOrEmpty);
   if (anns.length) {
     let timeout = 100;
     while (true) {
       try {
         const metrics = await compute_metrics(anns, annotators, tolerance, contained);
+        // console.log(metrics);
         metrics.map((m) => {
           if (m.result)
             rowsMetrics.push({
@@ -882,10 +903,39 @@ const downloadAll = async () => {
   download_progress.value.loading = true;
   download_progress.value.current = 0;
   download_progress.value.total =
-    selectedDocuments.value?.length! * labelsOptions.length * 2 +
-    labelsOptions.length * 2;
+    selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
   const zip = new JSZip();
   try {
+    try {
+      const workbookDifficulty = XLSX.utils.book_new();
+      const dm = await computeDifficultyMetrics(
+        task.value?.id.toString()!,
+        selectedAnnotators.value.length,
+        selectedAnnotatorsOrEmpty.value,
+        selectedDocumentsOrEmpty.value
+      );
+      const worksheetDifficulty = XLSX.utils.json_to_sheet([
+        {
+          total: dm.total,
+          rated: dm.rated,
+          average_stars: dm.average,
+          "1_stars": dm.values[1],
+          "2_stars": dm.values[2],
+          "3_stars": dm.values[3],
+          "4_stars": dm.values[4],
+          "5_stars": dm.values[5],
+          krippendorff: dm.krippendorff?.result,
+          p0: dm.krippendorff?.po,
+          pe: dm.krippendorff?.pe,
+        },
+      ]);
+      XLSX.utils.book_append_sheet(
+        workbookDifficulty,
+        worksheetDifficulty,
+        "Difficulty Metrics"
+      );
+      zip.file(`_difficulty.xlsx`, getZippeableBlob(workbookDifficulty));
+    } catch (error) {}
     for (let i = 0; i < selectedDocuments.value!.length; i++) {
       const document = selectedDocuments.value![i];
       const workbookMetrics = XLSX.utils.book_new();
@@ -897,6 +947,7 @@ const downloadAll = async () => {
           label,
           [document],
           selectedAnnotators.value!,
+          selectedAnnotatorsOrEmpty.value,
           tolerance.value,
           contained.value
         );
@@ -917,8 +968,9 @@ const downloadAll = async () => {
       const sheets = await getXlslTab(
         task.value?.id?.toString()!,
         label,
-        selectedDocuments.value!,
+        selectedDocumentsOrEmpty.value!,
         selectedAnnotators.value!,
+        selectedAnnotatorsOrEmpty.value,
         tolerance.value,
         contained.value
       );
@@ -1011,7 +1063,7 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
 
 const separateIntoWords = (annotations: RichAnnotation[]) => {
   metrics_result.value = {} as any;
-  let limit = 10 ** 6;
+  let limit = 10 ** 4;
   loading_annotations.value = true;
   var new_annotations: RichAnnotation[] = [];
   // let min = 10 ** 6;
@@ -1054,8 +1106,8 @@ const modeToggle = async (value: boolean) => {
   const anns = await getAnnotations(
     task.value?.id.toString()!,
     selectedLabel.value!,
-    selectedDocuments.value!,
-    selectedAnnotators.value!
+    selectedDocumentsOrEmpty.value!,
+    selectedAnnotatorsOrEmpty.value!
   );
 
   updateAnnotations(anns);
