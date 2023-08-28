@@ -92,7 +92,7 @@ export function sortByRange(ranges: RangeLabel[] | RichAnnotation[]): void {
   });
 }
 export function isContained(x: RangeLabel, y: RangeLabel): boolean {
-  return x.start >= x.start && y.end <= x.end;
+  return x.start >= y.start && x.end <= y.end;
 }
 
 export function containsRangeLabel(
