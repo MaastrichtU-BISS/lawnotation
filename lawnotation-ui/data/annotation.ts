@@ -19,7 +19,6 @@ export type RichAnnotation = {
   hidden: Boolean;
   ann_id: number;
   doc_id: string;
-  doc_name: string;
 };
 
 export type LSSerializedAnnotation = {
@@ -144,29 +143,18 @@ export const useAnnotationApi = () => {
         `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`
       );
     else {
-      var anns: RichAnnotation[] = [];
-      var dic: any = {};
-      var previous_ann = data[0];
-      for (let i = 0; i < data.length; i++) {
-        const current_ann = data[i];
-        if (!(current_ann.id in dic)) {
-          dic[current_ann.id] = current_ann.assignment.document.full_text;
-        }
-        anns.push({
-          start: current_ann.start_index,
-          end: current_ann.end_index,
-          text: current_ann.text.replaceAll("\\n", ""),
-          label: current_ann.label,
-          annotator: current_ann.assignment.annotator.email,
+      return data.map((ann) => {
+        return {
+          start: ann.start_index,
+          end: ann.end_index,
+          text: ann.text.replaceAll("\\n", ""),
+          label: ann.label,
+          annotator: ann.assignment.annotator.email,
           hidden: false,
-          ann_id: current_ann.id,
-          doc_id: current_ann.assignment.document_id,
-          doc_name: current_ann.assignment.document.name,
-        });
-        previous_ann = current_ann;
-      }
-
-      return [anns, dic];
+          ann_id: ann.id,
+          doc_id: ann.assignment.document_id,
+        };
+      });
     }
   };
 

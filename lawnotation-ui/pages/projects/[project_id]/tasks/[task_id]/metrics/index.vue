@@ -320,6 +320,7 @@
                   :is-new-doc="isNewDoc(index)"
                   :can-merge-up="canMergeUp(index)"
                   :can-merge-down="canMergeDown(index)"
+                  :documentName="documentsData[ann.doc_id].name"
                   @separate="emitSeparate"
                   @mergeUp="emitMergeUp"
                   @mergeDown="emitMergeDown"
@@ -481,6 +482,7 @@ const selectedLabel = ref<string>();
 const tolerance = ref<number>(0);
 
 const loading_annotations = ref(false);
+const loading_options = ref(false);
 const download_progress = ref<{ current: number; total: number; loading: boolean }>({
   current: 0,
   total: 0,
@@ -505,12 +507,13 @@ const metrics_result = ref<{
   loading: false,
 });
 
-const documentsFullText = ref<any>({});
+const documentsData = ref<any>({});
 
 const loading = computed((): boolean => {
   return (loading_annotations.value ||
     download_progress.value.loading ||
-    metrics_result.value?.loading) as boolean;
+    metrics_result.value?.loading ||
+    loading_options.value) as boolean;
 });
 
 const selectedAnnotators = computed((): string[] => {
@@ -585,16 +588,12 @@ const getAnnotations = async (
   try {
     let result = [];
 
-    const res = await annotationApi.findAnnotationsByTaskLabelDocumentsAnnotators(
+    const anns = await annotationApi.findAnnotationsByTaskLabelDocumentsAnnotators(
       task_id,
       label,
       documents,
       annotators
     );
-
-    const anns = res[0];
-
-    documentsFullText.value = res[1];
 
     const annsAndNans = await getNonAnnotations(anns);
     result.push(...annsAndNans);
@@ -645,17 +644,16 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
     if (previous_ann.doc_id != current_ann.doc_id) {
       new_annotations.push({
         start: last_end,
-        end: documentsFullText.value[previous_ann.ann_id].length,
+        end: documentsData.value[previous_ann.doc_id].full_text.length,
         label: "NOT ANNOTATED",
-        text: documentsFullText.value[previous_ann.ann_id].substring(
+        text: documentsData.value[previous_ann.doc_id].full_text.substring(
           last_end,
-          documentsFullText.value[previous_ann.ann_id].length
+          documentsData.value[previous_ann.doc_id].full_text.length
         ),
         annotator: "",
         hidden: false,
         ann_id: -1,
         doc_id: previous_ann.doc_id,
-        doc_name: previous_ann.doc_name,
       });
       last_end = 0;
     }
@@ -665,7 +663,7 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
         start: last_end,
         end: current_ann.start,
         label: "NOT ANNOTATED",
-        text: documentsFullText.value[current_ann.ann_id].substring(
+        text: documentsData.value[current_ann.doc_id].full_text.substring(
           last_end,
           current_ann.start
         ),
@@ -673,7 +671,6 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
         hidden: false,
         ann_id: -1,
         doc_id: current_ann.doc_id,
-        doc_name: current_ann.doc_name,
       });
     }
 
@@ -684,17 +681,16 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
 
   new_annotations.push({
     start: last_end,
-    end: documentsFullText.value[previous_ann.ann_id].length,
+    end: documentsData.value[previous_ann.doc_id].full_text.length,
     label: "NOT ANNOTATED",
-    text: documentsFullText.value[previous_ann.ann_id].substring(
+    text: documentsData.value[previous_ann.doc_id].full_text.substring(
       last_end,
-      documentsFullText.value[previous_ann.ann_id].length
+      documentsData.value[previous_ann.doc_id].full_text.length
     ),
     annotator: "",
     hidden: false,
     ann_id: -1,
     doc_id: previous_ann.doc_id,
-    doc_name: previous_ann.doc_name,
   });
 
   return new_annotations;
@@ -844,7 +840,10 @@ const getXlslTab = async (
             };
             rowsAnnotations.push(
               documents.length > 1
-                ? { document: r.doc_id + "-" + r.doc_name, ...ann }
+                ? {
+                    document: r.doc_id + "-" + documentsData.value[r.doc_id].name,
+                    ...ann,
+                  }
                 : ann
             );
           });
@@ -942,7 +941,7 @@ const downloadAll = async () => {
         worksheetDifficulty,
         "Difficulty Metrics"
       );
-      zip.file(`_difficulty.xlsx`, getZippeableBlob(workbookDifficulty));
+      zip.file(`_confidence.xlsx`, getZippeableBlob(workbookDifficulty));
     } catch (error) {}
     for (let i = 0; i < selectedDocuments.value!.length; i++) {
       const document = selectedDocuments.value![i];
@@ -1063,7 +1062,6 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
     hidden: false,
     ann_id: current.ann_id,
     doc_id: current.doc_id,
-    doc_name: current.doc_name,
   });
   loading_annotations.value = false;
 };
@@ -1073,14 +1071,12 @@ const separateIntoWords = (annotations: RichAnnotation[]) => {
   let limit = 10 ** 6;
   loading_annotations.value = true;
   var new_annotations: RichAnnotation[] = [];
-  // let min = 10 ** 6;
 
   annotations.forEach((ann) => {
     const words = ann.text.matchAll(/\S+/g);
     while (limit > 0) {
       const w = words.next();
       if (w.done) break;
-      // min = Math.min(min, w.value[0].length);
       new_annotations.push({
         start: ann.start + w.value.index!,
         end: ann.start + w.value.index! + w.value[0].length,
@@ -1090,13 +1086,11 @@ const separateIntoWords = (annotations: RichAnnotation[]) => {
         hidden: false,
         ann_id: ann.ann_id,
         doc_id: ann.doc_id,
-        doc_name: ann.doc_name,
       });
       limit--;
     }
   });
   tolerance.value = 0;
-  // tolerance.value = Math.min(tolerance.value, min);
   loading_annotations.value = false;
   return new_annotations;
 };
@@ -1125,7 +1119,9 @@ const emitMergeUp = (ann_index: number): void => {
   const previous = _.clone(annotations[ann_index - 1]);
 
   annotations[ann_index - 1].end = current.end;
-  annotations[ann_index - 1].text += current.text;
+  annotations[ann_index - 1].text = documentsData.value[
+    current.doc_id
+  ].full_text.substring(previous.start, current.end);
 
   annotations[ann_index].hidden = false;
   annotations.splice(ann_index, 1);
@@ -1138,7 +1134,9 @@ const emitMergeDown = (ann_index: number): void => {
   const next = _.clone(annotations[ann_index + 1]);
 
   annotations[ann_index + 1].start = current.start;
-  annotations[ann_index + 1].text = current.text + annotations[ann_index + 1].text;
+  annotations[ann_index + 1].text = documentsData.value[
+    current.doc_id
+  ].full_text.substring(current.start, next.end);
 
   annotations[ann_index].hidden = false;
   annotations.splice(ann_index, 1);
@@ -1168,6 +1166,8 @@ const emitSetHidden = (ann_index: number, hidden: Boolean): void => {
 onMounted(async () => {
   initFlowbite();
 
+  loading_options.value = true;
+
   task.value = await taskApi.findTask(route.params.task_id.toString());
 
   project.value = await projectApi.findProject(route.params.project_id as string);
@@ -1181,6 +1181,9 @@ onMounted(async () => {
   documentsOptions.push(
     ...(await documentApi.findSharedDocumentsByTask(task.value.id.toString())).map(
       (d) => {
+        if (!(d.id in documentsData.value)) {
+          documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
+        }
         return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
       }
     )
@@ -1189,6 +1192,8 @@ onMounted(async () => {
   annotatorsOptions.push(
     ...(await userApi.findUsersByTask(task.value.id.toString())).map((a) => a.email)
   );
+
+  loading_options.value = false;
 });
 
 definePageMeta({
