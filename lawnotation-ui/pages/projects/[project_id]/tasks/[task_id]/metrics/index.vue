@@ -811,9 +811,10 @@ const getXlslTab = async (
     while (true) {
       try {
         const metrics = await compute_metrics(anns, annotators, tolerance, contained);
-        // console.log(metrics);
+        console.log(label);
+        console.log(metrics);
         metrics.map((m) => {
-          if (m.result)
+          if (m.result !== undefined)
             rowsMetrics.push({
               metric: m.name,
               annotators: annotators.length > 2 ? "all" : annotators.join(","),
@@ -824,6 +825,7 @@ const getXlslTab = async (
               consider_contained: contained ? "yes" : "no",
             });
         });
+        console.log(rowsMetrics);
         const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
         tables?.forEach((r: any) => {
           Object.entries(r.annotators).forEach(([k, v]) => {
@@ -1152,7 +1154,8 @@ const setTextToHidden = (
   value: boolean
 ): RichAnnotation[] => {
   for (let i = 0; i < annotations.length; i++) {
-    if (!/[ˆa-zA-Z]{2}/.test(annotations[i].text)) annotations[i].hidden = value;
+    if (annotations[i].ann_id == -1 && !/[ˆa-zA-Z]{2}/.test(annotations[i].text))
+      annotations[i].hidden = value;
   }
   return annotations;
 };
