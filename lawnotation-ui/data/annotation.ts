@@ -1,3 +1,4 @@
+import { RichAnnotation } from "~/data/annotation";
 export type Annotation = {
   id: number;
   assignment_id: number;
@@ -19,7 +20,6 @@ export type RichAnnotation = {
   ann_id: number;
   doc_id: string;
   doc_name: string;
-  doc_text: string;
 };
 
 export type LSSerializedAnnotation = {
@@ -123,7 +123,7 @@ export const useAnnotationApi = () => {
     label: string,
     documents: string[] | undefined,
     annotators: string[] | undefined
-  ): Promise<RichAnnotation[]> => {
+  ): Promise<any> => {
     let query = supabase
       .from("annotations")
       .select(
@@ -143,21 +143,31 @@ export const useAnnotationApi = () => {
       throw Error(
         `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`
       );
-    else
-      return data.map((ann) => {
-        return {
-          start: ann.start_index,
-          end: ann.end_index,
-          text: ann.text,
-          label: ann.label,
-          annotator: ann.assignment.annotator.email,
+    else {
+      var anns: RichAnnotation[] = [];
+      var dic: any = {};
+      var previous_ann = data[0];
+      for (let i = 0; i < data.length; i++) {
+        const current_ann = data[i];
+        if (!(current_ann.id in dic)) {
+          dic[current_ann.id] = current_ann.assignment.document.full_text;
+        }
+        anns.push({
+          start: current_ann.start_index,
+          end: current_ann.end_index,
+          text: current_ann.text.replaceAll("\\n", ""),
+          label: current_ann.label,
+          annotator: current_ann.assignment.annotator.email,
           hidden: false,
-          ann_id: ann.id,
-          doc_id: ann.assignment.document_id,
-          doc_name: ann.assignment.document.name,
-          doc_text: ann.assignment.document.full_text,
-        };
-      }) as RichAnnotation[];
+          ann_id: current_ann.id,
+          doc_id: current_ann.assignment.document_id,
+          doc_name: current_ann.assignment.document.name,
+        });
+        previous_ann = current_ann;
+      }
+
+      return [anns, dic];
+    }
   };
 
   // Update
