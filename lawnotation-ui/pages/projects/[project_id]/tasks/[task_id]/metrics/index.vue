@@ -661,7 +661,6 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
       last_end = 0;
     }
 
-    console.log(documentsOptions[docs_index].value, current_ann.doc_id);
     // doc(s) without annotations
     var next_doc_id = documentsOptions[docs_index].value;
     while (next_doc_id < current_ann.doc_id) {
