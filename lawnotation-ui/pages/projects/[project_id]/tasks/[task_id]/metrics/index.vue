@@ -567,7 +567,6 @@ const selectAnnotators = async () => {
 };
 
 const updateAnnotations = (anns: RichAnnotation[]) => {
-  console.log(anns.length);
   annotations.splice(0) && annotations.push(...anns);
 };
 
@@ -637,25 +636,46 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
   sortByDocumentAndRange(annotations);
   var new_annotations: RichAnnotation[] = [];
   var last_end: number = 0;
+  var docs_index: number = 0;
   var previous_ann = annotations[0];
   for (let i = 0; i < annotations.length; ++i) {
     var current_ann = annotations[i];
     // new document
     if (previous_ann.doc_id != current_ann.doc_id) {
+      docs_index++;
+      if (last_end < documentsData.value[previous_ann.doc_id].full_text.length) {
+        new_annotations.push({
+          start: last_end,
+          end: documentsData.value[previous_ann.doc_id].full_text.length,
+          label: "NOT ANNOTATED",
+          text: documentsData.value[previous_ann.doc_id].full_text.substring(
+            last_end,
+            documentsData.value[previous_ann.doc_id].full_text.length
+          ),
+          annotator: "",
+          hidden: false,
+          ann_id: -1,
+          doc_id: previous_ann.doc_id,
+        });
+      }
+      last_end = 0;
+    }
+
+    console.log(documentsOptions[docs_index].value, current_ann.doc_id);
+    // doc(s) without annotations
+    var next_doc_id = documentsOptions[docs_index].value;
+    while (next_doc_id < current_ann.doc_id) {
       new_annotations.push({
-        start: last_end,
-        end: documentsData.value[previous_ann.doc_id].full_text.length,
+        start: 0,
+        end: documentsData.value[next_doc_id].full_text.length - 1,
         label: "NOT ANNOTATED",
-        text: documentsData.value[previous_ann.doc_id].full_text.substring(
-          last_end,
-          documentsData.value[previous_ann.doc_id].full_text.length
-        ),
+        text: documentsData.value[next_doc_id].full_text,
         annotator: "",
         hidden: false,
         ann_id: -1,
-        doc_id: previous_ann.doc_id,
+        doc_id: next_doc_id,
       });
-      last_end = 0;
+      next_doc_id = documentsOptions[++docs_index].value;
     }
 
     if (last_end < current_ann.start) {
@@ -692,7 +712,6 @@ const getNonAnnotations = async (annotations: RichAnnotation[]) => {
     ann_id: -1,
     doc_id: previous_ann.doc_id,
   });
-
   return new_annotations;
 };
 
@@ -813,8 +832,6 @@ const getXlslTab = async (
     while (true) {
       try {
         const metrics = await compute_metrics(anns, annotators, tolerance, contained);
-        console.log(label);
-        console.log(metrics);
         metrics.map((m) => {
           if (m.result !== undefined)
             rowsMetrics.push({
@@ -827,7 +844,6 @@ const getXlslTab = async (
               consider_contained: contained ? "yes" : "no",
             });
         });
-        console.log(rowsMetrics);
         const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
         tables?.forEach((r: any) => {
           Object.entries(r.annotators).forEach(([k, v]) => {
@@ -838,8 +854,9 @@ const getXlslTab = async (
               text: r.text,
               value: v,
             };
+
             rowsAnnotations.push(
-              documents.length > 1
+              documents.length != 1
                 ? {
                     document: r.doc_id + "-" + documentsData.value[r.doc_id].name,
                     ...ann,

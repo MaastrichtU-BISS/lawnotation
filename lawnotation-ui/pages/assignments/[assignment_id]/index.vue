@@ -1,22 +1,25 @@
 <template>
-  <Breadcrumb v-if="project && task && assignment" :crumbs="[
-    {
-      name: 'Projects',
-      link: '/projects',
-    },
-    {
-      name: `Project ${project.name}`,
-      link: `/projects/${project.id}`,
-    },
-    {
-      name: `Task ${task.name}`,
-      link: `/projects/${project.id}/tasks/${task.id}`,
-    },
-    {
-      name: `Assignment ${assignment.id}`,
-      link: `/assignments/${assignment.id}`,
-    },
-  ]" />
+  <Breadcrumb
+    v-if="project && task && assignment"
+    :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+      {
+        name: `Task ${task.name}`,
+        link: `/projects/${project.id}/tasks/${task.id}`,
+      },
+      {
+        name: `Assignment ${assignment.id}`,
+        link: `/assignments/${assignment.id}`,
+      },
+    ]"
+  />
 
   <div class="dimmer-wrapper">
     <Dimmer v-model="loading" />
