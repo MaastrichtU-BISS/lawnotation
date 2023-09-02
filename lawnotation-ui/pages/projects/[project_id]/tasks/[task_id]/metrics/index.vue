@@ -312,7 +312,7 @@
                 Annotations: {{ annotations.length }}
               </span>
             </div>
-            <ul>
+            <ul v-if="annotations.length < annotations_limit">
               <li v-for="(ann, index) in annotations">
                 <RangeLabelCmpt
                   :annotation="ann"
@@ -492,6 +492,7 @@ const separate_into_words = ref(false);
 const hideNonText = ref(true);
 const contained = ref(false);
 
+const annotations_limit = 10 ** 3;
 const annotations = reactive<RichAnnotation[]>([]);
 const metrics_result = ref<{
   loading: Boolean;
@@ -1108,6 +1109,7 @@ const separateIntoWords = (annotations: RichAnnotation[]) => {
   });
   tolerance.value = 0;
   loading_annotations.value = false;
+  console.log(new_annotations);
   return new_annotations;
 };
 
