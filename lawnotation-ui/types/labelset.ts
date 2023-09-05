@@ -1,5 +1,5 @@
 export interface Labelset {
-  id: string,
+  id: number,
   name: string,
   desc: string,
   editor_id: string,
