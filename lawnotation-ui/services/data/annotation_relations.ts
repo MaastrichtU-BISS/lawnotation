@@ -46,10 +46,11 @@ export const relationDataService = (event: H3Event) => {
         return data as AnnotationRelation;
     },
     
-    find: async (anns: Annotation[]): Promise<AnnotationRelation[]> => {
-        var relations: AnnotationRelation[] = [];
-        for (let i = 0; i < anns.length; ++i) {
-            const { data, error } = await client.from("annotation_relations").select().eq("from_id", anns[i].id);
+    // TODO: find relations from assignment ID.
+    findFromAnnotationIds: async (annotation_ids: Annotation['id'][]): Promise<AnnotationRelation[]> => {
+        const relations: AnnotationRelation[] = [];
+        for (const id of annotation_ids) {
+            const { data, error } = await client.from("annotation_relations").select().eq("from_id", id);
             relations.push(...data as AnnotationRelation[]);
         }
         return relations;
