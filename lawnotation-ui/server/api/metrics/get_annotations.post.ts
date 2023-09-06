@@ -1,3 +1,4 @@
+import { Document } from "~/data/document";
 import { serverSupabaseClient } from "#supabase/server";
 import {
   sortByDocumentAndRange,
@@ -5,11 +6,10 @@ import {
   separateIntoWords,
 } from "~/utils/metrics";
 import { RichAnnotation } from "~/data/annotation";
-// import { Document } from "~/data/document";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
-  //   const documentsData = await findSharedDocumentsByTask(event, data.task_id);
+  const documentsData = await getDocuments(event, data.task_id, data.documents);
   const annotations = await findAnnotationsByTaskLabelDocumentsAnnotators(
     event,
     data.task_id,
@@ -22,8 +22,8 @@ export default eventHandler(async (event) => {
 
   result = await getNonAnnotations(
     annotations,
-    data.documentsData,
-    data.documentsOptions
+    documentsData[0],
+    documentsData[1]
   );
 
   if (data.byWords) {
@@ -168,20 +168,28 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   }
 }
 
-// async function findSharedDocumentsByTask(event: any, task_id: string) {
-//   const supabase = serverSupabaseClient(event);
-//   let res: any = {};
-//   const { data, error } = await supabase.rpc("get_all_shared_docs_from_task", {
-//     t_id: task_id,
-//   });
-//   if (error)
-//     throw new Error(`ERROR in findSharedDocumentsByTask: ${error.message}`);
-//   else {
-//     (data as Document[]).map((d: Document) => {
-//       if (!(d.id in res)) {
-//         res[d.id] = { full_text: d.full_text, name: d.name };
-//       }
-//     });
-//   }
-//   return res;
-// }
+async function getDocuments(event: any, task_id: string, documents: string[]) {
+  const supabase = serverSupabaseClient(event);
+  let list: string[] = [];
+  let dic: any = {};
+  let query = supabase.rpc("get_all_shared_docs_from_task", {
+    t_id: task_id,
+  });
+
+  if (documents && documents.length) query = query.in("id", [documents]);
+
+  const { data, error } = await query.order("id");
+
+  if (error) {
+    throw new Error(error.message);
+  } else {
+    (data as Document[]).map((d: Document) => {
+      list.push(d.id.toString());
+      if (!(d.id in dic)) {
+        dic[d.id] = { full_text: d.full_text, name: d.name };
+      }
+    });
+  }
+
+  return [dic, list];
+}
