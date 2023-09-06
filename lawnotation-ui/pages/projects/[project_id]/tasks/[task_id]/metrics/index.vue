@@ -738,6 +738,7 @@ const downloadAll = async () => {
       body: body,
     })) as any[];
     const zip = JSZip();
+    // test
     for (let i = 0; i < blobs.length; i++) {
       const b = await (await fetch(blobs[i].wb)).blob();
       zip.file(`${blobs[i].name}`, b);
