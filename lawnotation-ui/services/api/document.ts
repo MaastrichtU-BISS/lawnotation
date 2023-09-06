@@ -5,23 +5,17 @@ export const documentApiService = {
   ...crud_api<Document>()('/api/document'),
 
   findDocumentsByProjectId: async (project_id: number) => {
-    try {
-      const data = await $fetch<Document[]>(`/api/document/findDocumentsByProjectId/${project_id}`, { method: 'GET' })
-      return data;
-    } catch (e) {
-      if (e instanceof Error)
-        throw Error(`Error in findDocumentsByProjectId: ${e.message}`)
-    }
+    const data = await $fetch<Document[]>(`/api/document/findDocumentsByProjectId/${project_id}`, { method: 'GET' })
+    if (typeof data === "undefined")
+      throw Error('Method findDocumentsByProjectId did not return any data')
+    return data;
   },
   
-  findSharedDocumentsByTask: async (task_id: number) => {
-    try {
-      const data = await $fetch<Document[]>(`/api/document/findSharedDocumentsByTask/${task_id}`, { method: 'GET' })
-      return data;
-    } catch (e) {
-      if (e instanceof Error)
-        throw Error(`Error in findSharedDocumentsByTask: ${e.message}`)
-    }
+  findSharedDocumentsByTaskId: async (task_id: number) => {
+    const data = await $fetch<Document[]>(`/api/document/findSharedDocumentsByTaskId/${task_id}`, { method: 'GET' })
+    if (typeof data === "undefined")
+      throw Error('Method findSharedDocumentsByTaskId did not return any data')
+    return data;
   },
 
 }
