@@ -120,25 +120,34 @@
 <script setup lang="ts">
 import { ExportToCsv } from "export-to-csv";
 import Multiselect from "@vueform/multiselect";
-import { Task, useTaskApi } from "~/data/task";
-import { Annotation, useAnnotationApi } from "~/data/annotation";
-import { Document, useDocumentApi } from "~/data/document";
-import { Labelset, useLabelsetApi } from "~/data/labelset";
-import { User, useUserApi } from "~/data/user";
-import { result } from "lodash";
 import { KappaResult } from "~/utils/metrics";
-import { Project, useProjectApi } from "~/data/project";
+import { result } from "lodash";
+
+import taskApiService from "~/services/api/task";
+import annotationApiService from "~/services/api/annotation";
+import documentApiService from "~/services/api/document";
+import labelsetApiService from "~/services/api/labelset";
+import userApiService from "~/services/api/user";
+import projectApiService from "~/services/api/project";
+
+import { Task, Annotation, Document, Labelset, User, Project } from "~/types";
+// import { Annotation, useAnnotationApi } from "~/data/annotation";
+// import { Document, useDocumentApi } from "~/data/document";
+// import { Labelset, useLabelsetApi } from "~/data/labelset";
+// import { User, useUserApi } from "~/data/user";
+// import { Project, useProjectApi } from "~/data/project";
+
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
 
 // const user = useSupabaseUser();
-const taskApi = useTaskApi();
-const projectApi = useProjectApi();
-const annotationApi = useAnnotationApi();
-const documentApi = useDocumentApi();
-const labelsetApi = useLabelsetApi();
-const userApi = useUserApi();
+// const taskApi = taskApiService();
+// const projectApi = useProjectApi();
+// const annotationApi = useAnnotationApi();
+// const documentApi = useDocumentApi();
+// const labelsetApi = useLabelsetApi();
+// const userApi = useUserApi();
 
 const route = useRoute();
 const task = ref<Task>();
@@ -283,18 +292,19 @@ const downloadCSV = async (doc: string, label: string) => {
 };
 
 onMounted(async () => {
-  task.value = await taskApi.findTask(route.params.task_id.toString());
+  // task.value = await taskApi.findTask(route.params.task_id.toString());
+  task.value = await taskApiService.findById(+route.params.task_id);
 
-  project.value = await projectApi.findProject(route.params.project_id as string);
+  project.value = await projectApiService.findById(+route.params.project_id);
 
   labelsOptions.push(
-    ...(await labelsetApi.findLabelset(task.value.labelset_id.toString())).labels.map(
+    ...(await labelsetApiService.findById(+task.value.labelset_id)).labels.map(
       (l) => l.name
     )
   );
 
   documentsOptions.push(
-    ...(await documentApi.findSharedDocumentsByTask(task.value.id.toString())).map(
+    ...(await documentApiService.findSharedDocumentsByTaskId(task.value.id)).map(
       (d) => {
         return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
       }
@@ -302,7 +312,7 @@ onMounted(async () => {
   );
 
   annotatorsOptions.push(
-    ...(await userApi.findUsersByTask(task.value.id.toString())).map((a) => a.email)
+    ...(await userApiService.findUsersByTaskId(task.value.id)).map((a) => a.email)
   );
 });
 
