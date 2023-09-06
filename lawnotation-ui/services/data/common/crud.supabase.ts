@@ -26,8 +26,10 @@ const crud_data = <
       return data
   };
   
-  const find = async ({filter, range}: {filter: Partial<TableRow>, range?: [number, number]}) => {
-    let query = client.from(tablename).select().match(filter);
+  const find = async ({filter, range}: {filter?: Partial<TableRow>, range?: [number, number]} = {}) => {
+    let query = client.from(tablename).select()
+    if (filter)
+      query = query.match(filter);
     if (range)
       query = query.range(range[0], range[1])
 
