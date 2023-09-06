@@ -1,4 +1,4 @@
-import { RichAnnotation } from "~/data/annotation";
+import { Annotation, RichAnnotation } from "~/data/annotation";
 
 export type RangeLabel = {
   start: number;
@@ -214,4 +214,61 @@ export function getExampleCohens() {
     });
   }
   return table;
+}
+
+export function sortByDocumentAndRange(ranges: RichAnnotation[]): void {
+  ranges.sort((x, y) => {
+    if (x.doc_id < y.doc_id) {
+      return -1;
+    } else if (x.doc_id == y.doc_id) {
+      if (x.start < y.start) {
+        return -1;
+      } else if (x.start == y.start) {
+        return x.end <= y.end ? -1 : 1;
+      } else {
+        return 1;
+      }
+    } else {
+      return 1;
+    }
+  });
+}
+
+export function setTextToHidden(
+  annotations: RichAnnotation[],
+  value: boolean
+): RichAnnotation[] {
+  for (let i = 0; i < annotations.length; i++) {
+    if (
+      annotations[i].ann_id == -1 &&
+      !/[ˆa-zA-Z]{2}/.test(annotations[i].text)
+    )
+      annotations[i].hidden = value;
+  }
+  return annotations;
+}
+
+export function separateIntoWords(annotations: RichAnnotation[]) {
+  let limit = 10 ** 6;
+  var new_annotations: RichAnnotation[] = [];
+
+  annotations.forEach((ann) => {
+    const words = ann.text.matchAll(/\S+/g);
+    while (limit > 0) {
+      const w = words.next();
+      if (w.done) break;
+      new_annotations.push({
+        start: ann.start + w.value.index!,
+        end: ann.start + w.value.index! + w.value[0].length,
+        text: w.value[0],
+        label: ann.label,
+        annotator: ann.annotator,
+        hidden: false,
+        ann_id: ann.ann_id,
+        doc_id: ann.doc_id,
+      });
+      limit--;
+    }
+  });
+  return new_annotations;
 }

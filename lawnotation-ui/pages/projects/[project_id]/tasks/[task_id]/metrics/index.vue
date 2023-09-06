@@ -22,8 +22,8 @@
       ]"
     />
     <div class="dimmer-wrapper pt-2">
-      <DimmerProgress v-if="download_progress.loading" v-model="download_progress" />
-      <Dimmer v-else v-model="loading" />
+      <!-- <DimmerProgress v-if="download_progress.loading" v-model="download_progress" /> -->
+      <Dimmer v-model="loading" />
       <div class="dimmer-content">
         <aside
           id="logo-sidebar"
@@ -304,15 +304,12 @@
         </aside>
         <div class="px-4 sm:ml-64 side-panel-h overflow-auto" style="margin-left: 20rem">
           <div id="annotations_list">
-            <div
-              v-if="!loading && annotations && annotations.length"
-              class="flex mb-3 justify-between"
-            >
+            <div v-if="!loading" class="flex mb-3 justify-between">
               <span class="flex-1 text-2xl font-bold text-center">
-                Annotations: {{ annotations.length }}
+                Annotations: {{ annotations_length }}
               </span>
             </div>
-            <ul v-if="annotations.length < annotations_limit">
+            <ul>
               <li v-for="(ann, index) in annotations">
                 <RangeLabelCmpt
                   :annotation="ann"
@@ -434,8 +431,6 @@
   </div>
 </template>
 <script setup lang="ts">
-import * as XLSX from "xlsx";
-import JSZip from "jszip";
 import Multiselect from "@vueform/multiselect";
 import { Task, useTaskApi } from "~/data/task";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
@@ -451,9 +446,12 @@ import {
 } from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
 
-import _ from "lodash";
+import _, { zip } from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
+// const FileSaver = require("file-saver");
+import { saveAs } from "file-saver";
+import JSZip, { file } from "jszip";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -493,6 +491,7 @@ const hideNonText = ref(true);
 const contained = ref(false);
 
 const annotations_limit = 10 ** 3;
+const annotations_length = ref(0);
 const annotations = reactive<RichAnnotation[]>([]);
 const metrics_result = ref<{
   loading: Boolean;
@@ -529,14 +528,6 @@ const selectedDocuments = computed((): string[] => {
     : documentsOptions.map((d) => d.value);
 });
 
-const annotationsBig = computed((): RichAnnotation[] => {
-  if (annotations.length < 1000) {
-    return annotations;
-  } else {
-    return annotations.slice(1000);
-  }
-});
-
 const selectLabel = (value: string) => {
   selectedLabel.value = value;
   selectAnnotators();
@@ -555,28 +546,39 @@ const selectAnnotators = async () => {
     return;
   }
 
-  nextTick(async () => {
-    const anns = await getAnnotations(
-      task.value?.id.toString()!,
-      selectedLabel.value!,
-      selectedDocumentsOrEmpty.value!,
-      selectedAnnotatorsOrEmpty.value!
-    );
-
-    updateAnnotations(anns);
+  nextTick(() => {
+    updateAnnotations();
   });
-};
-
-const updateAnnotations = (anns: RichAnnotation[]) => {
-  annotations.splice(0) && annotations.push(...anns);
 };
 
 const getAnnotations = async (
   task_id: string,
   label: string,
   documents: string[],
-  annotators: string[]
+  annotators: string[],
+  byWords: boolean,
+  hideNonText: boolean,
+  documentsData: any,
+  documentsOptions: string[]
 ) => {
+  const body = JSON.stringify({
+    task_id: task_id,
+    label: label,
+    documents: documents,
+    annotators: annotators,
+    byWords: byWords,
+    hideNonText: hideNonText,
+    documentsData: documentsData,
+    documentsOptions: documentsOptions,
+  });
+
+  return $fetch("/api/metrics/get_annotations", {
+    method: "POST",
+    body: body,
+  });
+};
+
+const updateAnnotations = async () => {
   loading_annotations.value = true;
   metrics_result.value = {
     krippendorff: undefined,
@@ -585,164 +587,55 @@ const getAnnotations = async (
     difficulty: undefined,
     loading: false,
   };
-  try {
-    let result = [];
-
-    const anns = await annotationApi.findAnnotationsByTaskLabelDocumentsAnnotators(
-      task_id,
-      label,
-      documents,
-      annotators
-    );
-
-    const annsAndNans = await getNonAnnotations(anns);
-    result.push(...annsAndNans);
-
-    if (separate_into_words.value) {
-      result = separateIntoWords(result);
-    }
-
-    if (hideNonText.value) {
-      result = setTextToHidden(result, hideNonText.value);
-    }
-
-    loading_annotations.value = false;
-    return result;
-  } catch (error) {
-    loading_annotations.value = false;
-    return [];
-  }
-};
-
-function sortByDocumentAndRange(ranges: RichAnnotation[]): void {
-  ranges.sort((x, y) => {
-    if (x.doc_id < y.doc_id) {
-      return -1;
-    } else if (x.doc_id == y.doc_id) {
-      if (x.start < y.start) {
-        return -1;
-      } else if (x.start == y.start) {
-        return x.end <= y.end ? -1 : 1;
-      } else {
-        return 1;
-      }
-    } else {
-      return 1;
-    }
-  });
-}
-
-const getNonAnnotations = async (annotations: RichAnnotation[]) => {
-  if (!annotations || !annotations.length) return [];
-  sortByDocumentAndRange(annotations);
-  var new_annotations: RichAnnotation[] = [];
-  var last_end: number = 0;
-  var docs_index: number = 0;
-  var previous_ann = annotations[0];
-  for (let i = 0; i < annotations.length; ++i) {
-    var current_ann = annotations[i];
-    // new document
-    if (previous_ann.doc_id != current_ann.doc_id) {
-      docs_index++;
-      if (last_end < documentsData.value[previous_ann.doc_id].full_text.length) {
-        new_annotations.push({
-          start: last_end,
-          end: documentsData.value[previous_ann.doc_id].full_text.length,
-          label: "NOT ANNOTATED",
-          text: documentsData.value[previous_ann.doc_id].full_text.substring(
-            last_end,
-            documentsData.value[previous_ann.doc_id].full_text.length
-          ),
-          annotator: "",
-          hidden: false,
-          ann_id: -1,
-          doc_id: previous_ann.doc_id,
-        });
-      }
-      last_end = 0;
-    }
-
-    // doc(s) without annotations
-    var next_doc_id = documentsOptions[docs_index].value;
-    while (next_doc_id < current_ann.doc_id) {
-      new_annotations.push({
-        start: 0,
-        end: documentsData.value[next_doc_id].full_text.length - 1,
-        label: "NOT ANNOTATED",
-        text: documentsData.value[next_doc_id].full_text,
-        annotator: "",
-        hidden: false,
-        ann_id: -1,
-        doc_id: next_doc_id,
-      });
-      next_doc_id = documentsOptions[++docs_index].value;
-    }
-
-    if (last_end < current_ann.start) {
-      new_annotations.push({
-        start: last_end,
-        end: current_ann.start,
-        label: "NOT ANNOTATED",
-        text: documentsData.value[current_ann.doc_id].full_text.substring(
-          last_end,
-          current_ann.start
-        ),
-        annotator: "",
-        hidden: false,
-        ann_id: -1,
-        doc_id: current_ann.doc_id,
-      });
-    }
-
-    new_annotations.push(current_ann);
-    last_end = Math.max(last_end, current_ann.end);
-    previous_ann = current_ann;
-  }
-
-  new_annotations.push({
-    start: last_end,
-    end: documentsData.value[previous_ann.doc_id].full_text.length,
-    label: "NOT ANNOTATED",
-    text: documentsData.value[previous_ann.doc_id].full_text.substring(
-      last_end,
-      documentsData.value[previous_ann.doc_id].full_text.length
-    ),
-    annotator: "",
-    hidden: false,
-    ann_id: -1,
-    doc_id: previous_ann.doc_id,
-  });
-  return new_annotations;
+  annotations.splice(0);
+  const anns = await getAnnotations(
+    task.value?.id.toString()!,
+    selectedLabel.value!,
+    selectedDocumentsOrEmpty.value!,
+    selectedAnnotatorsOrEmpty.value!,
+    separate_into_words.value,
+    hideNonText.value,
+    documentsData.value,
+    documentsOptions.map((d) => d.value)
+  );
+  annotations_length.value = anns.length;
+  if (anns.length < annotations_limit) annotations.push(...anns);
+  loading_annotations.value = false;
 };
 
 const compute_metrics = async (
-  annotations: RichAnnotation[],
+  task_id: string,
+  label: string,
+  documents: string[],
   annotators: string[],
+  annotatorsOrEmpty: string[],
   tolerance: number,
+  byWords: boolean,
+  hideNonText: boolean,
   contained: boolean,
-  metrics = ["krippendorff", "fleiss_kappa", "cohens_kappa"]
+  documentsData: any,
+  documentsOptions: string[],
+  annotations: RichAnnotation[] = []
 ): Promise<MetricResult[]> => {
-  if (!annotations || annotations.length == 0) {
-    return Promise.resolve(metrics.map((m) => newEmptyMetricResult(m)));
-  }
-
   const body = JSON.stringify({
-    annotations: annotations.filter((x) => !x.hidden),
+    task_id: task_id,
+    label: label,
+    documents: documents,
     annotators: annotators,
+    annotatorsOrEmpty: annotatorsOrEmpty,
     tolerance: tolerance,
+    byWords: byWords,
+    hideNonText: hideNonText,
     contained: contained,
+    documentsData: documentsData,
+    documentsOptions: documentsOptions,
+    annotations: annotations,
   });
 
-  const promises: Promise<MetricResult>[] = [];
-  metrics.map((m) => {
-    const p = $fetch(`/api/metrics/${m}`, {
-      method: "POST",
-      body: body,
-    });
-    promises.push(p as Promise<MetricResult>);
+  return $fetch(`/api/metrics/get_metrics`, {
+    method: "POST",
+    body: body,
   });
-
-  return Promise.all(promises);
 };
 
 const updateMetrics = (metrics: MetricResult[]) => {
@@ -752,6 +645,7 @@ const updateMetrics = (metrics: MetricResult[]) => {
 };
 
 const clickComputeMetrics = async () => {
+  if (!selectedLabel.value) return;
   metrics_result.value = {
     krippendorff: undefined,
     fleiss_kappa: undefined,
@@ -761,10 +655,18 @@ const clickComputeMetrics = async () => {
   };
   try {
     const metrics = await compute_metrics(
-      annotations,
+      task.value?.id.toString()!,
+      selectedLabel.value,
+      selectedDocumentsOrEmpty.value,
       selectedAnnotators.value,
+      selectedAnnotatorsOrEmpty.value,
       tolerance.value,
-      contained.value
+      separate_into_words.value,
+      hideNonText.value,
+      contained.value,
+      documentsData.value,
+      documentsOptions.map((d) => d.value),
+      annotations && annotations.length ? annotations : []
     );
     updateMetrics(metrics);
     metrics_result.value.loading = false;
@@ -814,230 +716,39 @@ const computeDifficultyMetrics = async (
   });
 };
 
-const getXlslTab = async (
-  task_id: string,
-  label: string,
-  documents: string[],
-  annotators: string[],
-  annotatorsOrEmpty: string[],
-  tolerance: number,
-  contained: boolean
-) => {
-  const rowsMetrics: any[] = [];
-  const rowsAnnotations: any[] = [];
-
-  const anns = await getAnnotations(task_id, label, documents, annotatorsOrEmpty);
-  if (anns.length) {
-    let timeout = 100;
-    while (true) {
-      try {
-        const metrics = await compute_metrics(anns, annotators, tolerance, contained);
-        metrics.map((m) => {
-          if (m.result !== undefined)
-            rowsMetrics.push({
-              metric: m.name,
-              annotators: annotators.length > 2 ? "all" : annotators.join(","),
-              value: m.result,
-              p0: m.po,
-              pe: m.pe,
-              tolerance: tolerance,
-              consider_contained: contained ? "yes" : "no",
-            });
-        });
-        const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
-        tables?.forEach((r: any) => {
-          Object.entries(r.annotators).forEach(([k, v]) => {
-            const ann = {
-              annotator: k,
-              start: r.start,
-              end: r.end,
-              text: r.text,
-              value: v,
-            };
-
-            rowsAnnotations.push(
-              documents.length != 1
-                ? {
-                    document: r.doc_id + "-" + documentsData.value[r.doc_id].name,
-                    ...ann,
-                  }
-                : ann
-            );
-          });
-        });
-        console.log("DONE");
-        break;
-      } catch (error) {
-        timeout--;
-        console.log("FAILED");
-      }
-    }
-  }
-
-  if (annotators.length > 2) {
-    for (let i = 0; i < annotators.length; i++) {
-      for (let j = i + 1; j < annotators.length; j++) {
-        const ck_anns = await getAnnotations(task_id, label, documents, [
-          annotators[i],
-          annotators[j],
-        ]);
-        if (ck_anns.length) {
-          let ck_timeout = 100;
-          while (true) {
-            try {
-              const ck_metrics = await compute_metrics(
-                ck_anns,
-                [annotators[i], annotators[j]],
-                tolerance,
-                contained
-              );
-              if (i == 0 && j == 1) {
-              }
-              ck_metrics.map((m) => {
-                if (m.name == "cohens_kappa") {
-                  rowsMetrics.push({
-                    metric: m.name,
-                    annotators: annotators[i] + "," + annotators[j],
-                    value: m.result,
-                    p0: m.po,
-                    pe: m.pe,
-                    tolerance: tolerance,
-                    consider_contained: contained ? "yes" : "no",
-                  });
-                }
-              });
-              console.log("DONE");
-              break;
-            } catch (error) {
-              ck_timeout--;
-              console.log("FAILED");
-            }
-          }
-        }
-      }
-    }
-  }
-
-  const worksheetMetrics = XLSX.utils.json_to_sheet(rowsMetrics);
-  const worksheetAnnotations = XLSX.utils.json_to_sheet(rowsAnnotations);
-  return [worksheetMetrics, worksheetAnnotations];
-};
-
 const downloadAll = async () => {
   download_progress.value.loading = true;
-  download_progress.value.current = 0;
-  download_progress.value.total =
-    selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
-  const zip = new JSZip();
+  const body = JSON.stringify({
+    task_id: task.value?.id.toString()!,
+    labelsOptions: labelsOptions,
+    documents: selectedDocuments.value,
+    documentsOrEmpty: selectedDocumentsOrEmpty.value,
+    annotators: selectedAnnotators.value,
+    annotatorsOrEmpty: selectedAnnotatorsOrEmpty.value,
+    tolerance: tolerance.value,
+    byWords: separate_into_words.value,
+    hideNonText: hideNonText.value,
+    contained: contained.value,
+    documentsData: documentsData.value,
+    documentsOptions: documentsOptions,
+  });
   try {
-    try {
-      const workbookDifficulty = XLSX.utils.book_new();
-      const dm = await computeDifficultyMetrics(
-        task.value?.id.toString()!,
-        selectedAnnotators.value.length,
-        selectedAnnotatorsOrEmpty.value,
-        selectedDocumentsOrEmpty.value
-      );
-      const worksheetDifficulty = XLSX.utils.json_to_sheet([
-        {
-          total: dm.total,
-          rated: dm.rated,
-          average_stars: dm.average,
-          "1_stars": dm.values[1],
-          "2_stars": dm.values[2],
-          "3_stars": dm.values[3],
-          "4_stars": dm.values[4],
-          "5_stars": dm.values[5],
-          krippendorff: dm.krippendorff?.result,
-          p0: dm.krippendorff?.po,
-          pe: dm.krippendorff?.pe,
-        },
-      ]);
-      XLSX.utils.book_append_sheet(
-        workbookDifficulty,
-        worksheetDifficulty,
-        "Difficulty Metrics"
-      );
-      zip.file(`_confidence.xlsx`, getZippeableBlob(workbookDifficulty));
-    } catch (error) {}
-    for (let i = 0; i < selectedDocuments.value!.length; i++) {
-      const document = selectedDocuments.value![i];
-      const workbookMetrics = XLSX.utils.book_new();
-      const workbookAnnotations = XLSX.utils.book_new();
-      for (let j = 0; j < labelsOptions.length; j++) {
-        const label = labelsOptions[j];
-        const sheets: XLSX.WorkSheet[] = await getXlslTab(
-          task.value?.id?.toString()!,
-          label,
-          [document],
-          selectedAnnotators.value!,
-          selectedAnnotatorsOrEmpty.value,
-          tolerance.value,
-          contained.value
-        );
-        XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-        XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-        download_progress.value.current += 2;
-      }
-      const filename =
-        document + "-" + ((await documentApi.getName(document)) as string).split(".")[0];
-      zip.file(`${filename}_metrics.xlsx`, getZippeableBlob(workbookMetrics));
-      zip.file(`${filename}_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
+    const blobs = (await $fetch("/api/metrics/get_allmetrics", {
+      method: "POST",
+      body: body,
+    })) as any[];
+    const zip = JSZip();
+    for (let i = 0; i < blobs.length; i++) {
+      const b = await (await fetch(blobs[i].wb)).blob();
+      zip.file(`${blobs[i].name}`, b);
     }
-
-    const workbookMetrics = XLSX.utils.book_new();
-    const workbookAnnotations = XLSX.utils.book_new();
-    for (let i = 0; i < labelsOptions.length; i++) {
-      const label = labelsOptions[i];
-      const sheets = await getXlslTab(
-        task.value?.id?.toString()!,
-        label,
-        selectedDocumentsOrEmpty.value!,
-        selectedAnnotators.value!,
-        selectedAnnotatorsOrEmpty.value,
-        tolerance.value,
-        contained.value
-      );
-      XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-      XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-      download_progress.value.current += 2;
-    }
-    zip.file(`_metrics.xlsx`, getZippeableBlob(workbookMetrics));
-    zip.file(`_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
-
-    const blob = await zip.generateAsync({ type: "blob" });
-
-    download_blob(blob);
-
+    const blob_zip = await zip.generateAsync({ type: "blob" });
+    saveAs(blob_zip, `${task.value?.name}.zip`);
+    download_progress.value.loading = false;
     $toast.success(`One .zip file has been downloaded!`);
   } catch (error) {
     download_progress.value.loading = false;
   }
-  download_progress.value.loading = false;
-};
-
-const getZippeableBlob = async (workBook: XLSX.WorkBook) => {
-  const b64Data = XLSX.writeXLSX(workBook, {
-    bookType: "xlsx",
-    type: "base64",
-    compression: true,
-  });
-
-  const contentType = "application/octet-stream";
-
-  const dataUrl = `data:${contentType};base64,${b64Data}`;
-  const blob = await (await fetch(dataUrl)).blob();
-  return blob;
-};
-
-const download_blob = async (blob: Blob) => {
-  const element = window.document.createElement("a");
-  element.setAttribute("href", URL.createObjectURL(blob));
-  element.setAttribute("download", `${task.value?.name}.zip`);
-  element.style.display = "none";
-  window.document.body.appendChild(element);
-  element.click();
-  window.document.body.removeChild(element);
 };
 
 const canMergeUp = (index: number): Boolean => {
@@ -1083,37 +794,7 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
   loading_annotations.value = false;
 };
 
-const separateIntoWords = (annotations: RichAnnotation[]) => {
-  metrics_result.value = {} as any;
-  let limit = 10 ** 6;
-  loading_annotations.value = true;
-  var new_annotations: RichAnnotation[] = [];
-
-  annotations.forEach((ann) => {
-    const words = ann.text.matchAll(/\S+/g);
-    while (limit > 0) {
-      const w = words.next();
-      if (w.done) break;
-      new_annotations.push({
-        start: ann.start + w.value.index!,
-        end: ann.start + w.value.index! + w.value[0].length,
-        text: w.value[0],
-        label: ann.label,
-        annotator: ann.annotator,
-        hidden: false,
-        ann_id: ann.ann_id,
-        doc_id: ann.doc_id,
-      });
-      limit--;
-    }
-  });
-  tolerance.value = 0;
-  loading_annotations.value = false;
-  console.log(new_annotations);
-  return new_annotations;
-};
-
-const modeToggle = async (value: boolean) => {
+const modeToggle = (value: boolean) => {
   separate_into_words.value = value;
   if (!task.value) {
     return;
@@ -1121,14 +802,7 @@ const modeToggle = async (value: boolean) => {
   if (!selectedLabel.value) {
     return;
   }
-  const anns = await getAnnotations(
-    task.value?.id.toString()!,
-    selectedLabel.value!,
-    selectedDocumentsOrEmpty.value!,
-    selectedAnnotatorsOrEmpty.value!
-  );
-
-  updateAnnotations(anns);
+  updateAnnotations();
 };
 
 const emitMergeUp = (ann_index: number): void => {
@@ -1164,17 +838,6 @@ const emitMergeDown = (ann_index: number): void => {
 const toggleTextToHidden = (value: boolean): RichAnnotation[] => {
   hideNonText.value = value;
   return setTextToHidden(annotations, value);
-};
-
-const setTextToHidden = (
-  annotations: RichAnnotation[],
-  value: boolean
-): RichAnnotation[] => {
-  for (let i = 0; i < annotations.length; i++) {
-    if (annotations[i].ann_id == -1 && !/[ˆa-zA-Z]{2}/.test(annotations[i].text))
-      annotations[i].hidden = value;
-  }
-  return annotations;
 };
 
 const emitSetHidden = (ann_index: number, hidden: Boolean): void => {
