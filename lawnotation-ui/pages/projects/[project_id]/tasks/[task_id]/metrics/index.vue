@@ -33,6 +33,9 @@
         >
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 text-sm">
+              <!-- <li>
+                <button @click="getjson">getjson</button>
+              </li> -->
               <li>
                 <label
                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -711,6 +714,28 @@ const computeDifficultyMetrics = async (
     method: "POST",
     body: body,
   });
+};
+
+const getjson = async () => {
+  const annotations = await getAnnotations(
+    task.value?.id.toString()!,
+    "xxx",
+    selectedDocumentsOrEmpty.value,
+    selectedAnnotatorsOrEmpty.value,
+    separate_into_words.value,
+    hideNonText.value
+  );
+  const anns = annotations
+    .filter((ann) => !ann.hidden)
+    .map((a) => {
+      return {
+        text: a.text,
+        label: a.label,
+        annotator: a.annotator,
+      };
+    });
+  console.log(anns);
+  saveAs(new Blob([JSON.stringify(anns)]), task.value?.name + ".json");
 };
 
 const clickDownloadAll = async () => {

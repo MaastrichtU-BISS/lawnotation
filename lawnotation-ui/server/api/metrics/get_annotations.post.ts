@@ -18,6 +18,8 @@ export default eventHandler(async (event) => {
     data.annotators
   );
 
+  // const annotations = await findAnnotationsByTask(event, data.task_id);
+
   let result = [];
 
   result = await getNonAnnotations(
@@ -193,3 +195,36 @@ async function getDocuments(event: any, task_id: string, documents: string[]) {
 
   return [dic, list];
 }
+
+const findAnnotationsByTask = async (
+  event: any,
+  task_id: string
+): Promise<any> => {
+  const supabase = serverSupabaseClient(event);
+  let query = supabase
+    .from("annotations")
+    .select(
+      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, full_text, name), annotator:users!inner(email))"
+    )
+    .eq("assignments.task_id", task_id);
+
+  const { data, error } = await query;
+  if (error)
+    throw Error(
+      `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`
+    );
+  else {
+    return data.map((ann) => {
+      return {
+        start: ann.start_index,
+        end: ann.end_index,
+        text: ann.text.replaceAll("\\n", ""),
+        label: ann.label,
+        annotator: ann.assignment.annotator.email,
+        hidden: false,
+        ann_id: ann.id,
+        doc_id: ann.assignment.document_id,
+      };
+    });
+  }
+};
