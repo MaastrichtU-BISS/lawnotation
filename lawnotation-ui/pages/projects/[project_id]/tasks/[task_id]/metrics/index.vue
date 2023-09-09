@@ -33,9 +33,6 @@
         >
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 text-sm">
-              <!-- <li>
-                <button @click="getjson">getjson</button>
-              </li> -->
               <li>
                 <label
                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -296,9 +293,9 @@
                 <li class="">
                   <button
                     class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                    @click="clickDownloadAll"
+                    @click="get_json"
                   >
-                    Compute and download all
+                    Download all
                   </button>
                 </li>
               </ul>
@@ -320,7 +317,6 @@
                   :is-new-doc="isNewDoc(index)"
                   :can-merge-up="canMergeUp(index)"
                   :can-merge-down="canMergeDown(index)"
-                  :documentName="documentsData[ann.doc_id].name"
                   @separate="emitSeparate"
                   @mergeUp="emitMergeUp"
                   @mergeDown="emitMergeDown"
@@ -642,26 +638,53 @@ const computeDifficultyMetrics = async (
   });
 };
 
-const getjson = async () => {
-  const annotations = await getAnnotations(
-    task.value?.id.toString()!,
-    "xxx",
-    selectedDocumentsOrEmpty.value,
-    selectedAnnotatorsOrEmpty.value,
-    separate_into_words.value,
-    hideNonText.value
-  );
-  const anns = annotations
-    .filter((ann) => !ann.hidden)
-    .map((a) => {
-      return {
-        text: a.text,
-        label: a.label,
-        annotator: a.annotator,
-      };
-    });
+const get_json = async () => {
+  const anns = await $fetch("/api/metrics/get_all_annotations", {
+    method: "POST",
+    body: {
+      task_id: task.value?.id.toString()!,
+      labels: labelsOptions,
+      documents: selectedDocumentsOrEmpty.value,
+      annotators: selectedAnnotatorsOrEmpty.value,
+    },
+  });
+
   console.log(anns);
-  saveAs(new Blob([JSON.stringify(anns)]), task.value?.name + ".json");
+  let labels: string[] = ["NOT ANNOTATED"].concat(labelsOptions);
+  let doc_index = 0;
+  let label_index = 0;
+  let doc_pos: any = {};
+  let label_pos: any = {};
+  let json: any = { task_id: task.value?.id, task_name: task.value?.name, documents: [] };
+  anns.map((a) => {
+    if (!(a.doc_id in doc_pos)) {
+      doc_pos[a.doc_id] = doc_index++;
+
+      json["documents"].push({
+        doc_id: Number.parseInt(a.doc_id),
+        doc_name: a.doc_name,
+        labels: labels.map((l) => {
+          if (!(l in label_pos)) {
+            label_pos[l] = label_index++;
+          }
+          return { value: l, annotations: [] };
+        }),
+      });
+    }
+    json["documents"][doc_pos[a.doc_id]]["labels"][label_pos[a.label]][
+      "annotations"
+    ].push({
+      annotation_id: a.ann_id,
+      text: a.text,
+      annotator: a.annotator,
+      start: a.start,
+      end: a.end,
+      hidden: a.hidden,
+    });
+  });
+
+  console.log(json);
+  saveAs(new Blob([JSON.stringify(json)]), task.value?.name + ".json");
 };
 
 const clickDownloadAll = async () => {

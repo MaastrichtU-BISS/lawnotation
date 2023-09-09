@@ -9,16 +9,26 @@ import { RichAnnotation } from "~/data/annotation";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
-  const documentsData = await getDocuments(event, data.task_id, data.documents);
-  const annotations = await findAnnotationsByTaskLabelDocumentsAnnotators(
+
+  let promises: Promise<any>[] = [];
+
+  const documentsDataPromise: Promise<any> = getDocuments(
     event,
     data.task_id,
-    data.label,
-    data.documents,
-    data.annotators
+    data.documents
   );
 
-  // const annotations = await findAnnotationsByTask(event, data.task_id);
+  const annotationsPromise: Promise<RichAnnotation[]> =
+    findAnnotationsByTaskLabelDocumentsAnnotators(
+      event,
+      data.task_id,
+      data.label,
+      data.documents,
+      data.annotators
+    );
+
+  const annotations = await annotationsPromise;
+  const documentsData = await documentsDataPromise;
 
   let result = [];
 
@@ -68,6 +78,7 @@ async function getNonAnnotations(
           hidden: false,
           ann_id: -1,
           doc_id: previous_ann.doc_id,
+          doc_name: previous_ann.doc_name,
         });
       }
       last_end = 0;
@@ -85,6 +96,7 @@ async function getNonAnnotations(
         hidden: false,
         ann_id: -1,
         doc_id: next_doc_id,
+        doc_name: documentsData[next_doc_id].name,
       });
       next_doc_id = documentsOptions[++docs_index];
     }
@@ -102,6 +114,7 @@ async function getNonAnnotations(
         hidden: false,
         ann_id: -1,
         doc_id: current_ann.doc_id,
+        doc_name: current_ann.doc_name,
       });
     }
 
@@ -110,19 +123,22 @@ async function getNonAnnotations(
     previous_ann = current_ann;
   }
 
-  new_annotations.push({
-    start: last_end,
-    end: documentsData[previous_ann.doc_id].full_text.length,
-    label: "NOT ANNOTATED",
-    text: documentsData[previous_ann.doc_id].full_text.substring(
-      last_end,
-      documentsData[previous_ann.doc_id].full_text.length
-    ),
-    annotator: "",
-    hidden: false,
-    ann_id: -1,
-    doc_id: previous_ann.doc_id,
-  });
+  if (last_end < documentsData[previous_ann.doc_id].full_text.length) {
+    new_annotations.push({
+      start: last_end,
+      end: documentsData[previous_ann.doc_id].full_text.length,
+      label: "NOT ANNOTATED",
+      text: documentsData[previous_ann.doc_id].full_text.substring(
+        last_end,
+        documentsData[previous_ann.doc_id].full_text.length
+      ),
+      annotator: "",
+      hidden: false,
+      ann_id: -1,
+      doc_id: previous_ann.doc_id,
+      doc_name: previous_ann.doc_name,
+    });
+  }
   return new_annotations;
 }
 
@@ -138,7 +154,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   let query = supabase
     .from("annotations")
     .select(
-      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, full_text, name), annotator:users!inner(email))"
+      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
     )
     .eq("assignments.task_id", task_id)
     .eq("label", label);
@@ -165,6 +181,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
         hidden: false,
         ann_id: ann.id,
         doc_id: ann.assignment.document_id,
+        doc_name: ann.assignment.document.name,
       };
     });
   }
@@ -204,7 +221,7 @@ const findAnnotationsByTask = async (
   let query = supabase
     .from("annotations")
     .select(
-      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, full_text, name), annotator:users!inner(email))"
+      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
     )
     .eq("assignments.task_id", task_id);
 
@@ -218,12 +235,13 @@ const findAnnotationsByTask = async (
       return {
         start: ann.start_index,
         end: ann.end_index,
-        text: ann.text.replaceAll("\\n", ""),
+        text: ann.text,
         label: ann.label,
         annotator: ann.assignment.annotator.email,
         hidden: false,
         ann_id: ann.id,
         doc_id: ann.assignment.document_id,
+        doc_name: ann.assignment.document.name,
       };
     });
   }

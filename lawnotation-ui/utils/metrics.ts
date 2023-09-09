@@ -90,7 +90,7 @@ export function containsRangeLabel(
   tolerance: number = 0,
   contained: boolean = false
 ): number {
-  for (let i = 0; i < list.length; i++) {
+  for (let i = list.length - 1; i >= 0; i--) {
     const x = list[i];
     if (x.doc_id == range.doc_id && x.label == range.label && x.zeros > 0) {
       for (let t = 0; t <= tolerance; t++) {

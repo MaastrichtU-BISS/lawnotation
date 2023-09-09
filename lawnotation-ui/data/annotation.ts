@@ -19,6 +19,7 @@ export type RichAnnotation = {
   hidden: Boolean;
   ann_id: number;
   doc_id: string;
+  doc_name: string;
 };
 
 export type LSSerializedAnnotation = {
@@ -126,7 +127,7 @@ export const useAnnotationApi = () => {
     let query = supabase
       .from("annotations")
       .select(
-        "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, full_text, name), annotator:users!inner(email))"
+        "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
       )
       .eq("assignments.task_id", task_id)
       .eq("label", label);
@@ -153,6 +154,7 @@ export const useAnnotationApi = () => {
           hidden: false,
           ann_id: ann.id,
           doc_id: ann.assignment.document_id,
+          doc_name: ann.assignment.document.name,
         };
       });
     }
