@@ -88,17 +88,28 @@ export const useAnnotationRelationApi = () => {
 
   // Read all
   const findRelations = async (
-    anns: Annotation[]
+    anns_id: string[]
   ): Promise<AnnotationRelation[]> => {
     const { data, error } = await supabase
       .from("annotation_relations")
       .select()
-      .in(
-        "from_id",
-        anns.map((a) => a.id)
-      );
+      .in("from_id", anns_id);
 
     if (error) throw Error(`Error in findRelations: ${error.message}`);
+    else return data as AnnotationRelation[];
+  };
+
+  const findRelationsByTask = async (
+    task_id: string
+  ): Promise<AnnotationRelation[]> => {
+    const { data, error } = await supabase
+      .from("annotation_relations")
+      .select(
+        "*, annotation:from_id!inner(id, assignment:assignments!inner(id, task_id))"
+      )
+      .eq("from_id.assignments.task_id", task_id);
+
+    if (error) throw Error(`Error in findRelationsByTask: ${error.message}`);
     else return data as AnnotationRelation[];
   };
 
@@ -144,6 +155,7 @@ export const useAnnotationRelationApi = () => {
     createRelations,
     findRelation,
     findRelations,
+    findRelationsByTask,
     convert_ls2db,
     convert_db2ls,
   };

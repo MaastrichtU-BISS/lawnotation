@@ -34,7 +34,8 @@
         :relations="ls_relations"
         :guidelines="task?.ann_guidelines"
         :labels="labels"
-      ></LabelStudio>
+      >
+      </LabelStudio>
     </div>
   </div>
 </template>
@@ -118,7 +119,9 @@ const loadData = async () => {
     }
 
     relations.splice(0) &&
-      relations.push(...(await relationApi.findRelations(annotations)));
+      relations.push(
+        ...(await relationApi.findRelations(annotations.map((a) => a.id.toString())))
+      );
 
     const db2ls_rels = relations.map((r) => relationApi.convert_db2ls(r));
 

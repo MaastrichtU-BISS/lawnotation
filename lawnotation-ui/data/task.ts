@@ -116,8 +116,6 @@ export const useTaskApi = () => {
 
     const assignments = await assignmentApi.findAssignmentsByTask(task_id);
 
-    // console.log(assignments);
-
     const new_assignments = await assignmentApi.createAssignments(
       assignments.map((a) => {
         return {
@@ -136,11 +134,9 @@ export const useTaskApi = () => {
       dicAssignments[assignments[index].id] = na.id;
     });
 
-    // console.log(new_assignments);
+    console.log(assignments.length, new_assignments.length);
 
     const annotations = await annotationApi.findAnnotationsByTask(task_id);
-
-    // console.log(annotations);
 
     const new_annotations = await annotationApi.createAnnotations(
       annotations.map((a) => {
@@ -156,10 +152,9 @@ export const useTaskApi = () => {
       })
     );
 
-    // console.log(new_annotations);
+    console.log(annotations.length, new_annotations.length);
 
-    const relations = await relationApi.findRelations(annotations);
-    // console.log(relations);
+    const relations = await relationApi.findRelationsByTask(task_id);
 
     let dicAnnotations: any = {};
     new_annotations.map((na, index) => {
@@ -179,7 +174,7 @@ export const useTaskApi = () => {
       })
     );
 
-    // console.log(new_relations);
+    console.log(relations.length, new_relations.length);
 
     return new_task;
   };
