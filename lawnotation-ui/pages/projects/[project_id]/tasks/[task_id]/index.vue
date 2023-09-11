@@ -24,8 +24,18 @@
         <div v-show="assignmentTable.total">
           <div class="text-center my-3">
             <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
-              <button class="base btn-primary">Analyze Agreement Metrics</button>
+              <button
+                class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+              >
+                Analyze Agreement Metrics
+              </button>
             </NuxtLink>
+            <button
+              class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+              @click="replicateTask"
+            >
+              Replicate Task
+            </button>
           </div>
           <h3 class="my-3 text-lg font-semibold">Assignments</h3>
           <Table
@@ -294,6 +304,13 @@ const removeAllAssignments = async () => {
   await assignmentApi.deleteAllAssignments(task.value?.id.toString());
   await assignmentTable.load();
   $toast.success("Assignments successfully deleted!");
+};
+
+const replicateTask = async () => {
+  assignmentTable.loading = true;
+  const new_task = await taskApi.replicateTask(task.value?.id.toString()!);
+  assignmentTable.loading = false;
+  $toast.success(`Task successfully replicated! ${new_task.id}`);
 };
 
 onMounted(async () => {

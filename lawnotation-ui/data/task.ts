@@ -1,3 +1,7 @@
+import { useAnnotationApi } from "./annotation";
+import { useAssignmentApi } from "./assignment";
+import { useAnnotationRelationApi } from "./annotation_relations";
+
 export type Task = {
   id: number;
   name: string;
@@ -96,10 +100,95 @@ export const useTaskApi = () => {
     else return true;
   };
 
+  const replicateTask = async (task_id: string): Promise<Task> => {
+    const annotationApi = useAnnotationApi();
+    const assignmentApi = useAssignmentApi();
+    const relationApi = useAnnotationRelationApi();
+
+    const task = await findTask(task_id);
+    const new_task = await createTask({
+      name: task.name,
+      desc: task.desc,
+      project_id: task.project_id,
+      ann_guidelines: task.ann_guidelines,
+      labelset_id: task.labelset_id,
+    });
+
+    const assignments = await assignmentApi.findAssignmentsByTask(task_id);
+
+    // console.log(assignments);
+
+    const new_assignments = await assignmentApi.createAssignments(
+      assignments.map((a) => {
+        return {
+          task_id: new_task.id,
+          annotator_id: a.annotator_id,
+          document_id: a.document_id,
+          seq_pos: a.seq_pos,
+          status: a.status,
+          difficulty_rating: a.difficulty_rating,
+        };
+      })
+    );
+
+    let dicAssignments: any = {};
+    new_assignments.map((na, index) => {
+      dicAssignments[assignments[index].id] = na.id;
+    });
+
+    // console.log(new_assignments);
+
+    const annotations = await annotationApi.findAnnotationsByTask(task_id);
+
+    // console.log(annotations);
+
+    const new_annotations = await annotationApi.createAnnotations(
+      annotations.map((a) => {
+        return {
+          assignment_id: dicAssignments[a.assignment_id],
+          label: a.label,
+          start_index: a.start_index,
+          end_index: a.end_index,
+          text: a.text,
+          ls_id: a.ls_id,
+          origin: a.origin,
+        };
+      })
+    );
+
+    // console.log(new_annotations);
+
+    const relations = await relationApi.findRelations(annotations);
+    // console.log(relations);
+
+    let dicAnnotations: any = {};
+    new_annotations.map((na, index) => {
+      dicAnnotations[annotations[index].id] = na.id;
+    });
+
+    const new_relations = await relationApi.createRelations(
+      relations.map((a) => {
+        return {
+          direction: a.direction,
+          from_id: dicAnnotations[a.from_id],
+          to_id: dicAnnotations[a.to_id],
+          labels: a.labels,
+          ls_from: a.ls_from,
+          ls_to: a.ls_to,
+        };
+      })
+    );
+
+    // console.log(new_relations);
+
+    return new_task;
+  };
+
   return {
     createTask,
     findTask,
     findTasks,
+    replicateTask,
     getCountByUser,
     getAllAnnotatorTasks,
     updateTask,

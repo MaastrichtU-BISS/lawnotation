@@ -1,4 +1,3 @@
-import { RichAnnotation } from "~/data/annotation";
 export type Annotation = {
   id: number;
   assignment_id: number;
@@ -93,6 +92,17 @@ export const useAnnotationApi = () => {
     else return data as Annotation;
   };
 
+  const createAnnotations = async (
+    fields: Omit<Annotation, "id">[]
+  ): Promise<Annotation[]> => {
+    const { data, error } = await supabase
+      .from("annotations")
+      .insert(fields)
+      .select();
+    if (error) throw Error(`Error in createAnnotations: ${error.message}`);
+    else return data as Annotation[];
+  };
+
   // Read
   const findAnnotation = async (id: string): Promise<Annotation> => {
     const { data, error } = await supabase
@@ -115,6 +125,19 @@ export const useAnnotationApi = () => {
       .eq("assignment_id", assignment_id);
 
     if (error) throw Error(`Error in findAnnotation: ${error.message}`);
+    else return data as Annotation[];
+  };
+
+  const findAnnotationsByTask = async (
+    task_id: string
+  ): Promise<Annotation[]> => {
+    const { data, error } = await supabase
+      .from("annotations")
+      .select("*, assignment:assignments!inner(id, task_id)")
+      .eq("assignment.task_id", task_id)
+      .order("id");
+
+    if (error) throw Error(`Error in findAnnotationsByTask: ${error.message}`);
     else return data as Annotation[];
   };
 
@@ -216,8 +239,10 @@ export const useAnnotationApi = () => {
 
   return {
     createAnnotation,
+    createAnnotations,
     findAnnotation,
     findAnnotations,
+    findAnnotationsByTask,
     findAnnotationsByTaskLabelDocumentsAnnotators,
     updateAnnotation,
     updateAssignmentAnnotations,

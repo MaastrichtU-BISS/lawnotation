@@ -118,7 +118,8 @@ export const useAssignmentApi = () => {
     const { data, error } = await supabase
       .from("assignments")
       .select()
-      .eq("task_id", task_id);
+      .eq("task_id", task_id)
+      .order("id", { ascending: true });
 
     if (error) throw Error(`Error in findAssignment: ${error.message}`);
     else return data as Assignment[];
