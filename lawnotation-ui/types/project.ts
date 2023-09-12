@@ -1,6 +1,6 @@
-export type Project {
+export type Project = {
   id: number,
   name: string,
   desc: string,
-  editor_id: string | undefined
+  editor_id: string
 }
