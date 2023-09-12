@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
-import { protectedProcedure, router } from '~/server/trpc'
+import { protectedProcedure, publicProcedure, router } from '~/server/trpc'
 import { User } from '~/types';
 
 // const ZUserFields = z.object({
@@ -86,6 +86,25 @@ export const userRouter = router({
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.inviteUser: ${error.message}`});
       return data;
+    }),
+
+  'otpLogin': publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        redirectTo: z.string().url()
+      })
+    )
+    .query(async ({ctx, input}) => {
+      // const client = serverSupabaseClient(event)
+      // const body = await readBody(event)
+      const login = await ctx.supabase.auth.signInWithOtp({email: input.email, options: { emailRedirectTo: input.redirectTo } })
+
+      if (login.error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error logging in: ${login.error.message}`});
+      
+      const user = await ctx.supabase.from("users").select().eq("email", input.email).single();
+      return { user: user.data }
     })
     
 })

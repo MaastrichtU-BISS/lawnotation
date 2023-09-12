@@ -6,7 +6,6 @@ import { Labelset } from '~/types';
 const ZLabelsetFields = z.object({
   name: z.string(),
   desc: z.string(),
-  source: z.string(),
   editor_id: z.string(),
   labels: z.array(
     z.object({

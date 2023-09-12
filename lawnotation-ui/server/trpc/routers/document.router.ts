@@ -84,7 +84,7 @@ export const documentRouter = router({
 
   'delete': protectedProcedure
     .input(z.number().int())
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase.from("documents").delete().eq('id', input);
 
       if (error)
@@ -201,7 +201,7 @@ export const documentRouter = router({
       .input(
         z.number().int()
       )
-      .query(async ({ctx, input: project_id}) => {
+      .mutation(async ({ctx, input: project_id}) => {
         const { data, error } = await ctx.supabase
           .from("documents")
           .delete()

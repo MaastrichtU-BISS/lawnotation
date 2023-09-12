@@ -45,6 +45,16 @@ export const annotationRouter = router({
       return data as Annotation;
     }),
 
+  'findByAssignment': protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: assignment_id }) => {
+      const { data, error } = await ctx.supabase.from("annotations").select().eq('assignment_id', assignment_id);
+      
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in annotation.findByAssignment: ${error.message}`});
+      return data as Annotation[];
+    }),
+
   'create': protectedProcedure
     .input(
       ZAnnotationFields

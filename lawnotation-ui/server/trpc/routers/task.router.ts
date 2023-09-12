@@ -6,7 +6,6 @@ import { Task } from '~/types';
 const ZTaskFields = z.object({
   name: z.string(),
   desc: z.string(),
-  source: z.string(),
   project_id: z.number().int(),
   labelset_id: z.number().int(),
   ann_guidelines: z.string()
@@ -74,7 +73,7 @@ export const taskRouter = router({
 
   'delete': protectedProcedure
     .input(z.number().int())
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase.from("tasks").delete().eq('id', input);
 
       if (error)
@@ -111,7 +110,7 @@ export const taskRouter = router({
       return data as Task[];
     }),
 
-  'deleteAllFromTask': protectedProcedure
+  'deleteAllFromProject': protectedProcedure
     .input(
       z.number().int()
     )

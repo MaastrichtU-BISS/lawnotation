@@ -32,7 +32,17 @@ export const assignmentRouter = router({
 
   'createMany': protectedProcedure
     .input(
-      z.array(ZAssignmentFields)
+      z.array(
+        // object is equal to ZAssignmentFields, but with optional's, since partial didn't work. check later
+        z.object({
+          annotator_id: z.string().optional(),
+          task_id: z.number().int(),
+          document_id: z.number().int(),
+          status: z.union([z.literal("pending"), z.literal("done")]).optional(),
+          seq_pos: z.number().int().optional(),
+          difficulty_rating: z.number().int().optional()
+        })
+      )
     )
     .mutation(async ({ctx, input}) => {
       const { data, error } = await ctx.supabase
@@ -64,7 +74,7 @@ export const assignmentRouter = router({
   'update': protectedProcedure
     .input(
       z.object({
-        id: z.string(),
+        id: z.number().int(),
         updates: ZAssignmentFields.partial()
       })
     )
@@ -282,7 +292,7 @@ export const assignmentRouter = router({
         };
     }),
 
-  'deleteAllAssignmentsFromTask': protectedProcedure
+  'deleteAllFromTask': protectedProcedure
     .input(
       z.number().int()
     )
