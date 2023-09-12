@@ -6,7 +6,9 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "supabase-studio": "open-cli http://localhost:54323",
+    "supabase-mail": "open-cli http://localhost:54324"
   },
   "devDependencies": {
     "@nuxtjs/supabase": "^0.3.8",
@@ -14,6 +16,7 @@
     "@types/lodash": "^4.14.194",
     "autoprefixer": "^10.4.14",
     "nuxt": "^3.4.3",
+    "open-cli": "^7.2.0",
     "postcss": "^8.4.21",
     "sass": "^1.61.0",
     "supabase": "^1.93.0"
