@@ -15,7 +15,8 @@
     "autoprefixer": "^10.4.14",
     "nuxt": "^3.4.3",
     "postcss": "^8.4.21",
-    "sass": "^1.61.0"
+    "sass": "^1.61.0",
+    "supabase": "^1.93.0"
   },
   "dependencies": {
     "@heartexlabs/label-studio": "^1.4.0",
