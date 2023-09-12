@@ -1,6 +1,6 @@
 import { TRPCError, inferAsyncReturnType } from '@trpc/server' 
 import { H3Event } from 'h3';
-import { serverSupabaseClient } from '#supabase/server';
+import { serverSupabaseClient, serverSupabaseServiceRole } from '#supabase/server';
 import { Database } from '~/types/supabase';
 
 function getTokenFromHeader(authHeader: string) {
@@ -14,6 +14,9 @@ export async function createContext(event: H3Event) {
 
   let user = null;
   const supabase = serverSupabaseClient<Database>(event);
+  const getSupabaseServiceRoleClient = () => {
+    return serverSupabaseServiceRole<Database>(event);
+  }
 
   if (authorization) {
 
@@ -28,7 +31,8 @@ export async function createContext(event: H3Event) {
 
   return {
     user,
-    supabase
+    supabase,
+    getSupabaseServiceRoleClient
   }
 }
 
