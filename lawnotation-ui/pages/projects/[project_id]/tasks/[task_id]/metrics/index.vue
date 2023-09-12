@@ -114,11 +114,10 @@
                       type="checkbox"
                       value=""
                       class="sr-only peer"
-                      @input="
-                    ($event: Event) => {
-                        modeToggle($event.target.checked);
+                      @input="($event: Event) => {
+                      modeToggle($event.target.checked);
                     }
-                  "
+                      "
                     />
                     <div
                       class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
@@ -148,11 +147,10 @@
                       type="checkbox"
                       value=""
                       class="sr-only peer"
-                      @input="
-                        ($event: Event) => {
-                            contained = !contained;
-                            tolerance = 0;
-                        }
+                      @input="($event: Event) => {
+                      contained = !contained;
+                      tolerance = 0;
+                    }
                       "
                     />
 
@@ -185,11 +183,10 @@
                       value=""
                       :checked="hideNonText"
                       class="sr-only peer"
-                      @input="
-                    ($event: Event) => {
+                      @input="($event: Event) => {
                       toggleTextToHidden($event?.target?.checked);
                     }
-                  "
+                      "
                     />
 
                     <div
@@ -646,41 +643,37 @@ const get_json = async () => {
       labels: labelsOptions,
       documents: selectedDocumentsOrEmpty.value,
       annotators: selectedAnnotatorsOrEmpty.value,
+      byWords: separate_into_words.value,
+      hideNonText: hideNonText.value,
     },
   });
 
   console.log(anns);
-  let labels: string[] = ["NOT ANNOTATED"].concat(labelsOptions);
-  let doc_index = 0;
   let label_index = 0;
-  let doc_pos: any = {};
-  let label_pos: any = {};
-  let json: any = { task_id: task.value?.id, task_name: task.value?.name, documents: [] };
-  anns.map((a) => {
-    if (!(a.doc_id in doc_pos)) {
-      doc_pos[a.doc_id] = doc_index++;
-
-      json["documents"].push({
-        doc_id: Number.parseInt(a.doc_id),
-        doc_name: a.doc_name,
-        labels: labels.map((l) => {
-          if (!(l in label_pos)) {
-            label_pos[l] = label_index++;
-          }
-          return { value: l, annotations: [] };
-        }),
+  let json: any = { task_id: task.value?.id, task_name: task.value?.name, labels: [] };
+  anns.map((l) => {
+    json.labels.push({ value: labelsOptions[label_index], documents: [] });
+    let prev_doc_id = "-1";
+    let doc_index = 0;
+    l.map((a) => {
+      if (prev_doc_id != a.doc_id) {
+        json.labels[label_index].documents.push({
+          document_id: Number.parseInt(a.doc_id),
+          document_name: a.doc_name,
+          annotations: [],
+        });
+        doc_index++;
+      }
+      json.labels[label_index].documents[doc_index - 1].annotations.push({
+        start: a.start,
+        end: a.end,
+        text: a.text,
+        annotator: a.annotator,
+        hidden: a.hidden,
       });
-    }
-    json["documents"][doc_pos[a.doc_id]]["labels"][label_pos[a.label]][
-      "annotations"
-    ].push({
-      annotation_id: a.ann_id,
-      text: a.text,
-      annotator: a.annotator,
-      start: a.start,
-      end: a.end,
-      hidden: a.hidden,
+      prev_doc_id = a.doc_id;
     });
+    label_index++;
   });
 
   console.log(json);
@@ -1120,6 +1113,7 @@ button:disabled {
 .list-leave-active {
   transition: all 0.5s ease;
 }
+
 .list-enter-from,
 .list-leave-to {
   opacity: 0;
