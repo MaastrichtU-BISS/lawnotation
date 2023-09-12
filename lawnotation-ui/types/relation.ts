@@ -15,14 +15,14 @@ export type AnnotationRelation = {
   to_id: number,
   ls_to: string,
   ls_from: string,
-  direction: string,
-  labels: string[]
+  direction: RelationDirection,
+  labels: RelationLabel[]
 }
 
 export type LSSerializedRelation = {
   from_id: string,
   to_id: string,
-  direction: string,
-  labels: string[],
+  direction: RelationDirection,
+  labels: RelationLabel[],
   type: string
 };
