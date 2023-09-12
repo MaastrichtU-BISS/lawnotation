@@ -1,4 +1,4 @@
-import { RichAnnotation } from "~/data/annotation";
+import { Annotation, RichAnnotation } from "~/data/annotation";
 
 export type RangeLabel = {
   start: number;
@@ -20,6 +20,17 @@ export type MetricResult = {
   table: RangeLabel[] | undefined;
 };
 
+export type DifficultyMetricResult = {
+  average: number;
+  min: number;
+  max: number;
+  total: number;
+  rated: number;
+  unrated: number;
+  krippendorff: MetricResult | undefined;
+  values: number[];
+};
+
 export function newEmptyMetricResult(name: string): MetricResult {
   return {
     name: name,
@@ -33,7 +44,8 @@ export function newEmptyMetricResult(name: string): MetricResult {
 export function createContingencyTable(
   annotations: any[],
   annotators: string[],
-  tolerance: number = 0
+  tolerance: number = 0,
+  contained: boolean = false
 ): RangeLabel[] {
   var table: RangeLabel[] = [];
 
@@ -49,7 +61,7 @@ export function createContingencyTable(
       zeros: 0,
       ones: 0,
     };
-    const index = containsRangeLabel(table, ann, tolerance);
+    const index = containsRangeLabel(table, ann, tolerance, contained);
     if (index < 0) {
       table.push(ann);
       annotators.forEach((a) => {
@@ -68,32 +80,29 @@ export function createContingencyTable(
   return table;
 }
 
-export function sortByRange(ranges: RangeLabel[] | RichAnnotation[]): void {
-  ranges.sort((x, y) => {
-    if (x.start < y.start) {
-      return -1;
-    } else if (x.start == y.start) {
-      return x.end <= y.end ? -1 : 1;
-    } else {
-      return 1;
-    }
-  });
+export function isContained(x: RangeLabel, y: RangeLabel): boolean {
+  return x.start >= y.start && x.end <= y.end;
 }
 
 export function containsRangeLabel(
   list: RangeLabel[],
   range: RangeLabel,
-  tolerance: number = 0
+  tolerance: number = 0,
+  contained: boolean = false
 ): number {
-  for (let i = 0; i < list.length; i++) {
+  for (let i = list.length - 1; i >= 0; i--) {
     const x = list[i];
-    if (x.label == range.label && x.doc_id == range.doc_id) {
+    if (x.doc_id == range.doc_id && x.label == range.label && x.zeros > 0) {
       for (let t = 0; t <= tolerance; t++) {
-        if (
-          Math.abs(x.start - range.start) <= t &&
-          Math.abs(x.end - range.end) <= tolerance - t
-        ) {
+        if (contained && (isContained(x, range) || isContained(range, x))) {
           return i;
+        } else {
+          if (
+            Math.abs(x.start - range.start) <= t &&
+            Math.abs(x.end - range.end) <= tolerance - t
+          ) {
+            return i;
+          }
         }
       }
     }
@@ -205,4 +214,61 @@ export function getExampleCohens() {
     });
   }
   return table;
+}
+
+export function sortByDocumentAndRange(ranges: RichAnnotation[]): void {
+  ranges.sort((x, y) => {
+    if (x.doc_id < y.doc_id) {
+      return -1;
+    } else if (x.doc_id == y.doc_id) {
+      if (x.start < y.start) {
+        return -1;
+      } else if (x.start == y.start) {
+        return x.end <= y.end ? -1 : 1;
+      } else {
+        return 1;
+      }
+    } else {
+      return 1;
+    }
+  });
+}
+
+export function setTextToHidden(
+  annotations: RichAnnotation[],
+  value: boolean
+): RichAnnotation[] {
+  for (let i = 0; i < annotations.length; i++) {
+    if (
+      annotations[i].ann_id == -1 &&
+      !/[ˆa-zA-Z]{2}/.test(annotations[i].text)
+    )
+      annotations[i].hidden = value;
+  }
+  return annotations;
+}
+
+export function separateIntoWords(annotations: RichAnnotation[]) {
+  let limit = 10 ** 6;
+  var new_annotations: RichAnnotation[] = [];
+
+  annotations.forEach((ann) => {
+    const words = ann.text.matchAll(/\S+/g);
+    while (limit > 0) {
+      const w = words.next();
+      if (w.done) break;
+      new_annotations.push({
+        start: ann.start + w.value.index!,
+        end: ann.start + w.value.index! + w.value[0].length,
+        text: w.value[0],
+        label: ann.label,
+        annotator: ann.annotator,
+        hidden: false,
+        ann_id: ann.ann_id,
+        doc_id: ann.doc_id,
+      });
+      limit--;
+    }
+  });
+  return new_annotations;
 }

@@ -1,21 +1,23 @@
 <template>
-  <Breadcrumb v-if="task" :crumbs="[
-    {
-      name: 'Tasks',
-      link: '/tasks',
-    },
-    {
-      name: `Task ${task.name}`,
-      link: `/tasks/${task.id}`,
-    },
-    {
-      name: `Assignment ${seq_pos}`,
-      link: `/annotate/${task.id}?seq=${seq_pos}`,
-    }
-  ]" />
+  <Breadcrumb
+    v-if="task"
+    :crumbs="[
+      {
+        name: 'Tasks',
+        link: '/tasks',
+      },
+      {
+        name: `Task ${task.name}`,
+        link: `/tasks/${task.id}`,
+      },
+      {
+        name: `Assignment ${seq_pos}`,
+        link: `/annotate/${task.id}?seq=${seq_pos}`,
+      },
+    ]"
+  />
 
   <template v-if="assignment && task">
-
     <div class="my-4 px-8 flex justify-between">
       <span>&nbsp;</span>
       <div
@@ -24,14 +26,24 @@
       >
         <div class="flex justify-between mb-1">
           <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
-          <span class="text-sm font-medium text-blue-700">{{ seq_pos }} / {{ assignmentCounts.total }}</span>
+          <span class="text-sm font-medium text-blue-700"
+            >{{ seq_pos }} / {{ assignmentCounts.total }}</span
+          >
         </div>
         <div class="w-full bg-gray-200 rounded-full h-2.5">
-          <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="{'width': `${(seq_pos / assignmentCounts.total)*100}%`}"></div>
+          <div
+            class="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+            :style="{ width: `${(seq_pos / assignmentCounts.total) * 100}%` }"
+          ></div>
         </div>
       </div>
 
-      <span>status: <span :class="assignmentStatusClass(assignment.status)">{{ assignment.status }}</span></span>
+      <span
+        >status:
+        <span :class="assignmentStatusClass(assignment.status)">{{
+          assignment.status
+        }}</span></span
+      >
     </div>
     <div class="dimmer-wrapper" style="min-height: 200px">
       <Dimmer v-model="loading" />
@@ -65,7 +77,7 @@ import {
   useAnnotationRelationApi,
   LSSerializedRelation,
 } from "~/data/annotation_relations";
-import Breadcrumb from '~/components/Breadcrumb.vue';
+import Breadcrumb from "~/components/Breadcrumb.vue";
 
 const relationApi = useAnnotationRelationApi();
 
@@ -94,11 +106,11 @@ const ls_annotations = reactive<LSSerializedAnnotation>([]);
 const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
-const assignmentCounts = ref<{ next: number ; total: number }>();
+const assignmentCounts = ref<{ next: number; total: number }>();
 
-const assignmentStatusClass = (status: Assignment['status']) => {
-  return status === 'done' ? 'text-green-600' : 'text-red-500';
-}
+const assignmentStatusClass = (status: Assignment["status"]) => {
+  return status === "done" ? "text-green-600" : "text-red-500";
+};
 
 const loading = ref(false);
 const key = ref("ls-default");
@@ -106,30 +118,26 @@ const key = ref("ls-default");
 // const seq_pos = ref(assignment.value?.seq_pos ?? 1);
 const seq_pos = ref<number>(assignment.value?.seq_pos ?? 0);
 watch(seq_pos, (val) => {
-  if (!Array.isArray(route.query.seq) && route.query.seq == val.toString())
-    return;
-  
+  if (!Array.isArray(route.query.seq) && route.query.seq == val.toString()) return;
+
   router.replace({
     path: route.path,
     query: { seq: val },
   });
-})
+});
 
 const loadPrevious = async () => {
-  if (!assignment.value)
-    throw Error("Assignment not found");
-  
-  if (assignment.value.seq_pos <= 1)
-    throw Error("Already at first item");
+  if (!assignment.value) throw Error("Assignment not found");
+
+  if (assignment.value.seq_pos <= 1) throw Error("Already at first item");
 
   seq_pos.value -= 1;
 
   await loadData();
-}
+};
 
 const loadNext = async () => {
-  if (!assignment.value)
-    throw Error("Assignment not found");
+  if (!assignment.value) throw Error("Assignment not found");
 
   if (assignmentCounts.value && seq_pos.value + 1 > assignmentCounts.value.total) {
     // TODO: go to page /done
@@ -161,22 +169,28 @@ const loadData = async () => {
     if (!assignment.value.task_id) throw Error("Document not found");
     task.value = await taskApi.findTask(assignment.value.task_id?.toString());
 
-    const _labelset: Labelset = await labelsetApi.findLabelset(task.value.labelset_id.toString());
+    const _labelset: Labelset = await labelsetApi.findLabelset(
+      task.value.labelset_id.toString()
+    );
 
-    labels.splice(0)
+    labels.splice(0);
     labels.push(..._labelset.labels.map((l) => l));
 
-    const _annotations = await annotationApi.findAnnotations(assignment.value.id.toString());
+    const _annotations = await annotationApi.findAnnotations(
+      assignment.value.id.toString()
+    );
 
-    ls_annotations.splice(0)
+    ls_annotations.splice(0);
     if (_annotations.length) {
       const db2ls_anns = annotationApi.convert_db2ls(_annotations, assignment.value.id);
       ls_annotations.push(...db2ls_anns);
     }
 
-    const _relations = await relationApi.findRelations(_annotations);
+    const _relations = await relationApi.findRelations(
+      _annotations.map((a) => a.id.toString())
+    );
 
-    ls_relations.splice(0)
+    ls_relations.splice(0);
     if (_relations.length) {
       const db2ls_rels = _relations.map((r) => relationApi.convert_db2ls(r));
       ls_relations.push(...db2ls_rels);
@@ -196,7 +210,8 @@ const loadData = async () => {
 const loadCounters = async () => {
   try {
     if (!user.value) throw new Error("Must be logged in");
-    if (!route.params.task_id || Array.isArray(route.params.task_id)) throw new Error("Invalid task");
+    if (!route.params.task_id || Array.isArray(route.params.task_id))
+      throw new Error("Invalid task");
 
     const counts = await assignmentApi.countAssignmentsByUserAndTask(
       user.value.id,
@@ -204,7 +219,6 @@ const loadCounters = async () => {
     );
 
     assignmentCounts.value = counts;
-
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Problem loading counters: ${error.message}`);
@@ -213,19 +227,23 @@ const loadCounters = async () => {
 
 const init = async () => {
   await loadCounters();
-  if (route.query.seq && !Array.isArray(route.query.seq) && parseInt(route.query.seq) > 0 && parseInt(route.query.seq) <= assignmentCounts.value!.total) {
+  if (
+    route.query.seq &&
+    !Array.isArray(route.query.seq) &&
+    parseInt(route.query.seq) > 0 &&
+    parseInt(route.query.seq) <= assignmentCounts.value!.total
+  ) {
     seq_pos.value = parseInt(route.query.seq);
   }
   loadData();
-}
+};
 
 onMounted(async () => {
   if (user.value) {
-    init()
+    init();
   } else {
     watch(user, async () => {
-      if (user.value)
-        init();
+      if (user.value) init();
     });
   }
 });

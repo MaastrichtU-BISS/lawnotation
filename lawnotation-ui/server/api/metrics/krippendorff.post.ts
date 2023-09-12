@@ -13,7 +13,8 @@ export default eventHandler(async (event) => {
   const agreement_table = createContingencyTable(
     data.annotations,
     data.annotators,
-    data.tolerance
+    data.tolerance,
+    data.contained
   );
   return computeKrippendorff(agreement_table);
 });

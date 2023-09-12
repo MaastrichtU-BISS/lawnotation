@@ -13,7 +13,8 @@ export default eventHandler(async (event) => {
   const table = createContingencyTable(
     data.annotations,
     data.annotators,
-    data.tolerance
+    data.tolerance,
+    data.contained
   );
   return computeCohensKappa(table);
 });

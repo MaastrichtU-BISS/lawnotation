@@ -1,22 +1,25 @@
 <template>
-  <Breadcrumb v-if="project && task && assignment" :crumbs="[
-    {
-      name: 'Projects',
-      link: '/projects',
-    },
-    {
-      name: `Project ${project.name}`,
-      link: `/projects/${project.id}`,
-    },
-    {
-      name: `Task ${task.name}`,
-      link: `/projects/${project.id}/tasks/${task.id}`,
-    },
-    {
-      name: `Assignment ${assignment.id}`,
-      link: `/assignments/${assignment.id}`,
-    },
-  ]" />
+  <Breadcrumb
+    v-if="project && task && assignment"
+    :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+      {
+        name: `Task ${task.name}`,
+        link: `/projects/${project.id}/tasks/${task.id}`,
+      },
+      {
+        name: `Assignment ${assignment.id}`,
+        link: `/assignments/${assignment.id}`,
+      },
+    ]"
+  />
 
   <div class="dimmer-wrapper">
     <Dimmer v-model="loading" />
@@ -31,7 +34,8 @@
         :relations="ls_relations"
         :guidelines="task?.ann_guidelines"
         :labels="labels"
-      ></LabelStudio>
+      >
+      </LabelStudio>
     </div>
   </div>
 </template>
@@ -115,7 +119,9 @@ const loadData = async () => {
     }
 
     relations.splice(0) &&
-      relations.push(...(await relationApi.findRelations(annotations)));
+      relations.push(
+        ...(await relationApi.findRelations(annotations.map((a) => a.id.toString())))
+      );
 
     const db2ls_rels = relations.map((r) => relationApi.convert_db2ls(r));
 

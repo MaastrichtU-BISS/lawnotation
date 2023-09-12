@@ -19,7 +19,6 @@ export type RichAnnotation = {
   ann_id: number;
   doc_id: string;
   doc_name: string;
-  doc_text: string;
 };
 
 export type LSSerializedAnnotation = {
@@ -93,6 +92,17 @@ export const useAnnotationApi = () => {
     else return data as Annotation;
   };
 
+  const createAnnotations = async (
+    fields: Omit<Annotation, "id">[]
+  ): Promise<Annotation[]> => {
+    const { data, error } = await supabase
+      .from("annotations")
+      .insert(fields)
+      .select();
+    if (error) throw Error(`Error in createAnnotations: ${error.message}`);
+    else return data as Annotation[];
+  };
+
   // Read
   const findAnnotation = async (id: string): Promise<Annotation> => {
     const { data, error } = await supabase
@@ -118,41 +128,59 @@ export const useAnnotationApi = () => {
     else return data as Annotation[];
   };
 
-  const findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators = async (
-    task_id: string,
-    document_id: string,
-    label: string,
-    annotators: string[]
-  ): Promise<RichAnnotation[]> => {
+  const findAnnotationsByTask = async (
+    task_id: string
+  ): Promise<Annotation[]> => {
     const { data, error } = await supabase
       .from("annotations")
+      .select("*, assignment:assignments!inner(id, task_id)")
+      .eq("assignment.task_id", task_id)
+      .order("id");
+
+    if (error) throw Error(`Error in findAnnotationsByTask: ${error.message}`);
+    else return data as Annotation[];
+  };
+
+  const findAnnotationsByTaskLabelDocumentsAnnotators = async (
+    task_id: string,
+    label: string,
+    documents: string[] | undefined,
+    annotators: string[] | undefined
+  ): Promise<any> => {
+    let query = supabase
+      .from("annotations")
       .select(
-        "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, full_text, name), annotator:users!inner(email))"
+        "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
       )
       .eq("assignments.task_id", task_id)
-      .eq("label", label)
-      .eq("assignments.document_id", document_id)
-      .in("assignments.users.email", annotators);
+      .eq("label", label);
 
+    if (documents && documents.length > 0)
+      query = query.in("assignments.document_id", documents);
+
+    if (annotators && annotators.length > 0)
+      query = query.in("assignments.users.email", annotators);
+
+    const { data, error } = await query;
     if (error)
       throw Error(
         `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`
       );
-    else
+    else {
       return data.map((ann) => {
         return {
           start: ann.start_index,
           end: ann.end_index,
-          text: ann.text,
+          text: ann.text.replaceAll("\\n", ""),
           label: ann.label,
           annotator: ann.assignment.annotator.email,
           hidden: false,
           ann_id: ann.id,
           doc_id: ann.assignment.document_id,
           doc_name: ann.assignment.document.name,
-          doc_text: ann.assignment.document.full_text,
         };
-      }) as RichAnnotation[];
+      });
+    }
   };
 
   // Update
@@ -211,9 +239,11 @@ export const useAnnotationApi = () => {
 
   return {
     createAnnotation,
+    createAnnotations,
     findAnnotation,
     findAnnotations,
-    findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators,
+    findAnnotationsByTask,
+    findAnnotationsByTaskLabelDocumentsAnnotators,
     updateAnnotation,
     updateAssignmentAnnotations,
     deleteAnnotation,

@@ -23,6 +23,7 @@
     "@vueform/multiselect": "^2.6.2",
     "apexcharts": "^3.41.1",
     "epic-spinners": "^2.0.0",
+    "file-saver": "^2.0.5",
     "flowbite": "^1.8.1",
     "jszip": "^3.10.1",
     "sweetalert2": "^11.7.20",

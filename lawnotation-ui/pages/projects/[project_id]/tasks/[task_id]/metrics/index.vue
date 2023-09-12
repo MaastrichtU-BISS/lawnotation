@@ -52,7 +52,7 @@
                   >Document(s)</label
                 >
                 <Multiselect
-                  v-model="selectedDocuments"
+                  v-model="selectedDocumentsOrEmpty"
                   :mode="'tags'"
                   :close-on-select="false"
                   :options="documentsOptions"
@@ -67,7 +67,7 @@
                   >Annotators</label
                 >
                 <Multiselect
-                  v-model="selectedAnnotators"
+                  v-model="selectedAnnotatorsOrEmpty"
                   :options="annotatorsOptions"
                   :mode="'tags'"
                   :searchable="true"
@@ -78,30 +78,37 @@
               </li>
               <li>
                 <div>
-                  <label
-                    for="small-input"
-                    class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                    >Tolerance</label
-                  >
+                  <div class="flex justify-between">
+                    <label
+                      for="small-input"
+                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                      >Tolerance</label
+                    >
+                    <InfoToolTip
+                      :id="'tooltip_tolerance'"
+                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'"
+                    />
+                  </div>
                   <input
                     type="number"
                     id="small-input"
                     v-model="tolerance"
                     min="0"
-                    max="10"
+                    :max="10"
                     step="1"
                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   />
                 </div>
               </li>
               <li>
-                <div class="text-center flex justify-center my-4">
+                <div class="flex justify-between my-4">
+                  <span>&nbsp;</span>
                   <label
                     class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
                   >
                     <span
                       class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Annotations</span
+                      >Annotation</span
                     >
                     <input
                       type="checkbox"
@@ -113,28 +120,110 @@
                     }
                   "
                     />
+                    <div
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+                    ></div>
+                    <span
+                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
+                      >Word</span
+                    >
+                  </label>
+                  <InfoToolTip
+                    :id="'tooltip_annotation_word'"
+                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'"
+                  />
+                </div>
+              </li>
+              <li>
+                <div class="flex justify-between my-4">
+                  <span>&nbsp;</span>
+                  <label
+                    class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
+                  >
+                    <span
+                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
+                      >Equal</span
+                    >
+                    <input
+                      type="checkbox"
+                      value=""
+                      class="sr-only peer"
+                      @input="
+                        ($event: Event) => {
+                            contained = !contained;
+                            tolerance = 0;
+                        }
+                      "
+                    />
 
                     <div
                       class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
                     ></div>
                     <span
                       class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Words</span
+                      >Overlap</span
                     >
                   </label>
+                  <InfoToolTip
+                    :id="'tooltip_equal_overlap'"
+                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`"
+                  />
                 </div>
               </li>
               <li>
-                <button
-                  :disabled="
-                    !selectedDocuments ||
-                    !selectedLabel ||
-                    selectedAnnotators?.length == 1
+                <div class="flex justify-between my-4">
+                  <span>&nbsp;</span>
+                  <label
+                    class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
+                  >
+                    <span
+                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
+                      >Include NTA</span
+                    >
+                    <input
+                      type="checkbox"
+                      value=""
+                      :checked="hideNonText"
+                      class="sr-only peer"
+                      @input="
+                    ($event: Event) => {
+                      toggleTextToHidden($event?.target?.checked);
+                    }
                   "
+                    />
+
+                    <div
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+                    ></div>
+                    <span
+                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
+                      >Exclude NTA</span
+                    >
+                  </label>
+
+                  <InfoToolTip
+                    :id="'tooltip_nta'"
+                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'"
+                  />
+                </div>
+              </li>
+              <li class="">
+                <button
+                  data-modal-target="difficultyMetricsModal"
+                  data-modal-toggle="difficultyMetricsModal"
+                  class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+                  @click="clickComputeDifficultyMetrics"
+                >
+                  Compute Difficulty Metrics
+                </button>
+              </li>
+              <li>
+                <button
+                  :disabled="!selectedLabel"
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
                   @click="clickComputeMetrics"
                 >
-                  Compute Metrics
+                  Compute Annotation Metrics
                 </button>
               </li>
               <ul
@@ -204,48 +293,20 @@
                 <li class="">
                   <button
                     class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                    @click="downloadAll"
+                    @click="get_json"
                   >
-                    Compute and download all
+                    Download all
                   </button>
                 </li>
               </ul>
             </ul>
           </div>
         </aside>
-        <div class="px-4 sm:ml-64 side-panel-h" style="margin-left: 20rem">
-          <div v-if="!loading && annotations && annotations.length" id="annotations_list">
-            <div class="flex mb-3">
+        <div class="px-4 sm:ml-64 side-panel-h overflow-auto" style="margin-left: 20rem">
+          <div id="annotations_list">
+            <div v-if="!loading" class="flex mb-3 justify-between">
               <span class="flex-1 text-2xl font-bold text-center">
-                Annotations: {{ annotations.length }}
-              </span>
-              <span class="">
-                <label
-                  class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                >
-                  <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                    >Show</span
-                  >
-                  <input
-                    type="checkbox"
-                    value=""
-                    :checked="hideNonText"
-                    class="sr-only peer"
-                    @input="
-                    ($event: Event) => {
-                      toggleTextToHidden($event?.target?.checked);
-                    }
-                  "
-                  />
-
-                  <div
-                    class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                  ></div>
-                  <span
-                    class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                    >Hide</span
-                  >
-                </label>
+                Annotations: {{ annotations_length }}
               </span>
             </div>
             <ul>
@@ -264,6 +325,7 @@
                 ></RangeLabelCmpt>
               </li>
             </ul>
+
             <a
               href="#annotations_list"
               type="button"
@@ -290,11 +352,11 @@
         </div>
       </div>
     </div>
+    <DifficultyMetricsModal v-model="metrics_result.difficulty"></DifficultyMetricsModal>
   </div>
 </template>
 <script setup lang="ts">
 import * as XLSX from "xlsx";
-import JSZip from "jszip";
 import Multiselect from "@vueform/multiselect";
 import { Task, useTaskApi } from "~/data/task";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
@@ -306,15 +368,16 @@ import { User, useUserApi } from "~/data/user";
 import {
   MetricResult,
   newEmptyMetricResult,
-  RangeLabel,
-  sortByRange,
+  DifficultyMetricResult,
 } from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
 
-import _, { mergeWith, result } from "lodash";
+import _, { zip } from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
-import { callWithAsyncErrorHandling } from "nuxt/dist/app/compat/capi";
+// const FileSaver = require("file-saver");
+import { saveAs } from "file-saver";
+import JSZip, { file } from "jszip";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -332,10 +395,10 @@ const task = ref<Task>();
 const project = ref<Project>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
-const selectedDocuments = ref<string[]>();
+const selectedDocumentsOrEmpty = ref<string[]>([]);
 
 const annotatorsOptions = reactive<string[]>([]);
-const selectedAnnotators = ref<string[]>();
+const selectedAnnotatorsOrEmpty = ref<string[]>([]);
 
 const labelsOptions = reactive<string[]>([]);
 const selectedLabel = ref<string>();
@@ -343,222 +406,158 @@ const selectedLabel = ref<string>();
 const tolerance = ref<number>(0);
 
 const loading_annotations = ref(false);
+const loading_options = ref(false);
 const download_progress = ref<{ current: number; total: number; loading: boolean }>({
   current: 0,
   total: 0,
   loading: false,
 });
+const downloadAllPromises = [];
+const downloadAllResults = [];
 const separate_into_words = ref(false);
 const hideNonText = ref(true);
+const contained = ref(false);
 
+const annotations_limit = 10 ** 3;
+const annotations_length = ref(0);
 const annotations = reactive<RichAnnotation[]>([]);
 const metrics_result = ref<{
   loading: Boolean;
   krippendorff: MetricResult | undefined;
   fleiss_kappa: MetricResult | undefined;
   cohens_kappa: MetricResult | undefined;
+  difficulty: DifficultyMetricResult | undefined;
 }>({
   krippendorff: undefined,
   fleiss_kappa: undefined,
   cohens_kappa: undefined,
+  difficulty: undefined,
   loading: false,
 });
+
+const documentsData = ref<any>({});
 
 const loading = computed((): boolean => {
   return (loading_annotations.value ||
     download_progress.value.loading ||
-    metrics_result.value?.loading) as boolean;
+    metrics_result.value?.loading ||
+    loading_options.value) as boolean;
 });
 
-const setSelectedDocumentsAndAnnotators = () => {
-  return nextTick(() => {
-    if (!selectedDocuments.value || selectedDocuments.value.length == 0) {
-      selectedDocuments.value = [];
-      selectedDocuments.value?.push(...documentsOptions.map((d) => d.value));
-    }
+const selectedAnnotators = computed((): string[] => {
+  return selectedAnnotatorsOrEmpty.value && selectedAnnotatorsOrEmpty.value.length
+    ? selectedAnnotatorsOrEmpty.value
+    : annotatorsOptions;
+});
 
-    if (!selectedAnnotators.value || selectedAnnotators.value.length == 0) {
-      selectedAnnotators.value = [];
-      selectedAnnotators.value?.push(...annotatorsOptions);
-    }
-  });
-};
+const selectedDocuments = computed((): string[] => {
+  return selectedDocumentsOrEmpty.value && selectedDocumentsOrEmpty.value.length
+    ? selectedDocumentsOrEmpty.value
+    : documentsOptions.map((d) => d.value);
+});
 
 const selectLabel = (value: string) => {
   selectedLabel.value = value;
-  setSelectedDocumentsAndAnnotators().then(() => {
-    if (!task.value) {
-      $toast.error(`Invalid Task`);
-      return;
-    }
-    getAnnotations(
-      task.value?.id.toString()!,
-      selectedLabel.value!,
-      selectedDocuments.value!,
-      selectedAnnotators.value!
-    ).then((anns) => {
-      updateAnnotations(anns);
-    });
-  });
+  selectAnnotators();
 };
 
-const selectDocument = (value: any, options: any) => {
-  selectedDocuments.value = [];
-  selectedDocuments.value.push(...value);
-  setSelectedDocumentsAndAnnotators().then(() => {
-    if (!task.value) {
-      $toast.error(`Invalid Task`);
-      return;
-    }
-    if (!selectedLabel.value) {
-      return;
-    }
-    getAnnotations(
-      task.value?.id.toString()!,
-      selectedLabel.value!,
-      selectedDocuments.value!,
-      selectedAnnotators.value!
-    ).then((anns) => {
-      updateAnnotations(anns);
-    });
-  });
+const selectDocument = () => {
+  selectAnnotators();
 };
 
-const selectAnnotators = (value: any) => {
-  selectedAnnotators.value = [];
-  selectedAnnotators.value.push(...value);
-  setSelectedDocumentsAndAnnotators().then(() => {
-    if (!task.value) {
-      $toast.error(`Invalid Task`);
-      return;
-    }
-    if (!selectedLabel.value) {
-      return;
-    }
-    getAnnotations(
-      task.value?.id.toString()!,
-      selectedLabel.value!,
-      selectedDocuments.value!,
-      selectedAnnotators.value!
-    ).then((anns) => {
-      updateAnnotations(anns);
-    });
-  });
-};
+const selectAnnotators = async () => {
+  if (!task.value) {
+    $toast.error(`Invalid Task`);
+    return;
+  }
+  if (!selectedLabel.value) {
+    return;
+  }
 
-const updateAnnotations = (anns: RichAnnotation[]) => {
-  annotations.splice(0) && annotations.push(...anns);
+  nextTick(() => {
+    updateAnnotations();
+  });
 };
 
 const getAnnotations = async (
   task_id: string,
   label: string,
   documents: string[],
-  annotators: string[]
+  annotators: string[],
+  byWords: boolean,
+  hideNonText: boolean
 ) => {
+  const body = JSON.stringify({
+    task_id: task_id,
+    label: label,
+    documents: documents,
+    annotators: annotators,
+    byWords: byWords,
+    hideNonText: hideNonText,
+  });
+
+  return $fetch("/api/metrics/get_annotations", {
+    method: "POST",
+    body: body,
+  });
+};
+
+const updateAnnotations = async () => {
   loading_annotations.value = true;
   metrics_result.value = {
     krippendorff: undefined,
     fleiss_kappa: undefined,
     cohens_kappa: undefined,
+    difficulty: undefined,
     loading: false,
   };
-  try {
-    let result = [];
-    for (let i = 0; i < documents.length; i++) {
-      const anns = await annotationApi.findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators(
-        task_id,
-        documents[i],
-        label,
-        annotators
-      );
-      const annsAndNans = await getNonAnnotations(anns);
-      result.push(...annsAndNans);
-    }
-
-    if (separate_into_words.value) {
-      result = separateIntoWords(result);
-    }
-
-    if (hideNonText.value) {
-      result = setTextToHidden(result, hideNonText.value);
-    }
-
-    loading_annotations.value = false;
-    return result;
-  } catch (error) {
-    loading_annotations.value = false;
-    return [];
-  }
-};
-
-const getNonAnnotations = async (annotations: RichAnnotation[]) => {
-  if (!annotations || !annotations.length) return [];
-  sortByRange(annotations);
-  var new_annotations: RichAnnotation[] = [];
-  var last_end: number = 0;
-  var previous_ann = annotations[0];
-  for (let i = 0; i < annotations.length; ++i) {
-    var current_ann = annotations[i];
-    if (last_end < current_ann.start) {
-      new_annotations.push({
-        start: last_end,
-        end: current_ann.start,
-        label: "NOT ANNOTATED",
-        text: current_ann.doc_text.substring(last_end, current_ann.start),
-        annotator: "",
-        hidden: false,
-        ann_id: -1,
-        doc_id: current_ann.doc_id,
-        doc_name: current_ann.doc_name,
-        doc_text: current_ann.doc_text,
-      });
-    }
-    new_annotations.push(current_ann);
-    last_end = Math.max(last_end, current_ann.end);
-    previous_ann = current_ann;
-  }
-  new_annotations.push({
-    start: last_end,
-    end: previous_ann.doc_text.length,
-    label: "NOT ANNOTATED",
-    text: previous_ann.doc_text.substring(last_end, previous_ann.doc_text.length),
-    annotator: "",
-    hidden: false,
-    ann_id: -1,
-    doc_id: previous_ann.doc_id,
-    doc_name: previous_ann.doc_name,
-    doc_text: previous_ann.doc_text,
-  });
-  return new_annotations;
+  annotations.splice(0);
+  const anns = await getAnnotations(
+    task.value?.id.toString()!,
+    selectedLabel.value!,
+    selectedDocumentsOrEmpty.value!,
+    selectedAnnotatorsOrEmpty.value!,
+    separate_into_words.value,
+    hideNonText.value
+  );
+  annotations_length.value = anns.length;
+  if (anns.length < annotations_limit) annotations.push(...anns);
+  loading_annotations.value = false;
 };
 
 const compute_metrics = async (
-  annotations: RichAnnotation[],
+  task_id: string,
+  label: string,
+  documents: string[],
   annotators: string[],
+  annotatorsOrEmpty: string[],
   tolerance: number,
-  metrics = ["krippendorff", "fleiss_kappa", "cohens_kappa"]
+  byWords: boolean,
+  hideNonText: boolean,
+  contained: boolean,
+  documentsData: any,
+  documentsOptions: string[],
+  annotations: RichAnnotation[] = []
 ): Promise<MetricResult[]> => {
-  if (!annotations || annotations.length == 0) {
-    return Promise.resolve(metrics.map((m) => newEmptyMetricResult(m)));
-  }
-
   const body = JSON.stringify({
-    annotations: annotations.filter((x) => !x.hidden),
+    task_id: task_id,
+    label: label,
+    documents: documents,
     annotators: annotators,
+    annotatorsOrEmpty: annotatorsOrEmpty,
     tolerance: tolerance,
+    byWords: byWords,
+    hideNonText: hideNonText,
+    contained: contained,
+    documentsData: documentsData,
+    documentsOptions: documentsOptions,
+    annotations: annotations,
   });
 
-  const promises: Promise<MetricResult>[] = [];
-  metrics.map((m) => {
-    const p = $fetch(`/api/metrics/${m}`, {
-      method: "POST",
-      body: body,
-    });
-    promises.push(p as Promise<MetricResult>);
+  return $fetch(`/api/metrics/get_metrics`, {
+    method: "POST",
+    body: body,
   });
-
-  return Promise.all(promises);
 };
 
 const updateMetrics = (metrics: MetricResult[]) => {
@@ -568,17 +567,28 @@ const updateMetrics = (metrics: MetricResult[]) => {
 };
 
 const clickComputeMetrics = async () => {
+  if (!selectedLabel.value) return;
   metrics_result.value = {
     krippendorff: undefined,
     fleiss_kappa: undefined,
     cohens_kappa: undefined,
+    difficulty: metrics_result.value?.difficulty ?? undefined,
     loading: true,
   };
   try {
     const metrics = await compute_metrics(
-      annotations,
-      selectedAnnotators?.value!,
-      tolerance.value
+      task.value?.id.toString()!,
+      selectedLabel.value,
+      selectedDocumentsOrEmpty.value,
+      selectedAnnotators.value,
+      selectedAnnotatorsOrEmpty.value,
+      tolerance.value,
+      separate_into_words.value,
+      hideNonText.value,
+      contained.value,
+      documentsData.value,
+      documentsOptions.map((d) => d.value),
+      annotations && annotations.length ? annotations : []
     );
     updateMetrics(metrics);
     metrics_result.value.loading = false;
@@ -587,97 +597,365 @@ const clickComputeMetrics = async () => {
   }
 };
 
-const getXlslTab = async (
+const clickComputeDifficultyMetrics = async () => {
+  metrics_result.value = {
+    krippendorff: metrics_result.value?.krippendorff ?? undefined,
+    fleiss_kappa: metrics_result.value?.fleiss_kappa ?? undefined,
+    cohens_kappa: metrics_result.value?.cohens_kappa ?? undefined,
+    difficulty: undefined,
+    loading: true,
+  };
+  try {
+    const metric = await computeDifficultyMetrics(
+      task.value?.id.toString()!,
+      selectedAnnotators.value.length,
+      selectedAnnotatorsOrEmpty.value,
+      selectedDocumentsOrEmpty.value
+    );
+    metrics_result.value.difficulty = metric;
+    metrics_result.value.loading = false;
+  } catch (error) {
+    metrics_result.value.loading = false;
+  }
+};
+
+const computeDifficultyMetrics = async (
+  task_id: string,
+  annotators_length: number,
+  annotators: string[],
+  documents: string[]
+): Promise<DifficultyMetricResult> => {
+  const body = JSON.stringify({
+    annotators_length: annotators_length,
+    task_id: task_id,
+    annotators: annotators,
+    documents: documents,
+  });
+
+  return $fetch(`/api/metrics/difficulty`, {
+    method: "POST",
+    body: body,
+  });
+};
+
+const get_json = async () => {
+  const anns = await $fetch("/api/metrics/get_all_annotations", {
+    method: "POST",
+    body: {
+      task_id: task.value?.id.toString()!,
+      labels: labelsOptions,
+      documents: selectedDocumentsOrEmpty.value,
+      annotators: selectedAnnotatorsOrEmpty.value,
+    },
+  });
+
+  console.log(anns);
+  let labels: string[] = ["NOT ANNOTATED"].concat(labelsOptions);
+  let doc_index = 0;
+  let label_index = 0;
+  let doc_pos: any = {};
+  let label_pos: any = {};
+  let json: any = { task_id: task.value?.id, task_name: task.value?.name, documents: [] };
+  anns.map((a) => {
+    if (!(a.doc_id in doc_pos)) {
+      doc_pos[a.doc_id] = doc_index++;
+
+      json["documents"].push({
+        doc_id: Number.parseInt(a.doc_id),
+        doc_name: a.doc_name,
+        labels: labels.map((l) => {
+          if (!(l in label_pos)) {
+            label_pos[l] = label_index++;
+          }
+          return { value: l, annotations: [] };
+        }),
+      });
+    }
+    json["documents"][doc_pos[a.doc_id]]["labels"][label_pos[a.label]][
+      "annotations"
+    ].push({
+      annotation_id: a.ann_id,
+      text: a.text,
+      annotator: a.annotator,
+      start: a.start,
+      end: a.end,
+      hidden: a.hidden,
+    });
+  });
+
+  console.log(json);
+  saveAs(new Blob([JSON.stringify(json)]), task.value?.name + ".json");
+};
+
+const clickDownloadAll = async () => {
+  download_progress.value.loading = true;
+  try {
+    const blobs = await download_all({
+      task_id: task.value?.id.toString()!,
+      labelsOptions: labelsOptions,
+      documents: selectedDocuments.value,
+      documentsOrEmpty: selectedDocumentsOrEmpty.value,
+      annotators: selectedAnnotators.value,
+      annotatorsOrEmpty: selectedAnnotatorsOrEmpty.value,
+      tolerance: tolerance.value,
+      byWords: separate_into_words.value,
+      hideNonText: hideNonText.value,
+      contained: contained.value,
+      documentsData: documentsData.value,
+      documentsOptions: documentsOptions.map((d) => d.value),
+    });
+    console.log(blobs);
+    const zip = JSZip();
+    for (let i = 0; i < blobs.length; i++) {
+      const b = await (await fetch(blobs[i].wb)).blob();
+      zip.file(`${blobs[i].name}`, b);
+    }
+    const blob_zip = await zip.generateAsync({ type: "blob" });
+    saveAs(blob_zip, `${task.value?.name}.zip`);
+    download_progress.value.loading = false;
+    $toast.success(`One .zip file has been downloaded!`);
+  } catch (error) {
+    download_progress.value.loading = false;
+  }
+};
+
+async function download_all(data: any) {
+  let results: { wb: string; name: string }[] = [];
+  download_progress.value.current = 0;
+  download_progress.value.total =
+    selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
+  try {
+    try {
+      const workbookDifficulty = XLSX.utils.book_new();
+      const diff_metric_body = JSON.stringify({
+        task_id: data.task_id,
+        annotators_length: data.annotators.length,
+        annotators: data.annotatorOrEmpty,
+        documents: data.documentsOrEmpty,
+      });
+
+      const dm = await $fetch("/api/metrics/difficulty", {
+        method: "POST",
+        body: diff_metric_body,
+      });
+      const worksheetDifficulty = XLSX.utils.json_to_sheet([
+        {
+          total: dm.total,
+          rated: dm.rated,
+          average_stars: dm.average,
+          "1_stars": dm.values[1],
+          "2_stars": dm.values[2],
+          "3_stars": dm.values[3],
+          "4_stars": dm.values[4],
+          "5_stars": dm.values[5],
+          krippendorff: dm.krippendorff?.result,
+          p0: dm.krippendorff?.po,
+          pe: dm.krippendorff?.pe,
+        },
+      ]);
+      XLSX.utils.book_append_sheet(
+        workbookDifficulty,
+        worksheetDifficulty,
+        "Difficulty Metrics"
+      );
+      results.push({
+        wb: getZippeableBlob(workbookDifficulty),
+        name: `_confidence.xlsx`,
+      });
+      download_progress.value.current++;
+    } catch (error) {}
+    for (let i = 0; i < data.documents.length; i++) {
+      const document = data.documents[i];
+      const workbookMetrics = XLSX.utils.book_new();
+      const workbookAnnotations = XLSX.utils.book_new();
+      for (let j = 0; j < data.labelsOptions.length; j++) {
+        const label = data.labelsOptions[j];
+        const sheets: XLSX.WorkSheet[] = await getXlslTab(
+          data.task_id,
+          label,
+          [document],
+          data.annotators,
+          data.annotatorsOrEmpty,
+          data.tolerance,
+          data.byWords,
+          data.hideNonText,
+          data.contained,
+          data.documentsData,
+          data.documentsOptions
+        );
+        XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
+        XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
+        download_progress.value.current += 2;
+      }
+      const filename = document + "-" + data.documentsData[document].name.split(".")[0];
+      results.push({
+        wb: getZippeableBlob(workbookMetrics),
+        name: `${filename}_metrics.xlsx`,
+      });
+
+      results.push({
+        wb: getZippeableBlob(workbookAnnotations),
+        name: `${filename}_annotations.xlsx`,
+      });
+    }
+
+    const workbookMetrics = XLSX.utils.book_new();
+    const workbookAnnotations = XLSX.utils.book_new();
+    for (let i = 0; i < data.labelsOptions.length; i++) {
+      const label = data.labelsOptions[i];
+      const sheets = await getXlslTab(
+        data.task_id,
+        label,
+        data.documentsOrEmpty,
+        data.annotators,
+        data.annotatorsOrEmpty,
+        data.tolerance,
+        data.byWords,
+        data.hideNonText,
+        data.contained,
+        data.documentsData,
+        data.documentsOptions
+      );
+      XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
+      XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
+      download_progress.value.current += 2;
+    }
+    results.push({
+      wb: getZippeableBlob(workbookMetrics),
+      name: `_metrics.xlsx`,
+    });
+
+    results.push({
+      wb: getZippeableBlob(workbookAnnotations),
+      name: `_annotations.xlsx`,
+    });
+    return results;
+  } catch (error) {}
+  return [];
+}
+
+async function getXlslTab(
   task_id: string,
   label: string,
   documents: string[],
   annotators: string[],
-  tolerance: number
-) => {
+  annotatorsOrEmpty: string[],
+  tolerance: number,
+  byWords: boolean,
+  hideNonText: boolean,
+  contained: boolean,
+  documentsData: any,
+  documentsOptions: string[]
+) {
   const rowsMetrics: any[] = [];
   const rowsAnnotations: any[] = [];
 
-  const anns = await getAnnotations(task_id, label, documents, annotators);
-  if (anns.length) {
-    let timeout = 100;
-    while (true) {
-      try {
-        const metrics = await compute_metrics(anns, annotators, tolerance);
-        metrics.map((m) => {
-          if (m.result)
-            rowsMetrics.push({
-              metric: m.name,
-              annotators: annotators.length > 2 ? "all" : annotators.join(","),
-              value: m.result,
-              p0: m.po,
-              pe: m.pe,
-              tolerance: tolerance,
-            });
+  let timeout = 100;
+  // while (true) {
+  try {
+    const metric_body = JSON.stringify({
+      task_id: task_id,
+      label: label,
+      documents: documents,
+      annotators: annotators,
+      annotatorsOrEmpty: annotatorsOrEmpty,
+      tolerance: tolerance,
+      byWords: byWords,
+      hideNonText: hideNonText,
+      contained: contained,
+      documentsData: documentsData,
+      documentsOptions: documentsOptions,
+    });
+    console.log(label, documents, annotators);
+    const metrics = await $fetch("/api/metrics/get_metrics", {
+      method: "POST",
+      body: metric_body,
+    });
+    console.log("XXX");
+    metrics.map((m) => {
+      if (m.result !== undefined)
+        rowsMetrics.push({
+          metric: m.name,
+          annotators: annotators.length > 2 ? "all" : annotators.join(","),
+          value: m.result,
+          p0: m.po,
+          pe: m.pe,
+          tolerance: tolerance,
+          consider_contained: contained ? "yes" : "no",
         });
-        const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
-        tables?.forEach((r: any) => {
-          Object.entries(r.annotators).forEach(([k, v]) => {
-            const ann = {
-              annotator: k,
-              start: r.start,
-              end: r.end,
-              text: r.text,
-              value: v,
-            };
-            rowsAnnotations.push(
-              documents.length > 1
-                ? { document: r.doc_id + "-" + r.doc_name, ...ann }
-                : ann
-            );
-          });
-        });
-        console.log("DONE");
-        break;
-      } catch (error) {
-        timeout--;
-        console.log("FAILED");
-      }
-    }
+    });
+    const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
+    tables?.forEach((r: any) => {
+      Object.entries(r.annotators).forEach(([k, v]) => {
+        const ann = {
+          annotator: k,
+          start: r.start,
+          end: r.end,
+          text: r.text,
+          value: v,
+        };
+
+        rowsAnnotations.push(
+          documents.length != 1
+            ? {
+                document: r.doc_id + "-" + documentsData[r.doc_id].name,
+                ...ann,
+              }
+            : ann
+        );
+      });
+    });
+    // break;
+  } catch (error) {
+    timeout--;
+    console.log("FAILED", error);
   }
+  // }
 
   if (annotators.length > 2) {
     for (let i = 0; i < annotators.length; i++) {
       for (let j = i + 1; j < annotators.length; j++) {
-        const ck_anns = await getAnnotations(task_id, label, documents, [
-          annotators[i],
-          annotators[j],
-        ]);
-        if (ck_anns.length) {
-          let ck_timeout = 100;
-          while (true) {
-            try {
-              const ck_metrics = await compute_metrics(
-                ck_anns,
-                [annotators[i], annotators[j]],
-                tolerance
-              );
-              if (i == 0 && j == 1) {
-              }
-              ck_metrics.map((m) => {
-                if (m.name == "cohens_kappa") {
-                  rowsMetrics.push({
-                    metric: m.name,
-                    annotators: annotators[i] + "," + annotators[j],
-                    value: m.result,
-                    p0: m.po,
-                    pe: m.pe,
-                    tolerance: tolerance,
-                  });
-                }
+        let ck_timeout = 100;
+        // while (true) {
+        try {
+          const metric_body = JSON.stringify({
+            task_id: task_id,
+            label: label,
+            documents: documents,
+            annotators: [annotators[i], annotators[j]],
+            annotatorsOrEmpty: [annotators[i], annotators[j]],
+            tolerance: tolerance,
+            byWords: byWords,
+            hideNonText: hideNonText,
+            contained: contained,
+            documentsData: documentsData,
+            documentsOptions: documentsOptions,
+          });
+
+          const ck_metrics = await $fetch("/api/metrics/get_metrics", {
+            method: "POST",
+            body: metric_body,
+          });
+
+          ck_metrics.map((m) => {
+            if (m.name == "cohens_kappa") {
+              rowsMetrics.push({
+                metric: m.name,
+                annotators: annotators[i] + "," + annotators[j],
+                value: m.result,
+                p0: m.po,
+                pe: m.pe,
+                tolerance: tolerance,
+                consider_contained: contained ? "yes" : "no",
               });
-              console.log("DONE");
-              break;
-            } catch (error) {
-              ck_timeout--;
-              console.log("FAILED");
             }
-          }
+          });
+          // break;
+        } catch (error) {
+          ck_timeout--;
+          console.log("FAILED", error);
         }
+        // }
       }
     }
   }
@@ -685,70 +963,10 @@ const getXlslTab = async (
   const worksheetMetrics = XLSX.utils.json_to_sheet(rowsMetrics);
   const worksheetAnnotations = XLSX.utils.json_to_sheet(rowsAnnotations);
   return [worksheetMetrics, worksheetAnnotations];
-};
+}
 
-const downloadAll = async () => {
-  download_progress.value.loading = true;
-  download_progress.value.current = 0;
-  download_progress.value.total =
-    selectedDocuments.value?.length! * labelsOptions.length * 2 +
-    labelsOptions.length * 2;
-  const zip = new JSZip();
-  try {
-    for (let i = 0; i < selectedDocuments.value!.length; i++) {
-      const document = selectedDocuments.value![i];
-      const workbookMetrics = XLSX.utils.book_new();
-      const workbookAnnotations = XLSX.utils.book_new();
-      for (let j = 0; j < labelsOptions.length; j++) {
-        const label = labelsOptions[j];
-        const sheets: XLSX.WorkSheet[] = await getXlslTab(
-          task.value?.id?.toString()!,
-          label,
-          [document],
-          selectedAnnotators.value!,
-          tolerance.value!
-        );
-        XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-        XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-        download_progress.value.current += 2;
-      }
-      const filename =
-        document + "-" + ((await documentApi.getName(document)) as string).split(".")[0];
-      zip.file(`${filename}_metrics.xlsx`, getZippeableBlob(workbookMetrics));
-      zip.file(`${filename}_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
-    }
-
-    const workbookMetrics = XLSX.utils.book_new();
-    const workbookAnnotations = XLSX.utils.book_new();
-    for (let i = 0; i < labelsOptions.length; i++) {
-      const label = labelsOptions[i];
-      const sheets = await getXlslTab(
-        task.value?.id?.toString()!,
-        label,
-        selectedDocuments.value!,
-        selectedAnnotators.value!,
-        tolerance.value!
-      );
-      XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-      XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-      download_progress.value.current += 2;
-    }
-    zip.file(`_metrics.xlsx`, getZippeableBlob(workbookMetrics));
-    zip.file(`_annotations.xlsx`, getZippeableBlob(workbookAnnotations));
-
-    const blob = await zip.generateAsync({ type: "blob" });
-
-    download_blob(blob);
-
-    $toast.success(`One .zip file has been downloaded!`);
-  } catch (error) {
-    download_progress.value.loading = false;
-  }
-  download_progress.value.loading = false;
-};
-
-const getZippeableBlob = async (workBook: XLSX.WorkBook) => {
-  const b64Data = XLSX.writeXLSX(workBook, {
+function getZippeableBlob(workBook: XLSX.WorkBook) {
+  const b64Data = XLSX.write(workBook, {
     bookType: "xlsx",
     type: "base64",
     compression: true,
@@ -756,20 +974,8 @@ const getZippeableBlob = async (workBook: XLSX.WorkBook) => {
 
   const contentType = "application/octet-stream";
 
-  const dataUrl = `data:${contentType};base64,${b64Data}`;
-  const blob = await (await fetch(dataUrl)).blob();
-  return blob;
-};
-
-const download_blob = async (blob: Blob) => {
-  const element = window.document.createElement("a");
-  element.setAttribute("href", URL.createObjectURL(blob));
-  element.setAttribute("download", `${task.value?.name}.zip`);
-  element.style.display = "none";
-  window.document.body.appendChild(element);
-  element.click();
-  window.document.body.removeChild(element);
-};
+  return `data:${contentType};base64,${b64Data}`;
+}
 
 const canMergeUp = (index: number): Boolean => {
   return (
@@ -810,43 +1016,11 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
     hidden: false,
     ann_id: current.ann_id,
     doc_id: current.doc_id,
-    doc_name: current.doc_name,
-    doc_text: current.doc_text,
   });
   loading_annotations.value = false;
 };
 
-const separateIntoWords = (annotations: RichAnnotation[]) => {
-  metrics_result.value = {} as any;
-  let limit = 10 ** 6;
-  loading_annotations.value = true;
-  var new_annotations: RichAnnotation[] = [];
-
-  annotations.forEach((ann) => {
-    const words = ann.text.matchAll(/\S+/g);
-    while (limit > 0) {
-      const w = words.next();
-      if (w.done) break;
-      new_annotations.push({
-        start: ann.start + w.value.index!,
-        end: ann.start + w.value.index! + w.value[0].length,
-        text: w.value[0],
-        label: ann.label,
-        annotator: ann.annotator,
-        hidden: false,
-        ann_id: ann.ann_id,
-        doc_id: ann.doc_id,
-        doc_name: ann.doc_name,
-        doc_text: ann.doc_text,
-      });
-      limit--;
-    }
-  });
-  loading_annotations.value = false;
-  return new_annotations;
-};
-
-const modeToggle = async (value: boolean) => {
+const modeToggle = (value: boolean) => {
   separate_into_words.value = value;
   if (!task.value) {
     return;
@@ -854,14 +1028,7 @@ const modeToggle = async (value: boolean) => {
   if (!selectedLabel.value) {
     return;
   }
-  const anns = await getAnnotations(
-    task.value?.id.toString()!,
-    selectedLabel.value!,
-    selectedDocuments.value!,
-    selectedAnnotators.value!
-  );
-
-  updateAnnotations(anns);
+  updateAnnotations();
 };
 
 const emitMergeUp = (ann_index: number): void => {
@@ -870,10 +1037,9 @@ const emitMergeUp = (ann_index: number): void => {
   const previous = _.clone(annotations[ann_index - 1]);
 
   annotations[ann_index - 1].end = current.end;
-  annotations[ann_index - 1].text = current.doc_text.substring(
-    previous.start,
-    current.end
-  )!;
+  annotations[ann_index - 1].text = documentsData.value[
+    current.doc_id
+  ].full_text.substring(previous.start, current.end);
 
   annotations[ann_index].hidden = false;
   annotations.splice(ann_index, 1);
@@ -886,7 +1052,9 @@ const emitMergeDown = (ann_index: number): void => {
   const next = _.clone(annotations[ann_index + 1]);
 
   annotations[ann_index + 1].start = current.start;
-  annotations[ann_index + 1].text = current.doc_text.substring(current.start, next.end);
+  annotations[ann_index + 1].text = documentsData.value[
+    current.doc_id
+  ].full_text.substring(current.start, next.end);
 
   annotations[ann_index].hidden = false;
   annotations.splice(ann_index, 1);
@@ -898,22 +1066,14 @@ const toggleTextToHidden = (value: boolean): RichAnnotation[] => {
   return setTextToHidden(annotations, value);
 };
 
-const setTextToHidden = (
-  annotations: RichAnnotation[],
-  value: boolean
-): RichAnnotation[] => {
-  for (let i = 0; i < annotations.length; i++) {
-    if (!/[ˆa-zA-Z]{2}/.test(annotations[i].text)) annotations[i].hidden = value;
-  }
-  return annotations;
-};
-
 const emitSetHidden = (ann_index: number, hidden: Boolean): void => {
   annotations[ann_index].hidden = hidden;
 };
 
 onMounted(async () => {
   initFlowbite();
+
+  loading_options.value = true;
 
   task.value = await taskApi.findTask(route.params.task_id.toString());
 
@@ -928,6 +1088,9 @@ onMounted(async () => {
   documentsOptions.push(
     ...(await documentApi.findSharedDocumentsByTask(task.value.id.toString())).map(
       (d) => {
+        if (!(d.id in documentsData.value)) {
+          documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
+        }
         return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
       }
     )
@@ -937,7 +1100,7 @@ onMounted(async () => {
     ...(await userApi.findUsersByTask(task.value.id.toString())).map((a) => a.email)
   );
 
-  setSelectedDocumentsAndAnnotators();
+  loading_options.value = false;
 });
 
 definePageMeta({
@@ -965,6 +1128,5 @@ button:disabled {
 
 .side-panel-h {
   height: calc(100vh - 141px);
-  overflow: auto;
 }
 </style>

@@ -3,7 +3,7 @@ export type Document = {
   name: string;
   project_id: string;
   source: string;
-  full_text: string | undefined;
+  full_text: string;
 };
 
 export const useDocumentApi = () => {
