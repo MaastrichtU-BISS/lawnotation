@@ -49,12 +49,10 @@ export const annotationRouter = router({
 
   'create': protectedProcedure
     .input(
-      z.object({
-        data: ZAnnotationFields
-      })
+      ZAnnotationFields
     )
     .mutation(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase.from("annotations").insert(input.data).select().single();
+      const { data, error } = await ctx.supabase.from("annotations").insert(input).select().single();
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in annotation.create: ${error.message}`});
@@ -66,7 +64,7 @@ export const annotationRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        updates: ZAnnotationFields
+        updates: ZAnnotationFields.partial()
       })
     )
     .mutation(async ({ ctx, input }) => {

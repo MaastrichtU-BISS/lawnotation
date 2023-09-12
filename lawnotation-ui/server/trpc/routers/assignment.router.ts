@@ -14,44 +14,7 @@ const ZAssignmentFields = z.object({
 
 export const assignmentRouter = router({
 
-  'AAAfindAssignmentsByTaskId': protectedProcedure
-    .input(
-      z.number().int()
-    )
-    .query(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase.from("assignments").select().eq("task_id", input);
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAssignmentsByTaskId: ${error.message}`});
-      else
-        return data;
-    }),
-
-  'AAAfindAssignmentsByUserTaskSeq': protectedProcedure
-    .input(
-      z.object({
-        annotator_id: z.number().int(),
-        task_id: z.number().int(),
-        seq_pos: z.number().int()
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase.from("assignments")
-        .select()
-        .eq("task_id", input.task_id)
-        .eq("annotator_id", input.annotator_id)
-        .eq("seq_pos", input.seq_pos)
-        .single();
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in AfindAssignmentsByUserTaskSeq: ${error.message}`});
-      else
-        return data;
-    }),
-
-
-
-  'createAssignment': protectedProcedure
+  'create': protectedProcedure
     .input(
       ZAssignmentFields
     )
@@ -63,12 +26,12 @@ export const assignmentRouter = router({
         .single();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in createAssignment: ${error.message}`});
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in assignment.create: ${error.message}`});
       else
         return data;
     }),
 
-  'createAssignments': protectedProcedure
+  'createMany': protectedProcedure
     .input(
       z.array(ZAssignmentFields)
     )
@@ -80,24 +43,61 @@ export const assignmentRouter = router({
         .single();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in createAssignments: ${error.message}`});
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in createMany: ${error.message}`});
       else
         return data;
     }),
 
-  'findAssignment': protectedProcedure
+  'findById': protectedProcedure
     .input(
       z.number().int()
     )
-    .query(async ({ctx, input}) => {
+    .query(async ({ctx, input: assignment_id}) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
-        .eq("id", input)
+        .eq("id", assignment_id)
         .single();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAssignment: ${error.message}`});
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in find: ${error.message}`});
+      else
+        return data;
+    }),
+
+  'update': protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        updates: ZAssignmentFields.partial()
+      })
+    )
+    .mutation(async ({ctx, input}) => {
+      const { data, error } = await ctx.supabase
+        .from("assignments")
+        .update(input.updates)
+        .eq("id", input.id)
+        .select()
+        .single();
+
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in update: ${error.message}`});
+      else
+        return data;
+    }),
+
+  'delete': protectedProcedure
+    .input(
+      z.number().int()
+    )
+    .mutation(async ({ctx, input: assignment_id}) => {
+      const { data, error } = await ctx.supabase
+        .from("assignments")
+        .delete()
+        .eq("id", assignment_id);
+
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in delete: ${error.message}`});
       else
         return data;
     }),
@@ -106,9 +106,9 @@ export const assignmentRouter = router({
     .input(
       z.string()
     )
-    .query(async ({ctx, input}) => {
+    .query(async ({ctx, input: e_id}) => {
       const { data, error } = await ctx.supabase
-        .rpc("get_count_assignments", { e_id: input })
+        .rpc("get_count_assignments", { e_id: e_id })
         .single();
 
       if (error)
@@ -121,9 +121,9 @@ export const assignmentRouter = router({
     .input(
       z.string()
     )
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ctx, input: e_id}) => {
       const { data, error } = await ctx.supabase.rpc("get_difficulties_by_editor", {
-        e_id: input,
+        e_id: e_id,
       });
 
       if (error)
@@ -136,9 +136,9 @@ export const assignmentRouter = router({
     .input(
       z.string()
     )
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ctx, input: e_id}) => {
       const { data, error } = await ctx.supabase.rpc("get_completion_by_editor", {
-        e_id: input,
+        e_id: e_id,
       });
 
       if (error)
@@ -151,9 +151,9 @@ export const assignmentRouter = router({
     .input(
       z.string()
     )
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ctx, input: a_id}) => {
       const { data, error } = await ctx.supabase.rpc("get_completion_by_annotator", {
-        a_id: input,
+        a_id: a_id,
       });
 
       if (error)
@@ -166,11 +166,11 @@ export const assignmentRouter = router({
     .input(
       z.number().int()
     )
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ctx, input: task_id}) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
-        .eq("task_id", input);
+        .eq("task_id", task_id);
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAssignmentsByTask: ${error.message}`});
@@ -205,11 +205,11 @@ export const assignmentRouter = router({
     .input(
       z.string()
     )
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ctx, input: user_id}) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
-        .eq("annotator_id", input);
+        .eq("annotator_id", user_id);
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAssignmentsByUser: ${error.message}`});
@@ -239,11 +239,11 @@ export const assignmentRouter = router({
     .input(
       z.string()
     )
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ctx, input: user_id}) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
-        .eq("annotator_id", input)
+        .eq("annotator_id", user_id)
         .eq("status", "pending")
         .order("task_id", { ascending: false })
         .order("seq_pos", { ascending: true })
@@ -291,75 +291,21 @@ export const assignmentRouter = router({
         };
     }),
 
-  'updateAssignment': protectedProcedure
-    .input(
-      z.object({
-        id: z.string(),
-        fields: ZAssignmentFields
-      })
-    )
-    .mutation(async ({ctx, input}) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .update(input.fields)
-        .eq("id", input.id)
-        .select()
-        .single();
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in updateAssignment: ${error.message}`});
-      else
-        return data;
-    }),
-
-  'deleteAssignment': protectedProcedure
-    .input(
-      z.number().int()
-    )
-    .mutation(async ({ctx, input}) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .delete()
-        .eq("id", input);
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in deleteAssignment: ${error.message}`});
-      else
-        return data;
-    }),
-
-
   'deleteAllAssignmentsFromTask': protectedProcedure
     .input(
       z.number().int()
     )
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ctx, input: task_id}) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .delete()
-        .eq("task_id", input);
+        .eq("task_id", task_id);
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in deleteAllAssignmentsFromTask: ${error.message}`});
       else
         return data;
-    }),
-
-
-  // 'name': protectedProcedure
-  //   .input(
-  //     z.object({
-
-  //     })
-  //   )
-  //   .mutation(async ({ctx, input}) => {
-
-  //     if (error)
-  //       throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in : ${error.message}`});
-  //     else
-  //       return data;
-  //   }),
-
+    })
   
 
 })

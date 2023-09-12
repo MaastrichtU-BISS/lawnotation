@@ -48,9 +48,22 @@ export const relationRouter = router({
       const { data, error } = await ctx.supabase.from("annotation_relations").insert(converted_input).select().single();
 
       if (error)
-        throw Error(`Error in createRelation: ${error.message}`)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in create: ${error.message}`});
       else
         return data as AnnotationRelation;
+    }),
+
+  'findById': protectedProcedure
+    .input(
+      z.number().int()
+    )
+    .query(async ({ctx, input}) => {
+      const { data, error } = await ctx.supabase.from("annotation_relations").select().eq("id", input).single();
+
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findById: ${error.message}`});
+      else
+        return data;
     }),
 
   // previously 'findRelation':
@@ -63,7 +76,11 @@ export const relationRouter = router({
       for (const id of input) {
           const { data, error } = await ctx.supabase.from("annotation_relations").select().eq("from_id", id);
           relations.push(...data as AnnotationRelation[]);
+
+          if (error)
+            throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findFromAnnotationIds: ${error.message}`});
       }
+
       return relations;
     })
 
