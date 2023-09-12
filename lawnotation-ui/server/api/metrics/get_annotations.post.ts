@@ -10,8 +10,6 @@ import { RichAnnotation } from "~/data/annotation";
 export default eventHandler(async (event) => {
   const data = await readBody(event);
 
-  let promises: Promise<any>[] = [];
-
   const documentsDataPromise: Promise<any> = getDocuments(
     event,
     data.task_id,

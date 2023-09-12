@@ -142,7 +142,7 @@ import { Document, useDocumentApi } from "~/data/document";
 import { Assignment, AssignmentTableData, useAssignmentApi } from "~/data/assignment";
 import { User, useUserApi } from "~/data/user";
 import { TableData } from "~/utils/table";
-import { shuffle } from "lodash";
+import { shuffle, clone } from "lodash";
 import { Project, useProjectApi } from "~/data/project";
 
 const config = useRuntimeConfig();
@@ -216,12 +216,12 @@ const createAssignments = async () => {
       amount_of_docs.value
     );
 
-    const new_assignments: Omit<Assignment, "id" | "annotator_id" | "status">[] = [];
+    const new_assignments: Omit<Assignment, "id" | "status">[] = [];
 
-    // Create shared assignments (only with docs info, no users yet)
+    // Create shared assignments (only with docs info)
     for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
       for (let j = 0; j < annotators_email.length; ++j) {
-        const new_assignment: Omit<Assignment, "id" | "annotator_id" | "status"> = {
+        const new_assignment: Omit<Assignment, "id" | "status"> = {
           task_id: task.value!.id,
           document_id: docs[i],
         };
@@ -229,34 +229,26 @@ const createAssignments = async () => {
       }
     }
 
-    // Create unique assignments (only with docs info, no users yet)
+    // Create unique assignments (only with docs info)
     for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
-      const new_assignment: Omit<Assignment, "id" | "annotator_id" | "status"> = {
+      const new_assignment: Omit<Assignment, "id" | "status"> = {
         task_id: task.value!.id,
         document_id: docs[i],
       };
       new_assignments.push(new_assignment);
     }
 
-    const created_assignments: Assignment[] = await assignmentApi.createAssignments(
-      new_assignments
-    );
-
-    // Get Users
-    const usersPromises: Promise<User>[] = [];
+    const usersPromises: Promise<any>[] = [];
     for (let i = 0; i < annotators_email.length; ++i) {
       usersPromises.push(
-        // userApi.otpLogin(
-        //   annotators_email[i],
-        //   `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
-        // )
-        userApi.findByEmail(annotators_email[i])
+        userApi.generateLink(annotators_email[i])
+        // `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
+        // userApi.findByEmail(annotators_email[i])
       );
     }
 
     const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
 
-    // Assign users and order to assignments
     let unshuffled: number[] = [
       ...Array(
         amount_of_fixed_docs.value +
@@ -266,22 +258,16 @@ const createAssignments = async () => {
 
     let permutations = [];
     for (let i = 0; i < annotators_id.length; ++i) {
-      permutations.push(shuffle(unshuffled));
+      permutations.push(shuffle(clone(unshuffled)));
     }
 
-    const assignmentsPromises: Promise<Boolean>[] = [];
-    for (let i = 0; i < created_assignments.length; ++i) {
-      created_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
-      created_assignments[i].seq_pos = permutations[i % annotators_id.length].pop() + 1;
-      assignmentsPromises.push(
-        assignmentApi.updateAssignment(
-          created_assignments[i].id.toString(),
-          created_assignments[i]
-        )
-      );
+    for (let i = 0; i < new_assignments.length; ++i) {
+      new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
+      new_assignments[i].seq_pos = permutations[i % annotators_id.length].pop() + 1;
     }
 
-    const updated_assignments = await Promise.all(assignmentsPromises);
+    const created_assignments = await assignmentApi.createAssignments(new_assignments);
+
     assignmentTable.load();
     loading.value = false;
     $toast.success("Assignments successfully created");
