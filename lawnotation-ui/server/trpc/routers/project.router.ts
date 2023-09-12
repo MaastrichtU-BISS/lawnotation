@@ -14,8 +14,8 @@ export const projectRouter = router({
   'find': protectedProcedure
     .input(
       z.object({
-        range: z.tuple([z.number().int(), z.number().int()]),
-        filter: ZProjectFields
+        range: z.tuple([z.number().int(), z.number().int()]).optional(),
+        filter: ZProjectFields.partial().optional()
       })
     )
     .query(async ({ ctx, input }) => {
@@ -29,8 +29,7 @@ export const projectRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.find: ${error.message}`});
-      else
-        return data;
+      return data as Project[];
     }),
 
   'findById': protectedProcedure
@@ -40,8 +39,7 @@ export const projectRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.findById: ${error.message}`});
-      else
-        return data;
+      return data as Project;
     }),
 
   'create': protectedProcedure
@@ -53,8 +51,7 @@ export const projectRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.create: ${error.message}`});
-      else
-        return data;
+      return data as Project;
     }),
 
   'update': protectedProcedure
@@ -69,17 +66,19 @@ export const projectRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.update: ${error.message}`});
-      else
-        return data;
+      return data as Project;
     }),
 
   'delete': protectedProcedure
-    .input(z.number().int())
+    .input(
+      z.number().int()
+    )
     .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase.from("projects").delete().eq('id', input);
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.delete: ${error.message}`});
+      return true;
     }),
 
   // Extra procedures
@@ -110,7 +109,7 @@ export const projectRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.getCountByUser: ${error.message}`});
-      else return count;
+      return count;
     })
   
 })

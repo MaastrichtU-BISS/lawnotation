@@ -17,8 +17,8 @@ export const annotationRouter = router({
   'find': protectedProcedure
     .input(
       z.object({
-        range: z.tuple([z.number().int(), z.number().int()]),
-        filter: ZAnnotationFields
+        range: z.tuple([z.number().int(), z.number().int()]).optional(),
+        filter: ZAnnotationFields.partial().optional()
       })
     )
     .query(async ({ ctx, input }) => {
@@ -32,8 +32,7 @@ export const annotationRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in annotation.find: ${error.message}`});
-      else
-        return data;
+      return data as Annotation[];
     }),
 
   'findById': protectedProcedure
@@ -43,8 +42,7 @@ export const annotationRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in annotation.findById: ${error.message}`});
-      else
-        return data;
+      return data as Annotation;
     }),
 
   'create': protectedProcedure
@@ -56,8 +54,7 @@ export const annotationRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in annotation.create: ${error.message}`});
-      else
-        return data;
+      return data as Annotation;
     }),
 
   'update': protectedProcedure
@@ -72,8 +69,7 @@ export const annotationRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in annotation.update: ${error.message}`});
-      else
-        return data;      
+      return data as Annotation;
     }),
 
   'delete': protectedProcedure
@@ -83,6 +79,7 @@ export const annotationRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in annotation.delete: ${error.message}`});
+      return true;
     }),
 
 
@@ -153,8 +150,7 @@ export const annotationRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`});
-      else
-        return data;
+      return data;
     }),
 
 
@@ -188,7 +184,6 @@ export const annotationRouter = router({
 
       return query_insert.data as Annotation[];
     }),
-
 
 })
 

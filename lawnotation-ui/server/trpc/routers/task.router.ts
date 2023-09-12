@@ -17,8 +17,8 @@ export const taskRouter = router({
   'find': protectedProcedure
     .input(
       z.object({
-        range: z.tuple([z.number().int(), z.number().int()]),
-        filter: ZTaskFields
+        range: z.tuple([z.number().int(), z.number().int()]).optional(),
+        filter: ZTaskFields.partial().optional()
       })
     )
     .query(async ({ ctx, input }) => {
@@ -32,8 +32,7 @@ export const taskRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in tasks.find: ${error.message}`});
-      else
-        return data;
+      return data as Task[];
     }),
 
   'findById': protectedProcedure
@@ -43,8 +42,7 @@ export const taskRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in tasks.findById: ${error.message}`});
-      else
-        return data;
+      return data as Task;
     }),
 
   'create': protectedProcedure
@@ -56,8 +54,7 @@ export const taskRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in tasks.create: ${error.message}`});
-      else
-        return data;
+      return data as Task;
     }),
 
   'update': protectedProcedure
@@ -72,8 +69,7 @@ export const taskRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in tasks.update: ${error.message}`});
-      else
-        return data;      
+      return data as Task;
     }),
 
   'delete': protectedProcedure
@@ -83,6 +79,7 @@ export const taskRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in tasks.delete: ${error.message}`});
+      return true;
     }),
 
   // Extra procedures
@@ -98,7 +95,7 @@ export const taskRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in tasks.getCountByUser: ${error.message}`});
-      return data;
+      return data as number;
     }),
 
   'getAllAnnotatorTasks': protectedProcedure
@@ -111,7 +108,7 @@ export const taskRouter = router({
       });
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in tasks.getAllAnnotatorTasks: ${error.message}`});
-      return data;
+      return data as Task[];
     }),
 
   'deleteAllFromTask': protectedProcedure
@@ -126,6 +123,7 @@ export const taskRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in tasks.delete: ${error.message}`});
+      return true;
     })
 })
 

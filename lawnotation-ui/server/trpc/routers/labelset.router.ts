@@ -21,8 +21,8 @@ export const labelsetRouter = router({
   'find': protectedProcedure
     .input(
       z.object({
-        range: z.tuple([z.number().int(), z.number().int()]),
-        filter: ZLabelsetFields
+        range: z.tuple([z.number().int(), z.number().int()]).optional(),
+        filter: ZLabelsetFields.partial().optional()
       })
     )
     .query(async ({ ctx, input }) => {
@@ -36,8 +36,7 @@ export const labelsetRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in labelsets.find: ${error.message}`});
-      else
-        return data;
+      return data as Labelset[];
     }),
 
   'findById': protectedProcedure
@@ -47,8 +46,7 @@ export const labelsetRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in labelsets.findById: ${error.message}`});
-      else
-        return data;
+      return data as Labelset;
     }),
 
   'create': protectedProcedure
@@ -60,8 +58,7 @@ export const labelsetRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in labelsets.create: ${error.message}`});
-      else
-        return data;
+      return data as Labelset;
     }),
 
   'update': protectedProcedure
@@ -76,8 +73,7 @@ export const labelsetRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in labelsets.update: ${error.message}`});
-      else
-        return data;      
+      return data as Labelset;
     }),
 
   'delete': protectedProcedure
@@ -87,6 +83,7 @@ export const labelsetRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in labelsets.delete: ${error.message}`});
+      return true;
     })
     
 })

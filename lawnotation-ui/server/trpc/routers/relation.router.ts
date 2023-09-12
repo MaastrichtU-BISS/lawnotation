@@ -49,8 +49,7 @@ export const relationRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in create: ${error.message}`});
-      else
-        return data as AnnotationRelation;
+      return data as AnnotationRelation;
     }),
 
   'findById': protectedProcedure
@@ -62,8 +61,7 @@ export const relationRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findById: ${error.message}`});
-      else
-        return data;
+      return data as AnnotationRelation;
     }),
 
   // previously 'findRelation':

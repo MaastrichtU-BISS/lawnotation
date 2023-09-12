@@ -19,8 +19,7 @@ export const userRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findById: ${error.message}`});
-      else
-        return data;
+      return data as User;
     }),
 
   'findByEmail': protectedProcedure
@@ -32,8 +31,7 @@ export const userRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findByEmail: ${error.message}`});
-      else
-        return data;
+      return data as User;
     }),
 
   'findUsersByTask': protectedProcedure

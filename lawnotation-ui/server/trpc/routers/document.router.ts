@@ -15,8 +15,8 @@ export const documentRouter = router({
   'find': protectedProcedure
     .input(
       z.object({
-        range: z.tuple([z.number().int(), z.number().int()]),
-        filter: ZDocumentFields
+        range: z.tuple([z.number().int(), z.number().int()]).optional(),
+        filter: ZDocumentFields.partial().optional()
       })
     )
     .query(async ({ ctx, input }) => {
@@ -30,8 +30,7 @@ export const documentRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in documents.find: ${error.message}`});
-      else
-        return data;
+      return data as Document[];
     }),
 
   'findById': protectedProcedure
@@ -41,8 +40,7 @@ export const documentRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in documents.findById: ${error.message}`});
-      else
-        return data;
+      return data as Document;
     }),
 
   'create': protectedProcedure
@@ -54,8 +52,7 @@ export const documentRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in documents.create: ${error.message}`});
-      else
-        return data;
+      return data as Document;
     }),
 
   'createMany': protectedProcedure
@@ -67,8 +64,7 @@ export const documentRouter = router({
       
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in documents.create: ${error.message}`});
-      else
-        return data;
+      return data as Document[];
     }),
 
   'update': protectedProcedure
@@ -83,8 +79,7 @@ export const documentRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in documents.update: ${error.message}`});
-      else
-        return data;      
+      return data as Document;
     }),
 
   'delete': protectedProcedure
@@ -94,6 +89,7 @@ export const documentRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in documents.delete: ${error.message}`});
+      return true;
     }),
 
   'table': protectedProcedure
@@ -129,7 +125,7 @@ export const documentRouter = router({
     
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in documents.findByProject: ${error.message}`});
-      return data;
+      return data as Document[];
     }),
 
     'findSharedDocumentsByTask': protectedProcedure
@@ -144,7 +140,7 @@ export const documentRouter = router({
         
         if (error)
           throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findSharedDocumentsByTask: ${error.message}`});
-        return data;
+        return data as Document[];
       }),
 
     'takeUpToNRandomDocuments': protectedProcedure
@@ -162,7 +158,7 @@ export const documentRouter = router({
     
         if (error)
           throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in takeUpToNRandomDocuments: ${error.message}`});
-        else return data as number[];
+        return data as number[];
       }),
 
     'totalAmountOfDocs': protectedProcedure
