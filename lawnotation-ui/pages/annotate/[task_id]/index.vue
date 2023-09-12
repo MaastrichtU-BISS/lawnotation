@@ -55,29 +55,21 @@
   </template>
 </template>
 <script setup lang="ts">
-import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { Document, useDocumentApi } from "~/data/document";
-import { Task, useTaskApi } from "~/data/task";
-import { Labelset, LsLabels, useLabelsetApi } from "~/data/labelset.js";
-import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
+import { Assignment, LSSerializedAnnotations } from "~/types";
+import { Document } from "~/types";
+import { Task } from "~/types";
+import { Labelset, LsLabels } from "~/types";
+import { Annotation } from "~/types";
 import {
   AnnotationRelation,
-  useAnnotationRelationApi,
   LSSerializedRelation,
-} from "~/data/annotation_relations";
+} from "~/types";
 import Breadcrumb from '~/components/Breadcrumb.vue';
-
-const relationApi = useAnnotationRelationApi();
 
 const user = useSupabaseUser();
 const supabase = useSupabaseClient();
-const assignmentApi = useAssignmentApi();
-const documentApi = useDocumentApi();
-const taskApi = useTaskApi();
-const labelsetApi = useLabelsetApi();
-const annotationApi = useAnnotationApi();
 
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 type Id = number;
 
@@ -90,7 +82,7 @@ const loadedData = ref(false);
 
 // const annotations = reactive<Annotation[]>([]);
 // const relations = reactive<AnnotationRelation[]>([]);
-const ls_annotations = reactive<LSSerializedAnnotation>([]);
+const ls_annotations = reactive<LSSerializedAnnotations>([]);
 const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
@@ -147,38 +139,38 @@ const loadData = async () => {
     loading.value = true;
     key.value = `ls-${seq_pos.value}`;
 
-    assignment.value = await assignmentApi.findAssignmentsByUserTaskSeq(
-      user.value.id,
-      route.params.task_id.toString(),
-      seq_pos.value
-    );
+    assignment.value = await $trpc.assignment.findAssignmentsByUserTaskSeq.query({
+      annotator_id: user.value.id,
+      task_id: +route.params.task_id,
+      seq_pos: seq_pos.value
+    });
 
     if (!assignment.value) throw Error("Assignment not found");
 
-    doc.value = await documentApi.findDocument(assignment.value.document_id.toString());
+    doc.value = await $trpc.document.findById.query(assignment.value.document_id);
     if (!doc.value) throw Error("Document not found");
 
     if (!assignment.value.task_id) throw Error("Document not found");
-    task.value = await taskApi.findTask(assignment.value.task_id?.toString());
+    task.value = await $trpc.task.findById.query(assignment.value.task_id);
 
-    const _labelset: Labelset = await labelsetApi.findLabelset(task.value.labelset_id.toString());
+    const _labelset: Labelset = await $trpc.labelset.findById.query(task.value.labelset_id);
 
     labels.splice(0)
     labels.push(..._labelset.labels.map((l) => l));
 
-    const _annotations = await annotationApi.findAnnotations(assignment.value.id.toString());
+    const _annotations = await $trpc.annotation.findByAssignment.query(assignment.value.id);
 
     ls_annotations.splice(0)
     if (_annotations.length) {
-      const db2ls_anns = annotationApi.convert_db2ls(_annotations, assignment.value.id);
+      const db2ls_anns = convert_annotation_db2ls(_annotations, assignment.value.id);
       ls_annotations.push(...db2ls_anns);
     }
 
-    const _relations = await relationApi.findRelations(_annotations);
+    const _relations = await $trpc.relation.findFromAnnotationIds.query(_annotations.map(a => a.id));
 
     ls_relations.splice(0)
     if (_relations.length) {
-      const db2ls_rels = _relations.map((r) => relationApi.convert_db2ls(r));
+      const db2ls_rels = _relations.map((r: AnnotationRelation) => convert_relation_db2ls(r));
       ls_relations.push(...db2ls_rels);
     }
 
@@ -198,10 +190,10 @@ const loadCounters = async () => {
     if (!user.value) throw new Error("Must be logged in");
     if (!route.params.task_id || Array.isArray(route.params.task_id)) throw new Error("Invalid task");
 
-    const counts = await assignmentApi.countAssignmentsByUserAndTask(
-      user.value.id,
-      parseInt(route.params.task_id)
-    );
+    const counts = await $trpc.assignment.countAssignmentsByUserAndTask.query({
+      annotator_id: user.value.id,
+      task_id: +route.params.task_id
+    });
 
     assignmentCounts.value = counts;
 

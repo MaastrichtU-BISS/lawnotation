@@ -188,20 +188,16 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project, useProjectApi } from "~/data/project";
-import { Document, useDocumentApi } from "~/data/document";
-import { Task, useTaskApi } from "~/data/task";
-import { Labelset, useLabelsetApi } from "~/data/labelset";
+import { Project } from "~/types";
+import { Document } from "~/types";
+import { Task } from "~/types";
+import { Labelset } from "~/types";
 import Table from "~/components/Table.vue";
 import { TableData, createTableData } from "~/utils/table";
 
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
-const projectApi = useProjectApi();
-const documentApi = useDocumentApi();
-const taskApi = useTaskApi();
-const labelsetApi = useLabelsetApi();
 
 const route = useRoute();
 const project = ref<Project>();
@@ -276,7 +272,7 @@ const change_file = async (event: Event) => {
       name: file.name,
       source: "local_upload",
       full_text: "",
-      project_id: route.params.project_id.toString(),
+      project_id: +route.params.project_id,
     });
   });
 
@@ -288,7 +284,7 @@ const change_file = async (event: Event) => {
 
   // TODO: progress bar instead of instantly adding to list, and after all are added reload documents table (keep loading = true while adding?)
   // documents.push(...(await documentApi.createDocuments(new_docs)));
-  await documentApi.createDocuments(new_docs);
+  await $trpc.document.createMany.mutate(new_docs);
   documentTable.load();
 
   (event.target as HTMLInputElement).value = "";
@@ -312,7 +308,7 @@ const createTask = () => {
     }
 
     // For some reason casting as Omit<Task, "id"> is necessary here.
-    taskApi.createTask(new_task as Omit<Task, "id">).then((task) => {
+    $trpc.task.create.mutate(new_task as Omit<Task, "id">).then((task) => {
       // tasks.push(task);
       taskTable.load();
       $toast.success("Task created");
@@ -322,36 +318,36 @@ const createTask = () => {
   }
 };
 
-const removeDocuments = async (ids: string[]) => {
+const removeDocuments = async (ids: number[]) => {
   const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => documentApi.deleteDocument(id)));
+  promises.push(...ids.map((id) => $trpc.document.delete.mutate(id)));
   await Promise.all(promises);
   await documentTable.load();
   $toast.success("Documents successfully deleted!");
 };
 const removeAllDocuments = async () => {
   if (!project.value) throw new Error("Invalid Project!");
-  await documentApi.deleteAllDocuments(project.value?.id.toString());
+  await $trpc.document.deleteAllFromProject.mutate(+project.value.id);
   await documentTable.load();
   $toast.success("Documents successfully deleted!");
 };
-const removeTasks = async (ids: string[]) => {
+const removeTasks = async (ids: number[]) => {
   const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => taskApi.deleteTask(id)));
+  promises.push(...ids.map((id) => $trpc.task.delete.mutate(id)));
   await Promise.all(promises);
   await taskTable.load();
   $toast.success("Tasks successfully deleted!");
 };
 const removeAllTasks = async () => {
   if (!project.value) throw new Error("Invalid Project!");
-  await taskApi.deleteAllTasks(project.value?.id.toString());
+  await $trpc.task.deleteAllFromProject.mutate(project.value.id);
   await taskTable.load();
   $toast.success("Tasks successfully deleted!");
 };
 
 onMounted(() => {
   try {
-    projectApi.findProject(route.params.project_id.toString()).then((p) => {
+    $trpc.project.findById.query(+route.params.project_id).then((p) => {
       project.value = p;
       new_task.project_id = p.id;
 
@@ -359,7 +355,7 @@ onMounted(() => {
       taskTable.load();
     });
 
-    labelsetApi.findLabelsets().then((_labelsets) => {
+    $trpc.labelset.find.query({}).then((_labelsets) => {
       labelsets.push(..._labelsets);
     });
   } catch (error) {

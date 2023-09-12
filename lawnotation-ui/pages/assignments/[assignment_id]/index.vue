@@ -39,28 +39,20 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { Document, useDocumentApi } from "~/data/document";
-import { Project, useProjectApi } from "~/data/project";
-import { Task, useTaskApi } from "~/data/task";
-import { Labelset, LsLabels, useLabelsetApi } from "~/data/labelset.js";
-import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
+import { Assignment, LSSerializedAnnotations } from "~/types";
+import { Document } from "~/types";
+import { Project } from "~/types";
+import { Task } from "~/types";
+import { Labelset, LsLabels } from "~/types";
+import { Annotation } from "~/types";
 import {
   AnnotationRelation,
-  useAnnotationRelationApi,
   LSSerializedRelation,
-} from "~/data/annotation_relations";
+} from "~/types";
 
 const user = useSupabaseUser();
-const assignmentApi = useAssignmentApi();
-const documentApi = useDocumentApi();
-const projectApi = useProjectApi();
-const taskApi = useTaskApi();
-const labelsetApi = useLabelsetApi();
-const annotationApi = useAnnotationApi();
-const relationApi = useAnnotationRelationApi();
 
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 type Id = number;
 
@@ -74,7 +66,7 @@ const loading = ref(false);
 
 const annotations = reactive<Annotation[]>([]);
 const relations = reactive<AnnotationRelation[]>([]);
-const ls_annotations = reactive<LSSerializedAnnotation>([]);
+const ls_annotations = reactive<LSSerializedAnnotations>([]);
 const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
@@ -82,23 +74,19 @@ const isEditor = ref<boolean>();
 const loadData = async () => {
   try {
     loading.value = true;
-    assignment.value = await assignmentApi.findAssignment(
-      route.params.assignment_id.toString()
-    );
+    assignment.value = await $trpc.assignment.findById.query(+route.params.assignment_id);
 
     if (!assignment.value) throw Error("Assignment not found");
 
-    doc.value = await documentApi.findDocument(assignment.value.document_id.toString());
+    doc.value = await $trpc.document.findById.query(+assignment.value.document_id);
     if (!doc.value) throw Error("Document not found");
 
     if (!assignment.value.task_id) throw Error("Task not found");
-    task.value = await taskApi.findTask(assignment.value.task_id?.toString());
+    task.value = await $trpc.task.findById.query(+assignment.value.task_id);
 
-    project.value = await projectApi.findProject(task.value.project_id.toString());
+    project.value = await $trpc.project.findById.query(+task.value.project_id);
 
-    const _labelset: Labelset = await labelsetApi.findLabelset(
-      task.value.labelset_id.toString()
-    );
+    const _labelset: Labelset = await $trpc.labelset.findById.query(+task.value.labelset_id);
 
     labels.splice(0) &&
       labels.push(
@@ -109,18 +97,18 @@ const loadData = async () => {
 
     annotations.splice(0) &&
       annotations.push(
-        ...(await annotationApi.findAnnotations(assignment.value.id.toString()))
+        ...(await $trpc.annotation.findByAssignment.query(+assignment.value.id))
       );
 
-    const db2ls_anns = annotationApi.convert_db2ls(annotations, assignment.value.id);
+    const db2ls_anns = convert_annotation_db2ls(annotations, assignment.value.id);
     if (annotations.length) {
       ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
     }
 
     relations.splice(0) &&
-      relations.push(...(await relationApi.findRelations(annotations)));
+      relations.push(...(await $trpc.relation.findFromAnnotationIds.query(annotations.map(a => a.id))));
 
-    const db2ls_rels = relations.map((r) => relationApi.convert_db2ls(r));
+    const db2ls_rels = relations.map((r) => convert_relation_db2ls(r));
 
     if (relations.length) {
       ls_relations.splice(0) && ls_relations.push(...db2ls_rels);

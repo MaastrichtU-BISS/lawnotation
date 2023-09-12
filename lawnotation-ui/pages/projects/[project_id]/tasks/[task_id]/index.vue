@@ -127,23 +127,18 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Task, useTaskApi } from "~/data/task";
-import { Document, useDocumentApi } from "~/data/document";
-import { Assignment, AssignmentTableData, useAssignmentApi } from "~/data/assignment";
-import { User, useUserApi } from "~/data/user";
+import { Task } from "~/types";
+import { Document } from "~/types";
+import { Assignment, AssignmentTableData } from "~/types";
+import { User } from "~/types";
 import { TableData } from "~/utils/table";
 import { shuffle } from "lodash";
-import { Project, useProjectApi } from "~/data/project";
+import { Project } from "~/types";
 
 const config = useRuntimeConfig();
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
-const taskApi = useTaskApi();
-const projectApi = useProjectApi();
-const documentApi = useDocumentApi();
-const assignmentApi = useAssignmentApi();
-const userApi = useUserApi();
 
 const route = useRoute();
 const task = ref<Task>();
@@ -201,19 +196,19 @@ const createAssignments = async () => {
     if (!task.value) throw new Error("Task not found");
 
     // Get the documents
-    const docs = await documentApi.takeUpToNRandomDocuments(
-      task.value.project_id.toString(),
-      amount_of_docs.value
-    );
+    const docs = await $trpc.document.takeUpToNRandomDocuments.query({
+      project_id: task.value.project_id,
+      n: amount_of_docs.value
+    });
 
-    const new_assignments: Omit<Assignment, "id" | "annotator_id" | "status">[] = [];
+    const new_assignments: Pick<Assignment, "task_id" | "document_id">[] = [];
 
     // Create shared assignments (only with docs info, no users yet)
     for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
       for (let j = 0; j < annotators_email.length; ++j) {
-        const new_assignment: Omit<Assignment, "id" | "annotator_id" | "status"> = {
+        const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
           task_id: task.value!.id,
-          document_id: docs[i],
+          document_id: docs[i]
         };
         new_assignments.push(new_assignment);
       }
@@ -221,14 +216,14 @@ const createAssignments = async () => {
 
     // Create unique assignments (only with docs info, no users yet)
     for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
-      const new_assignment: Omit<Assignment, "id" | "annotator_id" | "status"> = {
+      const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
         task_id: task.value!.id,
-        document_id: docs[i],
+        document_id: docs[i]
       };
       new_assignments.push(new_assignment);
     }
 
-    const created_assignments: Assignment[] = await assignmentApi.createAssignments(
+    const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
       new_assignments
     );
 
@@ -240,7 +235,7 @@ const createAssignments = async () => {
         //   annotators_email[i],
         //   `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
         // )
-        userApi.findByEmail(annotators_email[i])
+        $trpc.user.findByEmail.query(annotators_email[i])
       );
     }
 
@@ -259,15 +254,15 @@ const createAssignments = async () => {
       permutations.push(shuffle(unshuffled));
     }
 
-    const assignmentsPromises: Promise<Boolean>[] = [];
+    const assignmentsPromises: Promise<Assignment>[] = [];
     for (let i = 0; i < created_assignments.length; ++i) {
       created_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
       created_assignments[i].seq_pos = permutations[i % annotators_id.length].pop() + 1;
       assignmentsPromises.push(
-        assignmentApi.updateAssignment(
-          created_assignments[i].id.toString(),
-          created_assignments[i]
-        )
+        $trpc.assignment.update.mutate({
+          id: created_assignments[i].id,
+          updates: created_assignments[i]
+        })
       );
     }
 
@@ -282,29 +277,29 @@ const createAssignments = async () => {
   }
 };
 
-const removeAssignments = async (ids: string[]) => {
+const removeAssignments = async (ids: number[]) => {
   const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => assignmentApi.deleteAssignment(id)));
+  promises.push(...ids.map((id) => $trpc.assignment.delete.mutate(id)));
   await Promise.all(promises);
   await assignmentTable.load();
   $toast.success("Assignments successfully deleted!");
 };
 const removeAllAssignments = async () => {
   if (!task.value) throw new Error("Invalid Task!");
-  await assignmentApi.deleteAllAssignments(task.value?.id.toString());
+  await $trpc.assignment.deleteAllFromTask.mutate(task.value.id);
   await assignmentTable.load();
   $toast.success("Assignments successfully deleted!");
 };
 
 onMounted(async () => {
-  task.value = await taskApi.findTask(route.params.task_id as string);
+  task.value = await $trpc.task.findById.query(+route.params.task_id);
 
-  documentApi.totalAmountOfDocs(task.value.project_id.toString()).then((count) => {
+  $trpc.document.totalAmountOfDocs.query(+task.value.project_id).then((count) => {
     amount_of_docs.value = count ? count : 0;
     total_docs.value = amount_of_docs.value;
   });
 
-  project.value = await projectApi.findProject(route.params.project_id as string);
+  project.value = await $trpc.project.findById.query(+route.params.project_id);
 });
 
 definePageMeta({

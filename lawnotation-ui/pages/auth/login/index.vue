@@ -97,11 +97,8 @@
 
 </template>
 <script setup lang="ts">
-import { User, useUserApi } from "~/data/user";
+const { $toast, $trpc } = useNuxtApp();
 
-const { $toast } = useNuxtApp();
-
-const userApi = useUserApi();
 const config = useRuntimeConfig();
 const loading = ref(false);
 
@@ -116,8 +113,8 @@ const signIn = () => {
       return;
     }
 
-    userApi
-      .otpLogin(email.value, `${config.public.baseURL}`)
+    $trpc.user
+      .otpLogin.query({email: email.value, redirectTo: config.public.baseURL})
       .then((user) => {
         $toast.success(`Login link has been sent to: ${email.value}`);
         loading.value = false;

@@ -80,12 +80,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Labelset, useLabelsetApi } from "~/data/labelset";
+import { Labelset } from "~/types";
 const route = useRoute();
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
-const labelsetApi = useLabelsetApi();
 
 const new_label = reactive(get_label_default());
 
@@ -142,9 +141,9 @@ const create_new_labelset = async () => {
     if (new_labelset.value.labels.length === 0)
       throw new Error("Labelset should contain atleast one label");
 
-    const create = await labelsetApi.createLabelset({
+    const create = await $trpc.labelset.create.mutate({
       ...new_labelset.value,
-      editor_id: user.value.id,
+      editor_id: user.value.id
     });
     $toast.success(`Labelset "${new_labelset.value.name}" created`);
     navigateTo(`/labelset`);

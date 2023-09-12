@@ -59,12 +59,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project, useProjectApi } from "~/data/project";
+import { Project } from "~/types";
 import Table from "@/components/Table.vue";
 import { TableData, createTableData } from "@/utils/table";
-const projectApi = useProjectApi();
 const user = useSupabaseUser();
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 const projectTable = createTableData<Project>(
   {
@@ -105,8 +104,8 @@ onMounted(() => {
 
 const createNewProject = () => {
   try {
-    new_project.editor_id = user.value?.id;
-    projectApi.createProject(new_project).then((project) => {
+    new_project.editor_id = user.value?.id!;
+    $trpc.project.create.mutate(new_project).then((project) => {
       projectTable.load();
       $toast.success("Project created");
     });
@@ -116,16 +115,16 @@ const createNewProject = () => {
   }
 };
 
-const removeProjects = async (ids: string[]) => {
+const removeProjects = async (ids: number[]) => {
   const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => projectApi.deleteProject(id)));
+  promises.push(...ids.map((id) => $trpc.project.delete.mutate(id)));
   await Promise.all(promises);
   await projectTable.load();
   $toast.success("Projects successfully deleted!");
 };
 const removeAllProjects = async () => {
   if (!user.value) throw new Error("Invalid User!");
-  await projectApi.deleteAllProjects(user.value?.id.toString());
+  await $trpc.project.deleteAllFromUser.mutate();
   await projectTable.load();
   $toast.success("Projects successfully deleted!");
 };

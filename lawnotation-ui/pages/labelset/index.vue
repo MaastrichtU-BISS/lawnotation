@@ -1,14 +1,6 @@
 <template>
   <div>
     <h3 class="text-lg font-semibold mb-2">Labelsets</h3>
-    <ul class="list-disc list-inside" v-if="false">
-      <li v-for="labelset of labelsets">
-        <span
-          >{{ labelset.id }}.
-          <NuxtLink :to="`/labelset/${labelset.id}`">{{ labelset.name }}</NuxtLink></span
-        >
-      </li>
-    </ul>
 
     <div class="dimmer-wrapper">
       <Dimmer v-model="labelsetTable.loading" />
@@ -47,7 +39,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Labelset } from "~/data/labelset";
+import { Labelset } from "~/types";
 
 const user = useSupabaseUser();
 

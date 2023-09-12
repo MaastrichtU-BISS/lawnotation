@@ -20,21 +20,21 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project, useProjectApi } from "~/data/project";
-import { Document, useDocumentApi } from "~/data/document";
-const documentApi = useDocumentApi();
-const projectApi = useProjectApi();
+import { Project } from "~/types";
+import { Document } from "~/types";
+
+const { $trpc } = useNuxtApp();
 
 const route = useRoute();
 const document = ref<Document>();
 const project = ref<Project>();
 
 onMounted(async () => {
-  documentApi.findDocument(route.params.document_id.toString()).then((d) => {
+  $trpc.document.findById.query(+route.params.document_id).then((d) => {
     document.value = d;
   });
 
-  project.value = await projectApi.findProject(route.params.project_id as string);
+  project.value = await $trpc.project.findById.query(+route.params.project_id);
 });
 
 definePageMeta({
