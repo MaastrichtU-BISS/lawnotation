@@ -91,14 +91,12 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project, useProjectApi } from "~/data/project";
-import { Task, useTaskApi } from "~/data/task";
-import { Assignment, useAssignmentApi } from "~/data/assignment";
+import { Project } from "~/types";
+import { Task } from "~/types";
+import { Assignment } from "~/types";
 import CountUp from "vue-countup-v3";
 
-const projectApi = useProjectApi();
-const taskApi = useTaskApi();
-const assignmentApi = useAssignmentApi();
+const { $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
 const projectsCount = ref<number>(0);
@@ -152,14 +150,15 @@ const chartCompletionOptions = ref({
 const chartCompletionSeries = reactive<number[]>([0, 0]);
 
 onMounted(async () => {
-  projectApi.getCountByUser(user.value?.id!).then((result) => {
-    projectsCount.value = result;
+  $trpc.project.getCountByUser.query(user.value?.id!).then((result) => {
+    if (result)
+      projectsCount.value = result;
   });
-  taskApi.getCountByUser(user.value?.id!).then((result) => {
+  $trpc.task.getCountByUser.query(user.value?.id!).then((result) => {
     tasksCount.value = result;
   });
 
-  assignmentApi.getDifficultiesByEditor(user.value?.id!).then((result) => {
+  $trpc.assignment.getDifficultiesByEditor.query(user.value?.id!).then((result) => {
     result.map((r) => {
       chartDifficultySeries[r.difficulty] += r.count;
       chartDifficultyAverage.value += r.difficulty * r.count;
@@ -176,7 +175,7 @@ onMounted(async () => {
     };
   });
 
-  assignmentApi.getCompletionByEditor(user.value?.id!).then((result) => {
+  $trpc.assignment.getCompletionByEditor.query(user.value?.id!).then((result) => {
     for (let i = 0; i < result.length; i++) {
       chartCompletionSeries[i] = result[i].count;
     }

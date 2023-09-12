@@ -5,13 +5,14 @@
 </template>
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
-import { LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
+import { useAnnotationApi } from "~/data/annotation";
 import {
   LSSerializedRelation,
   useAnnotationRelationApi,
 } from "~/data/annotation_relations";
 import { Assignment, useAssignmentApi } from "~/data/assignment";
 import { LsLabels } from "~/data/labelset";
+import { LSSerializedAnnotations } from "~/types";
 
 const annotationApi = useAnnotationApi();
 const relationApi = useAnnotationRelationApi();
@@ -24,7 +25,7 @@ const emit = defineEmits(["previousAssignment", "nextAssignment"]);
 const props = defineProps<{
   user: any;
   assignment: Assignment | undefined;
-  annotations: LSSerializedAnnotation | undefined;
+  annotations: LSSerializedAnnotations | undefined;
   relations: LSSerializedRelation[] | undefined;
   text: string | undefined;
   labels: LsLabels | undefined;
@@ -174,19 +175,19 @@ const initLS = async () => {
     // 'next'
     onSubmitAnnotation: async (
       LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
     ) => {
       clickNext();
     },
     onAcceptAnnotation: async (
       LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
     ) => {
       clickNext();
     },
     onUpdateAnnotation: async (
       LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
     ) => {
       clickNext();
     },

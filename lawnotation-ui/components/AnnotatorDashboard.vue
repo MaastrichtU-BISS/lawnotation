@@ -33,9 +33,10 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Assignment, useAssignmentApi } from "~/data/assignment";
+import { Assignment } from "~/data/assignment";
 
-const assignmentApi = useAssignmentApi();
+const { $trpc } = useNuxtApp();
+
 const user = useSupabaseUser();
 const assignmentsCount = ref<number>(0);
 const nextAssignment = ref<Assignment>();
@@ -62,7 +63,7 @@ const chartCompletionOptions = ref({
 const chartCompletionSeries = reactive<number[]>([0, 0]);
 
 onMounted(async () => {
-  assignmentApi.getCompletionByAnnotator(user.value?.id!).then((result) => {
+  $trpc.assignment.getCompletionByAnnotator.query(user.value?.id!).then((result) => {
     for (let i = 0; i < result.length; i++) {
       chartCompletionSeries[i] = result[i].count;
       assignmentsCount.value += result[i].count;
@@ -76,7 +77,7 @@ onMounted(async () => {
     };
   });
 
-  assignmentApi.findNextAssignmentByUser(user.value?.id!).then((result) => {
+  $trpc.assignment.findNextAssignmentByUser.query(user.value?.id!).then((result) => {
     nextAssignment.value = result;
   });
 });

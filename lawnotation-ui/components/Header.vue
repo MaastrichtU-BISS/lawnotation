@@ -25,14 +25,13 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useUserApi, User } from "@/data/user";
-const supabase = useSupabaseClient();
+const supabase = useSupabaseClient()
 const user = useSupabaseUser();
-const userApi = useUserApi();
 
-const role = ref<string>();
+const { $trpc } = useNuxtApp();
 
 const route = useRoute();
+const role = ref<string>();
 
 const routeIsActive = computed(() => {
   return (match: string) => {
@@ -42,14 +41,11 @@ const routeIsActive = computed(() => {
 
 onMounted(async () => {
   if (user.value) {
-    role.value = ((await userApi.findByEmail(user.value?.email!, "role")) as User).role;
+    role.value = (await $trpc.user.findByEmail.query(user.value.email!)).role!;
   } else {
     watch(user, async () => {
       if (user.value) {
-        role.value = ((await userApi.findByEmail(
-          user.value?.email!,
-          "role"
-        )) as User).role;
+        role.value = (await $trpc.user.findByEmail.query(user.value.email!)).role!;
       }
     });
   }
