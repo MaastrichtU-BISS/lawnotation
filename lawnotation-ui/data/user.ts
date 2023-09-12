@@ -20,18 +20,16 @@ export const useUserApi = () => {
 
     if (error) throw Error(`Supabase AuthError: ${error.message}`);
     else return user;
+  };
 
-    // const { data, error } = await supabase.auth.signInWithOtp({
-    //   email: email,
-    //   options: {
-    //     emailRedirectTo: redirectTo
-    //   }
-    // })
+  const generateLink = async (email: string): Promise<any> => {
+    const { data, error } = await $fetch("/api/user/generate_link", {
+      method: "POST",
+      body: JSON.stringify({ email: email }),
+    });
 
-    // if (error)
-    //     throw Error(`Error in inviteUser: ${error.message}`)
-    //   else
-    //     return data;
+    if (error) throw Error(`Supabase AuthError: ${error.message}`);
+    else return data.user;
   };
 
   const findByEmail = async (email: string, columns = "id"): Promise<any> => {
@@ -78,5 +76,12 @@ export const useUserApi = () => {
     return user;
   };
 
-  return { inviteUser, findByEmail, findUsersByTask, otpLogin, getEmail };
+  return {
+    inviteUser,
+    findByEmail,
+    findUsersByTask,
+    otpLogin,
+    generateLink,
+    getEmail,
+  };
 };
