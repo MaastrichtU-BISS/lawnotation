@@ -67,18 +67,13 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Task, useTaskApi } from "~/data/task";
-import { Assignment, AssignmentTableData, useAssignmentApi } from "~/data/assignment";
-import { User, useUserApi } from "~/data/user";
+import { Task, AssignmentTableData } from "~/types";
 import { createTableData   } from "~/utils/table";
 
 const config = useRuntimeConfig();
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
-const taskApi = useTaskApi();
-const assignmentApi = useAssignmentApi();
-const userApi = useUserApi();
 
 const route = useRoute();
 const task = ref<Task>();

@@ -20,8 +20,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project } from "~/types";
-import { Document } from "~/types";
+import { Project, Document } from "~/types";
 
 const { $trpc } = useNuxtApp();
 

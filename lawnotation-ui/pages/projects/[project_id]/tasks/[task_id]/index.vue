@@ -127,15 +127,15 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Task } from "~/types";
-import { Document } from "~/types";
-import { Assignment, AssignmentTableData } from "~/types";
-import { User } from "~/types";
-import { TableData } from "~/utils/table";
+import {
+  Task,
+  Assignment,
+  AssignmentTableData,
+  User,
+  Project
+} from "~/types";
 import { shuffle } from "lodash";
-import { Project } from "~/types";
 
-const config = useRuntimeConfig();
 const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();

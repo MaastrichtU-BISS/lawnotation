@@ -188,10 +188,12 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project } from "~/types";
-import { Document } from "~/types";
-import { Task } from "~/types";
-import { Labelset } from "~/types";
+import {
+  Project,
+  Document,
+  Task,
+  Labelset,
+} from "~/types";
 import Table from "~/components/Table.vue";
 import { TableData, createTableData } from "~/utils/table";
 

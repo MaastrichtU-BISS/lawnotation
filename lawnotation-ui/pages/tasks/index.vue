@@ -30,7 +30,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Task } from "~/data/task";
+import { Task } from "~/types";
 
 const user = useSupabaseUser();
 

@@ -91,9 +91,6 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project } from "~/types";
-import { Task } from "~/types";
-import { Assignment } from "~/types";
 import CountUp from "vue-countup-v3";
 
 const { $trpc } = useNuxtApp();

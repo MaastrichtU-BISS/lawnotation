@@ -39,13 +39,15 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Assignment, LSSerializedAnnotations } from "~/types";
-import { Document } from "~/types";
-import { Project } from "~/types";
-import { Task } from "~/types";
-import { Labelset, LsLabels } from "~/types";
-import { Annotation } from "~/types";
 import {
+  Assignment,
+  LSSerializedAnnotations,
+  Document,
+  Project,
+  Task,
+  Labelset,
+  LsLabels,
+  Annotation,
   AnnotationRelation,
   LSSerializedRelation,
 } from "~/types";

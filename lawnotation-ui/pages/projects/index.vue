@@ -62,6 +62,7 @@
 import { Project } from "~/types";
 import Table from "@/components/Table.vue";
 import { TableData, createTableData } from "@/utils/table";
+
 const user = useSupabaseUser();
 const { $toast, $trpc } = useNuxtApp();
 

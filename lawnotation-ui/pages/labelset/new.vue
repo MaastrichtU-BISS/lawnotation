@@ -81,7 +81,7 @@
 </template>
 <script setup lang="ts">
 import { Labelset } from "~/types";
-const route = useRoute();
+
 const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();

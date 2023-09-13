@@ -1,4 +1,3 @@
-import { Annotation, RichAnnotation } from "~/data/annotation";
 
 export type RangeLabel = {
   start: number;

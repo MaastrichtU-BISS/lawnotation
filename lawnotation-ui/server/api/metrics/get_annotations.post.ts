@@ -4,8 +4,7 @@ import {
   setTextToHidden,
   separateIntoWords,
 } from "~/utils/metrics";
-import { RichAnnotation } from "~/data/annotation";
-// import { Document } from "~/data/document";
+import { RichAnnotation } from "~/types";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);

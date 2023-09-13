@@ -55,19 +55,19 @@
   </template>
 </template>
 <script setup lang="ts">
-import { Assignment, LSSerializedAnnotations } from "~/types";
-import { Document } from "~/types";
-import { Task } from "~/types";
-import { Labelset, LsLabels } from "~/types";
-import { Annotation } from "~/types";
 import {
+  Assignment,
+  LSSerializedAnnotations,
+  Document,
+  Task,
+  Labelset,
+  LsLabels,
   AnnotationRelation,
   LSSerializedRelation,
 } from "~/types";
 import Breadcrumb from '~/components/Breadcrumb.vue';
 
 const user = useSupabaseUser();
-const supabase = useSupabaseClient();
 
 const { $toast, $trpc } = useNuxtApp();
 

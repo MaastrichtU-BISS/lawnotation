@@ -432,13 +432,11 @@
 </template>
 <script setup lang="ts">
 import Multiselect from "@vueform/multiselect";
-import { Task, useTaskApi } from "~/data/task";
-import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { RichAnnotation, useAnnotationApi } from "~/data/annotation";
-import { Document, useDocumentApi } from "~/data/document";
-import { Labelset, useLabelsetApi } from "~/data/labelset";
-import { Project, useProjectApi } from "~/data/project";
-import { User, useUserApi } from "~/data/user";
+import {
+  Task,
+  RichAnnotation,
+  Project,
+} from "~/types";
 import {
   MetricResult,
   newEmptyMetricResult,

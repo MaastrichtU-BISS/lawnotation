@@ -1,4 +1,9 @@
-import { LSSerializedAnnotations, Annotation, LSSerializedRelation, AnnotationRelation } from "~/types";
+import {
+  LSSerializedAnnotations,
+  Annotation,
+  LSSerializedRelation,
+  AnnotationRelation
+} from "~/types";
 
 export const convert_annotation_ls2db = (anns: LSSerializedAnnotations, assignment_id: number): Omit<Annotation, "id">[] => {
   return anns.map((ann) => {

@@ -5,18 +5,14 @@
 </template>
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
-import { useAnnotationApi } from "~/data/annotation";
 import {
   LSSerializedRelation,
-  useAnnotationRelationApi,
-} from "~/data/annotation_relations";
-import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { LsLabels } from "~/data/labelset";
-import { LSSerializedAnnotations } from "~/types";
+  Assignment,
+  LsLabels,
+  LSSerializedAnnotations
+} from "~/types";
 
-const annotationApi = useAnnotationApi();
-const relationApi = useAnnotationRelationApi();
-const assignmentApi = useAssignmentApi();
+const { $trpc } = useNuxtApp();
 
 const label_studio = ref();
 
