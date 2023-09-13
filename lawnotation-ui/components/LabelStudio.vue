@@ -63,9 +63,12 @@ const clickNext = async () => {
   }
 
   await updateAnnotationsAndRelations(serializedAnnotations);
-  await assignmentApi.updateAssignment(props.assignment.id.toString(), {
-    status: "done",
-    difficulty_rating: rating,
+  await $trpc.assignment.update.mutate({
+    id: props.assignment.id, 
+    updates: {
+      status: "done",
+      difficulty_rating: rating,
+    }
   });
   emit("nextAssignment");
 };
@@ -195,11 +198,11 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
 
   // create annotations
   const ls_anns = serializedAnnotations.filter((x) => x.type == "labels");
-  const db_anns = annotationApi.convert_ls2db(ls_anns, props.assignment?.id);
-  const created_anns = await annotationApi.updateAssignmentAnnotations(
-    props.assignment?.id,
-    db_anns
-  );
+  const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id);
+  const created_anns = await $trpc.annotation.updateAssignmentAnnotations.mutate({
+    assignment_id: props.assignment?.id,
+    annotations: db_anns
+  });
 
   if (!created_anns) return;
 
@@ -216,7 +219,7 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
       if (created_anns[i].ls_id == (rel as LSSerializedRelation).to_id)
         to = created_anns[i].id;
     }
-    relationApi.createRelation(rel as LSSerializedRelation, from, to);
+    $trpc.relation.create.mutate({fields: rel as LSSerializedRelation, from_id: from, to_id: to});
   });
 };
 
