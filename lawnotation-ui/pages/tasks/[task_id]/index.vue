@@ -86,10 +86,10 @@ const loadCounters = async () => {
     if (!user.value) throw new Error("Must be logged in");
     if (!task.value) throw new Error("Invalid task");
 
-    const counts = await assignmentApi.countAssignmentsByUserAndTask(
-      user.value.id,
-      task.value?.id
-    );
+    const counts = await $trpc.assignment.countAssignmentsByUserAndTask.query({
+      annotator_id: user.value.id,
+      task_id: task.value?.id
+    });
 
     assignmentCounts.value = counts;
 
@@ -133,7 +133,7 @@ const assignmentTable = createTableData<AssignmentTableData>(
 );
 
 onMounted(async () => {
-  task.value = await taskApi.findTask(route.params.task_id as string);
+  task.value = await $trpc.task.findById.query(+route.params.task_id);
   await loadCounters()
 });
 
