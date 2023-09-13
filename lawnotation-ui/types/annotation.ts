@@ -15,9 +15,9 @@ export type RichAnnotation = {
   text: string;
   label: string;
   annotator: string;
-  hidden: Boolean;
+  hidden: boolean;
   ann_id: number;
-  doc_id: string;
+  doc_id: number;
 };
 
 export type LSSerializedAnnotation = {
