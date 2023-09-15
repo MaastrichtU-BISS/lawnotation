@@ -26,6 +26,7 @@
         to="/tasks"
         class="header-link"
         :class="{ active: routeIsActive('/tasks') }"
+        data-test="assigned-tasks-menu-item"
         >Assigned Tasks</NuxtLink
       >
     </div>
