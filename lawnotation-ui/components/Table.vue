@@ -312,9 +312,11 @@ const allChecked = ref(false);
 
 const props = withDefaults(
   defineProps<{
-    pagination?: boolean;
-    remove?: boolean;
-    name?: string;
+    pagination?: boolean,
+    remove?: boolean,
+    name?: string,
+    sort?: boolean,
+    search?: boolean,
 
     endpoint: keyof AppRouter['table']['_def']['procedures']
   }>(),
@@ -388,6 +390,11 @@ const total = computed(() => {
   if (!data.value) return 0;
   return data.value.total;
 });
+
+defineExpose({
+  refresh,
+  total
+})
 
 const sortClick = async (colname: string) => {
   const dir =

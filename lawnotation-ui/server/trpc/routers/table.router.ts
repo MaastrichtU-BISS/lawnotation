@@ -1,24 +1,13 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-
-export type TableDataSourceColumns = { 
-  columns: Record<
-    string,
-    {
-      field: string;
-      sortable?: true;
-      searchable?: true;
-      // remove?: false
-    } | null
-  >
-}
+import { Context } from '~/server/trpc/context';
 
 export type SupabaseDataSource = {
       type: "supabase_table";
       select?: string;
       from: string;
-      filter?: object | (() => object);
+      filter?: object | (( { ctx }: { ctx: Context } ) => object);
     }
 
 
@@ -53,12 +42,7 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
   .output(
     z.object({
       rows: z.array(z.any()),
-      total: z.number(),
-      // columns: z.record(z.string(), z.object({
-      //   field: z.string(),
-      //   searchable: z.literal(true).optional(),
-      //   sortable: z.literal(true).optional()
-      // }).nullable())
+      total: z.number()
     })
   )
   .query(async ({ ctx, input }) => {
@@ -71,7 +55,7 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
     switch (source.type) {
       case "supabase_table": {
         const filter: object = (typeof source.filter === "function"
-          ? source.filter()
+          ? source.filter({ctx})
           : source.filter) ?? {};
 
         let query = ctx.supabase
@@ -114,8 +98,7 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
         if (data !== null && count !== null && !error) {
           return {
             rows: data as T[],
-            total: count,
-            columns: source.columns
+            total: count
           };
         }
       }
@@ -131,7 +114,14 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
 export const tableRouter = router({
   'labelset': createTableProcedure({
     type: 'supabase_table',
-    from: 'labelsets'
+    from: 'labelsets',
+    filter: ({ctx}) => ({ editor_id: ctx.user!.id })
+  }),
+
+  'projects': createTableProcedure({
+    type: 'supabase_table',
+    from: 'labelsets',
+    filter: ({ctx}) => ({ editor_id: ctx.user!.id })
   })
     
 })
