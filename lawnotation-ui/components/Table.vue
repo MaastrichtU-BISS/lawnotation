@@ -1,6 +1,5 @@
 <template>
   <div class="spinner-wrapper">
-    <!-- <pre>{{ JSON.stringify({columns, searchableColumns}) }}</pre> -->
     <template v-if="pending !== false">
       <div class="spinner-overlay"></div>
       <div class="spinner">
@@ -311,21 +310,11 @@ const emit = defineEmits(["removeRows", "removeAllRows"]);
 const selectedRows = reactive<string[]>([]);
 const allChecked = ref(false);
 
-type TableColumnDefinition = {
-  field: string;
-  sortable?: true;
-  searchable?: true;
-  remove?: false
-};
-
 const props = withDefaults(
   defineProps<{
     pagination?: boolean;
     remove?: boolean;
     name?: string;
-
-    // tabledata: TableData<any>;
-    // columns: Record<string, string>;
 
     endpoint: keyof AppRouter['table']['_def']['procedures']
   }>(),
@@ -336,47 +325,6 @@ const props = withDefaults(
     name: '1'
   }
 );
-
-// const rows = ref<T[]>([]);
-// const columndata = ref<
-//   Record<
-//     string,
-//     TableColumnDefinition
-//   >
-// >(Object.keys(props.columns).reduce((attrs, key) => ({...attrs, [key]: null}), {})); // default values are 'null'
-
-/*
-const default_search_column = computed(() => {
-  Object.values(columndata)
-    .filter((col): col is {field: string, searchable: true} => 
-      col != null && 
-      col.searchable != null &&
-      col.searchable)
-    .map((col) => col.field)[0] ?? null;
-})
-
-const default_sort_column =
-  Object.values(columndata)
-    .filter((col): col is {field: string, searchable: true} =>
-      col != null &&
-      col.sortable != null &&
-      col.sortable)
-    .map((col) => col.field)[0] ?? null;
-*/
-
-// const sort = reactive<>(;
-
-// const search = reactive<>();
-
-// const page = ref<number>(1);
-// const items_per_page = ref<number>(10);
-
-// const total = ref<number>(0);
-// const rows = ref<T[]>([]);
-
-// const pending = ref<boolean>(true);
-
-
 
 const columns = tableColumns[props.endpoint];
 
@@ -401,8 +349,6 @@ const sortableColumns = (() => {
       .map((col) => [col[0], col[1].field])
     )
 })();
-
-
 
 const args = reactive<{
   sort: {
@@ -443,38 +389,6 @@ const total = computed(() => {
   return data.value.total;
 });
 
-// const searchableColumns = computed(() => {
-//   return Object.fromEntries(
-//     Object.entries(columns.value)
-//       .filter((col): col is [string, {field: string, searchable: true}] => 
-//         col[1] != null && 
-//         col[1].searchable != undefined &&
-//         col[1].searchable === true)
-//       .map((col) => [col[0], col[1].field])
-//     )
-// })
-
-// const sortableColumns = computed(() => {
-//   return Object.fromEntries(
-//     Object.entries(columns.value)
-//       .filter((col): col is [string, {field: string, sortable: true}] => 
-//         col[1] != null && 
-//         col[1].sortable != undefined &&
-//         col[1].sortable === true)
-//       .map((col) => [col[0], col[1].field])
-//     )
-// })
-
-// watch(searchableColumns, () => {
-//   if (Object.values(searchableColumns.value).length > 0 && args.search.column === null)
-//     args.search.column = Object.values(searchableColumns.value)[0];
-// })
-// watch(sortableColumns, () => {
-//   if (Object.values(sortableColumns.value).length > 0 && args.sort.column === null)
-//     args.sort.column = Object.values(sortableColumns.value)[0];
-// })
-
-
 const sortClick = async (colname: string) => {
   const dir =
     args.sort &&
@@ -493,7 +407,6 @@ watch(
   () => [
     args.search.query,
     args.search.column,
-    // total,
   ],
   async () => {
     args.page = 1;
