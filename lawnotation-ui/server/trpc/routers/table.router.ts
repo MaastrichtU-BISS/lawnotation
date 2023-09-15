@@ -118,9 +118,9 @@ export const tableRouter = router({
     filter: ({ctx}) => ({ editor_id: ctx.user!.id })
   }),
 
-  'projects': createTableProcedure({
+  'project': createTableProcedure({
     type: 'supabase_table',
-    from: 'labelsets',
+    from: 'projects',
     filter: ({ctx}) => ({ editor_id: ctx.user!.id })
   })
     

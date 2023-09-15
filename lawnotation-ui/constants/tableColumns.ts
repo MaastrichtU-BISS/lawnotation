@@ -6,21 +6,34 @@ export type TableColumn = {
 
 export const tableColumns: Record<string, Record<string, TableColumn>> = {
   'labelset': {
-    'Id': {
+    Id: {
       field: 'id',
       sortable: true
     },
-    'Name': {
+    Name: {
       field: 'name',
       searchable: true,
       sortable: true,
     },
-    'Description': {
+    Description: {
       field: 'desc',
       searchable: true,
       sortable: true,
     },
-    'Action': null
+    Action: null
+  },
+  
+  'project': {
+    Id: {
+      field: "id",
+      sortable: true,
+    },
+    Name: {
+      field: "name",
+      sortable: true,
+      searchable: true,
+    },
+    Action: null,
   }
 }
 

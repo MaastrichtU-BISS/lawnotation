@@ -299,7 +299,7 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="T extends object">
+<script setup lang="ts">
 import { confirmBox } from "~/utils/confirmBox";
 import { AppRouter } from "~/server/trpc/routers";
 import { tableColumns } from "~/constants/tableColumns";
