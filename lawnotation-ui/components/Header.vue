@@ -1,25 +1,49 @@
 <template>
   <!-- <div class="bg-neutral-100 px-4 py-4 flex justify-between items-center"> -->
-  <div class="bg-neutral-50 border-b border-neutral-200 px-4 py-4 flex justify-between items-center">
+  <div
+    class="bg-neutral-50 border-b border-neutral-200 px-4 py-4 flex justify-between items-center"
+  >
     <div class="w-40">
       <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
     </div>
     <div v-if="user" class="space-x-4">
       <template v-if="role == 'editor'">
-        <NuxtLink to="/projects" class="header-link" :class="{'active': routeIsActive('/projects')}">Projects</NuxtLink>
-        <NuxtLink to="/labelset" class="header-link" :class="{'active': routeIsActive('/labelset')}">Labelsets</NuxtLink>
+        <NuxtLink
+          to="/projects"
+          class="header-link"
+          :class="{ active: routeIsActive('/projects') }"
+          >Projects</NuxtLink
+        >
+        <NuxtLink
+          to="/labelset"
+          class="header-link"
+          :class="{ active: routeIsActive('/labelset') }"
+          >Labelsets</NuxtLink
+        >
         <span class="text-gray-400 select-none">|</span>
       </template>
-      <NuxtLink to="/tasks" class="header-link" :class="{'active': routeIsActive('/tasks')}">Assigned Tasks</NuxtLink>
+      <NuxtLink
+        to="/tasks"
+        class="header-link"
+        :class="{ active: routeIsActive('/tasks') }"
+        >Assigned Tasks</NuxtLink
+      >
     </div>
     <div class="auth">
       <template v-if="user">
-        <span class="text-slate-800" v-if="user?.email">{{ user.email?.split("@")[0] }}</span>
+        <span class="text-slate-800" v-if="user?.email">{{
+          user.email?.split("@")[0]
+        }}</span>
         <span class="text-gray-400 select-none mx-3">|</span>
         <button class="header-link" @click="supabase.auth.signOut">Sign Out</button>
       </template>
       <template v-else>
-        <NuxtLink class="header-link" to="/auth/login" :class="{'active': routeIsActive('/auth/login')}">Sign In</NuxtLink>
+        <NuxtLink
+          class="header-link"
+          to="/auth/login"
+          :class="{ active: routeIsActive('/auth/login') }"
+          >Sign In</NuxtLink
+        >
       </template>
     </div>
   </div>
@@ -37,8 +61,8 @@ const route = useRoute();
 const routeIsActive = computed(() => {
   return (match: string) => {
     return route.path.startsWith(match);
-  }
-})
+  };
+});
 
 onMounted(async () => {
   if (user.value) {
