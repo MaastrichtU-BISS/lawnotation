@@ -1,6 +1,6 @@
 <template>
   <div class="spinner-wrapper">
-    <!-- <span>{{ JSON.stringify({status, 'a': error.stack}) }}</span> -->
+    <!-- <pre>{{ JSON.stringify({columns, searchableColumns}) }}</pre> -->
     <template v-if="pending !== false">
       <div class="spinner-overlay"></div>
       <div class="spinner">
@@ -29,19 +29,14 @@
             Remove selected rows ({{ selectedRows.length }})
           </button>
         </span>
-        <span class="flex" v-if="args.search">
+        <span class="flex" v-if="args.search && Object.keys(searchableColumns).length > 0">
           <select
             v-model="args.search.column"
             class="w-40 p-2 text-sm text-gray-900 ring-1 ring-inset ring-gray-300 shadow-sm rounded-md bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
           >
             <option
-              v-for="[colname, col] of Object.entries(columndata).filter(
-                  (x): x is [string, TableColumnDefinition] => 
-                    x[1] != null &&
-                    x[1].searchable != null &&
-                    x[1].searchable
-                )"
-              :value="col.field"
+              v-for="[colname, colfield] of Object.entries(searchableColumns)"
+              :value="colfield"
             >
               {{ colname }}
             </option>
@@ -91,13 +86,13 @@
             <th
               scope="col"
               class="px-6 py-3"
-              v-for="[colname, col] of Object.entries(columndata)"
+              v-for="[colname, col] of Object.entries(columns)"
             >
               <span class="flex">
                 {{ colname }}
                 <span
                   class="ml-2 w-4 h-4 cursor-pointer"
-                  v-if="args.sort && col && col.sortable && col.field"
+                  v-if="args.sort && col && col.sortable"
                   @click="sortClick(col.field)"
                 >
                   <svg
@@ -308,8 +303,9 @@
 <script setup lang="ts" generic="T extends object">
 import { confirmBox } from "~/utils/confirmBox";
 import { AppRouter } from "~/server/trpc/routers";
+import { tableColumns } from "~/constants/tableColumns";
 
-const { $trpc } = useNuxtApp();
+const { $trpc, $toast } = useNuxtApp();
 
 const emit = defineEmits(["removeRows", "removeAllRows"]);
 const selectedRows = reactive<string[]>([]);
@@ -329,7 +325,7 @@ const props = withDefaults(
     name?: string;
 
     // tabledata: TableData<any>;
-    columns: Record<string, string>;
+    // columns: Record<string, string>;
 
     endpoint: keyof AppRouter['table']['_def']['procedures']
   }>(),
@@ -342,13 +338,14 @@ const props = withDefaults(
 );
 
 // const rows = ref<T[]>([]);
-const columndata = ref<
-  Record<
-    string,
-    TableColumnDefinition
-  >
->(Object.keys(props.columns).reduce((attrs, key) => ({...attrs, [key]: null}), {})); // default values are 'null'
+// const columndata = ref<
+//   Record<
+//     string,
+//     TableColumnDefinition
+//   >
+// >(Object.keys(props.columns).reduce((attrs, key) => ({...attrs, [key]: null}), {})); // default values are 'null'
 
+/*
 const default_search_column = computed(() => {
   Object.values(columndata)
     .filter((col): col is {field: string, searchable: true} => 
@@ -365,6 +362,7 @@ const default_sort_column =
       col.sortable != null &&
       col.sortable)
     .map((col) => col.field)[0] ?? null;
+*/
 
 // const sort = reactive<>(;
 
@@ -378,31 +376,63 @@ const default_sort_column =
 
 // const pending = ref<boolean>(true);
 
+
+
+const columns = tableColumns[props.endpoint];
+
+const searchableColumns = (() => {
+  return Object.fromEntries(
+    Object.entries(columns)
+      .filter((col): col is [string, {field: string, searchable: true}] => 
+        col[1] != null && 
+        col[1].searchable != undefined &&
+        col[1].searchable === true)
+      .map((col) => [col[0], col[1].field])
+    )
+})();
+
+const sortableColumns = (() => {
+  return Object.fromEntries(
+    Object.entries(columns)
+      .filter((col): col is [string, {field: string, sortable: true}] => 
+        col[1] != null && 
+        col[1].sortable != undefined &&
+        col[1].sortable === true)
+      .map((col) => [col[0], col[1].field])
+    )
+})();
+
+
+
 const args = reactive<{
   sort: {
-    column: typeof props['columns'][keyof typeof props['columns']] | null,
+    column: string | null,
     dir: "ASC" | "DESC"
   },
   search: {
-    column: typeof props['columns'][keyof typeof props['columns']] | null,
+    column: string | null,
     query: string
   },
   page: number,
   items_per_page: number
 }>({
   sort: {
-    column: null,
-    dir: "ASC"
+    column: Object.values(sortableColumns)[0],
+    dir: "DESC"
   },
   search: {
-    column: null,
+    column: Object.values(searchableColumns)[0],
     query: ""
   },
   page: 1,
   items_per_page: 10
 })
 
-const { data, refresh, status, pending, execute, error } = $trpc.table[props.endpoint].useQuery(args);
+const { data, refresh, status, pending, error } = $trpc.table[props.endpoint].useQuery(args);
+
+watch(error, (error) => {
+  $toast.error(`Error loading table`);
+});
 
 const rows = computed(() => {
   if (!data.value) return [];
@@ -411,7 +441,39 @@ const rows = computed(() => {
 const total = computed(() => {
   if (!data.value) return 0;
   return data.value.total;
-})
+});
+
+// const searchableColumns = computed(() => {
+//   return Object.fromEntries(
+//     Object.entries(columns.value)
+//       .filter((col): col is [string, {field: string, searchable: true}] => 
+//         col[1] != null && 
+//         col[1].searchable != undefined &&
+//         col[1].searchable === true)
+//       .map((col) => [col[0], col[1].field])
+//     )
+// })
+
+// const sortableColumns = computed(() => {
+//   return Object.fromEntries(
+//     Object.entries(columns.value)
+//       .filter((col): col is [string, {field: string, sortable: true}] => 
+//         col[1] != null && 
+//         col[1].sortable != undefined &&
+//         col[1].sortable === true)
+//       .map((col) => [col[0], col[1].field])
+//     )
+// })
+
+// watch(searchableColumns, () => {
+//   if (Object.values(searchableColumns.value).length > 0 && args.search.column === null)
+//     args.search.column = Object.values(searchableColumns.value)[0];
+// })
+// watch(sortableColumns, () => {
+//   if (Object.values(sortableColumns.value).length > 0 && args.sort.column === null)
+//     args.sort.column = Object.values(sortableColumns.value)[0];
+// })
+
 
 const sortClick = async (colname: string) => {
   const dir =
@@ -529,8 +591,6 @@ const removeAll = () => {
 };
 
 onMounted(() => {
-  // setTimeout(execute, 1);
-  // execute();
   prepareCheckboxes();
 });
 </script>

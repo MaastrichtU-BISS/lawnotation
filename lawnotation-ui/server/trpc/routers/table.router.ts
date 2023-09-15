@@ -6,11 +6,11 @@ export type TableDataSourceColumns = {
   columns: Record<
     string,
     {
-      field?: string;
+      field: string;
       sortable?: true;
       searchable?: true;
-      remove?: false
-    }
+      // remove?: false
+    } | null
   >
 }
 
@@ -22,7 +22,8 @@ export type SupabaseDataSource = {
     }
 
 
-export type TableDataSource = TableDataSourceColumns
+export type TableDataSource = 
+  // TableDataSourceColumns
   & SupabaseDataSource;
   // | {
   //     type: "supabase_rpc";
@@ -51,13 +52,13 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
   )
   .output(
     z.object({
+      rows: z.array(z.any()),
+      total: z.number(),
       // columns: z.record(z.string(), z.object({
       //   field: z.string(),
-      //   sortable: z.boolean(),
-      //   searchable: z.boolean()
-      // }))
-      rows: z.array(z.any()),
-      total: z.number()
+      //   searchable: z.literal(true).optional(),
+      //   sortable: z.literal(true).optional()
+      // }).nullable())
     })
   )
   .query(async ({ ctx, input }) => {
@@ -113,7 +114,8 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
         if (data !== null && count !== null && !error) {
           return {
             rows: data as T[],
-            total: count
+            total: count,
+            columns: source.columns
           };
         }
       }
@@ -129,14 +131,7 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
 export const tableRouter = router({
   'labelset': createTableProcedure({
     type: 'supabase_table',
-    from: 'labelsets',
-    columns: {
-      'Name': {
-        field: 'name',
-        searchable: true,
-        sortable: true,
-      }
-    }
+    from: 'labelsets'
   })
     
 })
