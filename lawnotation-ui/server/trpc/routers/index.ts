@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { router } from '~/server/trpc'
+import { publicProcedure, router } from '~/server/trpc'
 
 import { relationRouter } from './relation.router';
 import { annotationRouter } from './annotation.router';
@@ -9,6 +9,8 @@ import { labelsetRouter } from './labelset.router';
 import { projectRouter } from './project.router';
 import { taskRouter } from './task.router';
 import { userRouter } from './user.router';
+import { metricsRouter } from './metrics.router';
+import { tableRouter } from './table.router';
 
 export const appRouter = router({
   relation: relationRouter,
@@ -18,7 +20,11 @@ export const appRouter = router({
   labelset: labelsetRouter,
   project: projectRouter,
   task: taskRouter,
-  user: userRouter
+  user: userRouter,
+
+  table: tableRouter,
+
+  // metrics: metricsRouter,
 })
 
 // export type definition of API
