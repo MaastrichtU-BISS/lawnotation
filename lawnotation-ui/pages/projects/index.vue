@@ -2,38 +2,27 @@
   <div class="my-4 mx-auto max-w-screen-lg">
     <h3 class="text-lg font-semibold mb-2">Projects</h3>
     <Table
-      :name="'projects'"
       endpoint="project"
       ref="projectTable"
       :sort="true"
       :search="true"
-      :remove="true"
+      :selectable="true"
       @remove-rows="removeProjects"
       @remove-all-rows="removeAllProjects"
     >
       <template #row="{ item }: { item: Project }">
-        <tr class="bg-white border-b hover:bg-gray-50">
-          <td class="px-6 py-2">
-            <input
-              type="checkbox"
-              :data-id="item.id.toString()"
-              name="projects_table_checkbox"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-            />
-          </td>
-          <td
-            scope="row"
-            class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-          >
-            {{ item.id }}
-          </td>
-          <td class="px-6 py-2">
-            {{ item.name }}
-          </td>
-          <td class="px-6 py-2">
-            <NuxtLink class="base" :to="`/projects/${item.id}`"> Edit </NuxtLink>
-          </td>
-        </tr>
+        <td
+          scope="row"
+          class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+        >
+          {{ item.id }}
+        </td>
+        <td class="px-6 py-2">
+          {{ item.name }}
+        </td>
+        <td class="px-6 py-2">
+          <NuxtLink class="base" :to="`/projects/${item.id}`"> Edit </NuxtLink>
+        </td>
       </template>
     </Table>
 

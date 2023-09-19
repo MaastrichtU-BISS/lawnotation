@@ -1,4 +1,8 @@
 <template>
+  <pre>{{ JSON.stringify([(rows.length > 0 && checkedIds.length === rows.length), rows.length > 0, checkedIds.length === rows.length]) }}</pre>
+  <ul>
+    <li v-for="item of checkedIds">{{ item }}</li>
+  </ul>
   <div class="spinner-wrapper">
     <template v-if="pending !== false">
       <div class="spinner-overlay"></div>
@@ -8,7 +12,7 @@
     </template>
     <div class="relative overflow-x-auto sm:rounded-lg">
       <div class="flex items-center justify-end m-2">
-        <span class="flex-grow" v-if="remove">
+        <span class="flex-grow" v-if="props.selectable">
           <button
             v-show="total > 0"
             @click="removeAll"
@@ -19,13 +23,13 @@
             Remove all ({{ total }})
           </button>
           <button
-            v-show="selectedRows.length"
-            @click="removeSelected(selectedRows)"
+            v-show="checkedIds.length"
+            @click="removeSelected(checkedIds)"
             type="button"
             style="outline: none"
             class="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-2.5 text-center"
           >
-            Remove selected rows ({{ selectedRows.length }})
+            Remove selected rows ({{ checkedIds.length }})
           </button>
         </span>
         <span class="flex" v-if="args.search && Object.keys(searchableColumns).length > 0">
@@ -74,12 +78,13 @@
         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
           <tr>
             <!-- <slot name="head"></slot> -->
-            <th class="px-6 py-2" v-if="remove">
+            <th class="px-6 py-2" v-if="props.selectable">
               <input
                 type="checkbox"
-                @click="toggleAllCheckboxes"
+                @aaachange="toggleAllCheckboxes"
+                v-model="allCheckbox"
+                :aaaindeterminate.prop="rows.length > 0 && checkedIds.length > 0 && rows.length != checkedIds.length"
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                :id="`${name}_header_checkbox`"
               />
             </th>
             <th
@@ -147,12 +152,21 @@
           </tr>
         </thead>
         <tbody>
-          <slot
-            name="row"
-            v-for="item in rows"
-            :item="item"
-            :key="item.id"
-          ></slot>
+          <tr class="bg-white border-b hover:bg-gray-50" v-for="item in rows">
+            <td class="px-6 py-2" v-if="props.selectable">
+              <input
+                type="checkbox"
+                :value="item.id"
+                v-model="checkedIds"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+              />
+            </td>
+            <slot
+              name="row"
+              :item="item"
+              :key="item.id"
+            ></slot>
+          </tr>
         </tbody>
       </table>
 
@@ -306,17 +320,23 @@ import { tableColumns } from "~/constants/tableColumns";
 
 const { $trpc, $toast } = useNuxtApp();
 
-const emit = defineEmits(["removeRows", "removeAllRows"]);
-const selectedRows = reactive<string[]>([]);
+// const emit = defineEmits(["removeRows", "removeAllRows"]);
+const emit = defineEmits<{
+  (e: 'removeRows', ids: number[]): void
+  (e: 'removeAllRows'): void
+}>();
+// const selectedRows = reactive<string[]>([]);
+const checkedIds = ref<string[]>([]);
 const allChecked = ref(false);
+
 
 const props = withDefaults(
   defineProps<{
     pagination?: boolean,
-    remove?: boolean,
-    name?: string,
+    selectable?: boolean,
     sort?: boolean,
     search?: boolean,
+    // name?: string,
 
     endpoint: keyof AppRouter['table']['_def']['procedures']
   }>(),
@@ -324,6 +344,7 @@ const props = withDefaults(
     pagination: true,
     sort: false,
     search: false,
+    selectable: false,
     name: '1'
   }
 );
@@ -447,44 +468,67 @@ const range = (from: number, to: number): number[] => {
   return arr;
 };
 
+const allCheckbox = computed({
+  get() {
+    return rows.value.length > 0 && checkedIds.value.length === rows.value.length
+  },
+  set(checked: boolean) {
+    checkedIds.value = [];
+    if (checked) {
+      for (const row of rows.value)
+        checkedIds.value.push(row.id);
+    }
+  }
+})
+
 const toggleAllCheckboxes = () => {
-  const checkboxes = document.getElementsByName(`${props.name}_table_checkbox`);
-  checkboxes.forEach((cb) => {
-    if (!allChecked.value && !(cb as HTMLInputElement).checked) cb.click();
-    if (allChecked.value && (cb as HTMLInputElement).checked) cb.click();
-  });
+  // const checkboxes = document.getElementsByName(`${props.name}_table_checkbox`);
+  // checkboxes.forEach((cb) => {
+  //   if (!allChecked.value && !(cb as HTMLInputElement).checked) cb.click();
+  //   if (allChecked.value && (cb as HTMLInputElement).checked) cb.click();
+  // });
+  // allChecked.value = !allChecked.value;
+  if (allChecked.value === true && checkedIds.value.length === 0) allChecked = true;
+  for (const row of rows.value) {
+    if (!allChecked.value && !checkedIds.value.includes(row.id)) {
+      checkedIds.value.push(row.id);
+    } else if (allChecked.value && checkedIds.value.includes(row.id)) {
+      checkedIds.value.splice(checkedIds.value.indexOf(row.id));
+    }
+  }
   allChecked.value = !allChecked.value;
 };
 
 const prepareCheckboxes = () => {
-  selectedRows.splice(0, selectedRows.length);
-  const checkboxes = document.getElementsByName(`${props.name}_table_checkbox`);
-  if (!checkboxes.length) return;
-  checkboxes.forEach((cb) => {
-    if ((cb as HTMLInputElement).checked) cb?.click();
-    cb.onclick = () => {
-      handleClickOnCheckbox(cb as HTMLInputElement);
-    };
-  });
-  const cbh = document.getElementById(`${props.name}_header_checkbox`);
-  if ((cbh as HTMLInputElement).checked) cbh?.click();
+  checkedIds.value = []
+  // selectedRows.splice(0, selectedRows.length);
+  // const checkboxes = document.getElementsByName(`${props.name}_table_checkbox`);
+  // if (!checkboxes.length) return;
+  // checkboxes.forEach((cb) => {
+  //   if ((cb as HTMLInputElement).checked) cb?.click();
+  //   cb.onclick = () => {
+  //     handleClickOnCheckbox(cb as HTMLInputElement);
+  //   };
+  // });
+  // const cbh = document.getElementById(`${props.name}_header_checkbox`);
+  // if ((cbh as HTMLInputElement).checked) cbh?.click();
 };
 
-const handleClickOnCheckbox = (cb: HTMLInputElement) => {
-  const row = cb.closest("tr");
-  if (cb.checked) {
-    selectedRows.push(cb.dataset.id!);
-    row?.classList.remove("bg-white");
-    row?.classList.add("bg-gray-100");
-  } else {
-    const index = selectedRows.indexOf(cb.dataset.id!);
-    if (index >= 0) {
-      selectedRows.splice(index, 1);
-    }
-    row?.classList.remove("bg-gray-100");
-    row?.classList.add("bg-white");
-  }
-};
+// const handleClickOnCheckbox = (cb: HTMLInputElement) => {
+//   const row = cb.closest("tr");
+//   if (cb.checked) {
+//     selectedRows.push(cb.dataset.id!);
+//     row?.classList.remove("bg-white");
+//     row?.classList.add("bg-gray-100");
+//   } else {
+//     const index = selectedRows.indexOf(cb.dataset.id!);
+//     if (index >= 0) {
+//       selectedRows.splice(index, 1);
+//     }
+//     row?.classList.remove("bg-gray-100");
+//     row?.classList.add("bg-white");
+//   }
+// };
 
 const removeSelected = async (ids: string[]) => {
   confirmBox(
