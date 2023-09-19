@@ -171,7 +171,7 @@ export const useAnnotationApi = () => {
         return {
           start: ann.start_index,
           end: ann.end_index,
-          text: ann.text.replaceAll("\\n", ""),
+          text: ann.text,
           label: ann.label,
           annotator: ann.assignment.annotator.email,
           hidden: false,
