@@ -13,7 +13,7 @@ export default eventHandler(async (event) => {
           label: l,
           documents: data.documents,
           annotators: data.annotators,
-          bywords: data.byWords,
+          byWords: data.byWords,
           hideNonText: data.hideNonText,
         }),
       })
