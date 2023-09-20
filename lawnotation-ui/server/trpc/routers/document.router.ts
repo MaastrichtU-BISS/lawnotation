@@ -168,9 +168,8 @@ export const documentRouter = router({
       .query(async ({ctx, input: project_id}) => {
         const { data, error, count } = await ctx.supabase
           .from("documents")
-          .select("*", { count: 'exact' })
+          .select("*", { count: 'exact', head: true })
           .eq("project_id", project_id)
-          .single();
         
         if (error)
           throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in totalAmountOfDocs: ${error.message}`});

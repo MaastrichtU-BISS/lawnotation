@@ -269,13 +269,13 @@ export const assignmentRouter = router({
         .limit(1)
         .single();
       // const { data: total, error: error_total } = await ctx.supabase
-      const { data: total, error: error_total, count } = await ctx.supabase
+      const { error: error_total, count } = await ctx.supabase
         .from("assignments")
         // .select("count")
-        .select("*", { count: 'exact' })
+        .select("*", { count: 'exact', head: true })
         .eq("annotator_id", input.annotator_id)
         .eq("task_id", input.task_id)
-        .single();
+        // .single();
 
       if (error_next)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in 1 countAssignmentsByUserAndTask: ${error_next.message}`});
