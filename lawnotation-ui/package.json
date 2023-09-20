@@ -18,7 +18,7 @@
     "sass": "^1.66.1"
   },
   "dependencies": {
-    "@heartexlabs/label-studio": "^1.8.0",
+    "@heartexlabs/label-studio": "1.4",
     "@supabase/supabase-js": "^2.33.1",
     "@trpc/client": "^10.38.1",
     "@trpc/server": "^10.38.1",
