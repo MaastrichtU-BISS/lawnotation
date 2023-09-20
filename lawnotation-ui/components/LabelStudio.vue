@@ -27,7 +27,7 @@ const props = defineProps<{
   labels: LsLabels | undefined;
   isEditor: boolean | undefined;
   guidelines: string | undefined;
-  mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
+  // mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
 
 const serializeLSAnnotations = () => {
@@ -256,10 +256,10 @@ onMounted(() => {
   );
   waitForElement(".ant-rate").then((el) => {
     if (props.assignment?.difficulty_rating! < 1) return;
-    document
+    (document
       .getElementsByClassName("ant-rate-star-zero")
       .item(props.assignment?.difficulty_rating! - 1)
-      ?.firstChild?.click();
+      ?.firstChild as HTMLButtonElement).click();
   });
 });
 </script>
