@@ -5,7 +5,7 @@ export type TableColumn = {
 } | null;
 
 export const tableColumns: Record<string, Record<string, TableColumn>> = {
-  'labelset': {
+  'labelsets': {
     Id: {
       field: 'id',
       sortable: true
@@ -23,7 +23,7 @@ export const tableColumns: Record<string, Record<string, TableColumn>> = {
     Action: null
   },
   
-  'project': {
+  'projects': {
     Id: {
       field: "id",
       sortable: true,
@@ -34,7 +34,37 @@ export const tableColumns: Record<string, Record<string, TableColumn>> = {
       searchable: true,
     },
     Action: null,
-  }
+  },
+
+  'documents': {
+    Id: {
+      field: "id",
+      sortable: true,
+    },
+    Name: {
+      field: "name",
+      sortable: true,
+      searchable: true,
+    },
+    Action: null,
+  },
+
+  'tasks': {
+    Id: {
+      field: "id",
+      sortable: true,
+    },
+    Name: {
+      field: "name",
+      sortable: true,
+      searchable: true,
+    },
+    Description: {
+      field: "desc",
+      searchable: true,
+    },
+    Action: null,
+  },
 }
 
 export default tableColumns

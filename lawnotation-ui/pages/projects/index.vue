@@ -2,7 +2,7 @@
   <div class="my-4 mx-auto max-w-screen-lg">
     <h3 class="text-lg font-semibold mb-2">Projects</h3>
     <Table
-      endpoint="project"
+      endpoint="projects"
       ref="projectTable"
       :sort="true"
       :search="true"
@@ -71,9 +71,9 @@ const createNewProject = () => {
   }
 };
 
-const removeProjects = async (ids: number[]) => {
+const removeProjects = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.project.delete.mutate(id)));
+  promises.push(...ids.map((id) => $trpc.project.delete.mutate(+id)));
   await Promise.all(promises);
   await projectTable.value?.refresh()
   $toast.success("Projects successfully deleted!");

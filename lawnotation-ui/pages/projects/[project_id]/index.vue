@@ -28,48 +28,36 @@
     </div>
 
     <div v-show="tab_active == 'documents'">
-      <div class="my-3 dimmer-wrapper">
-        <Dimmer v-model="documentTable.loading" />
-        <Table
-          :name="'documents'"
-          :tabledata="documentTable"
-          :sort="true"
-          :search="true"
-          :remove="true"
-          @remove-rows="removeDocuments"
-          @remove-all-rows="removeAllDocuments"
-        >
-          <template #row="{ item }: { item: Document }">
-            <tr class="bg-white border-b hover:bg-gray-50">
-              <td class="px-6 py-2">
-                <input
-                  type="checkbox"
-                  :data-id="item.id.toString()"
-                  name="documents_table_checkbox"
-                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                />
-              </td>
-              <td
-                scope="row"
-                class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-              >
-                {{ item.id }}
-              </td>
-              <td class="px-6 py-2">
-                {{ item.name }}
-              </td>
-              <td class="px-6 py-2">
-                <NuxtLink
-                  class="base"
-                  :to="`/projects/${route.params.project_id}/documents/${item.id}`"
-                >
-                  View
-                </NuxtLink>
-              </td>
-            </tr>
-          </template>
-        </Table>
-      </div>
+      <Table
+        ref="documentTable"
+        endpoint="documents"
+        :filter="{ project_id: project?.id }"
+        :sort="true"
+        :search="true"
+        :selectable="true"
+        @remove-rows="removeDocuments"
+        @remove-all-rows="removeAllDocuments"
+      >
+        <template #row="{ item }: { item: Document }">
+          <td
+            scope="row"
+            class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+          >
+            {{ item.id }}
+          </td>
+          <td class="px-6 py-2">
+            {{ item.name }}
+          </td>
+          <td class="px-6 py-2">
+            <NuxtLink
+              class="base"
+              :to="`/projects/${route.params.project_id}/documents/${item.id}`"
+            >
+              View
+            </NuxtLink>
+          </td>
+        </template>
+      </Table>
 
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="loading_docs" />
@@ -91,51 +79,39 @@
     </div>
 
     <div v-show="tab_active == 'tasks'">
-      <div class="my-3 dimmer-wrapper">
-        <Dimmer v-model="taskTable.loading" />
-        <Table
-          :name="'tasks'"
-          :tabledata="taskTable"
-          :sort="true"
-          :search="true"
-          :remove="true"
-          @remove-rows="removeTasks"
-          @remove-all-rows="removeAllTasks"
-        >
-          <template #row="{ item }: { item: Task }">
-            <tr class="bg-white border-b hover:bg-gray-50">
-              <td class="px-6 py-2">
-                <input
-                  type="checkbox"
-                  :data-id="item.id.toString()"
-                  name="tasks_table_checkbox"
-                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                />
-              </td>
-              <td
-                scope="row"
-                class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-              >
-                {{ item.id }}
-              </td>
-              <td class="px-6 py-2">
-                {{ item.name }}
-              </td>
-              <td class="px-6 py-2">
-                {{ item.desc }}
-              </td>
-              <td class="px-6 py-2">
-                <NuxtLink
-                  class="base"
-                  :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-                >
-                  View
-                </NuxtLink>
-              </td>
-            </tr>
-          </template>
-        </Table>
-      </div>
+      <Table
+        ref="taskTable"
+        endpoint="tasks"
+        :filter="{ project_id: project?.id }"
+        :sort="true"
+        :search="true"
+        :selectable="true"
+        @remove-rows="removeTasks"
+        @remove-all-rows="removeAllTasks"
+      >
+        <template #row="{ item }: { item: Task }">
+          <td
+            scope="row"
+            class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+          >
+            {{ item.id }}
+          </td>
+          <td class="px-6 py-2">
+            {{ item.name }}
+          </td>
+          <td class="px-6 py-2">
+            {{ item.desc }}
+          </td>
+          <td class="px-6 py-2">
+            <NuxtLink
+              class="base"
+              :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
+            >
+              View
+            </NuxtLink>
+          </td>
+        </template>
+      </Table>
 
       <div class="my-3">
         <h3 class="text-lg mt-8">Create new task</h3>
@@ -195,7 +171,6 @@ import {
   Labelset,
 } from "~/types";
 import Table from "~/components/Table.vue";
-import { TableData, createTableData } from "~/utils/table";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -209,51 +184,10 @@ const tab_active = ref<"tasks" | "documents">("tasks");
 
 const labelsets = reactive<Labelset[]>([]);
 
-const documentTable = createTableData<Document>(
-  {
-    Id: {
-      field: "id",
-      sort: true,
-    },
-    Name: {
-      field: "name",
-      sort: true,
-      search: true,
-    },
-    Action: {},
-  },
-  {
-    type: "table",
-    from: "documents",
-    filter: () => ({ project_id: project.value?.id }),
-  }
-);
-
-const taskTable = createTableData<Task>(
-  {
-    Id: {
-      field: "id",
-      sort: true,
-    },
-    Name: {
-      field: "name",
-      sort: true,
-      search: true,
-    },
-    Description: {
-      field: "desc",
-      search: true,
-    },
-    Action: {},
-  },
-  {
-    type: "table",
-    from: "tasks",
-    filter: () => ({ project_id: project.value?.id }),
-  }
-);
-
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
+
+const documentTable = ref<InstanceType<typeof Table>>();
+const taskTable = ref<InstanceType<typeof Table>>();
 
 const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id">>({
   name: "",
@@ -287,7 +221,7 @@ const change_file = async (event: Event) => {
   // TODO: progress bar instead of instantly adding to list, and after all are added reload documents table (keep loading = true while adding?)
   // documents.push(...(await documentApi.createDocuments(new_docs)));
   await $trpc.document.createMany.mutate(new_docs);
-  documentTable.load();
+  documentTable.value?.refresh();
 
   (event.target as HTMLInputElement).value = "";
   $toast.success(`${new_docs.length} documents uploaded!`);
@@ -312,7 +246,7 @@ const createTask = () => {
     // For some reason casting as Omit<Task, "id"> is necessary here.
     $trpc.task.create.mutate(new_task as Omit<Task, "id">).then((task) => {
       // tasks.push(task);
-      taskTable.load();
+      taskTable.value?.refresh();
       $toast.success("Task created");
     });
   } catch (error) {
@@ -320,30 +254,30 @@ const createTask = () => {
   }
 };
 
-const removeDocuments = async (ids: number[]) => {
+const removeDocuments = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.document.delete.mutate(id)));
+  promises.push(...ids.map((id) => $trpc.document.delete.mutate(+id)));
   await Promise.all(promises);
-  await documentTable.load();
+  await documentTable.value?.refresh();
   $toast.success("Documents successfully deleted!");
 };
 const removeAllDocuments = async () => {
   if (!project.value) throw new Error("Invalid Project!");
   await $trpc.document.deleteAllFromProject.mutate(+project.value.id);
-  await documentTable.load();
+  await documentTable.value?.refresh();
   $toast.success("Documents successfully deleted!");
 };
-const removeTasks = async (ids: number[]) => {
+const removeTasks = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.task.delete.mutate(id)));
+  promises.push(...ids.map((id) => $trpc.task.delete.mutate(+id)));
   await Promise.all(promises);
-  await taskTable.load();
+  await documentTable.value?.refresh();
   $toast.success("Tasks successfully deleted!");
 };
 const removeAllTasks = async () => {
   if (!project.value) throw new Error("Invalid Project!");
   await $trpc.task.deleteAllFromProject.mutate(project.value.id);
-  await taskTable.load();
+  await documentTable.value?.refresh();
   $toast.success("Tasks successfully deleted!");
 };
 
@@ -353,8 +287,8 @@ onMounted(() => {
       project.value = p;
       new_task.project_id = p.id;
 
-      documentTable.load();
-      taskTable.load();
+      // documentTable.load();
+      // taskTable.load();
     });
 
     $trpc.labelset.find.query({}).then((_labelsets) => {
