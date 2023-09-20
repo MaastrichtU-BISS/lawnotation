@@ -1,8 +1,5 @@
 <template>
   <pre>{{ JSON.stringify([(rows.length > 0 && checkedIds.length === rows.length), rows.length > 0, checkedIds.length === rows.length]) }}</pre>
-  <ul>
-    <li v-for="item of checkedIds">{{ item }}</li>
-  </ul>
   <div class="spinner-wrapper">
     <template v-if="pending !== false">
       <div class="spinner-overlay"></div>
@@ -81,7 +78,6 @@
             <th class="px-6 py-2" v-if="props.selectable">
               <input
                 type="checkbox"
-                @aaachange="toggleAllCheckboxes"
                 v-model="allCheckbox"
                 :aaaindeterminate.prop="rows.length > 0 && checkedIds.length > 0 && rows.length != checkedIds.length"
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
@@ -152,7 +148,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="bg-white border-b hover:bg-gray-50" v-for="item in rows">
+          <tr
+            class="bg-white border-b hover:bg-gray-50"
+            :class="{'bg-gray-100': checkedIds.includes(item.id)}"
+            v-for="item in rows"
+          >
             <td class="px-6 py-2" v-if="props.selectable">
               <input
                 type="checkbox"
@@ -320,14 +320,12 @@ import { tableColumns } from "~/constants/tableColumns";
 
 const { $trpc, $toast } = useNuxtApp();
 
-// const emit = defineEmits(["removeRows", "removeAllRows"]);
+// const emit = de  fineEmits(["removeRows", "removeAllRows"]);
 const emit = defineEmits<{
-  (e: 'removeRows', ids: number[]): void
+  (e: 'removeRows', ids: string[]): void
   (e: 'removeAllRows'): void
 }>();
-// const selectedRows = reactive<string[]>([]);
 const checkedIds = ref<string[]>([]);
-const allChecked = ref(false);
 
 
 const props = withDefaults(
@@ -336,6 +334,7 @@ const props = withDefaults(
     selectable?: boolean,
     sort?: boolean,
     search?: boolean,
+    filter?: Record<string, any>
     // name?: string,
 
     endpoint: keyof AppRouter['table']['_def']['procedures']
@@ -382,6 +381,7 @@ const args = reactive<{
     column: string | null,
     query: string
   },
+  filter: typeof props.filter
   page: number,
   items_per_page: number
 }>({
@@ -393,6 +393,7 @@ const args = reactive<{
     column: Object.values(searchableColumns)[0],
     query: ""
   },
+  filter: props.filter,
   page: 1,
   items_per_page: 10
 })
@@ -400,7 +401,8 @@ const args = reactive<{
 const { data, refresh, status, pending, error } = $trpc.table[props.endpoint].useQuery(args);
 
 watch(error, (error) => {
-  $toast.error(`Error loading table`);
+  if (error)
+    $toast.error(`Error loading table: ${error}`);
 });
 
 const rows = computed(() => {
@@ -428,7 +430,6 @@ const sortClick = async (colname: string) => {
   args.sort.dir = dir;
 
   refresh();
-  prepareCheckboxes();
 };
 
 watch(
@@ -439,14 +440,12 @@ watch(
   async () => {
     args.page = 1;
     refresh();
-    prepareCheckboxes();
   }
 );
 
 const setPage = async (new_page: number) => {
   args.page = Math.max(1, new_page);
-  refresh()
-  prepareCheckboxes();
+  refresh();
 };
 
 const visible_start_i = computed(() => {
@@ -481,55 +480,6 @@ const allCheckbox = computed({
   }
 })
 
-const toggleAllCheckboxes = () => {
-  // const checkboxes = document.getElementsByName(`${props.name}_table_checkbox`);
-  // checkboxes.forEach((cb) => {
-  //   if (!allChecked.value && !(cb as HTMLInputElement).checked) cb.click();
-  //   if (allChecked.value && (cb as HTMLInputElement).checked) cb.click();
-  // });
-  // allChecked.value = !allChecked.value;
-  if (allChecked.value === true && checkedIds.value.length === 0) allChecked = true;
-  for (const row of rows.value) {
-    if (!allChecked.value && !checkedIds.value.includes(row.id)) {
-      checkedIds.value.push(row.id);
-    } else if (allChecked.value && checkedIds.value.includes(row.id)) {
-      checkedIds.value.splice(checkedIds.value.indexOf(row.id));
-    }
-  }
-  allChecked.value = !allChecked.value;
-};
-
-const prepareCheckboxes = () => {
-  checkedIds.value = []
-  // selectedRows.splice(0, selectedRows.length);
-  // const checkboxes = document.getElementsByName(`${props.name}_table_checkbox`);
-  // if (!checkboxes.length) return;
-  // checkboxes.forEach((cb) => {
-  //   if ((cb as HTMLInputElement).checked) cb?.click();
-  //   cb.onclick = () => {
-  //     handleClickOnCheckbox(cb as HTMLInputElement);
-  //   };
-  // });
-  // const cbh = document.getElementById(`${props.name}_header_checkbox`);
-  // if ((cbh as HTMLInputElement).checked) cbh?.click();
-};
-
-// const handleClickOnCheckbox = (cb: HTMLInputElement) => {
-//   const row = cb.closest("tr");
-//   if (cb.checked) {
-//     selectedRows.push(cb.dataset.id!);
-//     row?.classList.remove("bg-white");
-//     row?.classList.add("bg-gray-100");
-//   } else {
-//     const index = selectedRows.indexOf(cb.dataset.id!);
-//     if (index >= 0) {
-//       selectedRows.splice(index, 1);
-//     }
-//     row?.classList.remove("bg-gray-100");
-//     row?.classList.add("bg-white");
-//   }
-// };
-
 const removeSelected = async (ids: string[]) => {
   confirmBox(
     `Are you sure you want to delete ${ids.length} row${ids.length > 1 ? "s" : ""}?`,
@@ -553,10 +503,6 @@ const removeAll = () => {
     }
   });
 };
-
-onMounted(() => {
-  prepareCheckboxes();
-});
 </script>
 
 <style lang="scss">

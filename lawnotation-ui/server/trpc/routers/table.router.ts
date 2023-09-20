@@ -7,6 +7,7 @@ export type SupabaseDataSource = {
       type: "supabase_table";
       select?: string;
       from: string;
+      // filter can be defined on server (like user_id) and on client (like project_id)
       filter?: object | (( { ctx }: { ctx: Context } ) => object);
     }
 
@@ -34,6 +35,7 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
         column: z.string().nullable(),
         query: z.string()
       }),
+      filter: z.record(z.string(), z.any()).optional(),
 
       page: z.number(),
       items_per_page: z.number()
@@ -54,9 +56,12 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
     // let total;
     switch (source.type) {
       case "supabase_table": {
-        const filter: object = (typeof source.filter === "function"
-          ? source.filter({ctx})
-          : source.filter) ?? {};
+        const filter: object = {
+          ...input.filter,                          // first, lower prioirity, is the input filter
+          ...(typeof source.filter === "function"   // secondly, the server-configured filter is merged
+            ? source.filter({ctx})
+            : source.filter) ?? {},
+        }
 
         let query = ctx.supabase
           .from(source.from)
@@ -88,7 +93,6 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
 
         const { data, error, count } = await query;
 
-
         if (error)
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
@@ -112,18 +116,29 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
   })
 
 export const tableRouter = router({
-  'labelset': createTableProcedure({
+  'labelsets': createTableProcedure({
     type: 'supabase_table',
     from: 'labelsets',
     filter: ({ctx}) => ({ editor_id: ctx.user!.id })
   }),
 
-  'project': createTableProcedure({
+  'projects': createTableProcedure({
     type: 'supabase_table',
     from: 'projects',
     filter: ({ctx}) => ({ editor_id: ctx.user!.id })
+  }),
+
+  'documents': createTableProcedure({
+    type: 'supabase_table',
+    from: 'documents',
+    // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
+  }),
+
+  'tasks': createTableProcedure({
+    type: 'supabase_table',
+    from: 'tasks',
+    // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
   })
-    
 })
 
 export type TableRouter = typeof tableRouter 
