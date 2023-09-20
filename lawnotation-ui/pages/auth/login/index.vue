@@ -114,7 +114,7 @@ const signIn = () => {
     }
 
     $trpc.user
-      .otpLogin.query({email: email.value, redirectTo: config.public.baseURL})
+      .otpLogin.query({email: email.value, redirectTo: `${config.public.baseURL}/auth/validate`})
       .then((user) => {
         $toast.success(`Login link has been sent to: ${email.value}`);
         loading.value = false;
