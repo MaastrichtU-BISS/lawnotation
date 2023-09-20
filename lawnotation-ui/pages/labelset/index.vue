@@ -2,7 +2,7 @@
   <div>
     <h3 class="text-lg font-semibold mb-2">Labelsets</h3>
     <Table
-      endpoint="labelset"
+      endpoint="labelsets"
       :columns="{
         'Id': 'id',
         'Name': 'name',
