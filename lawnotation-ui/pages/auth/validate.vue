@@ -28,16 +28,15 @@ const state = ref<'PENDING' | 'DONE'>('PENDING')
 const user = ref<User | null>(null);
 
 onMounted(() => {
-    //// @ts-expect-error
-    // supabaseAuth.auth.initializePromise?.then(() => {
+    // supabaseAuth.auth.initializePromise?.then(() => ...
     supabaseAuth.auth.initialize().then(async ({error}) => {
         user.value = (await supabaseAuth.auth.getUser()).data.user
         state.value = 'DONE'
 
         if (user.value) {
-            console.log(user.value);
+            // Instead of navigateTo, it seems necessary to do a 'hard' redirect using location.href
+            // If not, the tRPC plugin is probably already loaded with the empty token and fails to authenticate.
             location.href='/';
-            // debugger;
             // navigateTo('/', { 'open': })
         }
     })
