@@ -138,7 +138,31 @@ export const tableRouter = router({
     type: 'supabase_table',
     from: 'tasks',
     // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
+  }),
+
+  'assignments': createTableProcedure({
+    type: 'supabase_table',
+    from: 'assignments',
+    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, difficulty_rating, seq_pos'
+    // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
+  }),
+
+  'assignedTasks': createTableProcedure({
+    type: 'supabase_table',
+    from: 'tasks',
+    select: 'id, name, assignment:assignments!inner(id)',
+    filter: ({ctx}) => ({'assignment.annotator_id': ctx.user!.id}),
+  }),
+
+  'assignedAssignments': createTableProcedure({
+    type: 'supabase_table',
+    from: 'assignments',
+    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, difficulty_rating, seq_pos',
+    filter: ({ctx}) => ({
+      'annotator.id': ctx.user?.id,
+      status: 'done'
+    })
   })
 })
 
-export type TableRouter = typeof tableRouter 
+export type TableRouter = typeof tableRouter
