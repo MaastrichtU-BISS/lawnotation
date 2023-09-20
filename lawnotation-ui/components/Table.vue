@@ -1,5 +1,4 @@
 <template>
-  <pre>{{ JSON.stringify([(rows.length > 0 && checkedIds.length === rows.length), rows.length > 0, checkedIds.length === rows.length]) }}</pre>
   <div class="spinner-wrapper">
     <template v-if="pending !== false">
       <div class="spinner-overlay"></div>
