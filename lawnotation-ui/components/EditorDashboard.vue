@@ -84,7 +84,6 @@
             id="completion"
             :options="chartCompletionOptions"
             :series="chartCompletionSeries"
-            :ref="hello"
           ></apexchart>
         </span></section
     ></ClientOnly>
