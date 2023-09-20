@@ -416,7 +416,8 @@ const total = computed(() => {
 
 defineExpose({
   refresh,
-  total
+  total,
+  pending
 })
 
 const sortClick = async (colname: string) => {
