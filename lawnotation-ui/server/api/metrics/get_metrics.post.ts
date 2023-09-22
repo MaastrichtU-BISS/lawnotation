@@ -33,6 +33,7 @@ export default eventHandler(async (event) => {
   const metric_body = JSON.stringify({
     annotations: annotations.filter((ann) => !ann.hidden),
     annotators: data.annotators,
+    // annotators: ["90-" + data.annotators[0], "153-" + data.annotators[0]],
     tolerance: data.tolerance,
     contained: data.contained,
   });
