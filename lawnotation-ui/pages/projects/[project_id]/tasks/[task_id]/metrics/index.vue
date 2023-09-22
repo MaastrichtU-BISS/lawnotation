@@ -33,6 +33,9 @@
         >
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 text-sm">
+              <!-- <li>
+                <input type="file" multiple @change="loadXlsx($event)" name="" id="" />
+              </li> -->
               <li>
                 <label
                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -290,7 +293,7 @@
                 <li class="">
                   <button
                     class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                    @click="get_json"
+                    @click="clickDownloadAll"
                   >
                     Download all
                   </button>
@@ -355,11 +358,7 @@
 <script setup lang="ts">
 import * as XLSX from "xlsx";
 import Multiselect from "@vueform/multiselect";
-import {
-  Task,
-  RichAnnotation,
-  Project,
-} from "~/types";
+import { Task, RichAnnotation, Project } from "~/types";
 import {
   MetricResult,
   newEmptyMetricResult,
@@ -445,6 +444,55 @@ const selectedDocuments = computed((): string[] => {
     : documentsOptions.map((d) => d.value);
 });
 
+function getBase64(file: File) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+}
+
+const loadXlsx = async (event: Event) => {
+  const files: File[] = event.target?.files as File[];
+
+  const anns: any[] = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const data = await getBase64(files[i]);
+    const json = await (await fetch(data)).json();
+    const doc_id = files[i].name.substring(0, 4);
+    for (const label: any in json) {
+      const row = json[label];
+      for (let i = 0; i < row.length; i++) {
+        const r: any = row[i];
+        if (r.value) {
+          const user_id = (await userApi.findByEmail(r.annotator)).id;
+          const ass_id = (
+            await assignmentApi.findAssignmentByTaskAndUserAndDocument(
+              "153",
+              user_id,
+              doc_id
+            )
+          ).id;
+          const a = {
+            text: r.text,
+            start_index: r.start,
+            end_index: r.end,
+            label: label,
+            assignment_id: ass_id,
+          };
+          anns.push(a);
+        }
+      }
+    }
+    console.log(i);
+  }
+
+  await annotationApi.createAnnotations(anns);
+  console.log(anns);
+};
+
 const selectLabel = (value: string) => {
   selectedLabel.value = value;
   selectAnnotators();
@@ -509,6 +557,7 @@ const updateAnnotations = async () => {
     separate_into_words.value,
     hideNonText.value
   );
+  console.log(anns);
   annotations_length.value = anns.length;
   if (anns.length < annotations_limit) annotations.push(...anns);
   loading_annotations.value = false;
@@ -543,7 +592,7 @@ const compute_metrics = async (
     annotations: annotations,
   });
 
-  return $fetch('/api/metrics/get_metrics', {
+  return $fetch("/api/metrics/get_metrics", {
     method: "POST",
     body: body,
   });
@@ -601,6 +650,7 @@ const clickComputeDifficultyMetrics = async () => {
       selectedAnnotatorsOrEmpty.value,
       selectedDocumentsOrEmpty.value
     );
+    console.log(metric);
     metrics_result.value.difficulty = metric;
     metrics_result.value.loading = false;
   } catch (error) {
@@ -642,7 +692,13 @@ const get_json = async () => {
 
   console.log(anns);
   let label_index = 0;
-  let json: any = { task_id: task.value?.id, task_name: task.value?.name, labels: [] };
+  let json: any = {
+    task_id: task.value?.id,
+    task_name: task.value?.name,
+    task_description: task.value?.desc,
+    labels: [],
+    annotators: selectedAnnotators.value,
+  };
   anns.map((l) => {
     json.labels.push({ value: labelsOptions[label_index], documents: [] });
     let prev_doc_id = -1;
@@ -654,16 +710,8 @@ const get_json = async () => {
           document_name: a.doc_name,
           annotations: [],
         });
-        doc_index++;
+        prev_doc_id = a.doc_id;
       }
-      json.labels[label_index].documents[doc_index - 1].annotations.push({
-        start: a.start,
-        end: a.end,
-        text: a.text,
-        annotator: a.annotator,
-        hidden: a.hidden,
-      });
-      prev_doc_id = a.doc_id;
     });
     label_index++;
   });
@@ -704,56 +752,251 @@ const clickDownloadAll = async () => {
   }
 };
 
+async function intraAnnAgreement() {
+  const annotations = await getAnnotations();
+}
+
+// async function compute_all_json(data: any) {
+//   let results: { name: string; value: any }[] = [];
+//   download_progress.value.current = 0;
+//   download_progress.value.total =
+//     selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
+//   try {
+//     try {
+//       const diff_metric_body = JSON.stringify({
+//         task_id: data.task_id,
+//         annotators_length: data.annotators.length,
+//         annotators: data.annotatorOrEmpty,
+//         documents: data.documentsOrEmpty,
+//       });
+
+//       const dm = await $fetch("/api/metrics/difficulty", {
+//         method: "POST",
+//         body: diff_metric_body,
+//       });
+//       results.push({
+//         value: dm,
+//         name: `_confidence.xlsx`,
+//       });
+//       download_progress.value.current++;
+//     } catch (error) {}
+//     for (let i = 0; i < data.documents.length; i++) {
+//       const document = data.documents[i];
+//       let metrics_rows = [];
+//       let annotations_rows = [];
+//       for (let j = 0; j < data.labelsOptions.length; j++) {
+//         const label = data.labelsOptions[j];
+//         const rows = await getRows(
+//           data.task_id,
+//           label,
+//           [document],
+//           data.annotators,
+//           data.annotatorsOrEmpty,
+//           data.tolerance,
+//           data.byWords,
+//           data.hideNonText,
+//           data.contained,
+//           data.documentsData,
+//           data.documentsOptions
+//         );
+//         metrics_rows.push({ label: label, value: rows[0] });
+//         annotations_rows.push({ label: label, value: rows[1] });
+//         download_progress.value.current += 2;
+//       }
+//       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
+//       results.push({
+//         value: metrics_rows,
+//         name: `${filename}_metrics.xlsx`,
+//       });
+
+//       results.push({
+//         value: annotations_rows,
+//         name: `${filename}_annotations.xlsx`,
+//       });
+//     }
+
+//     let metrics_rows = [];
+//     let annotations_rows = [];
+//     for (let i = 0; i < data.labelsOptions.length; i++) {
+//       const label = data.labelsOptions[i];
+//       const rows = await getXlslTab(
+//         data.task_id,
+//         label,
+//         data.documentsOrEmpty,
+//         data.annotators,
+//         data.annotatorsOrEmpty,
+//         data.tolerance,
+//         data.byWords,
+//         data.hideNonText,
+//         data.contained,
+//         data.documentsData,
+//         data.documentsOptions
+//       );
+//       metrics_rows.push({ label: label, value: rows[0] });
+//       annotations_rows.push({ label: label, value: rows[1] });
+//       download_progress.value.current += 2;
+//     }
+//     results.push({
+//       value: metrics_rows,
+//       name: `_metrics.xlsx`,
+//     });
+
+//     results.push({
+//       value: annotations_rows,
+//       name: `_annotations.xlsx`,
+//     });
+//     return results;
+//   } catch (error) {}
+//   return [];
+// }
+
+// async function getRows(
+//   task_id: string,
+//   label: string,
+//   documents: string[],
+//   annotators: string[],
+//   annotatorsOrEmpty: string[],
+//   tolerance: number,
+//   byWords: boolean,
+//   hideNonText: boolean,
+//   contained: boolean,
+//   documentsData: any,
+//   documentsOptions: string[]
+// ) {
+//   const rowsMetrics: any[] = [];
+//   const rowsAnnotations: any[] = [];
+
+//   try {
+//     const metric_body = JSON.stringify({
+//       task_id: task_id,
+//       label: label,
+//       documents: documents,
+//       annotators: annotators,
+//       annotatorsOrEmpty: annotatorsOrEmpty,
+//       tolerance: tolerance,
+//       byWords: byWords,
+//       hideNonText: hideNonText,
+//       contained: contained,
+//       documentsData: documentsData,
+//       documentsOptions: documentsOptions,
+//     });
+//     const metrics = await $fetch("/api/metrics/get_metrics", {
+//       method: "POST",
+//       body: metric_body,
+//     });
+//     console.log("XXX");
+//     metrics.map((m) => {
+//       if (m.result !== undefined)
+//         rowsMetrics.push({
+//           metric: m.name,
+//           annotators: annotators.length > 2 ? "all" : annotators.join(","),
+//           value: m.result,
+//           p0: m.po,
+//           pe: m.pe,
+//           tolerance: tolerance,
+//           consider_contained: contained ? "yes" : "no",
+//         });
+//     });
+//     const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
+//     tables?.forEach((r: any) => {
+//       Object.entries(r.annotators).forEach(([k, v]) => {
+//         const ann = {
+//           annotator: k,
+//           start: r.start,
+//           end: r.end,
+//           text: r.text,
+//           value: v,
+//         };
+
+//         rowsAnnotations.push(
+//           documents.length != 1
+//             ? {
+//                 document: r.doc_id + "-" + documentsData[r.doc_id].name,
+//                 ...ann,
+//               }
+//             : ann
+//         );
+//       });
+//     });
+
+//     if (annotators.length > 2) {
+//       for (let i = 0; i < annotators.length; i++) {
+//         for (let j = i + 1; j < annotators.length; j++) {
+//           try {
+//             const metric_body = JSON.stringify({
+//               task_id: task_id,
+//               label: label,
+//               documents: documents,
+//               annotators: [annotators[i], annotators[j]],
+//               annotatorsOrEmpty: [annotators[i], annotators[j]],
+//               tolerance: tolerance,
+//               byWords: byWords,
+//               hideNonText: hideNonText,
+//               contained: contained,
+//               documentsData: documentsData,
+//               documentsOptions: documentsOptions,
+//             });
+
+//             const ck_metrics = await $fetch("/api/metrics/get_metrics", {
+//               method: "POST",
+//               body: metric_body,
+//             });
+
+//             ck_metrics.map((m) => {
+//               if (m.name == "cohens_kappa") {
+//                 rowsMetrics.push({
+//                   metric: m.name,
+//                   annotators: annotators[i] + "," + annotators[j],
+//                   value: m.result,
+//                   p0: m.po,
+//                   pe: m.pe,
+//                   tolerance: tolerance,
+//                   consider_contained: contained ? "yes" : "no",
+//                 });
+//               }
+//             });
+//           } catch (error) {}
+//         }
+//       }
+//     }
+//   } catch (error) {}
+//   return [rowsMetrics, rowsAnnotations];
+// }
+
 async function download_all(data: any) {
   let results: { wb: string; name: string }[] = [];
   download_progress.value.current = 0;
   download_progress.value.total =
-    selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
+    selectedDocuments.value.length * labelsOptions.length * 2 +
+    labelsOptions.length * 2 +
+    selectedDocuments.value.length;
   try {
-    try {
-      const workbookDifficulty = XLSX.utils.book_new();
-      const diff_metric_body = JSON.stringify({
-        task_id: data.task_id,
-        annotators_length: data.annotators.length,
-        annotators: data.annotatorOrEmpty,
-        documents: data.documentsOrEmpty,
-      });
-
-      const dm = await $fetch("/api/metrics/difficulty", {
-        method: "POST",
-        body: diff_metric_body,
-      });
-      const worksheetDifficulty = XLSX.utils.json_to_sheet([
-        {
-          total: dm.total,
-          rated: dm.rated,
-          average_stars: dm.average,
-          "1_stars": dm.values[1],
-          "2_stars": dm.values[2],
-          "3_stars": dm.values[3],
-          "4_stars": dm.values[4],
-          "5_stars": dm.values[5],
-          krippendorff: dm.krippendorff?.result,
-          p0: dm.krippendorff?.po,
-          pe: dm.krippendorff?.pe,
-        },
-      ]);
-      XLSX.utils.book_append_sheet(
-        workbookDifficulty,
-        worksheetDifficulty,
-        "Difficulty Metrics"
-      );
-      results.push({
-        wb: getZippeableBlob(workbookDifficulty),
-        name: `_confidence.xlsx`,
-      });
-      download_progress.value.current++;
-    } catch (error) {}
+    // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
+      const filename = document + "-" + data.documentsData[document].name.split(".")[0];
+      // per document confidence
+      try {
+        const workBookConfidence = await getConfidenceXlslTab(
+          data.task_id,
+          data.annotators.length,
+          data.annotatorOrEmpty,
+          [document]
+        );
+
+        results.push({
+          wb: getZippeableBlob(workBookConfidence),
+          name: `${filename}_confidence.xlsx`,
+        });
+
+        download_progress.value.current++;
+      } catch (error) {
+        console.log(error);
+      }
       const workbookMetrics = XLSX.utils.book_new();
       const workbookAnnotations = XLSX.utils.book_new();
       for (let j = 0; j < data.labelsOptions.length; j++) {
+        // per document metrics
         const label = data.labelsOptions[j];
         const sheets: XLSX.WorkSheet[] = await getXlslTab(
           data.task_id,
@@ -772,7 +1015,7 @@ async function download_all(data: any) {
         XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
         download_progress.value.current += 2;
       }
-      const filename = document + "-" + data.documentsData[document].name.split(".")[0];
+
       results.push({
         wb: getZippeableBlob(workbookMetrics),
         name: `${filename}_metrics.xlsx`,
@@ -784,6 +1027,23 @@ async function download_all(data: any) {
       });
     }
 
+    // All confidence
+    try {
+      const workBookConfidence = await getConfidenceXlslTab(
+        data.task_id,
+        data.annotators.length,
+        data.annotatorOrEmpty,
+        data.documentsOrEmpty
+      );
+
+      results.push({
+        wb: getZippeableBlob(workBookConfidence),
+        name: `_confidence.xlsx`,
+      });
+      download_progress.value.current++;
+    } catch (error) {}
+
+    // All metrics
     const workbookMetrics = XLSX.utils.book_new();
     const workbookAnnotations = XLSX.utils.book_new();
     for (let i = 0; i < data.labelsOptions.length; i++) {
@@ -835,15 +1095,16 @@ async function getXlslTab(
   const rowsMetrics: any[] = [];
   const rowsAnnotations: any[] = [];
 
-  let timeout = 100;
-  // while (true) {
   try {
+    // for (let i = 0; i < annotators.length; i++) {
     const metric_body = JSON.stringify({
       task_id: task_id,
       label: label,
       documents: documents,
       annotators: annotators,
       annotatorsOrEmpty: annotatorsOrEmpty,
+      // annotators: [annotators[i]],
+      // annotatorsOrEmpty: [annotators[i]],
       tolerance: tolerance,
       byWords: byWords,
       hideNonText: hideNonText,
@@ -851,7 +1112,6 @@ async function getXlslTab(
       documentsData: documentsData,
       documentsOptions: documentsOptions,
     });
-    console.log(label, documents, annotators);
     const metrics = await $fetch("/api/metrics/get_metrics", {
       method: "POST",
       body: metric_body,
@@ -862,6 +1122,7 @@ async function getXlslTab(
         rowsMetrics.push({
           metric: m.name,
           annotators: annotators.length > 2 ? "all" : annotators.join(","),
+          // annotators: "90-" + annotators[i] + "," + "153-" + annotators[i],
           value: m.result,
           p0: m.po,
           pe: m.pe,
@@ -870,6 +1131,7 @@ async function getXlslTab(
         });
     });
     const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
+    // const tables = metrics[2].table;
     tables?.forEach((r: any) => {
       Object.entries(r.annotators).forEach(([k, v]) => {
         const ann = {
@@ -890,18 +1152,14 @@ async function getXlslTab(
         );
       });
     });
-    // break;
+    // }
   } catch (error) {
-    timeout--;
     console.log("FAILED", error);
   }
-  // }
 
   if (annotators.length > 2) {
     for (let i = 0; i < annotators.length; i++) {
       for (let j = i + 1; j < annotators.length; j++) {
-        let ck_timeout = 100;
-        // while (true) {
         try {
           const metric_body = JSON.stringify({
             task_id: task_id,
@@ -935,12 +1193,9 @@ async function getXlslTab(
               });
             }
           });
-          // break;
         } catch (error) {
-          ck_timeout--;
           console.log("FAILED", error);
         }
-        // }
       }
     }
   }
@@ -948,6 +1203,66 @@ async function getXlslTab(
   const worksheetMetrics = XLSX.utils.json_to_sheet(rowsMetrics);
   const worksheetAnnotations = XLSX.utils.json_to_sheet(rowsAnnotations);
   return [worksheetMetrics, worksheetAnnotations];
+}
+
+async function getConfidenceXlslTab(
+  task_id: string,
+  annotators_length: number,
+  annotators: string[],
+  documents: string[]
+) {
+  const workbookDifficulty = XLSX.utils.book_new();
+  const diff_metric_body = JSON.stringify({
+    task_id: task_id,
+    annotators_length: annotators_length,
+    annotators: annotators,
+    documents: documents,
+  });
+
+  const dm = await $fetch("/api/metrics/difficulty", {
+    method: "POST",
+    body: diff_metric_body,
+  });
+
+  const worksheetDifficulty = XLSX.utils.json_to_sheet([
+    {
+      total: dm.total,
+      rated: dm.rated,
+      average_stars: dm.average,
+      "1_stars": dm.values[1],
+      "2_stars": dm.values[2],
+      "3_stars": dm.values[3],
+      "4_stars": dm.values[4],
+      "5_stars": dm.values[5],
+      krippendorff: dm.krippendorff?.result,
+      p0: dm.krippendorff?.po,
+      pe: dm.krippendorff?.pe,
+    },
+  ]);
+
+  const worksheetDifficultyAnnotator = XLSX.utils.json_to_sheet(
+    dm.table.map((r) => {
+      return {
+        annotator: r.annotator,
+        doc_id: r.doc_id,
+        assignment_id: r.ass_id,
+        stars: r.rating,
+      };
+    })
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbookDifficulty,
+    worksheetDifficulty,
+    "Confidence Metrics"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbookDifficulty,
+    worksheetDifficultyAnnotator,
+    "Annotators "
+  );
+  return workbookDifficulty;
 }
 
 function getZippeableBlob(workBook: XLSX.WorkBook) {
@@ -1001,6 +1316,7 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
     hidden: false,
     ann_id: current.ann_id,
     doc_id: current.doc_id,
+    doc_name: current.doc_name,
   });
   loading_annotations.value = false;
 };
@@ -1071,14 +1387,12 @@ onMounted(async () => {
   );
 
   documentsOptions.push(
-    ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map(
-      (d) => {
-        if (!(d.id in documentsData.value)) {
-          documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
-        }
-        return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
+    ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map((d) => {
+      if (!(d.id in documentsData.value)) {
+        documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
       }
-    )
+      return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
+    })
   );
 
   annotatorsOptions.push(
