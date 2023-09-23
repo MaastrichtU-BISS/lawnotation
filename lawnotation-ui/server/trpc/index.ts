@@ -27,8 +27,35 @@ const isAuthenticated = t.middleware(({ next, ctx }) => {
   })
 })
 
+
+type MiddlewareOptsParam = Parameters<Parameters<typeof middleware>[0]>[0]
+export const authorizer = async <T extends MiddlewareOptsParam>(opts: T, resolver: undefined | ((opts: T) => Promise<boolean>)) => {
+  console.log(opts.ctx.user)
+
+  try {
+    let authorized = false;
+    if (opts.ctx.user?.role == 'admin')
+      authorized = true;
+    else if (resolver)
+      authorized = await resolver(opts);
+
+    if (!authorized)
+      throw new TRPCError({ code: 'NOT_FOUND' })
+      // throw new TRPCError({ code: 'FORBIDDEN' })
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      throw error;
+    } else {
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Unable to authorize request' })
+    }
+  }
+
+  return opts.next();
+}
+
+
 /**
- * Unprotected procedure
+ * Procedures
  **/
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(isAuthenticated);

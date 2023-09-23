@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
-import { protectedProcedure, router } from '~/server/trpc'
+import { authorizer, protectedProcedure, router } from '~/server/trpc'
 import { Project } from '~/types';
 
 const ZProjectFields = z.object({
@@ -34,9 +34,22 @@ export const projectRouter = router({
 
   'findById': protectedProcedure
     .input(z.number().int())
+    .use(
+      opts => authorizer(opts, async (opts) => {
+        const {count} = await opts.ctx.supabase
+          .from("projects")
+          .select('*', {count: 'exact', head: true})
+          .eq('id', opts.input)
+          .eq('editor_id', opts.ctx.user.id);
+
+        return count === 1
+      })
+    )
     .query(async ({ ctx, input: id }) => {
-      const { data, error } = await ctx.supabase.from("projects").select().eq('id', id).single();
+      const { data, error, count } = await ctx.supabase.from("projects").select().eq('id', id).single();
       
+      if (count === 0)
+        throw new TRPCError({code: 'NOT_FOUND'});
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.findById: ${error.message}`});
       return data as Project;
