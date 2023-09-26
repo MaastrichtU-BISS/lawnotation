@@ -645,12 +645,12 @@ const get_json = async () => {
   let json: any = { task_id: task.value?.id, task_name: task.value?.name, labels: [] };
   anns.map((l) => {
     json.labels.push({ value: labelsOptions[label_index], documents: [] });
-    let prev_doc_id = "-1";
+    let prev_doc_id = -1;
     let doc_index = 0;
     l.map((a) => {
       if (prev_doc_id != a.doc_id) {
         json.labels[label_index].documents.push({
-          document_id: Number.parseInt(a.doc_id),
+          document_id: +a.doc_id,
           document_name: a.doc_name,
           annotations: [],
         });

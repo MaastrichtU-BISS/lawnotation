@@ -36,5 +36,4 @@ export const authorizeClient: <TRouter extends keyof DecoratedRouter>(
 
   const $page = usePage();
   $page.value = pageObject;
-  console.log("page set to:", $page.value)
 }
