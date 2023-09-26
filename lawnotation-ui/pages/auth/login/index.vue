@@ -57,31 +57,29 @@ const email = ref<string>("");
 
 const signIn = () => {
   loading.value = true;
-  try {
-    if (email.value.length == 0) {
-      $toast.error("Enter your email");
-      loading.value = false;
-      return;
-    }
-
-    $trpc.user
-      .otpLogin.query({email: email.value, redirectTo: `${config.public.baseURL}/auth/validate`})
-      .then((user) => {
-        $toast.success(`Login link has been sent to: ${email.value}`);
-        loading.value = false;
-      })
-      .catch((error) => {
-        $toast.error(`Error signing in: ${error.message}`);
-        loading.value = false;
-      });
-  } catch (error) {
-    if (error instanceof Error)
-      $toast.error(`Error signing in: ${error.message}`);
+  if (email.value.length == 0) {
+    $toast.error("Enter your email");
     loading.value = false;
+    return;
   }
+
+  $trpc.user
+    .otpLogin.query({email: email.value, redirectTo: `${config.public.baseURL}/auth/validate`})
+    .then((user) => {
+      $toast.success(`Login link has been sent to: ${email.value}`);
+      loading.value = false;
+    })
+    .catch((error) => {
+      $toast.error(`Error signing in: ${error.message}`);
+      loading.value = false;
+    });
 };
 
 definePageMeta({
   layout: "blank",
+  middleware: (to, from, next) => {
+    const user = useSupabaseUser();
+    if (user.value) return navigateTo('/')
+  }
 });
 </script>
