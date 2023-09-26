@@ -171,13 +171,16 @@ import {
   Labelset,
 } from "~/types";
 import Table from "~/components/Table.vue";
+import { _AsyncData } from "nuxt/dist/app/composables/asyncData";
+import { authorizeClient } from "~/utils/authorize.client";
 
-const { $toast, $trpc } = useNuxtApp();
+const { $toast, $trpc, $page } = useNuxtApp();
 
-const user = useSupabaseUser();
+type PageData = { project: Project };
+const { project } = $page as PageData;
 
 const route = useRoute();
-const project = ref<Project>();
+
 const loading_docs = ref(false);
 
 const tab_active = ref<"tasks" | "documents">("tasks");
@@ -244,7 +247,7 @@ const createTask = () => {
     }
 
     // For some reason casting as Omit<Task, "id"> is necessary here.
-    $trpc.task.create.mutate(new_task as Omit<Task, "id">).then((task) => {
+    $trpc.task.create.mutate(new_task as Omit<Task, "id">).then(() => {
       // tasks.push(task);
       taskTable.value?.refresh();
       $toast.success("Task created");
@@ -262,8 +265,8 @@ const removeDocuments = async (ids: string[]) => {
   $toast.success("Documents successfully deleted!");
 };
 const removeAllDocuments = async () => {
-  if (!project.value) throw new Error("Invalid Project!");
-  await $trpc.document.deleteAllFromProject.mutate(+project.value.id);
+  if (!project) throw new Error("Invalid Project!");
+  await $trpc.document.deleteAllFromProject.mutate(+project.id);
   await documentTable.value?.refresh();
   $toast.success("Documents successfully deleted!");
 };
@@ -275,32 +278,28 @@ const removeTasks = async (ids: string[]) => {
   $toast.success("Tasks successfully deleted!");
 };
 const removeAllTasks = async () => {
-  if (!project.value) throw new Error("Invalid Project!");
-  await $trpc.task.deleteAllFromProject.mutate(project.value.id);
+  if (!project) throw new Error("Invalid Project!");
+  await $trpc.task.deleteAllFromProject.mutate(project.id);
   await documentTable.value?.refresh();
   $toast.success("Tasks successfully deleted!");
 };
 
 onMounted(() => {
-  try {
-    $trpc.project.findById.query(+route.params.project_id).then((p) => {
-      project.value = p;
-      new_task.project_id = p.id;
-
-      // documentTable.load();
-      // taskTable.load();
-    });
-
-    $trpc.labelset.find.query({}).then((_labelsets) => {
-      labelsets.push(..._labelsets);
-    });
-  } catch (error) {
-    if (error instanceof Error) $toast.error(`Error loading data: ${error.message}`);
-  }
+  // project.value = projectQuery.data.value!;
+  new_task.project_id = project.id;
+  
+  $trpc.labelset.find.query({}).then((_labelsets) => {
+    labelsets.push(..._labelsets);
+  });
 });
 
 definePageMeta({
-  middleware: ["auth"],
+  middleware: [
+    "auth",
+    async (to) => authorizeClient([
+      ["project", +to.params.project_id],
+    ]),
+  ],
 });
 </script>
 
