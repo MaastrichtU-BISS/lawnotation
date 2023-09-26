@@ -174,10 +174,17 @@ import Table from "~/components/Table.vue";
 import { _AsyncData } from "nuxt/dist/app/composables/asyncData";
 import { authorizeClient } from "~/utils/authorize.client";
 
-const { $toast, $trpc, $page } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
+/*
 type PageData = { project: Project };
 const { project } = $page as PageData;
+// TODO: fix error on multiple page clicks
+// const { project } = $page as PageData ?? {project: {id: 32, name: 'a', desc: 'b'}};
+*/
+
+const $page = usePage<{ project: Project }>();
+const { project } = $page.value;
 
 const route = useRoute();
 
@@ -285,6 +292,7 @@ const removeAllTasks = async () => {
 };
 
 onMounted(() => {
+
   // project.value = projectQuery.data.value!;
   new_task.project_id = project.id;
   
@@ -296,6 +304,7 @@ onMounted(() => {
 definePageMeta({
   middleware: [
     "auth",
+    // async (to) => {provide('page', {project: {id: 1, name: '1', desc: '1'}})}
     async (to) => authorizeClient([
       ["project", +to.params.project_id],
     ]),
