@@ -6,7 +6,7 @@
     "
   >
     <h5 v-if="isNewDoc" class="text-lg font-semibold mb-3 ml-1">
-      {{ documentName.substring(0, documentName.length - 4) }}
+      {{ annotation.doc_name.substring(0, annotation.doc_name.length - 4) }}
     </h5>
     <div class="text-xs mb-2" :style="annotated ? 'color: green' : 'color: red'">
       <b class="ml-1">{{ annotated ? "Annotated" : "Not Annotated" }}</b>
@@ -81,7 +81,6 @@ const props = defineProps<{
   canMergeUp: Boolean;
   canMergeDown: Boolean;
   isNewDoc: Boolean;
-  documentName: string;
 }>();
 
 watch(props.annotation, (new_val) => {

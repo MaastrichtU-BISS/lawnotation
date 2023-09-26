@@ -4,25 +4,35 @@ import {
   setTextToHidden,
   separateIntoWords,
 } from "~/utils/metrics";
-import { RichAnnotation } from "~/types";
+import { RichAnnotation, Document } from "~/types";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
-  //   const documentsData = await findSharedDocumentsByTask(event, data.task_id);
-  const annotations = await findAnnotationsByTaskLabelDocumentsAnnotators(
+
+  const documentsDataPromise: Promise<any> = getDocuments(
     event,
     data.task_id,
-    data.label,
-    data.documents,
-    data.annotators
+    data.documents
   );
+
+  const annotationsPromise: Promise<RichAnnotation[]> =
+    findAnnotationsByTaskLabelDocumentsAnnotators(
+      event,
+      data.task_id,
+      data.label,
+      data.documents,
+      data.annotators
+    );
+
+  const annotations = await annotationsPromise;
+  const documentsData = await documentsDataPromise;
 
   let result = [];
 
   result = await getNonAnnotations(
     annotations,
-    data.documentsData,
-    data.documentsOptions
+    documentsData[0],
+    documentsData[1]
   );
 
   if (data.byWords) {
@@ -65,6 +75,7 @@ async function getNonAnnotations(
           hidden: false,
           ann_id: -1,
           doc_id: previous_ann.doc_id,
+          doc_name: previous_ann.doc_name,
         });
       }
       last_end = 0;
@@ -82,6 +93,7 @@ async function getNonAnnotations(
         hidden: false,
         ann_id: -1,
         doc_id: next_doc_id,
+        doc_name: documentsData[next_doc_id].name,
       });
       next_doc_id = documentsOptions[++docs_index];
     }
@@ -99,6 +111,7 @@ async function getNonAnnotations(
         hidden: false,
         ann_id: -1,
         doc_id: current_ann.doc_id,
+        doc_name: current_ann.doc_name,
       });
     }
 
@@ -107,19 +120,22 @@ async function getNonAnnotations(
     previous_ann = current_ann;
   }
 
-  new_annotations.push({
-    start: last_end,
-    end: documentsData[previous_ann.doc_id].full_text.length,
-    label: "NOT ANNOTATED",
-    text: documentsData[previous_ann.doc_id].full_text.substring(
-      last_end,
-      documentsData[previous_ann.doc_id].full_text.length
-    ),
-    annotator: "",
-    hidden: false,
-    ann_id: -1,
-    doc_id: previous_ann.doc_id,
-  });
+  if (last_end < documentsData[previous_ann.doc_id].full_text.length) {
+    new_annotations.push({
+      start: last_end,
+      end: documentsData[previous_ann.doc_id].full_text.length,
+      label: "NOT ANNOTATED",
+      text: documentsData[previous_ann.doc_id].full_text.substring(
+        last_end,
+        documentsData[previous_ann.doc_id].full_text.length
+      ),
+      annotator: "",
+      hidden: false,
+      ann_id: -1,
+      doc_id: previous_ann.doc_id,
+      doc_name: previous_ann.doc_name,
+    });
+  }
   return new_annotations;
 }
 
@@ -135,7 +151,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   let query = supabase
     .from("annotations")
     .select(
-      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, full_text, name), annotator:users!inner(email))"
+      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
     )
     .eq("assignments.task_id", task_id)
     .eq("label", label);
@@ -162,25 +178,68 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
         hidden: false,
         ann_id: ann.id,
         doc_id: ann.assignment.document_id,
+        doc_name: ann.assignment.document.name,
       };
     });
   }
 }
 
-// async function findSharedDocumentsByTask(event: any, task_id: string) {
-//   const supabase = serverSupabaseClient(event);
-//   let res: any = {};
-//   const { data, error } = await supabase.rpc("get_all_shared_docs_from_task", {
-//     t_id: task_id,
-//   });
-//   if (error)
-//     throw new Error(`ERROR in findSharedDocumentsByTask: ${error.message}`);
-//   else {
-//     (data as Document[]).map((d: Document) => {
-//       if (!(d.id in res)) {
-//         res[d.id] = { full_text: d.full_text, name: d.name };
-//       }
-//     });
-//   }
-//   return res;
-// }
+async function getDocuments(event: any, task_id: string, documents: string[]) {
+  const supabase = serverSupabaseClient(event);
+  let list: string[] = [];
+  let dic: any = {};
+  let query = supabase.rpc("get_all_shared_docs_from_task", {
+    t_id: task_id,
+  });
+
+  if (documents && documents.length) query = query.in("id", [documents]);
+
+  const { data, error } = await query.order("id");
+
+  if (error) {
+    throw new Error(error.message);
+  } else {
+    (data as Document[]).map((d: Document) => {
+      list.push(d.id.toString());
+      if (!(d.id in dic)) {
+        dic[d.id] = { full_text: d.full_text, name: d.name };
+      }
+    });
+  }
+
+  return [dic, list];
+}
+
+const findAnnotationsByTask = async (
+  event: any,
+  task_id: string
+): Promise<any> => {
+  const supabase = serverSupabaseClient(event);
+  let query = supabase
+    .from("annotations")
+    .select(
+      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
+    )
+    .eq("assignments.task_id", task_id);
+
+  const { data, error } = await query;
+  if (error)
+    throw Error(
+      `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`
+    );
+  else {
+    return data.map((ann) => {
+      return {
+        start: ann.start_index,
+        end: ann.end_index,
+        text: ann.text,
+        label: ann.label,
+        annotator: ann.assignment.annotator.email,
+        hidden: false,
+        ann_id: ann.id,
+        doc_id: ann.assignment.document_id,
+        doc_name: ann.assignment.document.name,
+      };
+    });
+  }
+};

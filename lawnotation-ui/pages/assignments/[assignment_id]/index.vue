@@ -34,7 +34,8 @@
         :relations="ls_relations"
         :guidelines="task?.ann_guidelines"
         :labels="labels"
-      ></LabelStudio>
+      >
+      </LabelStudio>
     </div>
   </div>
 </template>

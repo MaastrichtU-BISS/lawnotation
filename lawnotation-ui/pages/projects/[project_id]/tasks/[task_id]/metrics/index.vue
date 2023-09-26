@@ -22,8 +22,8 @@
       ]"
     />
     <div class="dimmer-wrapper pt-2">
-      <!-- <DimmerProgress v-if="download_progress.loading" v-model="download_progress" /> -->
-      <Dimmer v-model="loading" />
+      <DimmerProgress v-if="download_progress.loading" v-model="download_progress" />
+      <Dimmer v-else v-model="loading" />
       <div class="dimmer-content">
         <aside
           id="logo-sidebar"
@@ -114,11 +114,10 @@
                       type="checkbox"
                       value=""
                       class="sr-only peer"
-                      @input="
-                    ($event: Event) => {
-                        modeToggle($event.target.checked);
+                      @input="($event: Event) => {
+                      modeToggle($event.target.checked);
                     }
-                  "
+                      "
                     />
                     <div
                       class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
@@ -148,11 +147,10 @@
                       type="checkbox"
                       value=""
                       class="sr-only peer"
-                      @input="
-                        ($event: Event) => {
-                            contained = !contained;
-                            tolerance = 0;
-                        }
+                      @input="($event: Event) => {
+                      contained = !contained;
+                      tolerance = 0;
+                    }
                       "
                     />
 
@@ -185,11 +183,10 @@
                       value=""
                       :checked="hideNonText"
                       class="sr-only peer"
-                      @input="
-                    ($event: Event) => {
+                      @input="($event: Event) => {
                       toggleTextToHidden($event?.target?.checked);
                     }
-                  "
+                      "
                     />
 
                     <div
@@ -293,9 +290,9 @@
                 <li class="">
                   <button
                     class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                    @click="downloadAll"
+                    @click="get_json"
                   >
-                    Compute and download all
+                    Download all
                   </button>
                 </li>
               </ul>
@@ -317,7 +314,6 @@
                   :is-new-doc="isNewDoc(index)"
                   :can-merge-up="canMergeUp(index)"
                   :can-merge-down="canMergeDown(index)"
-                  :documentName="documentsData[ann.doc_id].name"
                   @separate="emitSeparate"
                   @mergeUp="emitMergeUp"
                   @mergeDown="emitMergeDown"
@@ -353,84 +349,11 @@
         </div>
       </div>
     </div>
-    <div
-      id="difficultyMetricsModal"
-      tabindex="-1"
-      aria-hidden="true"
-      class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full"
-    >
-      <div class="relative w-full max-w-2xl max-h-full">
-        <!-- Modal content -->
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-          <!-- Modal header -->
-          <div
-            class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600"
-          >
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-              Difficulty Metrics
-            </h3>
-            <button
-              type="button"
-              class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
-              data-modal-hide="difficultyMetricsModal"
-            >
-              <svg
-                class="w-3 h-3"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 14 14"
-              >
-                <path
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
-                />
-              </svg>
-              <span class="sr-only">Close modal</span>
-            </button>
-          </div>
-          <!-- Modal body -->
-          <div class="p-6 space-y-6">
-            <div class="flex">
-              <div
-                v-for="(v, index) in metrics_result.difficulty?.values"
-                :key="'mr_difficulty_' + index"
-              >
-                <div v-if="index > 0" class="mx-3">{{ index }} stars: {{ v }}</div>
-              </div>
-            </div>
-            <div class="flex justify-between">
-              <span>
-                <div>
-                  Rated: {{ metrics_result.difficulty?.rated }}/{{
-                    metrics_result.difficulty?.total
-                  }}
-                </div>
-                <div>Average: {{ metrics_result.difficulty?.average.toFixed(5) }}</div>
-              </span>
-              <span>
-                <div>
-                  Krippendorff's alpha:
-                  {{ metrics_result.difficulty?.krippendorff?.result?.toFixed(5) }}
-                </div>
-                <div>
-                  p0: {{ metrics_result.difficulty?.krippendorff?.po?.toFixed(5) }}
-                </div>
-                <div>
-                  pe: {{ metrics_result.difficulty?.krippendorff?.pe?.toFixed(5) }}
-                </div>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <DifficultyMetricsModal v-model="metrics_result.difficulty"></DifficultyMetricsModal>
   </div>
 </template>
 <script setup lang="ts">
+import * as XLSX from "xlsx";
 import Multiselect from "@vueform/multiselect";
 import {
   Task,
@@ -478,6 +401,8 @@ const download_progress = ref<{ current: number; total: number; loading: boolean
   total: 0,
   loading: false,
 });
+const downloadAllPromises = [];
+const downloadAllResults = [];
 const separate_into_words = ref(false);
 const hideNonText = ref(true);
 const contained = ref(false);
@@ -549,9 +474,7 @@ const getAnnotations = async (
   documents: string[],
   annotators: string[],
   byWords: boolean,
-  hideNonText: boolean,
-  documentsData: any,
-  documentsOptions: string[]
+  hideNonText: boolean
 ) => {
   const body = JSON.stringify({
     task_id: task_id,
@@ -560,8 +483,6 @@ const getAnnotations = async (
     annotators: annotators,
     byWords: byWords,
     hideNonText: hideNonText,
-    documentsData: documentsData,
-    documentsOptions: documentsOptions,
   });
 
   return $fetch("/api/metrics/get_annotations", {
@@ -586,9 +507,7 @@ const updateAnnotations = async () => {
     selectedDocumentsOrEmpty.value!,
     selectedAnnotatorsOrEmpty.value!,
     separate_into_words.value,
-    hideNonText.value,
-    documentsData.value,
-    documentsOptions.map((d) => d.value)
+    hideNonText.value
   );
   annotations_length.value = anns.length;
   if (anns.length < annotations_limit) annotations.push(...anns);
@@ -708,29 +627,70 @@ const computeDifficultyMetrics = async (
   });
 };
 
-const downloadAll = async () => {
-  download_progress.value.loading = true;
-  const body = JSON.stringify({
-    task_id: task.value?.id.toString()!,
-    labelsOptions: labelsOptions,
-    documents: selectedDocuments.value,
-    documentsOrEmpty: selectedDocumentsOrEmpty.value,
-    annotators: selectedAnnotators.value,
-    annotatorsOrEmpty: selectedAnnotatorsOrEmpty.value,
-    tolerance: tolerance.value,
-    byWords: separate_into_words.value,
-    hideNonText: hideNonText.value,
-    contained: contained.value,
-    documentsData: documentsData.value,
-    documentsOptions: documentsOptions,
+const get_json = async () => {
+  const anns = await $fetch("/api/metrics/get_all_annotations", {
+    method: "POST",
+    body: {
+      task_id: task.value?.id.toString()!,
+      labels: labelsOptions,
+      documents: selectedDocumentsOrEmpty.value,
+      annotators: selectedAnnotatorsOrEmpty.value,
+      byWords: separate_into_words.value,
+      hideNonText: hideNonText.value,
+    },
   });
+
+  console.log(anns);
+  let label_index = 0;
+  let json: any = { task_id: task.value?.id, task_name: task.value?.name, labels: [] };
+  anns.map((l) => {
+    json.labels.push({ value: labelsOptions[label_index], documents: [] });
+    let prev_doc_id = "-1";
+    let doc_index = 0;
+    l.map((a) => {
+      if (prev_doc_id != a.doc_id) {
+        json.labels[label_index].documents.push({
+          document_id: Number.parseInt(a.doc_id),
+          document_name: a.doc_name,
+          annotations: [],
+        });
+        doc_index++;
+      }
+      json.labels[label_index].documents[doc_index - 1].annotations.push({
+        start: a.start,
+        end: a.end,
+        text: a.text,
+        annotator: a.annotator,
+        hidden: a.hidden,
+      });
+      prev_doc_id = a.doc_id;
+    });
+    label_index++;
+  });
+
+  console.log(json);
+  saveAs(new Blob([JSON.stringify(json)]), task.value?.name + ".json");
+};
+
+const clickDownloadAll = async () => {
+  download_progress.value.loading = true;
   try {
-    const blobs = (await $fetch("/api/metrics/get_allmetrics", {
-      method: "POST",
-      body: body,
-    })) as any[];
+    const blobs = await download_all({
+      task_id: task.value?.id.toString()!,
+      labelsOptions: labelsOptions,
+      documents: selectedDocuments.value,
+      documentsOrEmpty: selectedDocumentsOrEmpty.value,
+      annotators: selectedAnnotators.value,
+      annotatorsOrEmpty: selectedAnnotatorsOrEmpty.value,
+      tolerance: tolerance.value,
+      byWords: separate_into_words.value,
+      hideNonText: hideNonText.value,
+      contained: contained.value,
+      documentsData: documentsData.value,
+      documentsOptions: documentsOptions.map((d) => d.value),
+    });
+    console.log(blobs);
     const zip = JSZip();
-    // test
     for (let i = 0; i < blobs.length; i++) {
       const b = await (await fetch(blobs[i].wb)).blob();
       zip.file(`${blobs[i].name}`, b);
@@ -743,6 +703,264 @@ const downloadAll = async () => {
     download_progress.value.loading = false;
   }
 };
+
+async function download_all(data: any) {
+  let results: { wb: string; name: string }[] = [];
+  download_progress.value.current = 0;
+  download_progress.value.total =
+    selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
+  try {
+    try {
+      const workbookDifficulty = XLSX.utils.book_new();
+      const diff_metric_body = JSON.stringify({
+        task_id: data.task_id,
+        annotators_length: data.annotators.length,
+        annotators: data.annotatorOrEmpty,
+        documents: data.documentsOrEmpty,
+      });
+
+      const dm = await $fetch("/api/metrics/difficulty", {
+        method: "POST",
+        body: diff_metric_body,
+      });
+      const worksheetDifficulty = XLSX.utils.json_to_sheet([
+        {
+          total: dm.total,
+          rated: dm.rated,
+          average_stars: dm.average,
+          "1_stars": dm.values[1],
+          "2_stars": dm.values[2],
+          "3_stars": dm.values[3],
+          "4_stars": dm.values[4],
+          "5_stars": dm.values[5],
+          krippendorff: dm.krippendorff?.result,
+          p0: dm.krippendorff?.po,
+          pe: dm.krippendorff?.pe,
+        },
+      ]);
+      XLSX.utils.book_append_sheet(
+        workbookDifficulty,
+        worksheetDifficulty,
+        "Difficulty Metrics"
+      );
+      results.push({
+        wb: getZippeableBlob(workbookDifficulty),
+        name: `_confidence.xlsx`,
+      });
+      download_progress.value.current++;
+    } catch (error) {}
+    for (let i = 0; i < data.documents.length; i++) {
+      const document = data.documents[i];
+      const workbookMetrics = XLSX.utils.book_new();
+      const workbookAnnotations = XLSX.utils.book_new();
+      for (let j = 0; j < data.labelsOptions.length; j++) {
+        const label = data.labelsOptions[j];
+        const sheets: XLSX.WorkSheet[] = await getXlslTab(
+          data.task_id,
+          label,
+          [document],
+          data.annotators,
+          data.annotatorsOrEmpty,
+          data.tolerance,
+          data.byWords,
+          data.hideNonText,
+          data.contained,
+          data.documentsData,
+          data.documentsOptions
+        );
+        XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
+        XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
+        download_progress.value.current += 2;
+      }
+      const filename = document + "-" + data.documentsData[document].name.split(".")[0];
+      results.push({
+        wb: getZippeableBlob(workbookMetrics),
+        name: `${filename}_metrics.xlsx`,
+      });
+
+      results.push({
+        wb: getZippeableBlob(workbookAnnotations),
+        name: `${filename}_annotations.xlsx`,
+      });
+    }
+
+    const workbookMetrics = XLSX.utils.book_new();
+    const workbookAnnotations = XLSX.utils.book_new();
+    for (let i = 0; i < data.labelsOptions.length; i++) {
+      const label = data.labelsOptions[i];
+      const sheets = await getXlslTab(
+        data.task_id,
+        label,
+        data.documentsOrEmpty,
+        data.annotators,
+        data.annotatorsOrEmpty,
+        data.tolerance,
+        data.byWords,
+        data.hideNonText,
+        data.contained,
+        data.documentsData,
+        data.documentsOptions
+      );
+      XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
+      XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
+      download_progress.value.current += 2;
+    }
+    results.push({
+      wb: getZippeableBlob(workbookMetrics),
+      name: `_metrics.xlsx`,
+    });
+
+    results.push({
+      wb: getZippeableBlob(workbookAnnotations),
+      name: `_annotations.xlsx`,
+    });
+    return results;
+  } catch (error) {}
+  return [];
+}
+
+async function getXlslTab(
+  task_id: string,
+  label: string,
+  documents: string[],
+  annotators: string[],
+  annotatorsOrEmpty: string[],
+  tolerance: number,
+  byWords: boolean,
+  hideNonText: boolean,
+  contained: boolean,
+  documentsData: any,
+  documentsOptions: string[]
+) {
+  const rowsMetrics: any[] = [];
+  const rowsAnnotations: any[] = [];
+
+  let timeout = 100;
+  // while (true) {
+  try {
+    const metric_body = JSON.stringify({
+      task_id: task_id,
+      label: label,
+      documents: documents,
+      annotators: annotators,
+      annotatorsOrEmpty: annotatorsOrEmpty,
+      tolerance: tolerance,
+      byWords: byWords,
+      hideNonText: hideNonText,
+      contained: contained,
+      documentsData: documentsData,
+      documentsOptions: documentsOptions,
+    });
+    console.log(label, documents, annotators);
+    const metrics = await $fetch("/api/metrics/get_metrics", {
+      method: "POST",
+      body: metric_body,
+    });
+    console.log("XXX");
+    metrics.map((m) => {
+      if (m.result !== undefined)
+        rowsMetrics.push({
+          metric: m.name,
+          annotators: annotators.length > 2 ? "all" : annotators.join(","),
+          value: m.result,
+          p0: m.po,
+          pe: m.pe,
+          tolerance: tolerance,
+          consider_contained: contained ? "yes" : "no",
+        });
+    });
+    const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
+    tables?.forEach((r: any) => {
+      Object.entries(r.annotators).forEach(([k, v]) => {
+        const ann = {
+          annotator: k,
+          start: r.start,
+          end: r.end,
+          text: r.text,
+          value: v,
+        };
+
+        rowsAnnotations.push(
+          documents.length != 1
+            ? {
+                document: r.doc_id + "-" + documentsData[r.doc_id].name,
+                ...ann,
+              }
+            : ann
+        );
+      });
+    });
+    // break;
+  } catch (error) {
+    timeout--;
+    console.log("FAILED", error);
+  }
+  // }
+
+  if (annotators.length > 2) {
+    for (let i = 0; i < annotators.length; i++) {
+      for (let j = i + 1; j < annotators.length; j++) {
+        let ck_timeout = 100;
+        // while (true) {
+        try {
+          const metric_body = JSON.stringify({
+            task_id: task_id,
+            label: label,
+            documents: documents,
+            annotators: [annotators[i], annotators[j]],
+            annotatorsOrEmpty: [annotators[i], annotators[j]],
+            tolerance: tolerance,
+            byWords: byWords,
+            hideNonText: hideNonText,
+            contained: contained,
+            documentsData: documentsData,
+            documentsOptions: documentsOptions,
+          });
+
+          const ck_metrics = await $fetch("/api/metrics/get_metrics", {
+            method: "POST",
+            body: metric_body,
+          });
+
+          ck_metrics.map((m) => {
+            if (m.name == "cohens_kappa") {
+              rowsMetrics.push({
+                metric: m.name,
+                annotators: annotators[i] + "," + annotators[j],
+                value: m.result,
+                p0: m.po,
+                pe: m.pe,
+                tolerance: tolerance,
+                consider_contained: contained ? "yes" : "no",
+              });
+            }
+          });
+          // break;
+        } catch (error) {
+          ck_timeout--;
+          console.log("FAILED", error);
+        }
+        // }
+      }
+    }
+  }
+
+  const worksheetMetrics = XLSX.utils.json_to_sheet(rowsMetrics);
+  const worksheetAnnotations = XLSX.utils.json_to_sheet(rowsAnnotations);
+  return [worksheetMetrics, worksheetAnnotations];
+}
+
+function getZippeableBlob(workBook: XLSX.WorkBook) {
+  const b64Data = XLSX.write(workBook, {
+    bookType: "xlsx",
+    type: "base64",
+    compression: true,
+  });
+
+  const contentType = "application/octet-stream";
+
+  return `data:${contentType};base64,${b64Data}`;
+}
 
 const canMergeUp = (index: number): Boolean => {
   return (
@@ -887,6 +1105,7 @@ button:disabled {
 .list-leave-active {
   transition: all 0.5s ease;
 }
+
 .list-enter-from,
 .list-leave-to {
   opacity: 0;

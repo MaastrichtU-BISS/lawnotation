@@ -16,12 +16,20 @@
       },
     ]"
   />
-
+  <span v-if="loading">LOADING...</span>
   <div v-if="task">
     <div v-show="assignmentTable?.total">
       <div class="text-center my-3">
         <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
-          <button class="base btn-primary">Analyze Agreement Metrics</button>
+          <button class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
+            Analyze Agreement Metrics
+          </button>
+          <button
+            class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+            @click="replicateTask"
+          >
+            Replicate Task
+          </button>
         </NuxtLink>
       </div>
       <h3 class="my-3 text-lg font-semibold">Assignments</h3>
@@ -121,7 +129,7 @@ import {
   Project
 } from "~/types";
 import Table from "~/components/Table.vue"
-import { shuffle } from "lodash";
+import { shuffle, clone } from "lodash";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -159,7 +167,7 @@ const createAssignments = async () => {
 
     const new_assignments: Pick<Assignment, "task_id" | "document_id">[] = [];
 
-    // Create shared assignments (only with docs info, no users yet)
+    // Create shared assignments (only with docs info)
     for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
       for (let j = 0; j < annotators_email.length; ++j) {
         const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
@@ -170,7 +178,7 @@ const createAssignments = async () => {
       }
     }
 
-    // Create unique assignments (only with docs info, no users yet)
+    // Create unique assignments (only with docs info)
     for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
       const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
         task_id: task.value!.id,
@@ -178,10 +186,6 @@ const createAssignments = async () => {
       };
       new_assignments.push(new_assignment);
     }
-
-    const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
-      new_assignments
-    );
 
     // Get Users
     const usersPromises: Promise<User>[] = [];
@@ -207,22 +211,24 @@ const createAssignments = async () => {
 
     const permutations = [];
     for (let i = 0; i < annotators_id.length; ++i) {
-      permutations.push(shuffle(unshuffled));
+      permutations.push(shuffle(clone(unshuffled)));
     }
 
-    const assignmentsPromises: Promise<Assignment>[] = [];
-    for (let i = 0; i < created_assignments.length; ++i) {
-      created_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
-      created_assignments[i].seq_pos = permutations[i % annotators_id.length].pop() ?? 0 + 1;
-      assignmentsPromises.push(
-        $trpc.assignment.update.mutate({
-          id: created_assignments[i].id,
-          updates: created_assignments[i]
-        })
-      );
-    }
+    for (let i = 0; i < new_assignments.length; ++i) {
+      // new_assignments[i] = {
+      //   ...new_assignments[i],
+      //   annotator_id: annotators_id[i % annotators_id.length],
+      //   seq_pos: (permutations[i % annotators_id.length].pop() ?? 0) + 1
+      // } as Assignment
 
-    const updated_assignments = await Promise.all(assignmentsPromises);
+      // @ts-expect-error
+      new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
+      // @ts-expect-error
+      new_assignments[i].seq_pos = (permutations[i % annotators_id.length].pop() ?? 0) + 1;
+    }
+    
+    const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(new_assignments);
+
     assignmentTable.value?.refresh();
     loading.value = false;
     $toast.success("Assignments successfully created");
@@ -245,6 +251,13 @@ const removeAllAssignments = async () => {
   await $trpc.assignment.deleteAllFromTask.mutate(task.value.id);
   await assignmentTable.value?.refresh();
   $toast.success("Assignments successfully deleted!");
+};
+
+const replicateTask = async () => {
+  loading.value = true;
+  const new_task = await $trpc.task.replicateTask.mutate(+task.value?.id!);
+  loading.value = false;
+  $toast.success(`Task successfully replicated! ${new_task.id}`);
 };
 
 onMounted(async () => {
