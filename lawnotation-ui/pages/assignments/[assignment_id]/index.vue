@@ -132,7 +132,7 @@ onMounted(async () => {
 });
 
 definePageMeta({
-  middleware: ["auth", "assignment"],
+  middleware: ["auth"],
   layout: "wide",
 });
 </script>
