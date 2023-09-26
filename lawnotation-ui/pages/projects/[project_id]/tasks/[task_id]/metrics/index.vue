@@ -378,6 +378,7 @@ import Dimmer from "~/components/Dimmer.vue";
 // const FileSaver = require("file-saver");
 import { saveAs } from "file-saver";
 import JSZip, { file } from "jszip";
+import { RangeLabel } from "~/utils/metrics";
 
 const config = useRuntimeConfig();
 const { $toast } = useNuxtApp();
@@ -774,10 +775,6 @@ const clickDownloadAll = async () => {
   }
 };
 
-async function intraAnnAgreement() {
-  const annotations = await getAnnotations();
-}
-
 // async function compute_all_json(data: any) {
 //   let results: { name: string; value: any }[] = [];
 //   download_progress.value.current = 0;
@@ -989,9 +986,8 @@ async function download_all(data: any) {
   let results: { wb: string; name: string }[] = [];
   download_progress.value.current = 0;
   download_progress.value.total =
-    selectedDocuments.value.length * labelsOptions.length * 2 +
-    labelsOptions.length * 2 +
-    selectedDocuments.value.length;
+    (selectedDocuments.value.length + 1) * labelsOptions.length * 3 +
+    (selectedDocuments.value.length + 1);
   try {
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
@@ -999,7 +995,7 @@ async function download_all(data: any) {
       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
       // per document confidence
       try {
-        const workBookConfidence = await getConfidenceXlslTab(
+        const workBookConfidence = await getConfidenceSheet(
           data.task_id,
           data.annotators.length,
           data.annotatorOrEmpty,
@@ -1017,10 +1013,11 @@ async function download_all(data: any) {
       }
       const workbookMetrics = XLSX.utils.book_new();
       const workbookAnnotations = XLSX.utils.book_new();
+      const workbookDescriptive = XLSX.utils.book_new();
       for (let j = 0; j < data.labelsOptions.length; j++) {
         // per document metrics
         const label = data.labelsOptions[j];
-        const sheets: XLSX.WorkSheet[] = await getXlslTab(
+        const metrics = await compute_metrics(
           data.task_id,
           label,
           [document],
@@ -1033,9 +1030,19 @@ async function download_all(data: any) {
           data.documentsData,
           data.documentsOptions
         );
-        XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-        XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-        download_progress.value.current += 2;
+
+        const metrics_sheet = await getMetricsSheet(metrics, label, [document], data);
+
+        const annotations_sheet = await getAnnotationsSheet(metrics[0].table!);
+        const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
+          metrics[0].table!,
+          data.annotators
+        );
+        XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label);
+        XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label);
+        XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label);
+
+        download_progress.value.current += 3;
       }
 
       results.push({
@@ -1047,11 +1054,16 @@ async function download_all(data: any) {
         wb: getZippeableBlob(workbookAnnotations),
         name: `${filename}_annotations.xlsx`,
       });
+
+      results.push({
+        wb: getZippeableBlob(workbookDescriptive),
+        name: `${filename}_descriptive.xlsx`,
+      });
     }
 
     // All confidence
     try {
-      const workBookConfidence = await getConfidenceXlslTab(
+      const workBookConfidence = await getConfidenceSheet(
         data.task_id,
         data.annotators.length,
         data.annotatorOrEmpty,
@@ -1068,9 +1080,10 @@ async function download_all(data: any) {
     // All metrics
     const workbookMetrics = XLSX.utils.book_new();
     const workbookAnnotations = XLSX.utils.book_new();
+    const workbookDescriptive = XLSX.utils.book_new();
     for (let i = 0; i < data.labelsOptions.length; i++) {
       const label = data.labelsOptions[i];
-      const sheets = await getXlslTab(
+      const metrics = await compute_metrics(
         data.task_id,
         label,
         data.documentsOrEmpty,
@@ -1083,151 +1096,150 @@ async function download_all(data: any) {
         data.documentsData,
         data.documentsOptions
       );
-      XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-      XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-      download_progress.value.current += 2;
+      const metrics_sheet = await getMetricsSheet(
+        metrics,
+        label,
+        data.documentsOrEmpty,
+        data
+      );
+      const annotations_sheet = await getAnnotationsSheet(metrics[0].table!);
+      const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
+        metrics[0].table!,
+        data.annotators
+      );
+
+      XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label);
+      XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label);
+      XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label);
+
+      download_progress.value.current += 3;
     }
     results.push({
       wb: getZippeableBlob(workbookMetrics),
       name: `_metrics.xlsx`,
     });
-
     results.push({
       wb: getZippeableBlob(workbookAnnotations),
       name: `_annotations.xlsx`,
     });
+    results.push({
+      wb: getZippeableBlob(workbookDescriptive),
+      name: `_descriptive.xlsx`,
+    });
+
     return results;
   } catch (error) {}
   return [];
 }
 
-async function getXlslTab(
-  task_id: string,
+async function getMetricsSheet(
+  metrics: MetricResult[],
   label: string,
   documents: string[],
-  annotators: string[],
-  annotatorsOrEmpty: string[],
-  tolerance: number,
-  byWords: boolean,
-  hideNonText: boolean,
-  contained: boolean,
-  documentsData: any,
-  documentsOptions: string[]
+  data: any
 ) {
-  const rowsMetrics: any[] = [];
-  const rowsAnnotations: any[] = [];
+  let rows: any[] = [];
 
-  try {
-    // for (let i = 0; i < annotators.length; i++) {
-    const metric_body = JSON.stringify({
-      task_id: task_id,
-      label: label,
-      documents: documents,
-      annotators: annotators,
-      annotatorsOrEmpty: annotatorsOrEmpty,
-      // annotators: [annotators[i]],
-      // annotatorsOrEmpty: [annotators[i]],
-      tolerance: tolerance,
-      byWords: byWords,
-      hideNonText: hideNonText,
-      contained: contained,
-      documentsData: documentsData,
-      documentsOptions: documentsOptions,
-    });
-    const metrics = await $fetch("/api/metrics/get_metrics", {
-      method: "POST",
-      body: metric_body,
-    });
-    console.log("XXX");
-    metrics.map((m) => {
-      if (m.result !== undefined)
-        rowsMetrics.push({
-          metric: m.name,
-          annotators: annotators.length > 2 ? "all" : annotators.join(","),
-          // annotators: "90-" + annotators[i] + "," + "153-" + annotators[i],
-          value: m.result,
-          p0: m.po,
-          pe: m.pe,
-          tolerance: tolerance,
-          consider_contained: contained ? "yes" : "no",
+  metrics.map((m) => {
+    if (m.result !== undefined)
+      rows.push({
+        metric: m.name,
+        annotators: data.annotators.join(","),
+        value: m.result,
+        p0: m.po,
+        pe: m.pe,
+        tolerance: data.tolerance,
+        consider_contained: data.contained ? "yes" : "no",
+      });
+  });
+
+  if (data.annotators.length > 2) {
+    for (let i = 0; i < data.annotators.length; i++) {
+      for (let j = i + 1; j < data.annotators.length; j++) {
+        const metrics = await compute_metrics(
+          data.task_id,
+          label,
+          documents,
+          [data.annotators[i], data.annotators[j]],
+          [data.annotators[i], data.annotators[j]],
+          data.tolerance,
+          data.byWords,
+          data.hideNonText,
+          data.contained,
+          data.documentsData,
+          data.documentsOptions
+        );
+
+        metrics.map((m) => {
+          if (m.result !== undefined)
+            rows.push({
+              metric: m.name,
+              annotators: data.annotators.join(","),
+              value: m.result,
+              p0: m.po,
+              pe: m.pe,
+              tolerance: data.tolerance,
+              consider_contained: data.contained ? "yes" : "no",
+            });
         });
-    });
-    const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
-    // const tables = metrics[2].table;
-    tables?.forEach((r: any) => {
+      }
+    }
+  }
+
+  return XLSX.utils.json_to_sheet(rows);
+}
+
+async function getAnnotationsSheet(table: RangeLabel[]) {
+  let rows: any[] = [];
+  if (table) {
+    table.map((r: RangeLabel) => {
       Object.entries(r.annotators).forEach(([k, v]) => {
-        const ann = {
+        rows.push({
+          document: r.doc_id + "-" + r.doc_name,
           annotator: k,
           start: r.start,
           end: r.end,
           text: r.text,
           value: v,
-        };
-
-        rowsAnnotations.push(
-          documents.length != 1
-            ? {
-                document: r.doc_id + "-" + documentsData[r.doc_id].name,
-                ...ann,
-              }
-            : ann
-        );
+        });
       });
     });
-    // }
-  } catch (error) {
-    console.log("FAILED", error);
   }
 
-  if (annotators.length > 2) {
-    for (let i = 0; i < annotators.length; i++) {
-      for (let j = i + 1; j < annotators.length; j++) {
-        try {
-          const metric_body = JSON.stringify({
-            task_id: task_id,
-            label: label,
-            documents: documents,
-            annotators: [annotators[i], annotators[j]],
-            annotatorsOrEmpty: [annotators[i], annotators[j]],
-            tolerance: tolerance,
-            byWords: byWords,
-            hideNonText: hideNonText,
-            contained: contained,
-            documentsData: documentsData,
-            documentsOptions: documentsOptions,
-          });
-
-          const ck_metrics = await $fetch("/api/metrics/get_metrics", {
-            method: "POST",
-            body: metric_body,
-          });
-
-          ck_metrics.map((m) => {
-            if (m.name == "cohens_kappa") {
-              rowsMetrics.push({
-                metric: m.name,
-                annotators: annotators[i] + "," + annotators[j],
-                value: m.result,
-                p0: m.po,
-                pe: m.pe,
-                tolerance: tolerance,
-                consider_contained: contained ? "yes" : "no",
-              });
-            }
-          });
-        } catch (error) {
-          console.log("FAILED", error);
-        }
-      }
-    }
-  }
-
-  const worksheetMetrics = XLSX.utils.json_to_sheet(rowsMetrics);
-  const worksheetAnnotations = XLSX.utils.json_to_sheet(rowsAnnotations);
-  return [worksheetMetrics, worksheetAnnotations];
+  return XLSX.utils.json_to_sheet(rows);
 }
 
-async function getConfidenceXlslTab(
+async function getDescriptiveAnnotatorSheet(table: RangeLabel[], annotators: string[]) {
+  let rows: any[] = [];
+  let dic: any = {};
+  let nanns: number = 0;
+  annotators.map((a) => {
+    dic[a] = { amount: 0, na_amount: 0 };
+  });
+  if (table) {
+    table.map((r: RangeLabel) => {
+      Object.entries(r.annotators).forEach(([k, v]) => {
+        if (v) {
+          dic[k]["amount"]++;
+        }
+      });
+      if (r.label == "NOT ANNOTATED") {
+        nanns++;
+      }
+    });
+    Object.entries(dic).forEach(([k, v]) => {
+      rows.push({
+        annotator: k,
+        annotations: dic[k]["amount"],
+        non_annotations: nanns,
+      });
+    });
+  }
+
+  return XLSX.utils.json_to_sheet(rows);
+}
+
+async function getConfidenceSheet(
   task_id: string,
   annotators_length: number,
   annotators: string[],
