@@ -93,6 +93,8 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
 
         const { data, error, count } = await query;
 
+        // console.log(filter)
+
         if (error)
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
