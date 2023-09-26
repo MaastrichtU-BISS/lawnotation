@@ -22,7 +22,14 @@ export const authorizeClient: <TRouter extends keyof DecoratedRouter>(
 	    const code = query.error.value.data?.httpStatus
         ? query.error.value.data.httpStatus
         : 404;
-      throw createError({statusCode: code})
+
+      if (process.client) {
+        const app = useNuxtApp();
+        if (app.payload.serverRendered && !app.isHydrating)
+          app.$toast.error("The request page is not found")
+      }
+	
+      return createError({statusCode: code})
     }
 		pageObject[router] = query.data.value;
 	}
