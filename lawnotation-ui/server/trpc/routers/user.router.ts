@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
-import { protectedProcedure, publicProcedure, router } from '~/server/trpc'
+import { authorizer, protectedProcedure, publicProcedure, router } from '~/server/trpc'
 import { User } from '~/types';
 
 // const ZUserFields = z.object({
@@ -87,6 +87,20 @@ export const userRouter = router({
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.inviteUser: ${error.message}`});
       return data;
     }),
+  'generateLink': protectedProcedure
+    .input(
+      z.string().email()
+    )
+    .use(opts => authorizer(opts, async () => false))
+    .query(async ({ctx, input: email}) => {
+      const client = ctx.getSupabaseServiceRoleClient();
+      const { data, error } = await client.auth.admin.generateLink({
+        type: "magiclink",
+        email: email,
+        // options: { redirectTo: body.redirectTo },
+      });
+      return { data, error };
+    }),
 
   'otpLogin': publicProcedure
     .input(
@@ -105,7 +119,7 @@ export const userRouter = router({
       
       const user = await ctx.supabase.from("users").select().eq("email", input.email).single();
       return { user: user.data }
-    })
+    }),
     
 })
 

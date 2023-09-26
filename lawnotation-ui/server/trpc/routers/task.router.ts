@@ -1,7 +1,9 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-import { Task } from '~/types';
+import { Annotation, Task } from '~/types';
+import { appRouter } from '.';
+import { Database } from '~/types/supabase';
 
 const ZTaskFields = z.object({
   name: z.string(),
@@ -123,7 +125,101 @@ export const taskRouter = router({
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in tasks.delete: ${error.message}`});
       return true;
+    }),
+
+  // Note: wont work, probably
+  'replicateTask': protectedProcedure 
+    .input(
+      z.number().int()
+    )
+    .mutation(async ({ctx, input: task_id}): Promise<Task> => {
+
+      const caller = appRouter.createCaller(ctx);
+      
+      
+
+      // const annotationApi = useAnnotationApi();
+      // const assignmentApi = useAssignmentApi();
+      // const relationApi = useAnnotationRelationApi();
+  
+      const task = await caller.task.findById(task_id);
+      const new_task = await caller.task.create({
+        name: task.name,
+        desc: task.desc,
+        project_id: task.project_id,
+        ann_guidelines: task.ann_guidelines,
+        labelset_id: task.labelset_id,
+      });
+  
+      const assignments = await caller.assignment.findAssignmentsByTask(task_id);
+      const new_assignments = await caller.assignment.createMany(
+        assignments.map((a) => {
+          return {
+            task_id: new_task.id,
+            annotator_id: a.annotator_id,
+            document_id: a.document_id,
+            seq_pos: a.seq_pos,
+            status: a.status,
+            difficulty_rating: a.difficulty_rating,
+          };
+        })
+      );
+  
+      let dicAssignments: any = {};
+      new_assignments.map((na, index) => {
+        dicAssignments[assignments[index].id] = na.id;
+      });
+
+      type NonNullableObject<T> = {
+        [K in keyof T]: NonNullable<T[K]>;
+      };
+  
+      console.log(assignments.length, new_assignments.length);
+  
+      const annotations = await caller.annotation.findAnnotationsByTask(task_id);
+  
+      const new_annotations = await caller.annotation.createMany(
+        annotations.map((a) => {
+          return {
+            assignment_id: dicAssignments[a.assignment_id!]!,
+            label: a.label!,
+            start_index: a.start_index!,
+            end_index: a.end_index!,
+            text: a.text!,
+            ls_id: a.ls_id!,
+            origin: a.origin!,
+          };
+        })
+      );
+  
+      console.log(annotations.length, new_annotations.length);
+  
+      const relations = await caller.relation.findRelationsByTask(task_id);
+  
+      let dicAnnotations: any = {};
+      new_annotations.map((na, index) => {
+        dicAnnotations[annotations[index].id] = na.id;
+      });
+  
+      const new_relations = await caller.relation.createMany(
+        relations.map((a) => {
+          return {
+            direction: a.direction!,
+            from_id: dicAnnotations[a.from_id]!,
+            to_id: dicAnnotations[a.to_id]!,
+            labels: a.labels!,
+            ls_from: a.ls_from!,
+            ls_to: a.ls_to!,
+          };
+        })
+      );
+  
+      console.log(relations.length, new_relations.length);
+
+      // return 1;
+      return new_task;
     })
+
 })
 
 export type LabelsetRouter = typeof taskRouter

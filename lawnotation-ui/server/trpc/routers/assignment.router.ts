@@ -170,7 +170,8 @@ export const assignmentRouter = router({
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
-        .eq("task_id", task_id);
+        .eq("task_id", task_id)
+        .order("id", { ascending: true });
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAssignmentsByTask: ${error.message}`});

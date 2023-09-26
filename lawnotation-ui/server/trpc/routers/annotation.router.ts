@@ -67,6 +67,18 @@ export const annotationRouter = router({
       return data as Annotation;
     }),
 
+  'createMany': protectedProcedure
+    .input(
+      z.array(ZAnnotationFields)
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { data, error } = await ctx.supabase.from("annotations").insert(input).select();
+      
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in annotation.create: ${error.message}`});
+      return data as Annotation[];
+    }),
+
   'update': protectedProcedure
     .input(
       z.object({
@@ -98,17 +110,17 @@ export const annotationRouter = router({
   'findAnnotationsByTaskLabelDocumentsAnnotators': protectedProcedure
     .input(
       z.object({
-      task_id: z.string(),
-      label: z.string(),
-      documents: z.array(z.string()),
-      annotators: z.array(z.string())
+        task_id: z.string(),
+        label: z.string(),
+        documents: z.array(z.string()),
+        annotators: z.array(z.string())
       })
     )
     .query(async ({ctx, input}) => {
       let query = ctx.supabase
         .from("annotations")
         .select(
-          "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, full_text, name), annotator:users!inner(email))"
+          "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
         )
         .eq("assignments.task_id", input.task_id)
         .eq("label", input.label);
@@ -133,6 +145,7 @@ export const annotationRouter = router({
             hidden: false,
             ann_id: ann.id,
             doc_id: ann.assignment?.document_id,
+            doc_name: ann.assignment?.document?.name,
           };
         });
       }
@@ -163,8 +176,22 @@ export const annotationRouter = router({
       return data;
     }),
 
+  'findAnnotationsByTask': protectedProcedure
+    .input(
+      z.number().int()
+    )
+    .query(async ({ ctx, input: task_id }) => {
+      const { data, error } = await ctx.supabase
+        .from("annotations")
+        .select("*, assignment:assignments!inner(id, task_id)")
+        .eq("assignment.task_id", task_id)
+        .order("id");
 
-
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`});
+      return data;
+    }),
+  
   'updateAssignmentAnnotations': protectedProcedure
     .input(
       z.object({

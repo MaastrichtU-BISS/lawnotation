@@ -52,6 +52,19 @@ export const relationRouter = router({
       return data as AnnotationRelation;
     }),
 
+  'createMany': protectedProcedure
+    .input(
+      z.array(ZRelationFields)
+    )
+    .mutation(async ({ ctx, input }) => {
+      // const converted_input = convert_relation_ls2db(input.fields, input.from_id, input.to_id)
+      const { data, error } = await ctx.supabase.from("annotation_relations").insert(input).select();
+
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in create: ${error.message}`});
+      return data as AnnotationRelation[];
+    }),
+
   'findById': protectedProcedure
     .input(
       z.number().int()
@@ -62,6 +75,23 @@ export const relationRouter = router({
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findById: ${error.message}`});
       return data as AnnotationRelation;
+    }),
+
+  'findRelationsByTask': protectedProcedure
+    .input(
+      z.number().int()
+    )
+    .query(async ({ctx, input: task_id}) => {
+      const { data, error } = await ctx.supabase
+        .from("annotation_relations")
+        .select(
+          "*, annotation:from_id!inner(id, assignment:assignments!inner(id, task_id))"
+        )
+        .eq("from_id.assignments.task_id", task_id);
+
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findRelationsByTask: ${error.message}`});
+      return data as AnnotationRelation[];
     }),
 
   // previously 'findRelation':
