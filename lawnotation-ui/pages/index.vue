@@ -12,14 +12,12 @@ const role = ref<string>();
 const { $trpc } = useNuxtApp();
 
 onMounted(async () => {
-  if (user.value) {
-    role.value = (await $trpc.user.findByEmail.query(user.value.email!)).role!;
-  } else {
-    watch(user, async () => {
-      if (user.value) {
-        role.value = (await $trpc.user.findByEmail.query(user.value.email!)).role!;
-      }
-    });
-  }
+  role.value = (await $trpc.user.findByEmail.query(user.value!.email!)).role!;
 });
+
+definePageMeta({
+  name: 'index',
+  middleware: ['auth']
+})
 </script>
+

@@ -30,7 +30,7 @@ const isAuthenticated = t.middleware(({ next, ctx }) => {
 
 type MiddlewareOptsParam = Parameters<Parameters<typeof middleware>[0]>[0]
 export const authorizer = async <T extends MiddlewareOptsParam>(opts: T, resolver: undefined | ((opts: T) => Promise<boolean>)) => {
-  console.log(opts.ctx.user)
+  // console.log(opts.ctx.user)
 
   try {
     let authorized = false;

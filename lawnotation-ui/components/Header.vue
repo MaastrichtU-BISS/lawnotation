@@ -31,7 +31,7 @@ const user = useSupabaseUser();
 const { $trpc } = useNuxtApp();
 
 const route = useRoute();
-const role = ref<string>();
+const role = ref<string>((await $trpc.user.findByEmail.query(user.value!.email!)).role);
 
 const routeIsActive = computed(() => {
   return (match: string) => {
@@ -40,15 +40,6 @@ const routeIsActive = computed(() => {
 })
 
 onMounted(async () => {
-  if (user.value) {
-    role.value = (await $trpc.user.findByEmail.query(user.value.email!)).role!;
-  } else {
-    watch(user, async () => {
-      if (user.value) {
-        role.value = (await $trpc.user.findByEmail.query(user.value.email!)).role!;
-      }
-    });
-  }
 });
 </script>
 
