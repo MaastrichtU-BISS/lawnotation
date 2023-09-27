@@ -5,11 +5,15 @@ import {
   separateIntoWords,
 } from "~/utils/metrics";
 import { RichAnnotation, Document } from "~/types";
+import { Database } from "~/types/supabase";
+import { H3Event } from "h3";
+
+type DocDic = Record<number, {full_text: string, name: string}>
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
 
-  const documentsDataPromise: Promise<any> = getDocuments(
+  const documentsDataPromise = getDocuments(
     event,
     data.task_id,
     data.documents
@@ -48,8 +52,8 @@ export default eventHandler(async (event) => {
 
 async function getNonAnnotations(
   annotations: RichAnnotation[],
-  documentsData: any,
-  documentsOptions: string[]
+  documentsData: DocDic,
+  documentsOptions: number[]
 ) {
   if (!annotations || !annotations.length) return [];
   sortByDocumentAndRange(annotations);
@@ -62,7 +66,7 @@ async function getNonAnnotations(
     // new document
     if (previous_ann.doc_id != current_ann.doc_id) {
       docs_index++;
-      if (last_end < documentsData[previous_ann.doc_id].full_text.length) {
+      if (documentsData[current_ann.doc_id] && last_end < documentsData[previous_ann.doc_id].full_text.length) {
         new_annotations.push({
           start: last_end,
           end: documentsData[previous_ann.doc_id].full_text.length,
@@ -82,7 +86,7 @@ async function getNonAnnotations(
     }
 
     // doc(s) without annotations
-    var next_doc_id = documentsOptions[docs_index];
+    let next_doc_id = documentsOptions[docs_index];
     while (next_doc_id < current_ann.doc_id) {
       new_annotations.push({
         start: 0,
@@ -99,6 +103,8 @@ async function getNonAnnotations(
     }
 
     if (last_end < current_ann.start) {
+      if (!documentsData[current_ann.doc_id])
+        continue;
       new_annotations.push({
         start: last_end,
         end: current_ann.start,
@@ -120,7 +126,7 @@ async function getNonAnnotations(
     previous_ann = current_ann;
   }
 
-  if (last_end < documentsData[previous_ann.doc_id].full_text.length) {
+  if (documentsData[previous_ann.doc_id] && last_end < documentsData[previous_ann.doc_id].full_text.length) {
     new_annotations.push({
       start: last_end,
       end: documentsData[previous_ann.doc_id].full_text.length,
@@ -146,8 +152,8 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   label: string,
   documents: string[] | undefined,
   annotators: string[] | undefined
-): Promise<any> {
-  const supabase = serverSupabaseClient(event);
+): Promise<RichAnnotation[]> {
+  const supabase = serverSupabaseClient<Database>(event);
   let query = supabase
     .from("annotations")
     .select(
@@ -172,22 +178,22 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
       return {
         start: ann.start_index,
         end: ann.end_index,
-        text: ann.text.replaceAll("\\n", ""),
+        text: ann.text!.replaceAll("\\n", ""),
         label: ann.label,
-        annotator: ann.assignment.annotator.email,
+        annotator: ann.assignment!.annotator!.email,
         hidden: false,
         ann_id: ann.id,
-        doc_id: ann.assignment.document_id,
-        doc_name: ann.assignment.document.name,
-      };
+        doc_id: ann.assignment!.document_id,
+        doc_name: ann.assignment!.document!.name,
+      } as RichAnnotation;
     });
   }
 }
 
-async function getDocuments(event: any, task_id: string, documents: string[]) {
-  const supabase = serverSupabaseClient(event);
-  let list: string[] = [];
-  let dic: any = {};
+async function getDocuments(event: H3Event, task_id: number, documents: number[]) {
+  const supabase = serverSupabaseClient<Database>(event);
+  let list: number[] = [];
+  let dic: DocDic = {};
   let query = supabase.rpc("get_all_shared_docs_from_task", {
     t_id: task_id,
   });
@@ -199,22 +205,24 @@ async function getDocuments(event: any, task_id: string, documents: string[]) {
   if (error) {
     throw new Error(error.message);
   } else {
-    (data as Document[]).map((d: Document) => {
-      list.push(d.id.toString());
+    (data).map((d) => {
+      list.push(d.id);
       if (!(d.id in dic)) {
-        dic[d.id] = { full_text: d.full_text, name: d.name };
+        dic[d.id] = { full_text: d.full_text ?? '', name: d.name ?? '' };
       }
     });
   }
 
-  return [dic, list];
+  return [dic, list] as [DocDic, number[]];
 }
 
+// Bottom function is not used:
+/*
 const findAnnotationsByTask = async (
   event: any,
   task_id: string
 ): Promise<any> => {
-  const supabase = serverSupabaseClient(event);
+  const supabase = serverSupabaseClient<Database>(event);
   let query = supabase
     .from("annotations")
     .select(
@@ -239,7 +247,8 @@ const findAnnotationsByTask = async (
         ann_id: ann.id,
         doc_id: ann.assignment.document_id,
         doc_name: ann.assignment.document.name,
-      };
+      } as RichAnnotation;
     });
   }
 };
+*/
