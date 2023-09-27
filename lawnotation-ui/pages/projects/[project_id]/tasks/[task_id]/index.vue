@@ -21,6 +21,7 @@
     <div class="dimmer-wrapper">
       <Dimmer v-model="assignmentTable.loading" />
       <div class="dimmer-content">
+        <!-- <button @click="changeDocId">change</button> -->
         <div v-show="assignmentTable.total">
           <div class="text-center my-3">
             <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
@@ -297,6 +298,25 @@ const replicateTask = async () => {
   const new_task = await taskApi.replicateTask(task.value?.id.toString()!);
   assignmentTable.loading = false;
   $toast.success(`Task successfully replicated! ${new_task.id}`);
+};
+
+const changeDocId = async () => {
+  assignmentTable.loading = true;
+  const from_task_id = "93";
+  const from_project_id = "90";
+
+  const to_task_id = "153";
+  const to_project_id = "82";
+
+  const assignments = await assignmentApi.findAssignmentsByTask(from_task_id);
+  for (let i = 0; i < assignments.length; i++) {
+    const ass = assignments[i];
+    const doc = await documentApi.findDocument(ass.document_id.toString());
+    const new_doc = await documentApi.findByNameAndProject(doc.name, to_project_id);
+    await assignmentApi.updateAssignment(ass.id.toString()!, { document_id: new_doc.id });
+  }
+  assignmentTable.loading = false;
+  $toast.success(`Done!`);
 };
 
 onMounted(async () => {

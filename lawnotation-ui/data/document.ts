@@ -56,6 +56,21 @@ export const useDocumentApi = () => {
     else return data as Document[];
   };
 
+  const findByNameAndProject = async (
+    name: string,
+    project_id: string
+  ): Promise<Document> => {
+    const { data, error } = await supabase
+      .from("documents")
+      .select()
+      .eq("project_id", project_id)
+      .eq("name", name)
+      .single();
+
+    if (error) throw Error(`Error in findByNameAndProject: ${error.message}`);
+    else return data as Document;
+  };
+
   // Read all
   const findSharedDocumentsByTask = async (
     task_id: string
@@ -160,6 +175,7 @@ export const useDocumentApi = () => {
     createDocuments,
     findDocument,
     findDocuments,
+    findByNameAndProject,
     findSharedDocumentsByTask,
     tableDocuments,
     takeUpToNRandomDocuments,

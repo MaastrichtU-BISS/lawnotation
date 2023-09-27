@@ -1020,7 +1020,11 @@ async function download_all(data: any) {
     for (let i = 0; i < data.labelsOptions.length; i++) {
       const label = data.labelsOptions[i];
 
-      const sheets = await getMetricsSheetAndAnnotations(label, data.documents, data);
+      const sheets = await getMetricsSheetAndAnnotations(
+        label,
+        data.documentsOrEmpty,
+        data
+      );
 
       XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
       XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
@@ -1071,7 +1075,7 @@ async function getMetricsSheetAndAnnotations(
     if (m.result !== undefined)
       rows_m.push({
         metric: m.name,
-        annotators: `90-${annotator}, 153-${annotator}`,
+        annotators: `${task.value?.id}-${annotator}, 153-${annotator}`,
         value: m.result,
         p0: m.po,
         pe: m.pe,
