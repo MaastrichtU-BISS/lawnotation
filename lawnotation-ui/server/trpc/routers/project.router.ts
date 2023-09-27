@@ -10,7 +10,7 @@ const ZProjectFields = z.object({
   editor_id: z.string()
 });
 
-const projectAuthorizer = async (project_id: number, user_id: string, ctx: Context): boolean => {
+const projectAuthorizer = async (project_id: number, user_id: string, ctx: Context) => {
   const {count} = await ctx.supabase
     .from("projects")
     .select('*', {count: 'exact', head: true})
