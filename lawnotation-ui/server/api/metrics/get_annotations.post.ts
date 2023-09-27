@@ -19,8 +19,7 @@ export default eventHandler(async (event) => {
   const annotationsPromise: Promise<RichAnnotation[]> =
     findAnnotationsByTaskLabelDocumentsAnnotators(
       event,
-      data.task_id,
-      // [data.task_id, "153"],
+      [data.task_id, "153"],
       data.label,
       data.documents,
       data.annotators
@@ -144,8 +143,7 @@ async function getNonAnnotations(
 // DB
 async function findAnnotationsByTaskLabelDocumentsAnnotators(
   event: any,
-  task_id: string,
-  // task_id: string[],
+  task_id: string[],
   label: string,
   documents: string[] | undefined,
   annotators: string[] | undefined
@@ -156,8 +154,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
     .select(
       "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
     )
-    .eq("assignments.task_id", task_id)
-    // .in("assignments.task_id", task_id)
+    .in("assignments.task_id", task_id)
     .eq("label", label);
 
   if (documents && documents.length > 0)
@@ -178,9 +175,8 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
         end: ann.end_index,
         text: ann.text,
         label: ann.label,
-        annotator: ann.assignment.annotator.email,
-        // annotator:
-        //   ann.assignment.task_id + "-" + ann.assignment.annotator.email,
+        annotator:
+          ann.assignment.task_id + "-" + ann.assignment.annotator.email,
         hidden: false,
         ann_id: ann.id,
         doc_id: ann.assignment.document_id,

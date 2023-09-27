@@ -546,7 +546,6 @@ const getAnnotations = async (
     byWords: byWords,
     hideNonText: hideNonText,
   });
-
   return $fetch("/api/metrics/get_annotations", {
     method: "POST",
     body: body,
@@ -986,65 +985,24 @@ async function download_all(data: any) {
   let results: { wb: string; name: string }[] = [];
   download_progress.value.current = 0;
   download_progress.value.total =
-    (selectedDocuments.value.length + 1) * labelsOptions.length * 3 +
-    (selectedDocuments.value.length + 1);
+    (selectedDocuments.value.length + 1) * labelsOptions.length;
   try {
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
-      // per document confidence
-      try {
-        const workBookConfidence = await getConfidenceSheet(
-          data.task_id,
-          data.annotators.length,
-          data.annotatorOrEmpty,
-          [document]
-        );
 
-        results.push({
-          wb: getZippeableBlob(workBookConfidence),
-          name: `${filename}_confidence.xlsx`,
-        });
-
-        download_progress.value.current++;
-      } catch (error) {
-        console.log(error);
-      }
       const workbookMetrics = XLSX.utils.book_new();
       const workbookAnnotations = XLSX.utils.book_new();
-      const workbookDescriptive = XLSX.utils.book_new();
       for (let j = 0; j < data.labelsOptions.length; j++) {
-        // per document metrics
         const label = data.labelsOptions[j];
-        const metrics = await compute_metrics(
-          data.task_id,
-          label,
-          [document],
-          data.annotators,
-          data.annotatorsOrEmpty,
-          data.tolerance,
-          data.byWords,
-          data.hideNonText,
-          data.contained,
-          data.documentsData,
-          data.documentsOptions
-        );
 
-        const metrics_sheet = await getMetricsSheet(metrics, label, [document], data);
+        const sheets = await getMetricsSheetAndAnnotations(label, [document], data);
+        XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
+        XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
 
-        const annotations_sheet = await getAnnotationsSheet(metrics[0].table!);
-        const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
-          metrics[0].table!,
-          data.annotators
-        );
-        XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label);
-        XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label);
-        XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label);
-
-        download_progress.value.current += 3;
+        download_progress.value.current++;
       }
-
       results.push({
         wb: getZippeableBlob(workbookMetrics),
         name: `${filename}_metrics.xlsx`,
@@ -1054,65 +1012,20 @@ async function download_all(data: any) {
         wb: getZippeableBlob(workbookAnnotations),
         name: `${filename}_annotations.xlsx`,
       });
-
-      results.push({
-        wb: getZippeableBlob(workbookDescriptive),
-        name: `${filename}_descriptive.xlsx`,
-      });
     }
-
-    // All confidence
-    try {
-      const workBookConfidence = await getConfidenceSheet(
-        data.task_id,
-        data.annotators.length,
-        data.annotatorOrEmpty,
-        data.documentsOrEmpty
-      );
-
-      results.push({
-        wb: getZippeableBlob(workBookConfidence),
-        name: `_confidence.xlsx`,
-      });
-      download_progress.value.current++;
-    } catch (error) {}
 
     // All metrics
     const workbookMetrics = XLSX.utils.book_new();
     const workbookAnnotations = XLSX.utils.book_new();
-    const workbookDescriptive = XLSX.utils.book_new();
     for (let i = 0; i < data.labelsOptions.length; i++) {
       const label = data.labelsOptions[i];
-      const metrics = await compute_metrics(
-        data.task_id,
-        label,
-        data.documentsOrEmpty,
-        data.annotators,
-        data.annotatorsOrEmpty,
-        data.tolerance,
-        data.byWords,
-        data.hideNonText,
-        data.contained,
-        data.documentsData,
-        data.documentsOptions
-      );
-      const metrics_sheet = await getMetricsSheet(
-        metrics,
-        label,
-        data.documentsOrEmpty,
-        data
-      );
-      const annotations_sheet = await getAnnotationsSheet(metrics[0].table!);
-      const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
-        metrics[0].table!,
-        data.annotators
-      );
 
-      XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label);
-      XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label);
-      XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label);
+      const sheets = await getMetricsSheetAndAnnotations(label, data.documents, data);
 
-      download_progress.value.current += 3;
+      XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
+      XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
+
+      download_progress.value.current++;
     }
     results.push({
       wb: getZippeableBlob(workbookMetrics),
@@ -1122,181 +1035,67 @@ async function download_all(data: any) {
       wb: getZippeableBlob(workbookAnnotations),
       name: `_annotations.xlsx`,
     });
-    results.push({
-      wb: getZippeableBlob(workbookDescriptive),
-      name: `_descriptive.xlsx`,
-    });
 
     return results;
-  } catch (error) {}
+  } catch (error) {
+    console.log(error);
+  }
   return [];
 }
 
-async function getMetricsSheet(
-  metrics: MetricResult[],
+async function getMetricsSheetAndAnnotations(
   label: string,
   documents: string[],
   data: any
 ) {
-  let rows: any[] = [];
+  let rows_a: any[] = [];
+  let rows_m: any[] = [];
 
-  metrics.map((m) => {
+  for (let k = 0; k < data.annotators.length; k++) {
+    const annotator = data.annotators[k];
+    const metrics = await compute_metrics(
+      data.task_id,
+      label,
+      documents,
+      [annotator],
+      [annotator],
+      data.tolerance,
+      data.byWords,
+      data.hideNonText,
+      data.contained,
+      data.documentsData,
+      data.documentsOptions
+    );
+    const m = metrics[2];
+
     if (m.result !== undefined)
-      rows.push({
+      rows_m.push({
         metric: m.name,
-        annotators: data.annotators.join(","),
+        annotators: `90-${annotator}, 153-${annotator}`,
         value: m.result,
         p0: m.po,
         pe: m.pe,
         tolerance: data.tolerance,
         consider_contained: data.contained ? "yes" : "no",
       });
-  });
 
-  if (data.annotators.length > 2) {
-    for (let i = 0; i < data.annotators.length; i++) {
-      for (let j = i + 1; j < data.annotators.length; j++) {
-        const metrics = await compute_metrics(
-          data.task_id,
-          label,
-          documents,
-          [data.annotators[i], data.annotators[j]],
-          [data.annotators[i], data.annotators[j]],
-          data.tolerance,
-          data.byWords,
-          data.hideNonText,
-          data.contained,
-          data.documentsData,
-          data.documentsOptions
-        );
-
-        metrics.map((m) => {
-          if (m.result !== undefined)
-            rows.push({
-              metric: m.name,
-              annotators: data.annotators.join(","),
-              value: m.result,
-              p0: m.po,
-              pe: m.pe,
-              tolerance: data.tolerance,
-              consider_contained: data.contained ? "yes" : "no",
-            });
+    const table = m.table!;
+    if (table) {
+      table.map((r: RangeLabel) => {
+        Object.entries(r.annotators).forEach(([k, v]) => {
+          rows_a.push({
+            document: r.doc_id + "-" + r.doc_name,
+            annotator: k,
+            start: r.start,
+            end: r.end,
+            text: r.text,
+            value: v,
+          });
         });
-      }
+      });
     }
   }
-
-  return XLSX.utils.json_to_sheet(rows);
-}
-
-async function getAnnotationsSheet(table: RangeLabel[]) {
-  let rows: any[] = [];
-  if (table) {
-    table.map((r: RangeLabel) => {
-      Object.entries(r.annotators).forEach(([k, v]) => {
-        rows.push({
-          document: r.doc_id + "-" + r.doc_name,
-          annotator: k,
-          start: r.start,
-          end: r.end,
-          text: r.text,
-          value: v,
-        });
-      });
-    });
-  }
-
-  return XLSX.utils.json_to_sheet(rows);
-}
-
-async function getDescriptiveAnnotatorSheet(table: RangeLabel[], annotators: string[]) {
-  let rows: any[] = [];
-  let dic: any = {};
-  let nanns: number = 0;
-  annotators.map((a) => {
-    dic[a] = { amount: 0, na_amount: 0 };
-  });
-  if (table) {
-    table.map((r: RangeLabel) => {
-      Object.entries(r.annotators).forEach(([k, v]) => {
-        if (v) {
-          dic[k]["amount"]++;
-        }
-      });
-      if (r.label == "NOT ANNOTATED") {
-        nanns++;
-      }
-    });
-    Object.entries(dic).forEach(([k, v]) => {
-      rows.push({
-        annotator: k,
-        annotations: dic[k]["amount"],
-        non_annotations: nanns,
-      });
-    });
-  }
-
-  return XLSX.utils.json_to_sheet(rows);
-}
-
-async function getConfidenceSheet(
-  task_id: string,
-  annotators_length: number,
-  annotators: string[],
-  documents: string[]
-) {
-  const workbookDifficulty = XLSX.utils.book_new();
-  const diff_metric_body = JSON.stringify({
-    task_id: task_id,
-    annotators_length: annotators_length,
-    annotators: annotators,
-    documents: documents,
-  });
-
-  const dm = await $fetch("/api/metrics/difficulty", {
-    method: "POST",
-    body: diff_metric_body,
-  });
-
-  const worksheetDifficulty = XLSX.utils.json_to_sheet([
-    {
-      total: dm.total,
-      rated: dm.rated,
-      average_stars: dm.average,
-      "1_stars": dm.values[1],
-      "2_stars": dm.values[2],
-      "3_stars": dm.values[3],
-      "4_stars": dm.values[4],
-      "5_stars": dm.values[5],
-      krippendorff: dm.krippendorff?.result,
-      p0: dm.krippendorff?.po,
-      pe: dm.krippendorff?.pe,
-    },
-  ]);
-
-  const worksheetDifficultyAnnotator = XLSX.utils.json_to_sheet(
-    dm.table.map((r) => {
-      return {
-        annotator: r.annotator,
-        doc_id: r.doc_id,
-        assignment_id: r.ass_id,
-        stars: r.rating,
-      };
-    })
-  );
-
-  XLSX.utils.book_append_sheet(
-    workbookDifficulty,
-    worksheetDifficulty,
-    "Confidence Metrics"
-  );
-
-  XLSX.utils.book_append_sheet(
-    workbookDifficulty,
-    worksheetDifficultyAnnotator,
-    "Annotators "
-  );
-  return workbookDifficulty;
+  return [XLSX.utils.json_to_sheet(rows_m), XLSX.utils.json_to_sheet(rows_a)];
 }
 
 function getZippeableBlob(workBook: XLSX.WorkBook) {
