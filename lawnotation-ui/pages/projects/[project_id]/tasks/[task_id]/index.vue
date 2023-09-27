@@ -16,106 +16,111 @@
       },
     ]"
   />
-  <span v-if="loading">LOADING...</span>
-  <div v-if="task">
-    <div v-show="assignmentTable?.total">
-      <div class="text-center my-3">
-        <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
-          <button class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
-            Analyze Agreement Metrics
-          </button>
-          <button
-            class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-            @click="replicateTask"
+  
+  <div class="my-3 dimmer-wrapper">
+    <Dimmer v-model="loading" />
+    <div class="dimmer-content">
+      <div v-if="task">
+        <div v-show="assignmentTable?.total">
+          <div class="text-center my-3">
+            <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
+              <button class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
+                Analyze Agreement Metrics
+              </button>
+              <button
+                class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+                @click="replicateTask"
+              >
+                Replicate Task
+              </button>
+            </NuxtLink>
+          </div>
+          <h3 class="my-3 text-lg font-semibold">Assignments</h3>
+          <Table
+            ref="assignmentTable"
+            endpoint="assignments"
+            :filter="{ task_id: task?.id }"
+            :sort="true"
+            :search="true"
+            :selectable="true"
+            @remove-rows="removeAssignments"
+            @remove-all-rows="removeAllAssignments"
           >
-            Replicate Task
-          </button>
-        </NuxtLink>
-      </div>
-      <h3 class="my-3 text-lg font-semibold">Assignments</h3>
-      <Table
-        ref="assignmentTable"
-        endpoint="assignments"
-        :filter="{ task_id: task?.id }"
-        :sort="true"
-        :search="true"
-        :selectable="true"
-        @remove-rows="removeAssignments"
-        @remove-all-rows="removeAllAssignments"
-      >
-        <template #row="{ item }: { item: AssignmentTableData }">
-          <td
-            scope="row"
-            class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-          >
-            {{ item.id }}
-          </td>
-          <td class="px-6 py-2">
-            {{ item.annotator.email }}
-          </td>
-          <td class="px-6 py-2">
-            {{ item.document.name }}
-          </td>
-          <td class="px-6 py-2">
-            <span
-              :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'"
-              >{{ item.status }}</span
-            >
-          </td>
-          <td class="px-6 py-2">
-            <span>{{ item.difficulty_rating }}</span>
-          </td>
-          <td class="px-6 py-2">
-            <NuxtLink class="base" :to="`/assignments/${item.id}`"> View </NuxtLink>
-          </td>
-        </template>
-      </Table>
-    </div>
-    <div v-show="!assignmentTable?.total" class="flex justify-center">
-      <div class="flex flex-col w-1/2 space-y-2 border-neutral-300">
-        <h3 class="mt-3 text-lg font-semibold text-center">Create assignments</h3>
-        <h3 class="mt-3 text-sm font-semibold">
-          Annotators: {{ annotators_email.length }}
-        </h3>
-        <ul class="list-disc list-inside">
-          <li v-for="ann_email in annotators_email" :key="ann_email">
-            <span>{{ ann_email }}</span>
-          </li>
-        </ul>
-        <input
-          class="base"
-          id="annotator_email"
-          type="email"
-          name="email"
-          v-model="email"
-          @keydown.enter="addAnnotator()"
-        />
-        <button class="base btn-primary" @click="addAnnotator">Add</button>
-        <label for="amount_of_docs">Amount of Documents (total)</label>
-        <input
-          class="base"
-          id="amount_of_docs"
-          type="number"
-          name=""
-          v-model="amount_of_docs"
-          :max="total_docs"
-          min="1"
-        />
-        <label for="fixed_docs">
-          Amount of Fixed Documents (to share among annotators)
-        </label>
-        <input
-          class="base"
-          id="fixed_docs"
-          type="number"
-          name=""
-          v-model="amount_of_fixed_docs"
-          :max="total_docs"
-          min="0"
-        />
-        <button class="base btn-primary" @click="createAssignments">
-          Create Assignments
-        </button>
+            <template #row="{ item }: { item: AssignmentTableData }">
+              <td
+                scope="row"
+                class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+              >
+                {{ item.id }}
+              </td>
+              <td class="px-6 py-2">
+                {{ item.annotator.email }}
+              </td>
+              <td class="px-6 py-2">
+                {{ item.document.name }}
+              </td>
+              <td class="px-6 py-2">
+                <span
+                  :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'"
+                  >{{ item.status }}</span
+                >
+              </td>
+              <td class="px-6 py-2">
+                <span>{{ item.difficulty_rating }}</span>
+              </td>
+              <td class="px-6 py-2">
+                <NuxtLink class="base" :to="`/assignments/${item.id}`"> View </NuxtLink>
+              </td>
+            </template>
+          </Table>
+        </div>
+        <div v-show="!assignmentTable?.total" class="flex justify-center">
+          <div class="flex flex-col w-1/2 space-y-2 border-neutral-300">
+            <h3 class="mt-3 text-lg font-semibold text-center">Create assignments</h3>
+            <h3 class="mt-3 text-sm font-semibold">
+              Annotators: {{ annotators_email.length }}
+            </h3>
+            <ul class="list-disc list-inside">
+              <li v-for="ann_email in annotators_email" :key="ann_email">
+                <span>{{ ann_email }}</span>
+              </li>
+            </ul>
+            <input
+              class="base"
+              id="annotator_email"
+              type="email"
+              name="email"
+              v-model="email"
+              @keydown.enter="addAnnotator()"
+            />
+            <button class="base btn-primary" @click="addAnnotator">Add</button>
+            <label for="amount_of_docs">Amount of Documents (total)</label>
+            <input
+              class="base"
+              id="amount_of_docs"
+              type="number"
+              name=""
+              v-model="amount_of_docs"
+              :max="total_docs"
+              min="1"
+            />
+            <label for="fixed_docs">
+              Amount of Fixed Documents (to share among annotators)
+            </label>
+            <input
+              class="base"
+              id="fixed_docs"
+              type="number"
+              name=""
+              v-model="amount_of_fixed_docs"
+              :max="total_docs"
+              min="0"
+            />
+            <button class="base btn-primary" @click="createAssignments">
+              Create Assignments
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
