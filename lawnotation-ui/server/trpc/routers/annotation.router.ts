@@ -8,6 +8,7 @@ const ZAnnotationFields = z.object({
   assignment_id: z.number().int(),
   start_index: z.number().int(),
   end_index: z.number().int(),
+  text: z.string(),
   origin: z.string(),
   ls_id: z.string(),
 });
