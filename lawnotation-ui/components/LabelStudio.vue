@@ -74,6 +74,11 @@ const clickNext = async () => {
 };
 
 const initLS = async () => {
+  // Following is to prevent error: 
+  const script = document.createElement('script');
+  script.src = "data:text/javascript,void(0);";
+  document.body.appendChild(script);
+
   // @ts-expect-error
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
   label_studio.value = new LabelStudio("label-studio", {
