@@ -33,9 +33,9 @@
         >
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 text-sm">
-              <!-- <li>
+              <li>
                 <input type="file" multiple @change="loadXlsx($event)" name="" id="" />
-              </li> -->
+              </li>
               <li>
                 <label
                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -484,7 +484,7 @@ const loadXlsx = async (event: Event) => {
           const user_id = (await userApi.findByEmail(r.annotator)).id;
           const ass_id = (
             await assignmentApi.findAssignmentByTaskAndUserAndDocument(
-              "153",
+              "157",
               user_id,
               doc_id
             )

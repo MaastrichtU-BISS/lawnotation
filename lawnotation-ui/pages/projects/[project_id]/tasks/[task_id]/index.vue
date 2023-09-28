@@ -302,10 +302,10 @@ const replicateTask = async () => {
 
 const changeDocId = async () => {
   assignmentTable.loading = true;
-  const from_task_id = "93";
+  const from_task_id = "95";
   const from_project_id = "90";
 
-  const to_task_id = "153";
+  const to_task_id = "157";
   const to_project_id = "82";
 
   const assignments = await assignmentApi.findAssignmentsByTask(from_task_id);

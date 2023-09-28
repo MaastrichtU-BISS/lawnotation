@@ -34,7 +34,7 @@ export default eventHandler(async (event) => {
     annotations: annotations.filter((ann) => !ann.hidden),
     annotators: [
       `${data.task_id}-` + data.annotators[0],
-      "153-" + data.annotators[0],
+      "157-" + data.annotators[0],
     ],
     tolerance: data.tolerance,
     contained: data.contained,

@@ -19,7 +19,7 @@ export default eventHandler(async (event) => {
   const annotationsPromise: Promise<RichAnnotation[]> =
     findAnnotationsByTaskLabelDocumentsAnnotators(
       event,
-      [data.task_id, "153"],
+      [data.task_id, "157"],
       data.label,
       data.documents,
       data.annotators
