@@ -20,7 +20,6 @@ export default eventHandler(async (event) => {
     findAnnotationsByTaskLabelDocumentsAnnotators(
       event,
       data.task_id,
-      // [data.task_id, "153"],
       data.label,
       data.documents,
       data.annotators
