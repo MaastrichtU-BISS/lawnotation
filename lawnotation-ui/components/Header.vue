@@ -16,7 +16,7 @@
       <template v-if="user">
         <span class="text-slate-800" v-if="user?.email">{{ user.email?.split("@")[0] }}</span>
         <span class="text-gray-400 select-none mx-3">|</span>
-        <button class="header-link" @click="supabase.auth.signOut">Sign Out</button>
+        <button class="header-link" @click="signOut()">Sign Out</button>
       </template>
       <template v-else>
         <NuxtLink class="header-link" to="/auth/login" :class="{'active': routeIsActive('/auth/login')}">Sign In</NuxtLink>
@@ -39,8 +39,10 @@ const routeIsActive = computed(() => {
   }
 })
 
-onMounted(async () => {
-});
+const signOut = async () => {
+  await supabase.auth.signOut()
+  navigateTo('/auth/login');
+}
 </script>
 
 <style lang="scss">
