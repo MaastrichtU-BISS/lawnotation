@@ -93,13 +93,16 @@ export const userRouter = router({
     )
     .use(opts => authorizer(opts, async () => false))
     .query(async ({ctx, input: email}) => {
+      const config = useRuntimeConfig();
       const client = ctx.getSupabaseServiceRoleClient();
       const { data, error } = await client.auth.admin.generateLink({
         type: "magiclink",
         email: email,
-        // options: { redirectTo: body.redirectTo },
+        options: { redirectTo: `${config.public.baseURL}/auth/validate` },
       });
-      return { data, error };
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: "Unable to generate link"});
+      return data.properties;
     }),
 
   'otpLogin': publicProcedure
