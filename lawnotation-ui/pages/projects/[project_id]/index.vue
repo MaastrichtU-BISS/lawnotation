@@ -176,15 +176,7 @@ import { authorizeClient } from "~/utils/authorize.client";
 
 const { $toast, $trpc } = useNuxtApp();
 
-/*
-type PageData = { project: Project };
-const { project } = $page as PageData;
-// TODO: fix error on multiple page clicks
-// const { project } = $page as PageData ?? {project: {id: 32, name: 'a', desc: 'b'}};
-*/
-
-const $page = usePage<{ project: Project }>();
-const { project } = $page.value;
+const { project } = usePage<{ project: Project }>().value;
 
 const route = useRoute();
 
@@ -304,7 +296,6 @@ onMounted(() => {
 definePageMeta({
   middleware: [
     "auth",
-    // async (to) => {provide('page', {project: {id: 1, name: '1', desc: '1'}})}
     async (to) => authorizeClient([
       ["project", +to.params.project_id],
     ]),
