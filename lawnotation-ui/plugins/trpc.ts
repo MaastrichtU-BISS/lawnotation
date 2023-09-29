@@ -7,16 +7,17 @@ export default defineNuxtPlugin(async (app) => {
   //   const serverSupabaseClient = (await import('#supabase/server')).serverSupabaseClient;
   // const supabase = process.server ? serverSupabaseClient(useRequestEvent()) : useSupabaseClient();
   
-  const cookie = useCookie('sb-access-token');
-
+  // const cookie = useCookie('sb-access-token');
+  const cookie = useSupabaseToken();
+  
   const client = createTRPCNuxtClient<AppRouter>({
     links: [
       httpBatchLink({
         url: '/api/trpc',
         async headers() {
-          return {
-            authorization: `Bearer ${cookie.value}`,
-          };
+          return cookie.value 
+            ? { authorization: `Bearer ${cookie.value}` } 
+            : {}
         },
       }),
     ]

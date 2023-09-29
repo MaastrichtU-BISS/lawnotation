@@ -10,7 +10,7 @@ export const authorizeClient: <TRouter extends keyof DecoratedRouter>(
     [TRouter, string|number]
   >
 ) => void = async (entities) => {
-  const { provide, $trpc } = useNuxtApp();
+  const { $trpc } = useNuxtApp();
   
   const pageObject: Record<string, object> = {};
   

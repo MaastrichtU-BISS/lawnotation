@@ -13,4 +13,12 @@ export default defineNuxtConfig({
     transpile: ['trpc-nuxt']
   },
   css: ["@/assets/styles/main.scss", "@vueform/multiselect/themes/default.css"],
+  supabase: {
+    redirect: false,
+    // redirectOptions: {
+    //   login: '/auth/login',
+    //   callback: '/auth/validate',
+    //   exclude: ['/auth/validate'],
+    // }
+  }
 });
