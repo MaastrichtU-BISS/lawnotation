@@ -37,7 +37,6 @@ onMounted(() => {
             // Instead of navigateTo, it seems necessary to do a 'hard' redirect using location.href
             // If not, the tRPC plugin is probably already loaded with the empty token and fails to authenticate.
             location.href='/';
-            // navigateTo('/', { 'open': })
         }
     })
 })

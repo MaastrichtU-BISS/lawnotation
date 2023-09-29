@@ -16,7 +16,6 @@ onMounted(async () => {
 });
 
 definePageMeta({
-  name: 'index',
   middleware: ['auth']
 })
 </script>
