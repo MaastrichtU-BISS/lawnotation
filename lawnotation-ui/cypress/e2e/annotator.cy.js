@@ -1,13 +1,13 @@
-describe('Login user and test basic actions', () => {
+describe('Login annotator and test basic actions', () => {
   beforeEach('log user in', () => {
     cy.visit('/auth/login')
 
     cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
-    cy.get('input[data-test="email-field-to-login"]').type('test@test.com')
+    cy.get('input[data-test="email-field-to-login"]').type('annotator@test.com')
     cy.get('button[data-test="login-button"]').click()
     cy.wait(2000)
     
-    cy.visit("http://localhost:54324/m/test/")
+    cy.visit("http://localhost:54324/m/annotator/")
     cy.get('aside:first').find('button').eq(1).click()
     cy.wait(2000)
     cy.get('.message-list-entry:first').click()
