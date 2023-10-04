@@ -1,255 +1,149 @@
 <template>
   <div>
-    <Breadcrumb
-      v-if="task && project"
-      :crumbs="[
-        {
-          name: 'Projects',
-          link: '/projects',
-        },
-        {
-          name: `Project ${project.name}`,
-          link: `/projects/${project.id}`,
-        },
-        {
-          name: `Task ${task.name}`,
-          link: `/projects/${project.id}/tasks/${task.id}`,
-        },
-        {
-          name: `Metrics`,
-          link: `/projects/${project.id}/tasks/${task.id}/metrics`,
-        },
-      ]"
-    />
+    <Breadcrumb v-if="task && project" :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+      {
+        name: `Task ${task.name}`,
+        link: `/projects/${project.id}/tasks/${task.id}`,
+      },
+      {
+        name: `Metrics`,
+        link: `/projects/${project.id}/tasks/${task.id}/metrics`,
+      },
+    ]" />
     <div class="dimmer-wrapper pt-2">
       <DimmerProgress v-if="download_progress.loading" v-model="download_progress" />
       <Dimmer v-else v-model="loading" />
       <div class="dimmer-content">
-        <aside
-          id="logo-sidebar"
+        <aside id="logo-sidebar"
           class="fixed left-0 z-40 w-80 side-panel-h transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
-          aria-label="Sidebar"
-          style="margin-top: inherit"
-        >
+          aria-label="Sidebar" style="margin-top: inherit">
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 text-sm">
               <!-- <li>
                 <input type="file" multiple @change="loadXlsx($event)" name="" id="" />
               </li> -->
               <li>
-                <label
-                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >Label</label
-                >
-                <Multiselect
-                  v-model="selectedLabel"
-                  :options="labelsOptions"
-                  :searchable="true"
-                  placeholder="Select a Label"
-                  @change="selectLabel"
-                />
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label</label>
+                <Multiselect v-model="selectedLabel" :options="labelsOptions" :searchable="true"
+                  placeholder="Select a Label" @change="selectLabel" />
               </li>
               <li>
-                <label
-                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >Document(s)</label
-                >
-                <Multiselect
-                  v-model="selectedDocumentsOrEmpty"
-                  :mode="'tags'"
-                  :close-on-select="false"
-                  :options="documentsOptions"
-                  :searchable="true"
-                  placeholder="All"
-                  @change="selectDocument"
-                />
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Document(s)</label>
+                <Multiselect v-model="selectedDocumentsOrEmpty" :mode="'tags'" :close-on-select="false"
+                  :options="documentsOptions" :searchable="true" placeholder="All" @change="selectDocument" />
               </li>
               <li>
-                <label
-                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >Annotators</label
-                >
-                <Multiselect
-                  v-model="selectedAnnotatorsOrEmpty"
-                  :options="annotatorsOptions"
-                  :mode="'tags'"
-                  :searchable="true"
-                  :close-on-select="false"
-                  placeholder="All"
-                  @change="selectAnnotators"
-                />
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Annotators</label>
+                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions" :mode="'tags'"
+                  :searchable="true" :close-on-select="false" placeholder="All" @change="selectAnnotators" />
               </li>
               <li>
                 <div>
                   <div class="flex justify-between">
-                    <label
-                      for="small-input"
-                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                      >Tolerance</label
-                    >
-                    <InfoToolTip
-                      :id="'tooltip_tolerance'"
-                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'"
-                    />
+                    <label for="small-input"
+                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tolerance</label>
+                    <InfoToolTip :id="'tooltip_tolerance'"
+                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'" />
                   </div>
-                  <input
-                    type="number"
-                    id="small-input"
-                    v-model="tolerance"
-                    min="0"
-                    :max="10"
-                    step="1"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  />
+                  <input type="number" id="small-input" v-model="tolerance" min="0" :max="10" step="1"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
                 </div>
               </li>
               <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
-                  <label
-                    class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                  >
-                    <span
-                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Annotation</span
-                    >
-                    <input
-                      type="checkbox"
-                      value=""
-                      class="sr-only peer"
-                      @input="($event: Event) => {
+                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Annotation</span>
+                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
                       modeToggle($event.target.checked);
                     }
-                      "
-                    />
+                      " />
                     <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                    ></div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Word</span
-                    >
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
                   </label>
-                  <InfoToolTip
-                    :id="'tooltip_annotation_word'"
-                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'"
-                  />
+                  <InfoToolTip :id="'tooltip_annotation_word'"
+                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
                 </div>
               </li>
               <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
-                  <label
-                    class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                  >
-                    <span
-                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Equal</span
-                    >
-                    <input
-                      type="checkbox"
-                      value=""
-                      class="sr-only peer"
-                      @input="($event: Event) => {
+                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Equal</span>
+                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
                       contained = !contained;
                       tolerance = 0;
                     }
-                      "
-                    />
+                      " />
 
                     <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                    ></div>
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
                     <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Overlap</span
-                    >
+                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Overlap</span>
                   </label>
-                  <InfoToolTip
-                    :id="'tooltip_equal_overlap'"
-                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`"
-                  />
+                  <InfoToolTip :id="'tooltip_equal_overlap'"
+                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`" />
                 </div>
               </li>
               <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
-                  <label
-                    class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                  >
-                    <span
-                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Include NTA</span
-                    >
-                    <input
-                      type="checkbox"
-                      value=""
-                      :checked="hideNonText"
-                      class="sr-only peer"
-                      @input="($event: Event) => {
+                  <label class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Include NTA</span>
+                    <input type="checkbox" value="" :checked="hideNonText" class="sr-only peer" @input="($event: Event) => {
                       toggleTextToHidden($event?.target?.checked);
                     }
-                      "
-                    />
+                      " />
 
                     <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                    ></div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Exclude NTA</span
-                    >
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Exclude
+                      NTA</span>
                   </label>
 
-                  <InfoToolTip
-                    :id="'tooltip_nta'"
-                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'"
-                  />
+                  <InfoToolTip :id="'tooltip_nta'"
+                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'" />
                 </div>
               </li>
               <li class="">
-                <button
-                  data-modal-target="difficultyMetricsModal"
-                  data-modal-toggle="difficultyMetricsModal"
+                <button data-modal-target="difficultyMetricsModal" data-modal-toggle="difficultyMetricsModal"
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                  @click="clickComputeDifficultyMetrics"
-                >
-                  Compute Difficulty Metrics
+                  @click="clickComputeDifficultyMetrics">
+                  Compute Confidence Metrics
                 </button>
               </li>
               <li>
-                <button
-                  :disabled="!selectedLabel"
+                <button :disabled="!selectedLabel"
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                  @click="clickComputeMetrics"
-                >
+                  @click="clickComputeMetrics">
                   Compute Annotation Metrics
                 </button>
               </li>
-              <ul
-                class="pt-4 mt-4 space-y-2 font-medium pb-3 border-gray-200 dark:border-gray-700"
-              >
+              <ul class="pt-4 mt-4 space-y-2 font-medium pb-3 border-gray-200 dark:border-gray-700">
                 <li>
                   <div class="relative overflow-x-auto">
-                    <table
-                      class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
-                    >
-                      <thead
-                        class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
-                      >
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
                           <th scope="col" class="px-6 py-3">Metric</th>
                           <th scope="col" class="px-6 py-3">Value</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr
-                          class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                        >
-                          <th
-                            scope="row"
-                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                          >
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             Krippendorff's alpha
                           </th>
                           <td class="px-6 py-4">
@@ -258,13 +152,8 @@
                             }}</span>
                           </td>
                         </tr>
-                        <tr
-                          class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                        >
-                          <th
-                            scope="row"
-                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                          >
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             Fleiss' Kappa
                           </th>
                           <td class="px-6 py-4">
@@ -274,10 +163,7 @@
                           </td>
                         </tr>
                         <tr class="bg-white dark:bg-gray-800">
-                          <th
-                            scope="row"
-                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                          >
+                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             Cohen's Kappa
                           </th>
                           <td class="px-6 py-4">
@@ -293,8 +179,7 @@
                 <li class="">
                   <button
                     class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                    @click="clickDownloadAll"
-                  >
+                    @click="clickDownloadAll">
                     Download all
                   </button>
                 </li>
@@ -311,40 +196,19 @@
             </div>
             <ul>
               <li v-for="(ann, index) in annotations">
-                <RangeLabelCmpt
-                  :annotation="ann"
-                  :index="index"
-                  :is-new-doc="isNewDoc(index)"
-                  :can-merge-up="canMergeUp(index)"
-                  :can-merge-down="canMergeDown(index)"
-                  @separate="emitSeparate"
-                  @mergeUp="emitMergeUp"
-                  @mergeDown="emitMergeDown"
-                  @set-hidden="emitSetHidden"
-                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"
-                ></RangeLabelCmpt>
+                <RangeLabelCmpt :annotation="ann" :index="index" :is-new-doc="isNewDoc(index)"
+                  :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)" @separate="emitSeparate"
+                  @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
+                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"></RangeLabelCmpt>
               </li>
             </ul>
 
-            <a
-              href="#annotations_list"
-              type="button"
-              class="absolute bottom-0 right-0 mb-3 mr-3 text-white bg-secondary hover:bg-secondary/80 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-            >
-              <svg
-                class="w-4 h-4 text-white dark:text-white"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 10 14"
-              >
-                <path
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13V1m0 0L1 5m4-4 4 4"
-                ></path>
+            <a href="#annotations_list" type="button"
+              class="absolute bottom-0 right-0 mb-3 mr-3 text-white bg-secondary hover:bg-secondary/80 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+              <svg class="w-4 h-4 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+                fill="none" viewBox="0 0 10 14">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M5 13V1m0 0L1 5m4-4 4 4"></path>
               </svg>
               <span class="sr-only">Go up</span>
             </a>
@@ -468,39 +332,37 @@ function getBase64(file: File) {
 }
 
 const loadXlsx = async (event: Event) => {
-  const files: File[] = event.target?.files as File[];
+  const file: File = event.target?.files[0];
 
   const anns: any[] = [];
 
-  for (let i = 0; i < files.length; i++) {
-    const data = await getBase64(files[i]);
-    const json = await (await fetch(data)).json();
-    const doc_id = files[i].name.substring(0, 4);
-    for (const label: any in json) {
-      const row = json[label];
-      for (let i = 0; i < row.length; i++) {
-        const r: any = row[i];
-        if (r.value) {
-          const user_id = (await userApi.findByEmail(r.annotator)).id;
-          const ass_id = (
-            await assignmentApi.findAssignmentByTaskAndUserAndDocument(
-              "153",
-              user_id,
-              doc_id
-            )
-          ).id;
-          const a = {
-            text: r.text,
-            start_index: r.start,
-            end_index: r.end,
-            label: label,
-            assignment_id: ass_id,
-          };
-          anns.push(a);
-        }
+  const data = await getBase64(file);
+  const json = await (await fetch(data)).json();
+  for (const label: any in json) {
+    const row = json[label];
+    for (let i = 0; i < row.length; i++) {
+      const r: any = row[i];
+      if (r.value) {
+        console.log(r.document.substring(0, 4));
+        const user_id = (await userApi.findByEmail(r.annotator)).id;
+        const ass_id = (
+          await assignmentApi.findAssignmentByTaskAndUserAndDocument(
+            "159",
+            user_id,
+            r.document.substring(0, 4)
+          )
+        ).id;
+        const a = {
+          text: r.text,
+          start_index: r.start,
+          end_index: r.end,
+          label: label,
+          assignment_id: ass_id,
+        };
+        anns.push(a);
       }
     }
-    console.log(i);
+    console.log("x");
   }
 
   await annotationApi.createAnnotations(anns);
@@ -775,213 +637,6 @@ const clickDownloadAll = async () => {
   }
 };
 
-// async function compute_all_json(data: any) {
-//   let results: { name: string; value: any }[] = [];
-//   download_progress.value.current = 0;
-//   download_progress.value.total =
-//     selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
-//   try {
-//     try {
-//       const diff_metric_body = JSON.stringify({
-//         task_id: data.task_id,
-//         annotators_length: data.annotators.length,
-//         annotators: data.annotatorOrEmpty,
-//         documents: data.documentsOrEmpty,
-//       });
-
-//       const dm = await $fetch("/api/metrics/difficulty", {
-//         method: "POST",
-//         body: diff_metric_body,
-//       });
-//       results.push({
-//         value: dm,
-//         name: `_confidence.xlsx`,
-//       });
-//       download_progress.value.current++;
-//     } catch (error) {}
-//     for (let i = 0; i < data.documents.length; i++) {
-//       const document = data.documents[i];
-//       let metrics_rows = [];
-//       let annotations_rows = [];
-//       for (let j = 0; j < data.labelsOptions.length; j++) {
-//         const label = data.labelsOptions[j];
-//         const rows = await getRows(
-//           data.task_id,
-//           label,
-//           [document],
-//           data.annotators,
-//           data.annotatorsOrEmpty,
-//           data.tolerance,
-//           data.byWords,
-//           data.hideNonText,
-//           data.contained,
-//           data.documentsData,
-//           data.documentsOptions
-//         );
-//         metrics_rows.push({ label: label, value: rows[0] });
-//         annotations_rows.push({ label: label, value: rows[1] });
-//         download_progress.value.current += 2;
-//       }
-//       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
-//       results.push({
-//         value: metrics_rows,
-//         name: `${filename}_metrics.xlsx`,
-//       });
-
-//       results.push({
-//         value: annotations_rows,
-//         name: `${filename}_annotations.xlsx`,
-//       });
-//     }
-
-//     let metrics_rows = [];
-//     let annotations_rows = [];
-//     for (let i = 0; i < data.labelsOptions.length; i++) {
-//       const label = data.labelsOptions[i];
-//       const rows = await getXlslTab(
-//         data.task_id,
-//         label,
-//         data.documentsOrEmpty,
-//         data.annotators,
-//         data.annotatorsOrEmpty,
-//         data.tolerance,
-//         data.byWords,
-//         data.hideNonText,
-//         data.contained,
-//         data.documentsData,
-//         data.documentsOptions
-//       );
-//       metrics_rows.push({ label: label, value: rows[0] });
-//       annotations_rows.push({ label: label, value: rows[1] });
-//       download_progress.value.current += 2;
-//     }
-//     results.push({
-//       value: metrics_rows,
-//       name: `_metrics.xlsx`,
-//     });
-
-//     results.push({
-//       value: annotations_rows,
-//       name: `_annotations.xlsx`,
-//     });
-//     return results;
-//   } catch (error) {}
-//   return [];
-// }
-
-// async function getRows(
-//   task_id: string,
-//   label: string,
-//   documents: string[],
-//   annotators: string[],
-//   annotatorsOrEmpty: string[],
-//   tolerance: number,
-//   byWords: boolean,
-//   hideNonText: boolean,
-//   contained: boolean,
-//   documentsData: any,
-//   documentsOptions: string[]
-// ) {
-//   const rowsMetrics: any[] = [];
-//   const rowsAnnotations: any[] = [];
-
-//   try {
-//     const metric_body = JSON.stringify({
-//       task_id: task_id,
-//       label: label,
-//       documents: documents,
-//       annotators: annotators,
-//       annotatorsOrEmpty: annotatorsOrEmpty,
-//       tolerance: tolerance,
-//       byWords: byWords,
-//       hideNonText: hideNonText,
-//       contained: contained,
-//       documentsData: documentsData,
-//       documentsOptions: documentsOptions,
-//     });
-//     const metrics = await $fetch("/api/metrics/get_metrics", {
-//       method: "POST",
-//       body: metric_body,
-//     });
-//     console.log("XXX");
-//     metrics.map((m) => {
-//       if (m.result !== undefined)
-//         rowsMetrics.push({
-//           metric: m.name,
-//           annotators: annotators.length > 2 ? "all" : annotators.join(","),
-//           value: m.result,
-//           p0: m.po,
-//           pe: m.pe,
-//           tolerance: tolerance,
-//           consider_contained: contained ? "yes" : "no",
-//         });
-//     });
-//     const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
-//     tables?.forEach((r: any) => {
-//       Object.entries(r.annotators).forEach(([k, v]) => {
-//         const ann = {
-//           annotator: k,
-//           start: r.start,
-//           end: r.end,
-//           text: r.text,
-//           value: v,
-//         };
-
-//         rowsAnnotations.push(
-//           documents.length != 1
-//             ? {
-//                 document: r.doc_id + "-" + documentsData[r.doc_id].name,
-//                 ...ann,
-//               }
-//             : ann
-//         );
-//       });
-//     });
-
-//     if (annotators.length > 2) {
-//       for (let i = 0; i < annotators.length; i++) {
-//         for (let j = i + 1; j < annotators.length; j++) {
-//           try {
-//             const metric_body = JSON.stringify({
-//               task_id: task_id,
-//               label: label,
-//               documents: documents,
-//               annotators: [annotators[i], annotators[j]],
-//               annotatorsOrEmpty: [annotators[i], annotators[j]],
-//               tolerance: tolerance,
-//               byWords: byWords,
-//               hideNonText: hideNonText,
-//               contained: contained,
-//               documentsData: documentsData,
-//               documentsOptions: documentsOptions,
-//             });
-
-//             const ck_metrics = await $fetch("/api/metrics/get_metrics", {
-//               method: "POST",
-//               body: metric_body,
-//             });
-
-//             ck_metrics.map((m) => {
-//               if (m.name == "cohens_kappa") {
-//                 rowsMetrics.push({
-//                   metric: m.name,
-//                   annotators: annotators[i] + "," + annotators[j],
-//                   value: m.result,
-//                   p0: m.po,
-//                   pe: m.pe,
-//                   tolerance: tolerance,
-//                   consider_contained: contained ? "yes" : "no",
-//                 });
-//               }
-//             });
-//           } catch (error) {}
-//         }
-//       }
-//     }
-//   } catch (error) {}
-//   return [rowsMetrics, rowsAnnotations];
-// }
-
 async function download_all(data: any) {
   let results: { wb: string; name: string }[] = [];
   download_progress.value.current = 0;
@@ -1003,7 +658,7 @@ async function download_all(data: any) {
         name: `_confidence.xlsx`,
       });
       download_progress.value.current++;
-    } catch (error) {}
+    } catch (error) { }
 
     // All metrics
     const workbookMetrics = XLSX.utils.book_new();
@@ -1130,7 +785,7 @@ async function download_all(data: any) {
     }
 
     return results;
-  } catch (error) {}
+  } catch (error) { }
   return [];
 }
 
