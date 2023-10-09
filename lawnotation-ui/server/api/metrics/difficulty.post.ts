@@ -1,5 +1,5 @@
 import { serverSupabaseClient } from "#supabase/server";
-import { Assignment } from "~/data/assignment";
+import { Assignment } from "~/types";
 import {
   DifficultyMetricResult,
   MetricResult,

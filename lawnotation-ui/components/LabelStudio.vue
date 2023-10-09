@@ -5,17 +5,14 @@
 </template>
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
-import { LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 import {
   LSSerializedRelation,
-  useAnnotationRelationApi,
-} from "~/data/annotation_relations";
-import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { LsLabels } from "~/data/labelset";
+  Assignment,
+  LsLabels,
+  LSSerializedAnnotations
+} from "~/types";
 
-const annotationApi = useAnnotationApi();
-const relationApi = useAnnotationRelationApi();
-const assignmentApi = useAssignmentApi();
+const { $trpc } = useNuxtApp();
 
 const label_studio = ref();
 
@@ -24,13 +21,13 @@ const emit = defineEmits(["previousAssignment", "nextAssignment"]);
 const props = defineProps<{
   user: any;
   assignment: Assignment | undefined;
-  annotations: LSSerializedAnnotation | undefined;
+  annotations: LSSerializedAnnotations | undefined;
   relations: LSSerializedRelation[] | undefined;
   text: string | undefined;
   labels: LsLabels | undefined;
   isEditor: boolean | undefined;
   guidelines: string | undefined;
-  mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
+  // mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
 
 const serializeLSAnnotations = () => {
@@ -66,14 +63,22 @@ const clickNext = async () => {
   }
 
   await updateAnnotationsAndRelations(serializedAnnotations);
-  await assignmentApi.updateAssignment(props.assignment.id.toString(), {
-    status: "done",
-    difficulty_rating: rating,
+  await $trpc.assignment.update.mutate({
+    id: props.assignment.id, 
+    updates: {
+      status: "done",
+      difficulty_rating: rating,
+    }
   });
   emit("nextAssignment");
 };
 
 const initLS = async () => {
+  // Following is to prevent error: 
+  const script = document.createElement('script');
+  script.src = "data:text/javascript,void(0);";
+  document.body.appendChild(script);
+
   // @ts-expect-error
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
   label_studio.value = new LabelStudio("label-studio", {
@@ -174,7 +179,13 @@ const initLS = async () => {
     // 'next'
     onSubmitAnnotation: async (
       LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
+    ) => {
+      clickNext();
+    },
+    onAcceptAnnotation: async (
+      LS: any,
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
     ) => {
       clickNext();
     },
@@ -186,7 +197,7 @@ const initLS = async () => {
     },
     onUpdateAnnotation: async (
       LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
     ) => {
       clickNext();
     },
@@ -198,11 +209,11 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
 
   // create annotations
   const ls_anns = serializedAnnotations.filter((x) => x.type == "labels");
-  const db_anns = annotationApi.convert_ls2db(ls_anns, props.assignment?.id);
-  const created_anns = await annotationApi.updateAssignmentAnnotations(
-    props.assignment?.id,
-    db_anns
-  );
+  const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id);
+  const created_anns = await $trpc.annotation.updateAssignmentAnnotations.mutate({
+    assignment_id: props.assignment?.id,
+    annotations: db_anns
+  });
 
   if (!created_anns) return;
 
@@ -219,7 +230,7 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
       if (created_anns[i].ls_id == (rel as LSSerializedRelation).to_id)
         to = created_anns[i].id;
     }
-    relationApi.createRelation(rel as LSSerializedRelation, from, to);
+    $trpc.relation.create.mutate({fields: rel as LSSerializedRelation, from_id: from, to_id: to});
   });
 };
 
@@ -256,10 +267,10 @@ onMounted(() => {
   );
   waitForElement(".ant-rate").then((el) => {
     if (props.assignment?.difficulty_rating! < 1) return;
-    document
+    (document
       .getElementsByClassName("ant-rate-star-zero")
       .item(props.assignment?.difficulty_rating! - 1)
-      ?.firstChild?.click();
+      ?.firstChild as HTMLButtonElement).click();
   });
 });
 </script>

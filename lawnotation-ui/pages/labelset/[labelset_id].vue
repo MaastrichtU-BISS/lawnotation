@@ -38,12 +38,12 @@
           @keydown.enter="add_label()"
         />
         <button @click="add_label()" class="base btn-primary">Add</button>
-        <input
+        <!-- <input
           class="hidden"
           type="file"
           @change="import_labels_file_changed"
           id="import_file_holder"
-        />
+        /> -->
       </div>
       <hr class="my-3" />
       <div class="col">
@@ -79,12 +79,12 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Labelset, useLabelsetApi } from "~/data/labelset";
+import { Labelset } from "~/types";
+
 const route = useRoute();
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
-const labelsetApi = useLabelsetApi();
 
 const new_label = reactive(get_label_default());
 
@@ -134,22 +134,21 @@ const save_labelset = async () => {
     if (!user.value) throw new Error("Invalid user");
     if (!labelset.value) throw new Error("No labelset to save");
 
-    const create = await labelsetApi.updateLabelset(labelset.value.id, {
-      ...labelset.value,
-      editor_id: user.value.id,
+    const create = await $trpc.labelset.update.mutate({
+      id: labelset.value.id,
+      updates: {
+        ...labelset.value,
+        editor_id: user.value.id,
+      }
     });
     $toast.success("Saved labelset");
-    // alert("Saved labelset");
-    // navigateTo(`/labelset`)
   } catch (error) {
     if (error instanceof Error) $toast.error(`Error saving labelset: ${error.message}`);
   }
 };
 
 onMounted(async () => {
-  const loaded_labelset = await labelsetApi.findLabelset(
-    route.params.labelset_id.toString()
-  );
+  const loaded_labelset = await $trpc.labelset.findById.query(+route.params.labelset_id);
   labelset.value = loaded_labelset;
   // Object.assign(labelset, loaded_labelset);
 });
