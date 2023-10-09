@@ -9,7 +9,7 @@ import {
   LSSerializedRelation,
   Assignment,
   LsLabels,
-  LSSerializedAnnotations
+  LSSerializedAnnotations,
 } from "~/types";
 
 const { $trpc } = useNuxtApp();
@@ -64,18 +64,18 @@ const clickNext = async () => {
 
   await updateAnnotationsAndRelations(serializedAnnotations);
   await $trpc.assignment.update.mutate({
-    id: props.assignment.id, 
+    id: props.assignment.id,
     updates: {
       status: "done",
       difficulty_rating: rating,
-    }
+    },
   });
   emit("nextAssignment");
 };
 
 const initLS = async () => {
-  // Following is to prevent error: 
-  const script = document.createElement('script');
+  // Following is to prevent error:
+  const script = document.createElement("script");
   script.src = "data:text/javascript,void(0);";
   document.body.appendChild(script);
 
@@ -212,7 +212,7 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
   const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id);
   const created_anns = await $trpc.annotation.updateAssignmentAnnotations.mutate({
     assignment_id: props.assignment?.id,
-    annotations: db_anns
+    annotations: db_anns,
   });
 
   if (!created_anns) return;
@@ -230,7 +230,11 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
       if (created_anns[i].ls_id == (rel as LSSerializedRelation).to_id)
         to = created_anns[i].id;
     }
-    $trpc.relation.create.mutate({fields: rel as LSSerializedRelation, from_id: from, to_id: to});
+    $trpc.relation.create.mutate({
+      fields: rel as LSSerializedRelation,
+      from_id: from,
+      to_id: to,
+    });
   });
 };
 
