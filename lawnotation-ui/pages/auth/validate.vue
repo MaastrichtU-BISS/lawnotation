@@ -20,17 +20,16 @@
 </template>
 
 <script setup lang="ts">
-import { User, UserResponse } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 
-const supabaseAuth = useSupabaseAuthClient();
+const supabase = useSupabaseClient();
 
 const state = ref<'PENDING' | 'DONE'>('PENDING')
 const user = ref<User | null>(null);
 
 onMounted(() => {
-    // supabaseAuth.auth.initializePromise?.then(() => ...
-    supabaseAuth.auth.initialize().then(async ({error}) => {
-        user.value = (await supabaseAuth.auth.getUser()).data.user
+    supabase.auth.initialize().then(async ({error}) => {
+        user.value = (await supabase.auth.getUser()).data.user
         state.value = 'DONE'
 
         if (user.value) {
