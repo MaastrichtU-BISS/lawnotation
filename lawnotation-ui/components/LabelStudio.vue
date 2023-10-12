@@ -90,7 +90,7 @@ const initLS = async () => {
                       ${props.labels
                         ?.map(
                           (l) =>
-                            `<Label value="${l.name}" background="${l.color}" style="display: inline-table"/>`
+                            `<Label value="${l.name}" background="${l.color}" style="display: inline-table; user-select: none;"/>`
                         )
                         .join("\n")}
                     </Labels>
@@ -335,6 +335,11 @@ onMounted(() => {
 .lsf-label__text {
   white-space: pre-wrap;
   /* word-break: break-all; */
+  user-select: none;
+}
+
+.lsf-label__hotkey {
+  user-select: none;
 }
 
 .lsf-label {
