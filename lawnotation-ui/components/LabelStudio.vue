@@ -373,4 +373,8 @@ sup {
 .lsf-entity__info {
   display: none;
 }
+
+.ls-menu {
+  overflow-y: auto;
+}
 </style>
