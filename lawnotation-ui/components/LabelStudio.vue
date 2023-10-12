@@ -351,14 +351,8 @@ onMounted(() => {
   display: none !important;
 }
 
-.ls-common {
-  min-height: 0;
-}
-
-.main-content-wrapper--1qjJ0 {
-  min-height: 0;
-}
-
+.ls-common,
+.main-content-wrapper--1qjJ0,
 .lsf-main-view {
   min-height: 0;
 }
