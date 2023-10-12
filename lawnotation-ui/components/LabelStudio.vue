@@ -187,12 +187,6 @@ const initLS = async () => {
     ) => {
       clickNext();
     },
-    onAcceptAnnotation: async (
-      LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
-    ) => {
-      clickNext();
-    },
     onUpdateAnnotation: async (
       LS: any,
       { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
