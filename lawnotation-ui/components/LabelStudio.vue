@@ -95,8 +95,8 @@ const initLS = async () => {
                         .join("\n")}
                     </Labels>
                   </View>
-                  <View style="width: 100%">
-                    <View style="height: auto; overflow-y: auto; padding: 0 1.7em 1em;">
+                  <View style="width: 100%; overflow-y: auto;">
+                    <View style="height: auto; padding: 0 1.7em 1em;">
                       <Text name="text" value="$text" />
                     </View>
                     <Relations>
