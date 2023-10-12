@@ -84,7 +84,7 @@ const initLS = async () => {
   label_studio.value = new LabelStudio("label-studio", {
     config: `
                 <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
-                  <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3em; overflow-y: auto;">
+                  <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto;">
                     <Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
                     <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
                       ${props.labels
@@ -326,8 +326,10 @@ onMounted(() => {
   visibility: visible;
 }
 
-.lsf-labels {
-  overflow-y: auto;
+.ant-input {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .lsf-label__text {
