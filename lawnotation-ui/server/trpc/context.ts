@@ -13,7 +13,7 @@ export async function createContext(event: H3Event) {
   const authorization = getRequestHeader(event, 'authorization')
 
   let user = null;
-  const supabase = serverSupabaseClient<Database>(event);
+  const supabase = await serverSupabaseClient<Database>(event);
   const getSupabaseServiceRoleClient = () => {
     return serverSupabaseServiceRole<Database>(event);
   }
@@ -28,7 +28,7 @@ export async function createContext(event: H3Event) {
       // throw createError({message: `Authenticated user not found: ${ getUser.error.message }`})
       user = getUser.data.user;
   }
-
+  
   return {
     user,
     supabase,
