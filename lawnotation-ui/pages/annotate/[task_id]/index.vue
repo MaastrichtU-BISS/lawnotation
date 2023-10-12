@@ -244,6 +244,6 @@ onMounted(async () => {
 
 definePageMeta({
   middleware: ["auth"],
-  layout: "wide",
+  layout: "grid",
 });
 </script>
