@@ -45,9 +45,9 @@
         }}</span></span
       >
     </div>
-    <div class="dimmer-wrapper" style="min-height: 200px">
+    <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />
-      <div class="dimmer-content">
+      <div class="dimmer-content h-full">
         <LabelStudio
           v-if="loadedData"
           :assignment="assignment"
