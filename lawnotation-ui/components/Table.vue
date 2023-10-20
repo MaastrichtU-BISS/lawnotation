@@ -3,7 +3,7 @@
     <template v-if="pending !== false">
       <div class="spinner-overlay"></div>
       <div class="spinner">
-        <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" class="spinner_ajPY"/></svg>
+        <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" class="spinner_svg"/></svg>
       </div>
     </template>
     <div class="relative overflow-x-auto sm:rounded-lg">
@@ -31,7 +31,7 @@
         <span class="flex" v-if="args.search && Object.keys(searchableColumns).length > 0">
           <select
             v-model="args.search.column"
-            class="w-40 p-2 text-sm text-gray-900 ring-1 ring-inset ring-gray-300 shadow-sm rounded-md bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+            class="w-40 p-2 text-sm text-gray-900 border-0 ring-1 ring-inset ring-secondary shadow-sm rounded-md bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-primary"
           >
             <option
               v-for="[colname, colfield] of Object.entries(searchableColumns)"
@@ -62,7 +62,7 @@
               <input
                 v-model="args.search.query"
                 type="text"
-                class="rounded-md border-0 bg-gray-50 p-2 pl-10 text-sm w-80 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400"
+                class="rounded-md border-0 bg-gray-50 p-2 pl-10 text-sm w-80 text-gray-900 shadow-sm ring-1 ring-inset ring-secondary focus:ring-2 focus:ring-primary placeholder:text-gray-400"
                 :placeholder="`Search for ${args.search.column}`"
               />
             </div>
@@ -524,11 +524,11 @@ const removeAll = () => {
   }
 
   .pagination-item-active {
-    @apply z-10 px-3 py-2 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700;
+    @apply z-10 px-3 py-2 leading-tight text-primary border border-secondary-low bg-secondary hover:bg-secondary-high;
   }
 }
 
-.spinner_ajPY{transform-origin:center;animation:spinner_AtaB .75s infinite linear}@keyframes spinner_AtaB{100%{transform:rotate(360deg)}}
+.spinner_svg{transform-origin:center;animation:spinner_AtaB .75s infinite linear}@keyframes spinner_AtaB{100%{transform:rotate(360deg)}}
 .spinner-wrapper {
   position: relative;
   .spinner-overlay {
