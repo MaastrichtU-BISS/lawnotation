@@ -1,13 +1,36 @@
 <template>
-  <template v-if="assignment">
+  <Breadcrumb v-if="task" :crumbs="[
+    {
+      name: 'Tasks',
+      link: '/tasks',
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/tasks/${task.id}`,
+    },
+    {
+      name: `Assignment ${seq_pos}`,
+      link: `/annotate/${task.id}?seq=${seq_pos}`,
+    }
+  ]" />
+
+  <template v-if="assignment && task">
+
     <div class="my-4 px-8 flex justify-between">
       <span>&nbsp;</span>
       <div
-        class="text-lg font-semibold"
-        v-if="loadedData"
+        class="max-w-screen-md w-full"
+        v-if="loadedData && seq_pos && assignmentCounts"
       >
-        {{ seq_pos }} / {{ assignmentCounts?.total }}
+        <div class="flex justify-between mb-1">
+          <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
+          <span class="text-sm font-medium text-blue-700">{{ seq_pos }} / {{ assignmentCounts.total }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="{'width': `${(seq_pos / assignmentCounts.total)*100}%`}"></div>
+        </div>
       </div>
+
       <span>status: <span :class="assignmentStatusClass(assignment.status)">{{ assignment.status }}</span></span>
     </div>
     <div class="dimmer-wrapper" style="min-height: 200px">
@@ -42,6 +65,8 @@ import {
   useAnnotationRelationApi,
   LSSerializedRelation,
 } from "~/data/annotation_relations";
+import Breadcrumb from '~/components/Breadcrumb.vue';
+
 const relationApi = useAnnotationRelationApi();
 
 const user = useSupabaseUser();
@@ -69,11 +94,7 @@ const ls_annotations = reactive<LSSerializedAnnotation>([]);
 const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
-const assignmentCounts = reactive<{ done: number; total: number; pending: number }>({
-  done: 0,
-  total: 0,
-  pending: 0,
-});
+const assignmentCounts = ref<{ next: number ; total: number }>();
 
 const assignmentStatusClass = (status: Assignment['status']) => {
   return status === 'done' ? 'text-green-600' : 'text-red-500';
@@ -110,13 +131,11 @@ const loadNext = async () => {
   if (!assignment.value)
     throw Error("Assignment not found");
 
-  seq_pos.value += 1;
-
-  if (assignmentCounts.total == seq_pos.value) {
+  if (assignmentCounts.value && seq_pos.value + 1 > assignmentCounts.value.total) {
     // TODO: go to page /done
-    alert("All tasks were done: you will be signed out");
-    // supabase.auth.signOut();
+    $toast.success(`All assignments were completed!`);
   } else {
+    seq_pos.value++;
     await loadData();
   }
 };
@@ -127,21 +146,12 @@ const loadData = async () => {
 
     loading.value = true;
     key.value = `ls-${seq_pos.value}`;
-    
-    if (seq_pos.value) {
-      assignment.value = await assignmentApi.findAssignmentsByUserTaskSeq(
-        user.value.id,
-        route.params.task_id.toString(),
-        seq_pos.value
-      );
-    } else {
-      assignment.value = await assignmentApi.findNextAssignmentsByUserAndTask(
-        user.value.id,
-        route.params.task_id.toString()
-      );
-      
-      seq_pos.value = assignment.value.seq_pos;
-    }
+
+    assignment.value = await assignmentApi.findAssignmentsByUserTaskSeq(
+      user.value.id,
+      route.params.task_id.toString(),
+      seq_pos.value
+    );
 
     if (!assignment.value) throw Error("Assignment not found");
 
@@ -165,8 +175,6 @@ const loadData = async () => {
     }
 
     const _relations = await relationApi.findRelations(_annotations);
-    // relations.splice(0) &&
-    //   relations.push(..._relations);
 
     ls_relations.splice(0)
     if (_relations.length) {
@@ -188,14 +196,15 @@ const loadData = async () => {
 const loadCounters = async () => {
   try {
     if (!user.value) throw new Error("Must be logged in");
+    if (!route.params.task_id || Array.isArray(route.params.task_id)) throw new Error("Invalid task");
 
-    Object.assign(
-      assignmentCounts,
-      await assignmentApi.countAssignmentsByUserAndTask(
-        user.value.id,
-        route.params.task_id.toString()
-      )
+    const counts = await assignmentApi.countAssignmentsByUserAndTask(
+      user.value.id,
+      parseInt(route.params.task_id)
     );
+
+    assignmentCounts.value = counts;
+
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Problem loading counters: ${error.message}`);
@@ -204,7 +213,7 @@ const loadCounters = async () => {
 
 const init = async () => {
   await loadCounters();
-  if (route.query.seq && !Array.isArray(route.query.seq) && parseInt(route.query.seq) > 0 && parseInt(route.query.seq) < assignmentCounts.total) {
+  if (route.query.seq && !Array.isArray(route.query.seq) && parseInt(route.query.seq) > 0 && parseInt(route.query.seq) <= assignmentCounts.value!.total) {
     seq_pos.value = parseInt(route.query.seq);
   }
   loadData();

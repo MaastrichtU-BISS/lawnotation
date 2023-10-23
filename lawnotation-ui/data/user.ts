@@ -3,6 +3,7 @@ import { AuthError } from "@supabase/supabase-js";
 export type User = {
   id: string;
   email: string;
+  role: string;
 };
 
 export const useUserApi = () => {

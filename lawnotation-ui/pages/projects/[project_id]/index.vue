@@ -1,6 +1,19 @@
 <template>
+  <Breadcrumb
+    v-if="project"
+    :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+    ]"
+  />
+
   <div v-if="project">
-    <h1 class="my-3 text-lg font-semibold mb-2">Project: {{ project.name }}</h1>
     <p class="mt-1 mb-3 text-gray-700 text-sm">{{ project.desc }}</p>
 
     <div class="tabs-holder">
@@ -17,24 +30,41 @@
     <div v-show="tab_active == 'documents'">
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="documentTable.loading" />
-        <Table :tabledata="documentTable" :sort="true" :search="true">
-          <template #row="{item}: {item: Document}">
+        <Table
+          :name="'documents'"
+          :tabledata="documentTable"
+          :sort="true"
+          :search="true"
+          :remove="true"
+          @remove-rows="removeDocuments"
+          @remove-all-rows="removeAllDocuments"
+        >
+          <template #row="{ item }: { item: Document }">
             <tr class="bg-white border-b hover:bg-gray-50">
-              <th
+              <td class="px-6 py-2">
+                <input
+                  type="checkbox"
+                  :data-id="item.id.toString()"
+                  name="documents_table_checkbox"
+                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                />
+              </td>
+              <td
                 scope="row"
                 class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
               >
                 {{ item.id }}
-              </th>
+              </td>
               <td class="px-6 py-2">
                 {{ item.name }}
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
-                  class="font-medium text-blue-600 hover:underline"
+                  class="base"
                   :to="`/projects/${route.params.project_id}/documents/${item.id}`"
-                  >View</NuxtLink
                 >
+                  View
+                </NuxtLink>
               </td>
             </tr>
           </template>
@@ -46,6 +76,7 @@
         <div class="dimmer-content">
           <span class="mr-3">Add documents</span>
           <input
+            class="base"
             type="file"
             name="data-set"
             id="doc_input"
@@ -62,15 +93,31 @@
     <div v-show="tab_active == 'tasks'">
       <div class="my-3 dimmer-wrapper">
         <Dimmer v-model="taskTable.loading" />
-        <Table :tabledata="taskTable" :sort="true" :search="true">
-          <template #row="{item}: {item: Task}">
+        <Table
+          :name="'tasks'"
+          :tabledata="taskTable"
+          :sort="true"
+          :search="true"
+          :remove="true"
+          @remove-rows="removeTasks"
+          @remove-all-rows="removeAllTasks"
+        >
+          <template #row="{ item }: { item: Task }">
             <tr class="bg-white border-b hover:bg-gray-50">
-              <th
+              <td class="px-6 py-2">
+                <input
+                  type="checkbox"
+                  :data-id="item.id.toString()"
+                  name="tasks_table_checkbox"
+                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                />
+              </td>
+              <td
                 scope="row"
                 class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
               >
                 {{ item.id }}
-              </th>
+              </td>
               <td class="px-6 py-2">
                 {{ item.name }}
               </td>
@@ -79,10 +126,11 @@
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
-                  class="font-medium text-blue-600 hover:underline"
+                  class="base"
                   :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-                  >View</NuxtLink
                 >
+                  View
+                </NuxtLink>
               </td>
             </tr>
           </template>
@@ -92,9 +140,19 @@
       <div class="my-3">
         <h3 class="text-lg mt-8">Create new task</h3>
         <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-          <input type="text" placeholder="Task name" v-model="new_task.name" />
-          <textarea placeholder="Task description" v-model="new_task.desc"></textarea>
+          <input
+            class="base"
+            type="text"
+            placeholder="Task name"
+            v-model="new_task.name"
+          />
           <textarea
+            class="base"
+            placeholder="Task description"
+            v-model="new_task.desc"
+          ></textarea>
+          <textarea
+            class="base"
             placeholder="Annotation Guidelines"
             v-model="new_task.ann_guidelines"
           ></textarea>
@@ -106,17 +164,24 @@
               v-model="new_task.labelset_id"
               class="flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
             >
+              <option :value="undefined" disabled selected hidden>
+                Select from list
+              </option>
               <option v-for="labelset of labelsets" :value="labelset.id">
                 {{ labelset.name }}
               </option>
             </select>
             <span v-else>No labelsets found</span>
-            <button class="btn-secondary" @click="() => navigateTo('/labelset/new')">
+            <button
+              class="base btn-secondary"
+              style="flex: 0 0 content"
+              @click="() => navigateTo('/labelset/new')"
+            >
               Create new labelset
             </button>
           </div>
 
-          <button class="btn-primary" @click="createTask">Create Tasks</button>
+          <button class="base btn-primary" @click="createTask">Create Tasks</button>
         </div>
       </div>
     </div>
@@ -148,50 +213,47 @@ const labelsets = reactive<Labelset[]>([]);
 
 const documentTable = createTableData<Document>(
   {
-    'Id': {
-      field: 'id',
+    Id: {
+      field: "id",
       sort: true,
     },
-    'Name': {
-      field: 'name',
+    Name: {
+      field: "name",
       sort: true,
       search: true,
     },
-    'Action': {}
+    Action: {},
   },
   {
-    type: 'table',
-    from: 'documents',
-    filter: () => ({ project_id: project.value?.id })
+    type: "table",
+    from: "documents",
+    filter: () => ({ project_id: project.value?.id }),
   }
 );
 
 const taskTable = createTableData<Task>(
   {
-    'Id': {
-      field: 'id',
+    Id: {
+      field: "id",
       sort: true,
     },
-    'Name': {
-      field: 'name',
+    Name: {
+      field: "name",
       sort: true,
       search: true,
     },
-    'Description': {
-      field: 'desc',
+    Description: {
+      field: "desc",
       search: true,
     },
-    'Action': {}
+    Action: {},
   },
   {
-    type: 'table',
-    from: 'tasks',
-    filter: () => ({ project_id: project.value?.id })
+    type: "table",
+    from: "tasks",
+    filter: () => ({ project_id: project.value?.id }),
   }
 );
-
-
-
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
@@ -258,6 +320,33 @@ const createTask = () => {
   } catch (error) {
     if (error instanceof Error) $toast.error(`Error creating task: ${error.message}`);
   }
+};
+
+const removeDocuments = async (ids: string[]) => {
+  const promises: Promise<Boolean>[] = [];
+  promises.push(...ids.map((id) => documentApi.deleteDocument(id)));
+  await Promise.all(promises);
+  await documentTable.load();
+  $toast.success("Documents successfully deleted!");
+};
+const removeAllDocuments = async () => {
+  if (!project.value) throw new Error("Invalid Project!");
+  await documentApi.deleteAllDocuments(project.value?.id.toString());
+  await documentTable.load();
+  $toast.success("Documents successfully deleted!");
+};
+const removeTasks = async (ids: string[]) => {
+  const promises: Promise<Boolean>[] = [];
+  promises.push(...ids.map((id) => taskApi.deleteTask(id)));
+  await Promise.all(promises);
+  await taskTable.load();
+  $toast.success("Tasks successfully deleted!");
+};
+const removeAllTasks = async () => {
+  if (!project.value) throw new Error("Invalid Project!");
+  await taskApi.deleteAllTasks(project.value?.id.toString());
+  await taskTable.load();
+  $toast.success("Tasks successfully deleted!");
 };
 
 onMounted(() => {

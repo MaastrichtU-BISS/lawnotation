@@ -1,14 +1,35 @@
 <template>
+  <Breadcrumb v-if="task" :crumbs="[
+    {
+      name: 'Tasks',
+      link: '/tasks',
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/tasks/${task.id}`,
+    }
+  ]" />
+  
   <div v-if="task">
-    <h3 class="my-3 text-lg font-semibold">Task: {{ task.name }}</h3>
+    <div class="max-w-screen-md w-full mx-auto" v-if="assignmentCounts">
+      <div class="flex justify-between mb-1">
+        <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
+        <span class="text-sm font-medium text-blue-700">{{ assignmentCounts.next - 1}} / {{ assignmentCounts.total }}</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2.5">
+        <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="{'width': `${((assignmentCounts.next - 1 )/ assignmentCounts.total)*100}%`}"></div>
+      </div>
+    </div>
+    <div class="text-center my-10">
+      <div v-if="assignmentCounts && assignmentCounts.next <= assignmentCounts.total">
+        <NuxtLink :to="`/annotate/${task.id}?seq=${assignmentCounts?.next}`">
+          <button class="base btn-primary">Annotate Next Assignment</button>
+        </NuxtLink>
+      </div>
+    </div>
     <div class="dimmer-wrapper">
       <Dimmer v-model="assignmentTable.loading" />
       <Dimmer v-model="loading" />
-      <div class="text-center my-10">
-        <NuxtLink :to="`/annotate/${task.id}`"
-          ><button class="btn-primary">Annotate Next Assignment</button></NuxtLink
-        >
-      </div>
       <Table :tabledata="assignmentTable" :sort="true" :search="true">
         <template #row="{item}: {item: AssignmentTableData}">
           <tr class="bg-white border-b hover:bg-gray-50">
@@ -27,11 +48,17 @@
               >
             </td>
             <td class="px-6 py-2">
-              <NuxtLink
-                class="font-medium text-blue-600 hover:underline"
-                :to="`/annotate/${task.id}?seq=${item.seq_pos}`"
-                >View</NuxtLink
+              <span
+                >{{ item.difficulty_rating }}</span
               >
+            </td>
+            <td class="px-6 py-2">
+              <NuxtLink
+                class="base"
+                :to="`/annotate/${task.id}?seq=${item.seq_pos}`"
+              >
+                View
+              </NuxtLink>
             </td>
           </tr>
         </template>
@@ -57,6 +84,26 @@ const route = useRoute();
 const task = ref<Task>();
 const loading = ref(false);
 
+const assignmentCounts = ref<{ next: number ; total: number }>();
+
+const loadCounters = async () => {
+  try {
+    if (!user.value) throw new Error("Must be logged in");
+    if (!task.value) throw new Error("Invalid task");
+
+    const counts = await assignmentApi.countAssignmentsByUserAndTask(
+      user.value.id,
+      task.value?.id
+    );
+
+    assignmentCounts.value = counts;
+
+  } catch (error) {
+    if (error instanceof Error)
+      $toast.error(`Problem loading counters: ${error.message}`);
+  }
+};
+
 const assignmentTable = createTableData<AssignmentTableData>(
   {
     'Order': {
@@ -72,12 +119,16 @@ const assignmentTable = createTableData<AssignmentTableData>(
       field: 'status',
       sort: true,
     },
+    'Difficulty': {
+      field: 'difficulty_rating',
+      sort: true,
+    },
     'Action': {}
   },
   {
     type: 'table',
     from: 'assignments',
-    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, seq_pos',
+    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, difficulty_rating, seq_pos',
     filter: () => ({
       task_id: task.value?.id,
       'annotator.id': user.value?.id,
@@ -86,10 +137,9 @@ const assignmentTable = createTableData<AssignmentTableData>(
   }
 );
 
-onMounted(() => {
-  taskApi.findTask(route.params.task_id.toString()).then((_task) => {
-    task.value = _task;
-  });
+onMounted(async () => {
+  task.value = await taskApi.findTask(route.params.task_id as string);
+  await loadCounters()
 });
 
 definePageMeta({

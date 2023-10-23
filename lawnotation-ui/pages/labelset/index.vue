@@ -27,10 +27,11 @@
               </td>
               <td class="px-6 py-2">
                 <NuxtLink
-                  class="font-medium text-blue-600 hover:underline"
+                  class="base"
                   :to="`/labelset/${item.id}`"
-                  >View</NuxtLink
                 >
+                  View
+                </NuxtLink>
               </td>
             </tr>
           </template>
@@ -39,20 +40,16 @@
     </div>
     
     <div class="my-4">
-      <button class="btn-primary" @click="navigateTo('/labelset/new')">
+      <button class="base btn-primary" @click="navigateTo('/labelset/new')">
         Create new labelset
       </button>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { Labelset, useLabelsetApi } from "~/data/labelset";
-const route = useRoute();
+import { Labelset } from "~/data/labelset";
 
 const user = useSupabaseUser();
-const labelsetApi = useLabelsetApi();
-
-// const labelsets = ref<Labelset[]>();
 
 const labelsetTable = createTableData<Labelset>(
   {
@@ -78,13 +75,6 @@ const labelsetTable = createTableData<Labelset>(
     filter: () => ({ editor_id: user.value?.id })
   }
 );
-
-onMounted(() => {
-  labelsetApi.findLabelsets().then((_labelsets) => {
-    labelsets.value = [];
-    labelsets.value.push(..._labelsets);
-  });
-});
 
 definePageMeta({
   middleware: ["auth"],

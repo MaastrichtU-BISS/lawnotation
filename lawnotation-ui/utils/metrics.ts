@@ -1,4 +1,4 @@
-import { BasicAnnotation } from "~/data/annotation";
+import { RichAnnotation } from "~/data/annotation";
 
 export type RangeLabel = {
   start: number;
@@ -6,23 +6,46 @@ export type RangeLabel = {
   label: string;
   text: string;
   annotators: any;
+  doc_id: string;
+  doc_name: string;
   zeros: number;
   ones: number;
 };
 
 export type MetricResult = {
   name: string;
-  po: number;
-  pe: number;
-  result: number;
-  table: RangeLabel[];
-  variant: string;
+  po: number | undefined;
+  pe: number | undefined;
+  result: number | undefined;
+  table: RangeLabel[] | undefined;
 };
+
+export type DifficultyMetricResult = {
+  average: number;
+  min: number;
+  max: number;
+  total: number;
+  rated: number;
+  unrated: number;
+  krippendorff: MetricResult | undefined;
+  values: number[];
+};
+
+export function newEmptyMetricResult(name: string): MetricResult {
+  return {
+    name: name,
+    po: undefined,
+    pe: undefined,
+    result: undefined,
+    table: undefined,
+  } as MetricResult;
+}
 
 export function createContingencyTable(
   annotations: any[],
   annotators: string[],
-  tolerance: number = 0
+  tolerance: number = 0,
+  contained: boolean = false
 ): RangeLabel[] {
   var table: RangeLabel[] = [];
 
@@ -33,10 +56,12 @@ export function createContingencyTable(
       label: x.label,
       text: x.text,
       annotators: {},
+      doc_id: x.doc_id,
+      doc_name: x.doc_name,
       zeros: 0,
       ones: 0,
     };
-    const index = containsRangeLabel(table, ann, tolerance);
+    const index = containsRangeLabel(table, ann, tolerance, contained);
     if (index < 0) {
       table.push(ann);
       annotators.forEach((a) => {
@@ -55,7 +80,7 @@ export function createContingencyTable(
   return table;
 }
 
-export function sortByRange(ranges: RangeLabel[] | BasicAnnotation[]): void {
+export function sortByRange(ranges: RangeLabel[] | RichAnnotation[]): void {
   ranges.sort((x, y) => {
     if (x.start < y.start) {
       return -1;
@@ -70,17 +95,22 @@ export function sortByRange(ranges: RangeLabel[] | BasicAnnotation[]): void {
 export function containsRangeLabel(
   list: RangeLabel[],
   range: RangeLabel,
-  tolerance: number = 0
+  tolerance: number = 0,
+  contained: boolean = false
 ): number {
   for (let i = 0; i < list.length; i++) {
     const x = list[i];
-    if (x.label == range.label) {
+    if (x.doc_id == range.doc_id && x.label == range.label && x.zeros > 0) {
       for (let t = 0; t <= tolerance; t++) {
-        if (
-          Math.abs(x.start - range.start) <= t &&
-          Math.abs(x.end - range.end) <= tolerance - t
-        ) {
-          return i;
+        if (contained) {
+          if (range.start >= x.start && range.end <= x.end) return i;
+        } else {
+          if (
+            Math.abs(x.start - range.start) <= t &&
+            Math.abs(x.end - range.end) <= tolerance - t
+          ) {
+            return i;
+          }
         }
       }
     }

@@ -1,16 +1,28 @@
 <template>
+  <Breadcrumb :crumbs="[
+    {
+      name: 'Labelsets',
+      link: '/labelset',
+    },
+    {
+      name: 'New labelset',
+      link: '/labelset/new'
+    }
+  ]" />
+
   <div class="">
     <div class="flex flex-row justify-between">
       <h2 class="text-2xl">
         {{ new_labelset.name ? `New labelset: ${new_labelset.name}` : "New labelset" }}
       </h2>
-      <button class="btn btn-primary" @click="create_new_labelset">Create</button>
+      <button class="base btn-primary" @click="create_new_labelset">Create</button>
     </div>
     <hr class="pb-4 mt-2" />
     <div class="row">
       <div class="flex flex-col space-y-2">
-        <input type="text" v-model="new_labelset.name" placeholder="Labelset name" />
+        <input class="base" type="text" v-model="new_labelset.name" placeholder="Labelset name" />
         <textarea
+          class="base"
           :value="new_labelset.desc"
           @input="new_labelset.desc = ($event.target as HTMLTextAreaElement)?.value"
           placeholder="Labelset description"
@@ -18,20 +30,18 @@
       </div>
       <hr class="my-3" />
       <div class="flex space-x-4">
-        <input v-model="new_label.color" type="color" class="self-center" />
+        <input v-model="new_label.color" type="color" class="base self-center" />
         <input
+          class="base grow"
           v-model="new_label.name"
           placeholder="Label name"
           type="text"
-          style="flex-grow: 1"
           @keydown.enter="add_label()"
         />
-        <button @click="add_label()" class="btn btn-primary">Add</button>
-        <!-- <button @click="export_label_collection()" class="btn btn-secondary">Export</button>
-        <button @click="click_import_label_collection()" class="btn btn-secondary">Import</button> -->
+        <button @click="add_label()" class="base btn-primary">Add</button>
         <input
+          class="hidden"
           type="file"
-          style="display: none"
           @change="import_labels_file_changed"
           id="import_file_holder"
         />
@@ -43,7 +53,7 @@
           v-for="(label, i) of new_labelset.labels"
           :key="label.name"
         >
-          <button class="btn btn-secondary" @click="new_labelset.labels.splice(i, 1)">
+          <button class="base btn-secondary" @click="new_labelset.labels.splice(i, 1)">
             <svg
               style="width: 1rem"
               xmlns="http://www.w3.org/2000/svg"

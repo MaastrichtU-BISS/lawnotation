@@ -1,13 +1,9 @@
-<script setup lang="ts">
-import Header from '@/components/Header.vue'
-import Footer from '@/components/Footer.vue'
-</script>
+<script setup lang="ts"></script>
 <template>
   <div>
     <Header></Header>
+    <div id="breadcrumb-holder" class="bg-white dark:bg-gray-800 border-b"></div>
     <slot />
-    <Footer></Footer>
   </div>
 </template>
-<style>
-</style>
+<style></style>

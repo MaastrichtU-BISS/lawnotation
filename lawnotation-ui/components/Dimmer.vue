@@ -1,16 +1,16 @@
 <template>
   <div v-if="modelValue" class="dimmer">
-    <half-circle-spinner
+    <HollowDotsSpinner
       v-if="modelValue"
       :animation-duration="1000"
       :size="60"
-      color="rgb(79 70 229)"
+      color="#0D5984"
       style="position: absolute; left: calc(50% - 30px); top: calc(50% - 30px)"
     />
   </div>
 </template>
 <script setup lang="ts">
-import { HalfCircleSpinner } from "epic-spinners";
+import { HollowDotsSpinner } from "epic-spinners";
 const props = defineProps<{
   modelValue: boolean;
 }>();

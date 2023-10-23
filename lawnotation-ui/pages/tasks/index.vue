@@ -1,58 +1,61 @@
 <template>
   <div class="dimmer">
-    <Dimmer v-model="loading" />
+    <Dimmer v-model="taskTable.loading" />
     <div class="dimmer-content">
-      <h3 class="my-3 text-lg font-semibold mb-2">Tasks: {{ tasks.length }}</h3>
-      <ul v-for="t in tasks" :key="t.id" class="list-disc list-inside">
-        <li>
-          <span>
-            {{ t.id }}.
-            <NuxtLink :to="`/tasks/${t.id}`">{{ t.name }}</NuxtLink>
-          </span>
-        </li>
-      </ul>
+      <h3 class="my-3 text-lg font-semibold mb-2">Assigned Tasks</h3>
+      <Table :tabledata="taskTable" :sort="true" :search="true">
+        <template #row="{item}: {item: Task}">
+          <tr class="bg-white border-b hover:bg-gray-50">
+            <th
+              scope="row"
+              class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+            >
+              {{ item.id }}
+            </th>
+            <td class="px-6 py-2">
+              {{ item.name }}
+            </td>
+            <td class="px-6 py-2">
+              <NuxtLink
+                class="base"
+                :to="`/tasks/${item.id}`"
+              >
+                View
+              </NuxtLink>
+            </td>
+          </tr>
+        </template>
+      </Table>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { Task, useTaskApi } from "~/data/task";
-
-const { $toast } = useNuxtApp();
+import { Task } from "~/data/task";
 
 const user = useSupabaseUser();
-const taskApi = useTaskApi();
 
-const route = useRoute();
-const loading = ref(false);
-const tasks = reactive<Task[]>([]);
-
-const loadTasks = async () => {
-  try {
-    loading.value = true;
-    taskApi
-      .getAllAnnotatorTasks(user.value!.id.toString())
-      .then((_tasks) => {
-        tasks.splice(0) && tasks.push(..._tasks);
-        loading.value = false;
-      })
-      .catch((error) => {
-        loading.value = false;
-      });
-  } catch (error) {
-    if (error instanceof Error) $toast.error(`Error loading projects: ${error.message}`);
+const taskTable = createTableData<Task>(
+  {
+    'Id': {
+      field: 'id',
+      sort: true,
+    },
+    'Name': {
+      field: 'name',
+      sort: true,
+      search: true,
+    },
+    'Action': {}
+  },
+  {
+    type: 'table',
+    from: 'tasks',
+    select: 'id, name, assignment:assignments!inner(id)',
+    filter: () => ({
+      'assignment.annotator_id': user.value?.id
+    })
   }
-};
-
-onMounted(() => {
-  if (user.value) loadTasks();
-  else {
-    watch(user, () => {
-      if (user.value) {
-        loadTasks();
-      }
-    });
-  }
-});
+);
 
 definePageMeta({
   middleware: ["auth"],

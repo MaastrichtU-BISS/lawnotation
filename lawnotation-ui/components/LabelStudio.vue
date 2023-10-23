@@ -5,9 +5,8 @@
 </template>
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
-import { Annotation, LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
+import { LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
 import {
-  AnnotationRelation,
   LSSerializedRelation,
   useAnnotationRelationApi,
 } from "~/data/annotation_relations";
@@ -47,20 +46,29 @@ const clickPrevious = async () => {
 const clickNext = async () => {
   if (!props.assignment) return;
 
-  if (props.assignment.status === "done") return emit("nextAssignment");
+  const serializedAnnotations: any[] = serializeLSAnnotations();
 
-  const serializedAnnotations = serializeLSAnnotations();
+  const pos_rating: number = serializedAnnotations.findIndex((x) => x.type == "rating");
+  let rating: number = props.assignment.difficulty_rating;
+  if (pos_rating >= 0) {
+    rating = serializedAnnotations[pos_rating].value.rating;
+    serializedAnnotations.splice(pos_rating, 1);
+  }
+
   if (
+    props.assignment.status !== "done" &&
     serializedAnnotations.length === 0 &&
     !confirm(
       "No annotations were made in this document.\nAre you sure you want to continue?"
     )
-  )
+  ) {
     return;
+  }
 
   await updateAnnotationsAndRelations(serializedAnnotations);
   await assignmentApi.updateAssignment(props.assignment.id.toString(), {
     status: "done",
+    difficulty_rating: rating,
   });
   emit("nextAssignment");
 };
@@ -70,32 +78,38 @@ const initLS = async () => {
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
   label_studio.value = new LabelStudio("label-studio", {
     config: `
-                <View style="display: flex;">
-                  <View style="width: 150px; background: #f1f1f1; border-radius: 3px">
-                    <Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
-                    <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
-                      ${props.labels
-                        ?.map(
-                          (l) =>
-                            `<Label value="${l.name}" background="${l.color}" style="display: inline-table"/>`
-                        )
-                        .join("\n")}
-                    </Labels>
-                  </View>
-                  <View>
-                    <View style="height: auto; overflow-y: auto; padding: 0 1em">
-                      <Text name="text" value="$text" />
+                <View style="display: block;">
+                  <View style="display: flex;">
+                    <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3em">
+                      <Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
+                      <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
+                        ${props.labels
+                          ?.map(
+                            (l) =>
+                              `<Label value="${l.name}" background="${l.color}" style="display: inline-table"/>`
+                          )
+                          .join("\n")}
+                      </Labels>
                     </View>
-                  <Relations>
-                    <Relation value="Is a" />
-                    <Relation value="Has a" />
-                    <Relation value="Implies" />
-                    <Relation value="Depends on" />
-                    <Relation value="Belongs to" />
-                    <Relation value="Related to" />
-                    <Relation value="Is not" />
-                    <Relation value="Part of" />
-                  </Relations>
+                    <View>
+                      <View style="height: auto; overflow-y: auto; padding: 0 1.7em 1em">
+                        <Text name="text" value="$text" />
+                      </View>
+                      <Relations>
+                        <Relation value="Is a" />
+                        <Relation value="Has a" />
+                        <Relation value="Implies" />
+                        <Relation value="Depends on" />
+                        <Relation value="Belongs to" />
+                        <Relation value="Related to" />
+                        <Relation value="Is not" />
+                        <Relation value="Part of" />
+                      </Relations>
+                    </View>
+                  </View>
+                  <View style="padding: .7em; border-top: 1px solid rgba(0,0,0,.1)">
+                    <Header style="margin-bottom: 0; margin: 0px" value="Confidence (1=not confident at all, 5=very confident)"/>
+                    <Rating value="$diff-rating" toName="rating" name="rating" maxRating="5" icon="star" size="medium" />
                   </View>
                 </View>
                 `,
@@ -137,6 +151,7 @@ const initLS = async () => {
       // predictions: this.predictions,
       data: {
         text: props.text,
+        diff_rating: props.assignment?.difficulty_rating,
       },
     },
     onLabelStudioLoad: (LS: any) => {
@@ -234,6 +249,13 @@ onMounted(() => {
   waitForElement('.lsf-button[aria-label="submit"]').then(
     (el) => (el.innerHTML = "Next")
   );
+  waitForElement(".ant-rate").then((el) => {
+    if (props.assignment?.difficulty_rating! < 1) return;
+    document
+      .getElementsByClassName("ant-rate-star-zero")
+      .item(props.assignment?.difficulty_rating! - 1)
+      ?.firstChild?.click();
+  });
 });
 </script>
 <style>
@@ -242,7 +264,7 @@ onMounted(() => {
 }
 
 .lsf-richtext {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
 }
 
 .lsf-current-task {
@@ -294,5 +316,25 @@ onMounted(() => {
 .lsf-label {
   display: inline-table;
   margin: 0px 8px 8px 0px !important;
+}
+
+.lsf-tooltip {
+  display: none !important;
+}
+
+.lsf-main-view__annotation {
+  padding: 0;
+}
+
+sup {
+  display: none;
+}
+
+.lsf-main-view__infobar {
+  display: none;
+}
+
+.lsf-entity__info {
+  display: none;
 }
 </style>
