@@ -1,4 +1,4 @@
-import { RichAnnotation } from "~/data/annotation";
+import { Annotation, RichAnnotation } from "~/data/annotation";
 
 export type RangeLabel = {
   start: number;
@@ -29,6 +29,12 @@ export type DifficultyMetricResult = {
   unrated: number;
   krippendorff: MetricResult | undefined;
   values: number[];
+  table: {
+    annotator: string;
+    doc_id: string;
+    ass_id: string;
+    rating: number;
+  }[];
 };
 
 export function newEmptyMetricResult(name: string): MetricResult {
@@ -61,8 +67,17 @@ export function createContingencyTable(
       zeros: 0,
       ones: 0,
     };
-    const index = containsRangeLabel(table, ann, tolerance, contained);
-    if (index < 0) {
+
+    let matches = false;
+    if (table.length > 0) {
+      matches = containsRangeLabel(
+        table[table.length - 1],
+        ann,
+        tolerance,
+        contained
+      );
+    }
+    if (!matches) {
       table.push(ann);
       annotators.forEach((a) => {
         const owns_annotation = x.annotator == a;
@@ -71,51 +86,40 @@ export function createContingencyTable(
         else table[table.length - 1].zeros++;
       });
     } else {
-      table[index].ones++;
-      table[index].zeros--;
-      table[index].annotators[x.annotator] = 1;
+      table[table.length - 1].ones++;
+      table[table.length - 1].zeros--;
+      table[table.length - 1].annotators[x.annotator] = 1;
     }
   });
 
   return table;
 }
 
-export function sortByRange(ranges: RangeLabel[] | RichAnnotation[]): void {
-  ranges.sort((x, y) => {
-    if (x.start < y.start) {
-      return -1;
-    } else if (x.start == y.start) {
-      return x.end <= y.end ? -1 : 1;
-    } else {
-      return 1;
-    }
-  });
+export function isContained(x: RangeLabel, y: RangeLabel): boolean {
+  return x.start >= y.start && x.end <= y.end;
 }
 
 export function containsRangeLabel(
-  list: RangeLabel[],
-  range: RangeLabel,
+  x: RangeLabel,
+  y: RangeLabel,
   tolerance: number = 0,
   contained: boolean = false
-): number {
-  for (let i = 0; i < list.length; i++) {
-    const x = list[i];
-    if (x.doc_id == range.doc_id && x.label == range.label && x.zeros > 0) {
+): boolean {
+  if (x.doc_id == y.doc_id && x.label == y.label && x.zeros > 0) {
+    if (contained) {
+      return isContained(x, y) || isContained(y, x);
+    } else {
       for (let t = 0; t <= tolerance; t++) {
-        if (contained) {
-          if (range.start >= x.start && range.end <= x.end) return i;
-        } else {
-          if (
-            Math.abs(x.start - range.start) <= t &&
-            Math.abs(x.end - range.end) <= tolerance - t
-          ) {
-            return i;
-          }
+        if (
+          Math.abs(x.start - y.start) <= t &&
+          Math.abs(x.end - y.end) <= tolerance - t
+        ) {
+          return true;
         }
       }
     }
   }
-  return -1;
+  return false;
 }
 
 export function getExampleFleiss() {
@@ -222,4 +226,63 @@ export function getExampleCohens() {
     });
   }
   return table;
+}
+
+export function sortByDocumentAndRange(ranges: RichAnnotation[]): void {
+  ranges.sort((x, y) => {
+    if (x.doc_id < y.doc_id) {
+      return -1;
+    } else if (x.doc_id == y.doc_id) {
+      if (x.start < y.start) {
+        return -1;
+      } else if (x.start == y.start) {
+        return x.end <= y.end ? -1 : 1;
+      } else {
+        return 1;
+      }
+    } else {
+      return 1;
+    }
+  });
+}
+
+export function setTextToHidden(
+  annotations: RichAnnotation[],
+  value: boolean
+): RichAnnotation[] {
+  for (let i = 0; i < annotations.length; i++) {
+    if (
+      annotations[i].ann_id == -1 &&
+      !/[ˆa-zA-Z]{2}/.test(annotations[i].text)
+    )
+      annotations[i].hidden = value;
+  }
+  return annotations;
+}
+
+export function separateIntoWords(annotations: RichAnnotation[]) {
+  let limit = 10 ** 6;
+  var new_annotations: RichAnnotation[] = [];
+
+  annotations.forEach((ann) => {
+    const words = ann.text.matchAll(/\S+/g);
+    while (limit > 0) {
+      const w = words.next();
+      if (w.done) break;
+      new_annotations.push({
+        start: ann.start + w.value.index!,
+        end: ann.start + w.value.index! + w.value[0].length,
+        text: w.value[0],
+        label: ann.label,
+        annotator: ann.annotator,
+        hidden: false,
+        ann_id: ann.ann_id,
+        doc_id: ann.doc_id,
+        doc_name: ann.doc_name,
+      });
+      limit--;
+    }
+  });
+  sortByDocumentAndRange(new_annotations);
+  return new_annotations;
 }
