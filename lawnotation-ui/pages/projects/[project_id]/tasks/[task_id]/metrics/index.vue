@@ -915,7 +915,7 @@ async function getMetricsSheet(
           if (m.result !== undefined)
             rows.push({
               metric: m.name,
-              annotators: data.annotators.join(","),
+              annotators: data.annotators[i] + "," + data.annotators[j],
               value: m.result,
               p0: m.po,
               pe: m.pe,
@@ -981,66 +981,6 @@ async function getDescriptiveAnnotatorSheet(table: RangeLabel[], annotators: str
 }
 
 async function getConfidenceSheet(
-  task_id: string,
-  annotators_length: number,
-  annotators: string[],
-  documents: string[]
-) {
-  const workbookDifficulty = XLSX.utils.book_new();
-  const diff_metric_body = JSON.stringify({
-    task_id: task_id,
-    annotators_length: annotators_length,
-    annotators: annotators,
-    documents: documents,
-  });
-
-  const dm = await $fetch("/api/metrics/difficulty", {
-    method: "POST",
-    body: diff_metric_body,
-  });
-
-  const worksheetDifficulty = XLSX.utils.json_to_sheet([
-    {
-      total: dm.total,
-      rated: dm.rated,
-      average_stars: dm.average,
-      "1_stars": dm.values[1],
-      "2_stars": dm.values[2],
-      "3_stars": dm.values[3],
-      "4_stars": dm.values[4],
-      "5_stars": dm.values[5],
-      krippendorff: dm.krippendorff?.result,
-      p0: dm.krippendorff?.po,
-      pe: dm.krippendorff?.pe,
-    },
-  ]);
-
-  const worksheetDifficultyAnnotator = XLSX.utils.json_to_sheet(
-    dm.table.map((r) => {
-      return {
-        annotator: r.annotator,
-        doc_id: r.doc_id,
-        assignment_id: r.ass_id,
-        stars: r.rating,
-      };
-    })
-  );
-
-  XLSX.utils.book_append_sheet(
-    workbookDifficulty,
-    worksheetDifficulty,
-    "Confidence Metrics"
-  );
-
-  XLSX.utils.book_append_sheet(
-    workbookDifficulty,
-    worksheetDifficultyAnnotator,
-    "Annotators "
-  );
-  return workbookDifficulty;
-}
-
-async function getConfidenceXlslTab(
   task_id: string,
   annotators_length: number,
   annotators: string[],
