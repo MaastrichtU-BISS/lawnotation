@@ -181,7 +181,7 @@ async function findAssignmentsByTaskUsersDocuments(
   annotators_id: string[] = [],
   documents_id: string[] = []
 ): Promise<any> {
-  const supabase = serverSupabaseClient(event);
+  const supabase = await serverSupabaseClient(event);
   let query = supabase
     .from("assignments")
     .select("*, user:users!inner(id, email)")

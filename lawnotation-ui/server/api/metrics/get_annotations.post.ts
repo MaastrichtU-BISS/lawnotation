@@ -158,7 +158,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   documents: string[] | undefined,
   annotators: string[] | undefined
 ): Promise<RichAnnotation[]> {
-  const supabase = serverSupabaseClient<Database>(event);
+  const supabase = await serverSupabaseClient<Database>(event);
   let query = supabase
     .from("annotations")
     .select(
@@ -200,7 +200,7 @@ async function getDocuments(
   task_id: number,
   documents: number[]
 ) {
-  const supabase = serverSupabaseClient<Database>(event);
+  const supabase = await serverSupabaseClient<Database>(event);
   let list: number[] = [];
   let dic: DocDic = {};
   let query = supabase.rpc("get_all_shared_docs_from_task", {
