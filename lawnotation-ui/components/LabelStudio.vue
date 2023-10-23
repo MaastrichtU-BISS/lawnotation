@@ -165,7 +165,6 @@ const initLS = async () => {
         LS.annotationStore.selectAnnotation(c.id);
       }
     },
-    onAcceptAnnotation() {},
     onRejectAnnotation() {},
 
     // 'back'
@@ -174,6 +173,12 @@ const initLS = async () => {
     },
     // 'next'
     onSubmitAnnotation: async (
+      LS: any,
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+    ) => {
+      clickNext();
+    },
+    onAcceptAnnotation: async (
       LS: any,
       { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
     ) => {
