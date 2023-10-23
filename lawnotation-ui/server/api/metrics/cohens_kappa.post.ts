@@ -1,15 +1,20 @@
 import {
   RangeLabel,
   MetricResult,
+  newEmptyMetricResult,
   createContingencyTable,
 } from "~/utils/metrics";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
+  if (data.annotators.length != 2) {
+    return newEmptyMetricResult("cohens_kappa");
+  }
   const table = createContingencyTable(
     data.annotations,
     data.annotators,
-    data.tolerance
+    data.tolerance,
+    data.contained
   );
   return computeCohensKappa(table);
 });

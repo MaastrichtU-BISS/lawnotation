@@ -1,10 +1,8 @@
-// Minimal styling uing tailwind
-
 a.base {
-    @apply text-blue-600;
+    @apply text-primary-high;
 
     &:hover {
-        @apply underline;
+        @apply underline text-primary;
     }
 }
 
@@ -13,9 +11,9 @@ input[type="file"].base, input[type="email"].base {
     // from: https://tailwindui.com/components/application-ui/forms/form-layouts
 
     @apply rounded-md border-0 px-2 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400;
-    
+
     &:focus {
-        @apply ring-2 ring-inset ring-indigo-600;
+        @apply ring-2 ring-inset ring-primary;
     }
 
     @media sm {
@@ -25,9 +23,9 @@ input[type="file"].base, input[type="email"].base {
 
 textarea.base {
     @apply p-2 rounded-md border-0 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400;
-    
+
     &:focus {
-        @apply ring-2 ring-inset ring-indigo-600;
+        @apply ring-2 ring-inset ring-primary;
     }
 
     @media sm {
@@ -37,20 +35,20 @@ textarea.base {
 
 button.base {
     &.btn-secondary {
-        @apply rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300;
+        @apply rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-secondary-low;
         &:hover {
-            @apply bg-gray-50;
+            @apply bg-secondary-high;
         }
     }
-    
+
     &.btn-primary {
-        @apply rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm;
+        @apply rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm;
         &:hover {
-            @apply bg-indigo-500;
+            @apply bg-primary-high;
         }
-        
+
         &:focus-visible {
-            @apply outline outline-2 outline-offset-2 outline-indigo-600;
+            @apply outline outline-2 outline-offset-2 outline-primary-low;
         }
     }
-}
+} 

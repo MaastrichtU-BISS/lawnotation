@@ -6,8 +6,10 @@ export function confirmBox(
 ) {
   const swalWithBootstrapButtons = Swal.mixin({
     customClass: {
-      confirmButton: "base btn-primary mr-5",
-      cancelButton: "base btn-secondary",
+      confirmButton:
+        "rounded-md bg-secondary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600",
+      cancelButton:
+        "rounded-md bg-primary ml-5 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600",
     },
     buttonsStyling: false,
   });
