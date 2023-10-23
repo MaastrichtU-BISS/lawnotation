@@ -33,9 +33,6 @@
         >
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 text-sm">
-              <!-- <li>
-                <input type="file" multiple @change="loadXlsx($event)" name="" id="" />
-              </li> -->
               <li>
                 <label
                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -508,19 +505,23 @@ const updateAnnotations = async () => {
     difficulty: undefined,
     loading: false,
   };
-  annotations.splice(0);
-  const anns = await getAnnotations(
-    task.value?.id.toString()!,
-    selectedLabel.value!,
-    selectedDocumentsOrEmpty.value!,
-    selectedAnnotatorsOrEmpty.value!,
-    separate_into_words.value,
-    hideNonText.value
-  );
-  console.log(anns);
-  annotations_length.value = anns.length;
-  if (anns.length < annotations_limit) annotations.push(...anns);
-  loading_annotations.value = false;
+  try {
+    annotations.splice(0);
+    const anns = await getAnnotations(
+      task.value?.id.toString()!,
+      selectedLabel.value!,
+      selectedDocumentsOrEmpty.value!,
+      selectedAnnotatorsOrEmpty.value!,
+      separate_into_words.value,
+      hideNonText.value
+    );
+    console.log(anns);
+    annotations_length.value = anns.length;
+    if (anns.length < annotations_limit) annotations.push(...anns);
+    loading_annotations.value = false;
+  } catch (error) {
+    loading_annotations.value = false;
+  }
 };
 
 const compute_metrics = async (
