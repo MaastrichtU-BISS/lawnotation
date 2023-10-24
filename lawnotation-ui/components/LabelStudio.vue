@@ -1,6 +1,6 @@
 <template>
-  <div id="label-studio-container" class="m-4">
-    <div id="label-studio"></div>
+  <div id="label-studio-container" class="p-4 h-full">
+    <div id="label-studio" class="h-full"></div>
   </div>
 </template>
 <script setup lang="ts">
@@ -83,37 +83,35 @@ const initLS = async () => {
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
   label_studio.value = new LabelStudio("label-studio", {
     config: `
-                <View style="display: block;">
-                  <View style="display: flex;">
-                    <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3em">
-                      <Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
-                      <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
-                        ${props.labels
-                          ?.map(
-                            (l) =>
-                              `<Label value="${l.name}" background="${l.color}" style="display: inline-table"/>`
-                          )
-                          .join("\n")}
-                      </Labels>
-                    </View>
-                    <View>
-                      <View style="height: auto; overflow-y: auto; padding: 0 1.7em 1em">
-                        <Text name="text" value="$text" />
-                      </View>
-                      <Relations>
-                        <Relation value="Is a" />
-                        <Relation value="Has a" />
-                        <Relation value="Implies" />
-                        <Relation value="Depends on" />
-                        <Relation value="Belongs to" />
-                        <Relation value="Related to" />
-                        <Relation value="Is not" />
-                        <Relation value="Part of" />
-                      </Relations>
-                    </View>
+                <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
+                  <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto;">
+                    <Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
+                    <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
+                      ${props.labels
+                        ?.map(
+                          (l) =>
+                            `<Label value="${l.name}" background="${l.color}" style="display: inline-table; user-select: none;"/>`
+                        )
+                        .join("\n")}
+                    </Labels>
                   </View>
-                  <View style="padding: .7em; border-top: 1px solid rgba(0,0,0,.1)">
-                    <Header style="margin-bottom: 0; margin: 0px" value="Confidence (1=not confident at all, 5=very confident)"/>
+                  <View style="width: 100%; overflow-y: auto;">
+                    <View style="height: auto; padding: 0 1.7em 1em;">
+                      <Text name="text" value="$text" />
+                    </View>
+                    <Relations>
+                      <Relation value="Is a" />
+                      <Relation value="Has a" />
+                      <Relation value="Implies" />
+                      <Relation value="Depends on" />
+                      <Relation value="Belongs to" />
+                      <Relation value="Related to" />
+                      <Relation value="Is not" />
+                      <Relation value="Part of" />
+                    </Relations>
+                  </View>
+                  <View style="padding: .7em; border-top: 1px solid rgba(0,0,0,.1);  grid-column: span 2;">
+                    <Header style="margin-bottom: 0; margin: 0px; user-select: none;" value="Confidence (1=not confident at all, 5=very confident)"/>
                     <Rating value="$diff-rating" toName="rating" name="rating" maxRating="5" icon="star" size="medium" />
                   </View>
                 </View>
@@ -186,12 +184,6 @@ const initLS = async () => {
     onAcceptAnnotation: async (
       LS: any,
       { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
-    ) => {
-      clickNext();
-    },
-    onAcceptAnnotation: async (
-      LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
     ) => {
       clickNext();
     },
@@ -328,9 +320,20 @@ onMounted(() => {
   visibility: visible;
 }
 
+.ant-input {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .lsf-label__text {
   white-space: pre-wrap;
   /* word-break: break-all; */
+  user-select: none;
+}
+
+.lsf-label__hotkey {
+  user-select: none;
 }
 
 .lsf-label {
@@ -342,8 +345,15 @@ onMounted(() => {
   display: none !important;
 }
 
+.ls-common,
+.main-content-wrapper--1qjJ0,
+.lsf-main-view {
+  min-height: 0;
+}
+
 .lsf-main-view__annotation {
   padding: 0;
+  height: 100%;
 }
 
 sup {
@@ -356,5 +366,9 @@ sup {
 
 .lsf-entity__info {
   display: none;
+}
+
+.ls-menu {
+  overflow-y: auto;
 }
 </style>
