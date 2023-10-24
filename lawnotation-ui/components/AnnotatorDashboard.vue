@@ -33,7 +33,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Assignment } from "~/types";
+import type { Assignment } from "~/types";
 
 const { $trpc } = useNuxtApp();
 
