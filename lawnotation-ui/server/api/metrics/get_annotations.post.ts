@@ -8,7 +8,7 @@ import { RichAnnotation, Document } from "~/types";
 import { Database } from "~/types/supabase";
 import { H3Event } from "h3";
 
-type DocDic = Record<number, {full_text: string, name: string}>
+type DocDic = Record<number, { full_text: string; name: string }>;
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
@@ -66,7 +66,10 @@ async function getNonAnnotations(
     // new document
     if (previous_ann.doc_id != current_ann.doc_id) {
       docs_index++;
-      if (documentsData[current_ann.doc_id] && last_end < documentsData[previous_ann.doc_id].full_text.length) {
+      if (
+        documentsData[current_ann.doc_id] &&
+        last_end < documentsData[previous_ann.doc_id].full_text.length
+      ) {
         new_annotations.push({
           start: last_end,
           end: documentsData[previous_ann.doc_id].full_text.length,
@@ -103,8 +106,7 @@ async function getNonAnnotations(
     }
 
     if (last_end < current_ann.start) {
-      if (!documentsData[current_ann.doc_id])
-        continue;
+      if (!documentsData[current_ann.doc_id]) continue;
       new_annotations.push({
         start: last_end,
         end: current_ann.start,
@@ -126,7 +128,10 @@ async function getNonAnnotations(
     previous_ann = current_ann;
   }
 
-  if (documentsData[previous_ann.doc_id] && last_end < documentsData[previous_ann.doc_id].full_text.length) {
+  if (
+    documentsData[previous_ann.doc_id] &&
+    last_end < documentsData[previous_ann.doc_id].full_text.length
+  ) {
     new_annotations.push({
       start: last_end,
       end: documentsData[previous_ann.doc_id].full_text.length,
@@ -153,7 +158,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   documents: string[] | undefined,
   annotators: string[] | undefined
 ): Promise<RichAnnotation[]> {
-  const supabase = serverSupabaseClient<Database>(event);
+  const supabase = await serverSupabaseClient<Database>(event);
   let query = supabase
     .from("annotations")
     .select(
@@ -178,7 +183,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
       return {
         start: ann.start_index,
         end: ann.end_index,
-        text: ann.text!.replaceAll("\\n", ""),
+        text: ann.text,
         label: ann.label,
         annotator: ann.assignment!.annotator!.email,
         hidden: false,
@@ -190,8 +195,12 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   }
 }
 
-async function getDocuments(event: H3Event, task_id: number, documents: number[]) {
-  const supabase = serverSupabaseClient<Database>(event);
+async function getDocuments(
+  event: H3Event,
+  task_id: number,
+  documents: number[]
+) {
+  const supabase = await serverSupabaseClient<Database>(event);
   let list: number[] = [];
   let dic: DocDic = {};
   let query = supabase.rpc("get_all_shared_docs_from_task", {
@@ -205,50 +214,13 @@ async function getDocuments(event: H3Event, task_id: number, documents: number[]
   if (error) {
     throw new Error(error.message);
   } else {
-    (data).map((d) => {
+    data.map((d) => {
       list.push(d.id);
       if (!(d.id in dic)) {
-        dic[d.id] = { full_text: d.full_text ?? '', name: d.name ?? '' };
+        dic[d.id] = { full_text: d.full_text ?? "", name: d.name ?? "" };
       }
     });
   }
 
   return [dic, list] as [DocDic, number[]];
 }
-
-// Bottom function is not used:
-/*
-const findAnnotationsByTask = async (
-  event: any,
-  task_id: string
-): Promise<any> => {
-  const supabase = serverSupabaseClient<Database>(event);
-  let query = supabase
-    .from("annotations")
-    .select(
-      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
-    )
-    .eq("assignments.task_id", task_id);
-
-  const { data, error } = await query;
-  if (error)
-    throw Error(
-      `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`
-    );
-  else {
-    return data.map((ann) => {
-      return {
-        start: ann.start_index,
-        end: ann.end_index,
-        text: ann.text,
-        label: ann.label,
-        annotator: ann.assignment.annotator.email,
-        hidden: false,
-        ann_id: ann.id,
-        doc_id: ann.assignment.document_id,
-        doc_name: ann.assignment.document.name,
-      } as RichAnnotation;
-    });
-  }
-};
-*/
