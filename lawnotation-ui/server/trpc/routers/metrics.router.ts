@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-import { RichAnnotation } from '~/types';
-import { Context } from '../context';
+import type { RichAnnotation } from '~/types';
+import type { Context } from '../context';
 import { appRouter } from '.';
 
 // NOTE: this specific router serves as a boilerplate/starting point for a migration

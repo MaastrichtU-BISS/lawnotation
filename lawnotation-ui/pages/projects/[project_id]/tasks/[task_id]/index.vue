@@ -16,7 +16,7 @@
       },
     ]"
   />
-  
+
   <div class="my-3 dimmer-wrapper">
     <Dimmer v-model="loading" />
     <div class="dimmer-content">
@@ -24,7 +24,9 @@
         <div v-show="assignmentTable?.total">
           <div class="text-center my-3">
             <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
-              <button class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
+              <button
+                class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+              >
                 Analyze Agreement Metrics
               </button>
               <button
@@ -126,14 +128,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import {
-  Task,
-  Assignment,
-  AssignmentTableData,
-  User,
-  Project
-} from "~/types";
-import Table from "~/components/Table.vue"
+import type { Task, Assignment, AssignmentTableData, User, Project } from "~/types";
+import Table from "~/components/Table.vue";
 import { shuffle, clone } from "lodash";
 
 const { $toast, $trpc } = useNuxtApp();
@@ -167,7 +163,7 @@ const createAssignments = async () => {
     // Get the documents
     const docs = await $trpc.document.takeUpToNRandomDocuments.query({
       project_id: task.value.project_id,
-      n: amount_of_docs.value
+      n: amount_of_docs.value,
     });
 
     const new_assignments: Pick<Assignment, "task_id" | "document_id">[] = [];
@@ -177,7 +173,7 @@ const createAssignments = async () => {
       for (let j = 0; j < annotators_email.length; ++j) {
         const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
           task_id: task.value!.id,
-          document_id: docs[i]
+          document_id: docs[i],
         };
         new_assignments.push(new_assignment);
       }
@@ -187,7 +183,7 @@ const createAssignments = async () => {
     for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
       const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
         task_id: task.value!.id,
-        document_id: docs[i]
+        document_id: docs[i],
       };
       new_assignments.push(new_assignment);
     }
@@ -229,10 +225,13 @@ const createAssignments = async () => {
       // @ts-expect-error
       new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
       // @ts-expect-error
-      new_assignments[i].seq_pos = (permutations[i % annotators_id.length].pop() ?? 0) + 1;
+      new_assignments[i].seq_pos =
+        (permutations[i % annotators_id.length].pop() ?? 0) + 1;
     }
-    
-    const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(new_assignments);
+
+    const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
+      new_assignments
+    );
 
     assignmentTable.value?.refresh();
     loading.value = false;

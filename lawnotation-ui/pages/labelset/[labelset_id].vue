@@ -1,14 +1,17 @@
 <template>
-  <Breadcrumb v-if="labelset" :crumbs="[
-    {
-      name: 'Labelsets',
-      link: '/labelset',
-    },
-    {
-      name: `Labelset ${labelset.name}`,
-      link: `/labelset/${labelset.id}`
-    }
-  ]" />
+  <Breadcrumb
+    v-if="labelset"
+    :crumbs="[
+      {
+        name: 'Labelsets',
+        link: '/labelset',
+      },
+      {
+        name: `Labelset ${labelset.name}`,
+        link: `/labelset/${labelset.id}`,
+      },
+    ]"
+  />
 
   <div v-if="labelset === undefined">Loading labelset...</div>
   <div v-else>
@@ -19,7 +22,12 @@
     <hr class="pb-4 mt-2" />
     <div class="row">
       <div class="flex flex-col space-y-2">
-        <input class="base" type="text" v-model="labelset.name" placeholder="Labelset name" />
+        <input
+          class="base"
+          type="text"
+          v-model="labelset.name"
+          placeholder="Labelset name"
+        />
         <textarea
           class="base"
           :value="labelset.desc"
@@ -79,7 +87,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Labelset } from "~/types";
+import type { Labelset } from "~/types";
 
 const route = useRoute();
 const { $toast, $trpc } = useNuxtApp();
@@ -139,7 +147,7 @@ const save_labelset = async () => {
       updates: {
         ...labelset.value,
         editor_id: user.value.id,
-      }
+      },
     });
     $toast.success("Saved labelset");
   } catch (error) {

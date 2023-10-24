@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-import { Document } from '~/types';
+import type { Document } from '~/types';
 
 const ZDocumentFields = z.object({
   name: z.string(),

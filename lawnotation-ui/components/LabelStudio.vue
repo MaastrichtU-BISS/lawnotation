@@ -5,7 +5,7 @@
 </template>
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
-import {
+import type {
   LSSerializedRelation,
   Assignment,
   LsLabels,

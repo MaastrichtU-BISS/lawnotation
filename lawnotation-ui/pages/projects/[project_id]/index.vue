@@ -39,10 +39,7 @@
         @remove-all-rows="removeAllDocuments"
       >
         <template #row="{ item }: { item: Document }">
-          <td
-            scope="row"
-            class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-          >
+          <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
             {{ item.id }}
           </td>
           <td class="px-6 py-2">
@@ -90,10 +87,7 @@
         @remove-all-rows="removeAllTasks"
       >
         <template #row="{ item }: { item: Task }">
-          <td
-            scope="row"
-            class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-          >
+          <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
             {{ item.id }}
           </td>
           <td class="px-6 py-2">
@@ -164,14 +158,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import {
-  Project,
-  Document,
-  Task,
-  Labelset,
-} from "~/types";
+import type { Project, Document, Task, Labelset } from "~/types";
 import Table from "~/components/Table.vue";
-import { _AsyncData } from "nuxt/dist/app/composables/asyncData";
+import type { _AsyncData } from "nuxt/dist/app/composables/asyncData";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const { $toast, $trpc } = useNuxtApp();
@@ -284,10 +273,9 @@ const removeAllTasks = async () => {
 };
 
 onMounted(() => {
-
   // project.value = projectQuery.data.value!;
   new_task.project_id = project.id;
-  
+
   $trpc.labelset.find.query({}).then((_labelsets) => {
     labelsets.push(..._labelsets);
   });
@@ -296,9 +284,7 @@ onMounted(() => {
 definePageMeta({
   middleware: [
     "auth",
-    async (to) => authorizeClient([
-      ["project", +to.params.project_id],
-    ]),
+    async (to) => authorizeClient([["project", +to.params.project_id]]),
   ],
 });
 </script>

@@ -67,7 +67,7 @@
   </template>
 </template>
 <script setup lang="ts">
-import {
+import type {
   Assignment,
   LSSerializedAnnotations,
   Document,

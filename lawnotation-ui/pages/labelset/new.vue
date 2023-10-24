@@ -1,14 +1,16 @@
 <template>
-  <Breadcrumb :crumbs="[
-    {
-      name: 'Labelsets',
-      link: '/labelset',
-    },
-    {
-      name: 'New labelset',
-      link: '/labelset/new'
-    }
-  ]" />
+  <Breadcrumb
+    :crumbs="[
+      {
+        name: 'Labelsets',
+        link: '/labelset',
+      },
+      {
+        name: 'New labelset',
+        link: '/labelset/new',
+      },
+    ]"
+  />
 
   <div class="">
     <div class="flex flex-row justify-between">
@@ -20,7 +22,12 @@
     <hr class="pb-4 mt-2" />
     <div class="row">
       <div class="flex flex-col space-y-2">
-        <input class="base" type="text" v-model="new_labelset.name" placeholder="Labelset name" />
+        <input
+          class="base"
+          type="text"
+          v-model="new_labelset.name"
+          placeholder="Labelset name"
+        />
         <textarea
           class="base"
           :value="new_labelset.desc"
@@ -80,7 +87,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Labelset } from "~/types";
+import type { Labelset } from "~/types";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -143,7 +150,7 @@ const create_new_labelset = async () => {
 
     const create = await $trpc.labelset.create.mutate({
       ...new_labelset.value,
-      editor_id: user.value.id
+      editor_id: user.value.id,
     });
     $toast.success(`Labelset "${new_labelset.value.name}" created`);
     navigateTo(`/labelset`);
