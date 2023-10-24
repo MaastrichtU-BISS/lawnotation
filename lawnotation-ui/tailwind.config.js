@@ -16,9 +16,9 @@ module.exports = {
         "primary-low": "#0b4b6f",
         "primary-high": "#236B95",
 
-        "secondary": "#B6CDDA",
+        "secondary": "#B2CAD7",
         "secondary-low": "#92b5c8",
-        "secondary-high": "#C9DAE4"
+        "secondary-high": "#e9f0f4"
       }
     },
   },

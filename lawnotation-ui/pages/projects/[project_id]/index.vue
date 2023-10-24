@@ -130,18 +130,22 @@
           <label for="label_id">Labelset</label>
           <div class="flex items-start w-full space-x-2">
             <select
-              v-if="labelsets.length"
               v-model="new_task.labelset_id"
-              class="flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
+              class="w-full flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
             >
-              <option :value="undefined" disabled selected hidden>
-                Select from list
+              <option v-if="labelsets.pending.value" disabled selected value="">
+                Loading labelsets...
               </option>
-              <option v-for="labelset of labelsets" :value="labelset.id">
-                {{ labelset.name }}
-              </option>
+              <template v-else-if="labelsets.data.value && labelsets.data.value.length">
+                <option :value="undefined" disabled selected hidden>
+                  Select from list
+                </option>
+                <option v-for="labelset of labelsets.data.value" :value="labelset.id">
+                  {{ labelset.name }}
+                </option>
+              </template>
+              <option v-else disabled selected value="">No labelsets found</option>
             </select>
-            <span v-else>No labelsets found</span>
             <button
               class="base btn-secondary"
               style="flex: 0 0 content"
@@ -173,7 +177,7 @@ const loading_docs = ref(false);
 
 const tab_active = ref<"tasks" | "documents">("tasks");
 
-const labelsets = reactive<Labelset[]>([]);
+const labelsets = await $trpc.labelset.find.useQuery({});
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
@@ -296,7 +300,7 @@ div.tabs-holder {
     @apply inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300;
   }
   li.tab-active button {
-    @apply inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg;
+    @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
 }
 </style>
