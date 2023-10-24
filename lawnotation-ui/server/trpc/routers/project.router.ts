@@ -5,7 +5,7 @@ import type { Project } from '~/types';
 import type { Context } from '../context';
 
 const ZProjectFields = z.object({
-  name: z.string(),
+  name: z.string().min(3),
   desc: z.string(),
   editor_id: z.string()
 });

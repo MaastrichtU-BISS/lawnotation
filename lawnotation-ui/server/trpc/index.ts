@@ -8,9 +8,25 @@
  * @see https://trpc.io/docs/v10/procedures
  */
 import { TRPCError, initTRPC } from '@trpc/server'
+import { ZodError } from 'zod';
 import { Context } from '~/server/trpc/context'
 
-const t = initTRPC.context<Context>().create()
+const t = initTRPC.context<Context>().create({
+  errorFormatter(opts) {
+    const { shape, error } = opts;
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        ...(
+          error.code === 'BAD_REQUEST' && error.cause instanceof ZodError
+            ? {zodErrors: error.cause.flatten()}
+            : {}
+        )
+      },
+    };
+  },
+})
 
 /**
  * Middlewares
