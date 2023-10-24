@@ -40,7 +40,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import {
+import type {
   Assignment,
   LSSerializedAnnotations,
   Document,
@@ -89,7 +89,9 @@ const loadData = async () => {
 
     project.value = await $trpc.project.findById.query(+task.value.project_id);
 
-    const _labelset: Labelset = await $trpc.labelset.findById.query(+task.value.labelset_id);
+    const _labelset: Labelset = await $trpc.labelset.findById.query(
+      +task.value.labelset_id
+    );
 
     labels.splice(0) &&
       labels.push(
@@ -109,7 +111,11 @@ const loadData = async () => {
     }
 
     relations.splice(0) &&
-      relations.push(...(await $trpc.relation.findFromAnnotationIds.query(annotations.map(a => a.id))));
+      relations.push(
+        ...(await $trpc.relation.findFromAnnotationIds.query(
+          annotations.map((a) => a.id)
+        ))
+      );
 
     const db2ls_rels = relations.map((r) => convert_relation_db2ls(r));
 

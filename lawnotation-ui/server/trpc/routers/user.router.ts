@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { authorizer, protectedProcedure, publicProcedure, router } from '~/server/trpc'
-import { User } from '~/types';
+import type { User } from '~/types';
 
 // const ZUserFields = z.object({
 //   email: z.string().email(),

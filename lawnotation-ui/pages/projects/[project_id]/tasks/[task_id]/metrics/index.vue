@@ -358,8 +358,8 @@
 <script setup lang="ts">
 import * as XLSX from "xlsx";
 import Multiselect from "@vueform/multiselect";
-import { Task, RichAnnotation, Project } from "~/types";
-import {
+import type { Task, RichAnnotation, Project } from "~/types";
+import type {
   MetricResult,
   newEmptyMetricResult,
   DifficultyMetricResult,

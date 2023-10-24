@@ -1,6 +1,6 @@
 import { serverSupabaseClient } from "#supabase/server";
-import { Assignment } from "~/types";
-import {
+import type { Assignment } from "~/types";
+import type {
   DifficultyMetricResult,
   MetricResult,
   newEmptyMetricResult,

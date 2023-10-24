@@ -11,10 +11,7 @@
       @remove-all-rows="removeAllProjects"
     >
       <template #row="{ item }: { item: Project }">
-        <td
-          scope="row"
-          class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-        >
+        <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
           {{ item.id }}
         </td>
         <td class="px-6 py-2">
@@ -44,7 +41,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project } from "~/types";
+import type { Project } from "~/types";
 import Table from "@/components/Table.vue";
 import { TRPCClientError } from "@trpc/client";
 import { TRPCError } from "@trpc/server";
@@ -76,13 +73,13 @@ const removeProjects = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
   promises.push(...ids.map((id) => $trpc.project.delete.mutate(+id)));
   await Promise.all(promises);
-  await projectTable.value?.refresh()
+  await projectTable.value?.refresh();
   $toast.success("Projects successfully deleted!");
 };
 const removeAllProjects = async () => {
   if (!user.value) throw new Error("Invalid User!");
   await $trpc.project.deleteAllFromUser.mutate();
-  await projectTable.value?.refresh()
+  await projectTable.value?.refresh();
   $toast.success("Projects successfully deleted!");
 };
 

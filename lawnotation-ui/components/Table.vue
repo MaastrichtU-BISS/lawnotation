@@ -3,7 +3,21 @@
     <template v-if="pending !== false">
       <div class="spinner-overlay"></div>
       <div class="spinner">
-        <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" class="spinner_svg"/></svg>
+        <svg
+          width="48"
+          height="48"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z"
+            opacity=".25"
+          />
+          <path
+            d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z"
+            class="spinner_svg"
+          />
+        </svg>
       </div>
     </template>
     <div class="relative overflow-x-auto sm:rounded-lg">
@@ -28,7 +42,10 @@
             Remove selected rows ({{ checkedIds.length }})
           </button>
         </span>
-        <span class="flex" v-if="args.search && Object.keys(searchableColumns).length > 0">
+        <span
+          class="flex"
+          v-if="args.search && Object.keys(searchableColumns).length > 0"
+        >
           <select
             v-model="args.search.column"
             class="w-40 p-2 text-sm text-gray-900 border-0 ring-1 ring-inset ring-secondary shadow-sm rounded-md bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-primary"
@@ -78,7 +95,11 @@
               <input
                 type="checkbox"
                 v-model="allCheckbox"
-                :aaaindeterminate.prop="rows.length > 0 && checkedIds.length > 0 && rows.length != checkedIds.length"
+                :aaaindeterminate.prop="
+                  rows.length > 0 &&
+                  checkedIds.length > 0 &&
+                  rows.length != checkedIds.length
+                "
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
               />
             </th>
@@ -149,7 +170,7 @@
         <tbody>
           <tr
             class="bg-white border-b hover:bg-gray-50"
-            :class="{'bg-gray-100': checkedIds.includes(item.id)}"
+            :class="{ 'bg-gray-100': checkedIds.includes(item.id) }"
             v-for="item in rows"
           >
             <td class="px-6 py-2" v-if="props.selectable">
@@ -160,11 +181,7 @@
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
               />
             </td>
-            <slot
-              name="row"
-              :item="item"
-              :key="item.id"
-            ></slot>
+            <slot name="row" :item="item" :key="item.id"></slot>
           </tr>
         </tbody>
       </table>
@@ -232,12 +249,7 @@
             </button>
           </li>
 
-          <li
-            v-for="page_start in range(
-              Math.max(1, args.page - 2),
-              args.page - 1
-            )"
-          >
+          <li v-for="page_start in range(Math.max(1, args.page - 2), args.page - 1)">
             <button @click="setPage(page_start)" class="pagination-item-default">
               {{ page_start }}
             </button>
@@ -314,36 +326,35 @@
 
 <script setup lang="ts">
 import { confirmBox } from "~/utils/confirmBox";
-import { AppRouter } from "~/server/trpc/routers";
+import type { AppRouter } from "~/server/trpc/routers";
 import { tableColumns } from "~/constants/tableColumns";
 
 const { $trpc, $toast } = useNuxtApp();
 
 // const emit = de  fineEmits(["removeRows", "removeAllRows"]);
 const emit = defineEmits<{
-  (e: 'removeRows', ids: string[]): void
-  (e: 'removeAllRows'): void
+  (e: "removeRows", ids: string[]): void;
+  (e: "removeAllRows"): void;
 }>();
 const checkedIds = ref<string[]>([]);
 
-
 const props = withDefaults(
   defineProps<{
-    pagination?: boolean,
-    selectable?: boolean,
-    sort?: boolean,
-    search?: boolean,
-    filter?: Record<string, any>
+    pagination?: boolean;
+    selectable?: boolean;
+    sort?: boolean;
+    search?: boolean;
+    filter?: Record<string, any>;
     // name?: string,
 
-    endpoint: keyof AppRouter['table']['_def']['procedures']
+    endpoint: keyof AppRouter["table"]["_def"]["procedures"];
   }>(),
   {
     pagination: true,
     sort: false,
     search: false,
     selectable: false,
-    name: '1'
+    name: "1",
   }
 );
 
@@ -352,62 +363,63 @@ const columns = tableColumns[props.endpoint];
 const searchableColumns = (() => {
   return Object.fromEntries(
     Object.entries(columns)
-      .filter((col): col is [string, {field: string, searchable: true}] => 
-        col[1] != null && 
-        col[1].searchable != undefined &&
-        col[1].searchable === true)
+      .filter(
+        (col): col is [string, { field: string; searchable: true }] =>
+          col[1] != null && col[1].searchable != undefined && col[1].searchable === true
+      )
       .map((col) => [col[0], col[1].field])
-    )
+  );
 })();
 
 const sortableColumns = (() => {
   return Object.fromEntries(
     Object.entries(columns)
-      .filter((col): col is [string, {field: string, sortable: true}] => 
-        col[1] != null && 
-        col[1].sortable != undefined &&
-        col[1].sortable === true)
+      .filter(
+        (col): col is [string, { field: string; sortable: true }] =>
+          col[1] != null && col[1].sortable != undefined && col[1].sortable === true
+      )
       .map((col) => [col[0], col[1].field])
-    )
+  );
 })();
 
 const args = reactive<{
   sort: {
-    column: string | null,
-    dir: "ASC" | "DESC"
-  },
+    column: string | null;
+    dir: "ASC" | "DESC";
+  };
   search: {
-    column: string | null,
-    query: string
-  },
-  filter: typeof props.filter
-  page: number,
-  items_per_page: number
+    column: string | null;
+    query: string;
+  };
+  filter: typeof props.filter;
+  page: number;
+  items_per_page: number;
 }>({
   sort: {
     column: Object.values(sortableColumns)[0],
-    dir: "DESC"
+    dir: "DESC",
   },
   search: {
     column: Object.values(searchableColumns)[0],
-    query: ""
+    query: "",
   },
   filter: props.filter,
   page: 1,
-  items_per_page: 10
-})
+  items_per_page: 10,
+});
 
-const { data, refresh, status, pending, error } = $trpc.table[props.endpoint].useQuery(args);
+const { data, refresh, status, pending, error } = $trpc.table[props.endpoint].useQuery(
+  args
+);
 
 watch(error, (error) => {
-  if (error)
-    $toast.error(`Error loading table: ${error}`);
+  if (error) $toast.error(`Error loading table: ${error}`);
 });
 
 const rows = computed(() => {
   if (!data.value) return [];
   return data.value.rows;
-})
+});
 const total = computed(() => {
   if (!data.value) return 0;
   return data.value.total;
@@ -416,16 +428,12 @@ const total = computed(() => {
 defineExpose({
   refresh,
   total,
-  pending
-})
+  pending,
+});
 
 const sortClick = async (colname: string) => {
   const dir =
-    args.sort &&
-    args.sort.column === colname &&
-    args.sort.dir === "ASC"
-      ? "DESC"
-      : "ASC";
+    args.sort && args.sort.column === colname && args.sort.dir === "ASC" ? "DESC" : "ASC";
   args.sort.column = colname;
   args.sort.dir = dir;
 
@@ -433,10 +441,7 @@ const sortClick = async (colname: string) => {
 };
 
 watch(
-  () => [
-    args.search.query,
-    args.search.column,
-  ],
+  () => [args.search.query, args.search.column],
   async () => {
     args.page = 1;
     refresh();
@@ -469,16 +474,15 @@ const range = (from: number, to: number): number[] => {
 
 const allCheckbox = computed({
   get() {
-    return rows.value.length > 0 && checkedIds.value.length === rows.value.length
+    return rows.value.length > 0 && checkedIds.value.length === rows.value.length;
   },
   set(checked: boolean) {
     checkedIds.value = [];
     if (checked) {
-      for (const row of rows.value)
-        checkedIds.value.push(row.id);
+      for (const row of rows.value) checkedIds.value.push(row.id);
     }
-  }
-})
+  },
+});
 
 const removeSelected = async (ids: string[]) => {
   confirmBox(
@@ -528,7 +532,15 @@ const removeAll = () => {
   }
 }
 
-.spinner_svg{transform-origin:center;animation:spinner_AtaB .75s infinite linear}@keyframes spinner_AtaB{100%{transform:rotate(360deg)}}
+.spinner_svg {
+  transform-origin: center;
+  animation: spinner_AtaB 0.75s infinite linear;
+}
+@keyframes spinner_AtaB {
+  100% {
+    transform: rotate(360deg);
+  }
+}
 .spinner-wrapper {
   position: relative;
   .spinner-overlay {

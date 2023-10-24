@@ -1,18 +1,21 @@
 <template>
-  <Breadcrumb v-if="project && document" :crumbs="[
-    {
-      name: 'Projects',
-      link: '/projects',
-    },
-    {
-      name: `Project ${project.name}`,
-      link: `/projects/${project.id}`,
-    },
-    {
-      name: `Document ${document.name}`,
-      link: `/projects/${project.id}/documents/${document.id}`,
-    },
-  ]" />
+  <Breadcrumb
+    v-if="project && document"
+    :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+      {
+        name: `Document ${document.name}`,
+        link: `/projects/${project.id}/documents/${document.id}`,
+      },
+    ]"
+  />
 
   <div>
     <h3 class="text-lg font-semibold mb-2">Document:</h3>
@@ -20,7 +23,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project, Document } from "~/types";
+import type { Project, Document } from "~/types";
 
 const { $trpc } = useNuxtApp();
 
