@@ -310,7 +310,7 @@ div.tabs-holder {
     @apply inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300;
   }
   li.tab-active button {
-    @apply inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg;
+    @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
 }
 </style>
