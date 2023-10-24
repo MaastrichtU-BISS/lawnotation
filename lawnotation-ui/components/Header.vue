@@ -36,7 +36,7 @@
           user.email?.split("@")[0]
         }}</span>
         <span class="text-gray-400 select-none mx-3">|</span>
-        <button class="header-link" @click="supabase.auth.signOut">Sign Out</button>
+        <button class="header-link" @click="signOut()">Sign Out</button>
       </template>
       <template v-else>
         <NuxtLink
@@ -50,14 +50,13 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useUserApi, User } from "@/data/user";
-const supabase = useSupabaseClient();
+const supabase = useSupabaseClient()
 const user = useSupabaseUser();
-const userApi = useUserApi();
 
-const role = ref<string>();
+const { $trpc } = useNuxtApp();
 
 const route = useRoute();
+const role = ref<string>((await $trpc.user.findByEmail.query(user.value!.email!)).role);
 
 const routeIsActive = computed(() => {
   return (match: string) => {
@@ -65,20 +64,10 @@ const routeIsActive = computed(() => {
   };
 });
 
-onMounted(async () => {
-  if (user.value) {
-    role.value = ((await userApi.findByEmail(user.value?.email!, "role")) as User).role;
-  } else {
-    watch(user, async () => {
-      if (user.value) {
-        role.value = ((await userApi.findByEmail(
-          user.value?.email!,
-          "role"
-        )) as User).role;
-      }
-    });
-  }
-});
+const signOut = async () => {
+  await supabase.auth.signOut()
+  navigateTo('/auth/login');
+}
 </script>
 
 <style lang="scss">

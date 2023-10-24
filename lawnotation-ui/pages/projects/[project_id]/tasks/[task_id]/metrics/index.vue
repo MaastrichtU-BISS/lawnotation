@@ -355,13 +355,11 @@
 <script setup lang="ts">
 import * as XLSX from "xlsx";
 import Multiselect from "@vueform/multiselect";
-import { Task, useTaskApi } from "~/data/task";
-import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { RichAnnotation, useAnnotationApi } from "~/data/annotation";
-import { Document, useDocumentApi } from "~/data/document";
-import { Labelset, useLabelsetApi } from "~/data/labelset";
-import { Project, useProjectApi } from "~/data/project";
-import { User, useUserApi } from "~/data/user";
+import {
+  Task,
+  RichAnnotation,
+  Project,
+} from "~/types";
 import {
   MetricResult,
   newEmptyMetricResult,
@@ -377,15 +375,9 @@ import { saveAs } from "file-saver";
 import JSZip, { file } from "jszip";
 
 const config = useRuntimeConfig();
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 // const user = useSupabaseUser();
-const taskApi = useTaskApi();
-const projectApi = useProjectApi();
-const annotationApi = useAnnotationApi();
-const documentApi = useDocumentApi();
-const labelsetApi = useLabelsetApi();
-const userApi = useUserApi();
 
 const route = useRoute();
 const task = ref<Task>();
@@ -551,7 +543,7 @@ const compute_metrics = async (
     annotations: annotations,
   });
 
-  return $fetch(`/api/metrics/get_metrics`, {
+  return $fetch('/api/metrics/get_metrics', {
     method: "POST",
     body: body,
   });
@@ -653,12 +645,12 @@ const get_json = async () => {
   let json: any = { task_id: task.value?.id, task_name: task.value?.name, labels: [] };
   anns.map((l) => {
     json.labels.push({ value: labelsOptions[label_index], documents: [] });
-    let prev_doc_id = "-1";
+    let prev_doc_id = -1;
     let doc_index = 0;
     l.map((a) => {
       if (prev_doc_id != a.doc_id) {
         json.labels[label_index].documents.push({
-          document_id: Number.parseInt(a.doc_id),
+          document_id: +a.doc_id,
           document_name: a.doc_name,
           annotations: [],
         });
@@ -1059,7 +1051,7 @@ const toggleTextToHidden = (value: boolean): RichAnnotation[] => {
   return setTextToHidden(annotations, value);
 };
 
-const emitSetHidden = (ann_index: number, hidden: Boolean): void => {
+const emitSetHidden = (ann_index: number, hidden: boolean): void => {
   annotations[ann_index].hidden = hidden;
 };
 
@@ -1068,18 +1060,18 @@ onMounted(async () => {
 
   loading_options.value = true;
 
-  task.value = await taskApi.findTask(route.params.task_id.toString());
+  task.value = await $trpc.task.findById.query(+route.params.task_id);
 
-  project.value = await projectApi.findProject(route.params.project_id as string);
+  project.value = await $trpc.project.findById.query(+route.params.project_id);
 
   labelsOptions.push(
-    ...(await labelsetApi.findLabelset(task.value.labelset_id.toString())).labels.map(
+    ...(await $trpc.labelset.findById.query(+task.value.labelset_id)).labels.map(
       (l) => l.name
     )
   );
 
   documentsOptions.push(
-    ...(await documentApi.findSharedDocumentsByTask(task.value.id.toString())).map(
+    ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map(
       (d) => {
         if (!(d.id in documentsData.value)) {
           documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
@@ -1090,7 +1082,7 @@ onMounted(async () => {
   );
 
   annotatorsOptions.push(
-    ...(await userApi.findUsersByTask(task.value.id.toString())).map((a) => a.email)
+    ...(await $trpc.user.findUsersByTask.query(+task.value.id)).map((a) => a.email!)
   );
 
   loading_options.value = false;

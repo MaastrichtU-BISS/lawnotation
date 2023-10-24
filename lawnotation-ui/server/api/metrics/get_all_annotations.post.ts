@@ -1,4 +1,4 @@
-import { RichAnnotation } from "~/data/annotation";
+import { RichAnnotation } from "~/types";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
