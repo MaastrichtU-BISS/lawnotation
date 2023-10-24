@@ -68,8 +68,7 @@ const createNewProject = async () => {
     projectTable.value?.refresh()
     $toast.success("Project created");
   } catch (error) {
-    // console.log(error)
-    handleErrorFor(error as Error, "creating new project")
+    trpcErrorHandler(error as Error, "creating new project")
   }
 };
 
