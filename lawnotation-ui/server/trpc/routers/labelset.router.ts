@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-import { Labelset } from '~/types';
+import type { Labelset } from '~/types';
 
 const ZLabelsetFields = z.object({
   name: z.string(),

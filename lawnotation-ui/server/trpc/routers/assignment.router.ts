@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-import { Assignment } from '~/types';
+import type { Assignment } from '~/types';
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string(),

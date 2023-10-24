@@ -49,7 +49,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { RichAnnotation } from "~/types";
+import type { RichAnnotation } from "~/types";
 
 const emit = defineEmits(["separate", "mergeUp", "mergeDown", "setHidden"]);
 const _hidden = ref<Boolean>();

@@ -1,5 +1,5 @@
-import { RichAnnotation } from "~/types";
-import { MetricResult, newEmptyMetricResult } from "~/utils/metrics";
+import type { RichAnnotation } from "~/types";
+import type { MetricResult, newEmptyMetricResult } from "~/utils/metrics";
 
 const metrics = ["krippendorff", "fleiss_kappa", "cohens_kappa"];
 
