@@ -1,6 +1,6 @@
 import { serverSupabaseClient } from "#supabase/server";
 export default eventHandler(async (event) => {
-  const client = serverSupabaseClient(event);
+  const client = await serverSupabaseClient(event);
   const body = await readBody(event);
   const login = await client.auth.signInWithOtp({
     email: body.email,
