@@ -117,6 +117,9 @@ const initLS = async () => {
                 </View>
                 `,
     description: `<html><pre>${props.guidelines}</pre></html>`,
+    settings: {
+      continuousLabeling: true,
+    },
     interfaces: [
       "panel",
       "update",
