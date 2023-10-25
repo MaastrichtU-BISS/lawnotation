@@ -15,8 +15,8 @@
   ]" />
 
   <div>
-    <h3 class="text-lg font-semibold mb-2">Document:</h3>
-    <pre>{{ document }}</pre>
+    <h2 class="text-center text-lg mb-3 font-bold">{{ document?.name }}</h2>
+    <p>{{ document?.full_text }}</p>
   </div>
 </template>
 <script setup lang="ts">
