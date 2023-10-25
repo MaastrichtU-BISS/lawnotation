@@ -19,7 +19,7 @@ const taskAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const { count } = await ctx.supabase
+  const editor = await ctx.supabase
     .from("tasks")
     .select("*, project:projects!inner(editor_id)", {
       count: "exact",
@@ -27,7 +27,19 @@ const taskAuthorizer = async (
     })
     .eq("id", task_id)
     .eq("projects.editor_id", user_id);
-  return count === 1;
+
+  if (editor.count) return true;
+
+  const annotator = await ctx.supabase
+    .from("assignments")
+    .select("*", {
+      count: "exact",
+      head: true,
+    })
+    .eq("task_id", task_id)
+    .eq("annotator_id", user_id);
+
+  return annotator.count! > 0;
 };
 
 export const taskRouter = router({
@@ -193,7 +205,7 @@ export const taskRouter = router({
       // const assignmentApi = useAssignmentApi();
       // const relationApi = useAnnotationRelationApi();
 
-      const task = await caller.task.findById(task_id);
+      const task = await caller.task.findById({ task_id: task_id });
       const new_task = await caller.task.create({
         name: task.name,
         desc: task.desc,

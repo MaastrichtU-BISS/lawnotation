@@ -16,7 +16,7 @@ const documentAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const { count } = await ctx.supabase
+  const editor = await ctx.supabase
     .from("documents")
     .select("*, project:projects!inner(editor_id)", {
       count: "exact",
@@ -24,7 +24,19 @@ const documentAuthorizer = async (
     })
     .eq("id", document_id)
     .eq("projects.editor_id", user_id);
-  return count === 1;
+
+  if (editor.count) return true;
+
+  const annotator = await ctx.supabase
+    .from("assignments")
+    .select("*", {
+      count: "exact",
+      head: true,
+    })
+    .eq("document_id", document_id)
+    .eq("annotator_id", user_id);
+
+  return annotator.count! > 0;
 };
 
 export const documentRouter = router({
