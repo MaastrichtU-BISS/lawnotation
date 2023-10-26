@@ -1,73 +1,50 @@
 <template>
-  <Breadcrumb
-    v-if="task"
-    :crumbs="[
-      {
-        name: 'Tasks',
-        link: '/tasks',
-      },
-      {
-        name: `Task ${task.name}`,
-        link: `/tasks/${task.id}`,
-      },
-      {
-        name: `Assignment ${seq_pos}`,
-        link: `/annotate/${task.id}?seq=${seq_pos}`,
-      },
-    ]"
-  />
+  <Breadcrumb v-if="task" :crumbs="[
+    {
+      name: 'Tasks',
+      link: '/tasks',
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/tasks/${task.id}`,
+    },
+    {
+      name: `Assignment ${seq_pos}`,
+      link: `/annotate/${task.id}?seq=${seq_pos}`,
+    },
+  ]" />
 
   <template v-if="assignment && task">
     <div class="my-4 px-8 flex justify-between">
       <span>&nbsp;</span>
-      <div
-        class="max-w-screen-md w-full"
-        v-if="loadedData && seq_pos && assignmentCounts"
-      >
+      <div class="max-w-screen-md w-full" v-if="loadedData && seq_pos && assignmentCounts">
         <div class="flex justify-between mb-1">
           <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
-          <span class="text-sm font-medium text-blue-700"
-            >{{ seq_pos }} / {{ assignmentCounts.total }}</span
-          >
+          <span class="text-sm font-medium text-blue-700">{{ seq_pos }} / {{ assignmentCounts.total }}</span>
         </div>
         <div class="w-full bg-gray-200 rounded-full h-2.5">
-          <div
-            class="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-            :style="{ width: `${(seq_pos / assignmentCounts.total) * 100}%` }"
-          ></div>
+          <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+            :style="{ width: `${(seq_pos / assignmentCounts.total) * 100}%` }"></div>
         </div>
       </div>
 
-      <span
-        >status:
+      <span>status:
         <span :class="assignmentStatusClass(assignment.status)">{{
           assignment.status
-        }}</span></span
-      >
+        }}</span></span>
     </div>
-    <div class="dimmer-wrapper" style="min-height: 200px">
+    <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />
-      <div class="dimmer-content">
-        <LabelStudio
-          v-if="loadedData"
-          :assignment="assignment"
-          :user="user"
-          :isEditor="isEditor"
-          :text="doc?.full_text"
-          :annotations="ls_annotations"
-          :relations="ls_relations"
-          :labels="labels"
-          :guidelines="task?.ann_guidelines"
-          :key="key"
-          @nextAssignment="loadNext"
-          @previousAssignment="loadPrevious"
-        ></LabelStudio>
+      <div class="dimmer-content h-full">
+        <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
+          :annotations="ls_annotations" :relations="ls_relations" :labels="labels" :guidelines="task?.ann_guidelines"
+          :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious"></LabelStudio>
       </div>
     </div>
   </template>
 </template>
 <script setup lang="ts">
-import {
+import type {
   Assignment,
   LSSerializedAnnotations,
   Document,
@@ -77,7 +54,8 @@ import {
   AnnotationRelation,
   LSSerializedRelation,
 } from "~/types";
-import Breadcrumb from '~/components/Breadcrumb.vue';
+import Breadcrumb from "~/components/Breadcrumb.vue";
+import { authorizeClient } from "~/utils/authorize.client";
 
 const user = useSupabaseUser();
 
@@ -150,7 +128,7 @@ const loadData = async () => {
     assignment.value = await $trpc.assignment.findAssignmentsByUserTaskSeq.query({
       annotator_id: user.value.id,
       task_id: +route.params.task_id,
-      seq_pos: seq_pos.value
+      seq_pos: seq_pos.value,
     });
 
     if (!assignment.value) throw Error("Assignment not found");
@@ -161,12 +139,16 @@ const loadData = async () => {
     if (!assignment.value.task_id) throw Error("Document not found");
     task.value = await $trpc.task.findById.query(assignment.value.task_id);
 
-    const _labelset: Labelset = await $trpc.labelset.findById.query(task.value.labelset_id);
+    const _labelset: Labelset = await $trpc.labelset.findById.query(
+      task.value.labelset_id
+    );
 
     labels.splice(0);
     labels.push(..._labelset.labels.map((l) => l));
 
-    const _annotations = await $trpc.annotation.findByAssignment.query(assignment.value.id);
+    const _annotations = await $trpc.annotation.findByAssignment.query(
+      assignment.value.id
+    );
 
     ls_annotations.splice(0);
     if (_annotations.length) {
@@ -174,11 +156,15 @@ const loadData = async () => {
       ls_annotations.push(...db2ls_anns);
     }
 
-    const _relations = await $trpc.relation.findFromAnnotationIds.query(_annotations.map(a => a.id));
+    const _relations = await $trpc.relation.findFromAnnotationIds.query(
+      _annotations.map((a) => a.id)
+    );
 
     ls_relations.splice(0);
     if (_relations.length) {
-      const db2ls_rels = _relations.map((r: AnnotationRelation) => convert_relation_db2ls(r));
+      const db2ls_rels = _relations.map((r: AnnotationRelation) =>
+        convert_relation_db2ls(r)
+      );
       ls_relations.push(...db2ls_rels);
     }
 
@@ -188,7 +174,6 @@ const loadData = async () => {
     loading.value = false;
     key.value = "ls-" + assignment.value.id;
   } catch (error) {
-    if (error instanceof Error) $toast.error(`Problem loading data: ${error.message}`);
     loading.value = false;
   }
 };
@@ -201,13 +186,12 @@ const loadCounters = async () => {
 
     const counts = await $trpc.assignment.countAssignmentsByUserAndTask.query({
       annotator_id: user.value.id,
-      task_id: +route.params.task_id
+      task_id: +route.params.task_id,
     });
 
     assignmentCounts.value = counts;
   } catch (error) {
-    if (error instanceof Error)
-      $toast.error(`Problem loading counters: ${error.message}`);
+
   }
 };
 
@@ -235,7 +219,7 @@ onMounted(async () => {
 });
 
 definePageMeta({
-  middleware: ["auth"],
-  layout: "wide",
+  middleware: ["auth", async (to) => authorizeClient([["task", +to.params.task_id]])],
+  layout: "grid",
 });
 </script>

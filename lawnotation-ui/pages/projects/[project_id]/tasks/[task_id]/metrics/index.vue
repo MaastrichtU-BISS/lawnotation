@@ -1,255 +1,146 @@
 <template>
   <div>
-    <Breadcrumb
-      v-if="task && project"
-      :crumbs="[
-        {
-          name: 'Projects',
-          link: '/projects',
-        },
-        {
-          name: `Project ${project.name}`,
-          link: `/projects/${project.id}`,
-        },
-        {
-          name: `Task ${task.name}`,
-          link: `/projects/${project.id}/tasks/${task.id}`,
-        },
-        {
-          name: `Metrics`,
-          link: `/projects/${project.id}/tasks/${task.id}/metrics`,
-        },
-      ]"
-    />
+    <Breadcrumb v-if="task && project" :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+      {
+        name: `Task ${task.name}`,
+        link: `/projects/${project.id}/tasks/${task.id}`,
+      },
+      {
+        name: `Metrics`,
+        link: `/projects/${project.id}/tasks/${task.id}/metrics`,
+      },
+    ]" />
     <div class="dimmer-wrapper pt-2">
       <DimmerProgress v-if="download_progress.loading" v-model="download_progress" />
       <Dimmer v-else v-model="loading" />
       <div class="dimmer-content">
-        <aside
-          id="logo-sidebar"
+        <aside id="logo-sidebar"
           class="fixed left-0 z-40 w-80 side-panel-h transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
-          aria-label="Sidebar"
-          style="margin-top: inherit"
-        >
+          aria-label="Sidebar" style="margin-top: inherit">
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 text-sm">
-              <!-- <li>
-                <input type="file" multiple @change="loadXlsx($event)" name="" id="" />
-              </li> -->
               <li>
-                <label
-                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >Label</label
-                >
-                <Multiselect
-                  v-model="selectedLabel"
-                  :options="labelsOptions"
-                  :searchable="true"
-                  placeholder="Select a Label"
-                  @change="selectLabel"
-                />
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label</label>
+                <Multiselect v-model="selectedLabel" :options="labelsOptions" :searchable="true"
+                  placeholder="Select a Label" @change="selectLabel" />
               </li>
               <li>
-                <label
-                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >Document(s)</label
-                >
-                <Multiselect
-                  v-model="selectedDocumentsOrEmpty"
-                  :mode="'tags'"
-                  :close-on-select="false"
-                  :options="documentsOptions"
-                  :searchable="true"
-                  placeholder="All"
-                  @change="selectDocument"
-                />
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Document(s)</label>
+                <Multiselect v-model="selectedDocumentsOrEmpty" :mode="'tags'" :close-on-select="false"
+                  :options="documentsOptions" :searchable="true" placeholder="All" @change="selectDocument" />
               </li>
               <li>
-                <label
-                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >Annotators</label
-                >
-                <Multiselect
-                  v-model="selectedAnnotatorsOrEmpty"
-                  :options="annotatorsOptions"
-                  :mode="'tags'"
-                  :searchable="true"
-                  :close-on-select="false"
-                  placeholder="All"
-                  @change="selectAnnotators"
-                />
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Annotators</label>
+                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions" :mode="'tags'"
+                  :searchable="true" :close-on-select="false" placeholder="All" @change="selectAnnotators" />
               </li>
               <li>
                 <div>
                   <div class="flex justify-between">
-                    <label
-                      for="small-input"
-                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                      >Tolerance</label
-                    >
-                    <InfoToolTip
-                      :id="'tooltip_tolerance'"
-                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'"
-                    />
+                    <label for="small-input"
+                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tolerance</label>
+                    <InfoToolTip :id="'tooltip_tolerance'"
+                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'" />
                   </div>
-                  <input
-                    type="number"
-                    id="small-input"
-                    v-model="tolerance"
-                    min="0"
-                    :max="10"
-                    step="1"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  />
+                  <input type="number" id="small-input" v-model="tolerance" min="0" :max="10" step="1"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
                 </div>
               </li>
               <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
-                  <label
-                    class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                  >
-                    <span
-                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Annotation</span
-                    >
-                    <input
-                      type="checkbox"
-                      value=""
-                      class="sr-only peer"
-                      @input="($event: Event) => {
+                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Annotation</span>
+                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
                       modeToggle($event.target.checked);
                     }
-                      "
-                    />
+                      " />
                     <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                    ></div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Word</span
-                    >
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
                   </label>
-                  <InfoToolTip
-                    :id="'tooltip_annotation_word'"
-                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'"
-                  />
+                  <InfoToolTip :id="'tooltip_annotation_word'"
+                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
                 </div>
               </li>
               <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
-                  <label
-                    class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                  >
-                    <span
-                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Equal</span
-                    >
-                    <input
-                      type="checkbox"
-                      value=""
-                      class="sr-only peer"
-                      @input="($event: Event) => {
+                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Equal</span>
+                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
                       contained = !contained;
                       tolerance = 0;
                     }
-                      "
-                    />
+                      " />
 
                     <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                    ></div>
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
                     <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Overlap</span
-                    >
+                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Overlap</span>
                   </label>
-                  <InfoToolTip
-                    :id="'tooltip_equal_overlap'"
-                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`"
-                  />
+                  <InfoToolTip :id="'tooltip_equal_overlap'"
+                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`" />
                 </div>
               </li>
               <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
-                  <label
-                    class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                  >
-                    <span
-                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Include NTA</span
-                    >
-                    <input
-                      type="checkbox"
-                      value=""
-                      :checked="hideNonText"
-                      class="sr-only peer"
-                      @input="($event: Event) => {
+                  <label class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Include NTA</span>
+                    <input type="checkbox" value="" :checked="hideNonText" class="sr-only peer" @input="($event: Event) => {
                       toggleTextToHidden($event?.target?.checked);
                     }
-                      "
-                    />
+                      " />
 
                     <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                    ></div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Exclude NTA</span
-                    >
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Exclude
+                      NTA</span>
                   </label>
 
-                  <InfoToolTip
-                    :id="'tooltip_nta'"
-                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'"
-                  />
+                  <InfoToolTip :id="'tooltip_nta'"
+                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'" />
                 </div>
               </li>
               <li class="">
-                <button
-                  data-modal-target="difficultyMetricsModal"
-                  data-modal-toggle="difficultyMetricsModal"
+                <button data-modal-target="difficultyMetricsModal" data-modal-toggle="difficultyMetricsModal"
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                  @click="clickComputeDifficultyMetrics"
-                >
+                  @click="clickComputeDifficultyMetrics">
                   Compute Confidence Metrics
                 </button>
               </li>
               <li>
-                <button
-                  :disabled="!selectedLabel"
+                <button :disabled="!selectedLabel"
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                  @click="clickComputeMetrics"
-                >
+                  @click="clickComputeMetrics">
                   Compute Annotation Metrics
                 </button>
               </li>
-              <ul
-                class="pt-4 mt-4 space-y-2 font-medium pb-3 border-gray-200 dark:border-gray-700"
-              >
+              <ul class="pt-4 mt-4 space-y-2 font-medium pb-3 border-gray-200 dark:border-gray-700">
                 <li>
                   <div class="relative overflow-x-auto">
-                    <table
-                      class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
-                    >
-                      <thead
-                        class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
-                      >
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
                           <th scope="col" class="px-6 py-3">Metric</th>
                           <th scope="col" class="px-6 py-3">Value</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr
-                          class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                        >
-                          <th
-                            scope="row"
-                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                          >
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             Krippendorff's alpha
                           </th>
                           <td class="px-6 py-4">
@@ -258,13 +149,8 @@
                             }}</span>
                           </td>
                         </tr>
-                        <tr
-                          class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                        >
-                          <th
-                            scope="row"
-                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                          >
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             Fleiss' Kappa
                           </th>
                           <td class="px-6 py-4">
@@ -274,10 +160,7 @@
                           </td>
                         </tr>
                         <tr class="bg-white dark:bg-gray-800">
-                          <th
-                            scope="row"
-                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                          >
+                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             Cohen's Kappa
                           </th>
                           <td class="px-6 py-4">
@@ -293,8 +176,7 @@
                 <li class="">
                   <button
                     class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                    @click="clickDownloadAll"
-                  >
+                    @click="clickDownloadAll">
                     Download all
                   </button>
                 </li>
@@ -311,40 +193,19 @@
             </div>
             <ul>
               <li v-for="(ann, index) in annotations">
-                <RangeLabelCmpt
-                  :annotation="ann"
-                  :index="index"
-                  :is-new-doc="isNewDoc(index)"
-                  :can-merge-up="canMergeUp(index)"
-                  :can-merge-down="canMergeDown(index)"
-                  @separate="emitSeparate"
-                  @mergeUp="emitMergeUp"
-                  @mergeDown="emitMergeDown"
-                  @set-hidden="emitSetHidden"
-                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"
-                ></RangeLabelCmpt>
+                <RangeLabelCmpt :annotation="ann" :index="index" :is-new-doc="isNewDoc(index)"
+                  :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)" @separate="emitSeparate"
+                  @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
+                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"></RangeLabelCmpt>
               </li>
             </ul>
 
-            <a
-              href="#annotations_list"
-              type="button"
-              class="absolute bottom-0 right-0 mb-3 mr-3 text-white bg-secondary hover:bg-secondary/80 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-            >
-              <svg
-                class="w-4 h-4 text-white dark:text-white"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 10 14"
-              >
-                <path
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13V1m0 0L1 5m4-4 4 4"
-                ></path>
+            <a href="#annotations_list" type="button"
+              class="absolute bottom-0 right-0 mb-3 mr-3 text-white bg-secondary hover:bg-secondary/80 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+              <svg class="w-4 h-4 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+                fill="none" viewBox="0 0 10 14">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M5 13V1m0 0L1 5m4-4 4 4"></path>
               </svg>
               <span class="sr-only">Go up</span>
             </a>
@@ -358,8 +219,8 @@
 <script setup lang="ts">
 import * as XLSX from "xlsx";
 import Multiselect from "@vueform/multiselect";
-import { Task, RichAnnotation, Project } from "~/types";
-import {
+import type { Task, RichAnnotation, Project } from "~/types";
+import type {
   MetricResult,
   newEmptyMetricResult,
   DifficultyMetricResult,
@@ -372,6 +233,7 @@ import Dimmer from "~/components/Dimmer.vue";
 import { saveAs } from "file-saver";
 import JSZip, { file } from "jszip";
 import { RangeLabel } from "~/utils/metrics";
+import { authorizeClient } from "~/utils/authorize.client";
 
 const config = useRuntimeConfig();
 const { $toast, $trpc } = useNuxtApp();
@@ -508,19 +370,23 @@ const updateAnnotations = async () => {
     difficulty: undefined,
     loading: false,
   };
-  annotations.splice(0);
-  const anns = await getAnnotations(
-    task.value?.id.toString()!,
-    selectedLabel.value!,
-    selectedDocumentsOrEmpty.value!,
-    selectedAnnotatorsOrEmpty.value!,
-    separate_into_words.value,
-    hideNonText.value
-  );
-  console.log(anns);
-  annotations_length.value = anns.length;
-  if (anns.length < annotations_limit) annotations.push(...anns);
-  loading_annotations.value = false;
+  try {
+    annotations.splice(0);
+    const anns = await getAnnotations(
+      task.value?.id.toString()!,
+      selectedLabel.value!,
+      selectedDocumentsOrEmpty.value!,
+      selectedAnnotatorsOrEmpty.value!,
+      separate_into_words.value,
+      hideNonText.value
+    );
+    console.log(anns);
+    annotations_length.value = anns.length;
+    if (anns.length < annotations_limit) annotations.push(...anns);
+    loading_annotations.value = false;
+  } catch (error) {
+    loading_annotations.value = false;
+  }
 };
 
 const compute_metrics = async (
@@ -742,7 +608,7 @@ async function download_all(data: any) {
         name: `_confidence.xlsx`,
       });
       download_progress.value.current++;
-    } catch (error) {}
+    } catch (error) { }
 
     // All metrics
     const workbookMetrics = XLSX.utils.book_new();
@@ -869,7 +735,7 @@ async function download_all(data: any) {
     }
 
     return results;
-  } catch (error) {}
+  } catch (error) { }
   return [];
 }
 
@@ -1178,7 +1044,9 @@ onMounted(async () => {
 });
 
 definePageMeta({
-  middleware: ["auth"],
+  middleware: ["auth",
+    async (to) => authorizeClient([["task", +to.params.task_id]]),
+    async (to) => authorizeClient([["project", +to.params.project_id]])],
   layout: "wide",
 });
 </script>

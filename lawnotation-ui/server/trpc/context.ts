@@ -1,7 +1,7 @@
-import { TRPCError, inferAsyncReturnType } from '@trpc/server' 
+import type { TRPCError, inferAsyncReturnType } from '@trpc/server' 
 import { H3Event } from 'h3';
 import { serverSupabaseClient, serverSupabaseServiceRole } from '#supabase/server';
-import { Database } from '~/types/supabase';
+import type { Database } from '~/types/supabase';
 
 function getTokenFromHeader(authHeader: string) {
   if (!authHeader.startsWith('Bearer ') || authHeader.length === 7)

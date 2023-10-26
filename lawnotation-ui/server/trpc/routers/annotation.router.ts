@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-import { Annotation } from '~/types';
+import type { Annotation } from '~/types';
 
 const ZAnnotationFields = z.object({
   label: z.string(),

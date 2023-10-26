@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-import { AnnotationRelation } from '~/types';
+import type { AnnotationRelation } from '~/types';
 import { convert_relation_ls2db } from '~/utils/serialize';
 
 const ZRelationDirection = z.enum(["bi", "left", "right"])

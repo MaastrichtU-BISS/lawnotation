@@ -1,11 +1,11 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { authorizer, protectedProcedure, router } from '~/server/trpc'
-import { Project } from '~/types';
-import { Context } from '../context';
+import type { Project } from '~/types';
+import type { Context } from '../context';
 
 const ZProjectFields = z.object({
-  name: z.string(),
+  name: z.string().min(3),
   desc: z.string(),
   editor_id: z.string()
 });

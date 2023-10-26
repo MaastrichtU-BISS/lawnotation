@@ -15,12 +15,13 @@
   ]" />
 
   <div>
-    <h3 class="text-lg font-semibold mb-2">Document:</h3>
-    <pre>{{ document }}</pre>
+    <h2 class="text-center text-lg mb-3 font-bold">{{ document?.name }}</h2>
+    <p>{{ document?.full_text }}</p>
   </div>
 </template>
 <script setup lang="ts">
-import { Project, Document } from "~/types";
+import type { Project, Document } from "~/types";
+import { authorizeClient } from "~/utils/authorize.client";
 
 const { $trpc } = useNuxtApp();
 
@@ -37,6 +38,8 @@ onMounted(async () => {
 });
 
 definePageMeta({
-  middleware: ["auth"],
+  middleware: ["auth",
+    async (to) => authorizeClient([["document", +to.params.document_id]]),
+    async (to) => authorizeClient([["project", +to.params.project_id]])],
 });
 </script>

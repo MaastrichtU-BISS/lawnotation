@@ -4,8 +4,8 @@ import {
   setTextToHidden,
   separateIntoWords,
 } from "~/utils/metrics";
-import { RichAnnotation, Document } from "~/types";
-import { Database } from "~/types/supabase";
+import type { RichAnnotation, Document } from "~/types";
+import type { Database } from "~/types/supabase";
 import { H3Event } from "h3";
 
 type DocDic = Record<number, { full_text: string; name: string }>;

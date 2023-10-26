@@ -1,46 +1,34 @@
 <template>
-  <Breadcrumb
-    v-if="project && task && assignment"
-    :crumbs="[
-      {
-        name: 'Projects',
-        link: '/projects',
-      },
-      {
-        name: `Project ${project.name}`,
-        link: `/projects/${project.id}`,
-      },
-      {
-        name: `Task ${task.name}`,
-        link: `/projects/${project.id}/tasks/${task.id}`,
-      },
-      {
-        name: `Assignment ${assignment.id}`,
-        link: `/assignments/${assignment.id}`,
-      },
-    ]"
-  />
+  <Breadcrumb v-if="project && task && assignment" :crumbs="[
+    {
+      name: 'Projects',
+      link: '/projects',
+    },
+    {
+      name: `Project ${project.name}`,
+      link: `/projects/${project.id}`,
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/projects/${project.id}/tasks/${task.id}`,
+    },
+    {
+      name: `Assignment ${assignment.id}`,
+      link: `/assignments/${assignment.id}`,
+    },
+  ]" />
 
   <div class="dimmer-wrapper">
     <Dimmer v-model="loading" />
     <div class="dimmer-content" style="min-height: 200px">
-      <LabelStudio
-        v-if="loadedData"
-        :assignment="assignment"
-        :user="user"
-        :isEditor="isEditor"
-        :text="doc?.full_text"
-        :annotations="ls_annotations"
-        :relations="ls_relations"
-        :guidelines="task?.ann_guidelines"
-        :labels="labels"
-      >
+      <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
+        :annotations="ls_annotations" :relations="ls_relations" :guidelines="task?.ann_guidelines" :labels="labels">
       </LabelStudio>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import {
+import type {
   Assignment,
   LSSerializedAnnotations,
   Document,
@@ -52,6 +40,7 @@ import {
   AnnotationRelation,
   LSSerializedRelation,
 } from "~/types";
+import { authorizeClient } from "~/utils/authorize.client";
 
 const user = useSupabaseUser();
 
@@ -89,7 +78,9 @@ const loadData = async () => {
 
     project.value = await $trpc.project.findById.query(+task.value.project_id);
 
-    const _labelset: Labelset = await $trpc.labelset.findById.query(+task.value.labelset_id);
+    const _labelset: Labelset = await $trpc.labelset.findById.query(
+      +task.value.labelset_id
+    );
 
     labels.splice(0) &&
       labels.push(
@@ -109,7 +100,11 @@ const loadData = async () => {
     }
 
     relations.splice(0) &&
-      relations.push(...(await $trpc.relation.findFromAnnotationIds.query(annotations.map(a => a.id))));
+      relations.push(
+        ...(await $trpc.relation.findFromAnnotationIds.query(
+          annotations.map((a) => a.id)
+        ))
+      );
 
     const db2ls_rels = relations.map((r) => convert_relation_db2ls(r));
 
@@ -122,8 +117,6 @@ const loadData = async () => {
     loadedData.value = true;
     loading.value = false;
   } catch (error) {
-    if (error instanceof Error)
-      $toast.error(`Error loading assignment: ${error.message}`);
     loading.value = false;
   }
 };
@@ -133,7 +126,8 @@ onMounted(async () => {
 });
 
 definePageMeta({
-  middleware: ["auth"],
+  middleware: ["auth",
+    async (to) => authorizeClient([["assignment", +to.params.assignment_id]])],
   layout: "wide",
 });
 </script>

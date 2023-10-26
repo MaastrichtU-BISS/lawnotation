@@ -11,10 +11,7 @@
       @remove-all-rows="removeAllProjects"
     >
       <template #row="{ item }: { item: Project }">
-        <td
-          scope="row"
-          class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-        >
+        <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
           {{ item.id }}
         </td>
         <td class="px-6 py-2">
@@ -44,8 +41,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Project } from "~/types";
+import type { Project } from "~/types";
 import Table from "@/components/Table.vue";
+import { TRPCClientError } from "@trpc/client";
+import { TRPCError } from "@trpc/server";
+import { ZodError, typeToFlattenedError } from "zod";
 
 const projectTable = ref<InstanceType<typeof Table> | null>();
 
@@ -58,16 +58,14 @@ const new_project = reactive<Omit<Project, "id">>({
   editor_id: "",
 });
 
-const createNewProject = () => {
+const createNewProject = async () => {
   try {
     new_project.editor_id = user.value?.id!;
-    $trpc.project.create.mutate(new_project).then((project) => {
-      projectTable.value?.refresh()
-      $toast.success("Project created");
-    });
+    const project = await $trpc.project.create.mutate(new_project)
+    projectTable.value?.refresh()
+    $toast.success("Project created");
   } catch (error) {
-    if (error instanceof Error)
-      $toast.error(`Error creating new projec: ${error.message}`);
+    trpcErrorHandler(error as Error, "creating new project")
   }
 };
 
@@ -75,13 +73,13 @@ const removeProjects = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
   promises.push(...ids.map((id) => $trpc.project.delete.mutate(+id)));
   await Promise.all(promises);
-  await projectTable.value?.refresh()
+  await projectTable.value?.refresh();
   $toast.success("Projects successfully deleted!");
 };
 const removeAllProjects = async () => {
   if (!user.value) throw new Error("Invalid User!");
   await $trpc.project.deleteAllFromUser.mutate();
-  await projectTable.value?.refresh()
+  await projectTable.value?.refresh();
   $toast.success("Projects successfully deleted!");
 };
 

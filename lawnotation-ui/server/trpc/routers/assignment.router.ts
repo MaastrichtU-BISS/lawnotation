@@ -1,7 +1,8 @@
-import { TRPCError } from '@trpc/server';
-import { z } from 'zod'
-import { protectedProcedure, router } from '~/server/trpc'
-import { Assignment } from '~/types';
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { authorizer, protectedProcedure, router } from "~/server/trpc";
+import type { Assignment } from "~/types";
+import type { Context } from "../context";
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string(),
@@ -9,16 +10,33 @@ const ZAssignmentFields = z.object({
   document_id: z.number().int(),
   status: z.union([z.literal("pending"), z.literal("done")]),
   seq_pos: z.number().int(),
-  difficulty_rating: z.number().int()
+  difficulty_rating: z.number().int(),
 });
 
-export const assignmentRouter = router({
+const assignmentAuthorizer = async (
+  assignment_id: number,
+  user_id: string,
+  ctx: Context
+) => {
+  const query = ctx.supabase
+    .from("assignments")
+    .select("*, task:tasks!inner(id, project:projects!inner(editor_id))", {
+      count: "exact",
+      head: true,
+    })
+    .eq("id", assignment_id);
 
-  'create': protectedProcedure
-    .input(
-      ZAssignmentFields
-    )
-    .mutation(async ({ctx, input}) => {
+  const editor = await query.eq("tasks.projects.editor_id", user_id);
+
+  const annotator = await query.eq("annotator_id", user_id);
+
+  return editor.count === 1 || annotator.count === 1;
+};
+
+export const assignmentRouter = router({
+  create: protectedProcedure
+    .input(ZAssignmentFields)
+    .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .insert(input)
@@ -26,11 +44,14 @@ export const assignmentRouter = router({
         .single();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in assignment.create: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in assignment.create: ${error.message}`,
+        });
       return data as Assignment;
     }),
 
-  'createMany': protectedProcedure
+  createMany: protectedProcedure
     .input(
       z.array(
         // object is equal to ZAssignmentFields, but with optional's, since partial didn't work. check later
@@ -40,45 +61,55 @@ export const assignmentRouter = router({
           document_id: z.number().int(),
           status: z.union([z.literal("pending"), z.literal("done")]).optional(),
           seq_pos: z.number().int().optional(),
-          difficulty_rating: z.number().int().optional()
+          difficulty_rating: z.number().int().optional(),
         })
       )
     )
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .insert(input)
         .select();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in createMany: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in createMany: ${error.message}`,
+        });
       return data as Assignment[];
     }),
 
-  'findById': protectedProcedure
-    .input(
-      z.number().int()
+  findById: protectedProcedure
+    .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
     )
-    .query(async ({ctx, input: assignment_id}) => {
-      const { data, error } = await ctx.supabase
+    .query(async ({ ctx, input: id }) => {
+      const { data, error, count } = await ctx.supabase
         .from("assignments")
         .select()
-        .eq("id", assignment_id)
+        .eq("id", id)
         .single();
 
+      if (count === 0) throw new TRPCError({ code: "NOT_FOUND" });
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in find: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in find: ${error.message}`,
+        });
       return data as Assignment;
     }),
 
-  'update': protectedProcedure
+  update: protectedProcedure
     .input(
       z.object({
         id: z.number().int(),
-        updates: ZAssignmentFields.partial()
+        updates: ZAssignmentFields.partial(),
       })
     )
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .update(input.updates)
@@ -87,86 +118,101 @@ export const assignmentRouter = router({
         .single();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in update: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in update: ${error.message}`,
+        });
       return data as Assignment;
     }),
 
-  'delete': protectedProcedure
-    .input(
-      z.number().int()
-    )
-    .mutation(async ({ctx, input: assignment_id}) => {
+  delete: protectedProcedure
+    .input(z.number().int())
+    .mutation(async ({ ctx, input: assignment_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .delete()
         .eq("id", assignment_id);
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in delete: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in delete: ${error.message}`,
+        });
       return true;
     }),
 
-  'getCountByUser': protectedProcedure
-    .input(
-      z.string()
-    )
-    .query(async ({ctx, input: e_id}) => {
+  getCountByUser: protectedProcedure
+    .input(z.string())
+    .query(async ({ ctx, input: e_id }) => {
       const { data, error } = await ctx.supabase
         .rpc("get_count_assignments", { e_id: e_id })
         .single();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in getCountByUser: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in getCountByUser: ${error.message}`,
+        });
       return data;
     }),
 
-  'getDifficultiesByEditor': protectedProcedure
-    .input(
-      z.string()
-    )
-    .query(async ({ctx, input: e_id}) => {
-      const { data, error } = await ctx.supabase.rpc("get_difficulties_by_editor", {
-        e_id: e_id,
-      });
+  getDifficultiesByEditor: protectedProcedure
+    .input(z.string())
+    .query(async ({ ctx, input: e_id }) => {
+      const { data, error } = await ctx.supabase.rpc(
+        "get_difficulties_by_editor",
+        {
+          e_id: e_id,
+        }
+      );
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in getDifficultiesByEditor: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in getDifficultiesByEditor: ${error.message}`,
+        });
       return data;
     }),
 
-  'getCompletionByEditor': protectedProcedure
-    .input(
-      z.string()
-    )
-    .query(async ({ctx, input: e_id}) => {
-      const { data, error } = await ctx.supabase.rpc("get_completion_by_editor", {
-        e_id: e_id,
-      });
+  getCompletionByEditor: protectedProcedure
+    .input(z.string())
+    .query(async ({ ctx, input: e_id }) => {
+      const { data, error } = await ctx.supabase.rpc(
+        "get_completion_by_editor",
+        {
+          e_id: e_id,
+        }
+      );
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in getCompletionByEditor: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in getCompletionByEditor: ${error.message}`,
+        });
       return data;
     }),
 
-  'getCompletionByAnnotator': protectedProcedure
-    .input(
-      z.string()
-    )
-    .query(async ({ctx, input: a_id}) => {
-      const { data, error } = await ctx.supabase.rpc("get_completion_by_annotator", {
-        a_id: a_id,
-      });
+  getCompletionByAnnotator: protectedProcedure
+    .input(z.string())
+    .query(async ({ ctx, input: a_id }) => {
+      const { data, error } = await ctx.supabase.rpc(
+        "get_completion_by_annotator",
+        {
+          a_id: a_id,
+        }
+      );
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in getCompletionByAnnotator: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in getCompletionByAnnotator: ${error.message}`,
+        });
       return data;
     }),
 
-  'findAssignmentsByTask': protectedProcedure
-    .input(
-      z.number().int()
-    )
-    .query(async ({ctx, input: task_id}) => {
+  findAssignmentsByTask: protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
@@ -174,19 +220,22 @@ export const assignmentRouter = router({
         .order("id", { ascending: true });
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAssignmentsByTask: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findAssignmentsByTask: ${error.message}`,
+        });
       return data as Assignment[];
     }),
 
-  'findAssignmentsByUserTaskSeq': protectedProcedure
+  findAssignmentsByUserTaskSeq: protectedProcedure
     .input(
       z.object({
         annotator_id: z.string(),
         task_id: z.number().int(),
-        seq_pos: z.number().int()
+        seq_pos: z.number().int(),
       })
     )
-    .query(async ({ctx, input}) => {
+    .query(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
@@ -196,47 +245,55 @@ export const assignmentRouter = router({
         .single();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAssignmentsByUserTaskSeq: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findAssignmentsByUserTaskSeq: ${error.message}`,
+        });
       return data as Assignment;
     }),
 
-  'findAssignmentsByUser': protectedProcedure
-    .input(
-      z.string()
-    )
-    .query(async ({ctx, input: user_id}) => {
+  findAssignmentsByUser: protectedProcedure
+    .input(z.string())
+    .query(async ({ ctx, input: user_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
         .eq("annotator_id", user_id);
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAssignmentsByUser: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findAssignmentsByUser: ${error.message}`,
+        });
       return data as Assignment[];
     }),
 
-  'findNextAssignmentsByUserAndTask': protectedProcedure
+  findNextAssignmentsByUserAndTask: protectedProcedure
     .input(
       z.object({
         annotator_id: z.string(),
-        task_id: z.number().int()
+        task_id: z.number().int(),
       })
     )
-    .query(async ({ctx, input}) => {
+    .query(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
-        .rpc("next_random_assignment", { a_id: input.annotator_id, t_id: input.task_id })
+        .rpc("next_random_assignment", {
+          a_id: input.annotator_id,
+          t_id: input.task_id,
+        })
         .single();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findNextAssignmentsByUserAndTask: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findNextAssignmentsByUserAndTask: ${error.message}`,
+        });
       return data as Assignment;
     }),
 
-  'findNextAssignmentByUser': protectedProcedure
-    .input(
-      z.string()
-    )
-    .query(async ({ctx, input: user_id}) => {
+  findNextAssignmentByUser: protectedProcedure
+    .input(z.string())
+    .query(async ({ ctx, input: user_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
@@ -248,18 +305,21 @@ export const assignmentRouter = router({
         .single();
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findNextAssignmentByUser: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findNextAssignmentByUser: ${error.message}`,
+        });
       return data as Assignment;
     }),
 
-  'countAssignmentsByUserAndTask': protectedProcedure
+  countAssignmentsByUserAndTask: protectedProcedure
     .input(
       z.object({
         annotator_id: z.string(),
-        task_id: z.number().int()
+        task_id: z.number().int(),
       })
     )
-    .query(async ({ctx, input}) => {
+    .query(async ({ ctx, input }) => {
       const { data: next, error: error_next } = await ctx.supabase
         .from("assignments")
         .select("seq_pos")
@@ -273,41 +333,47 @@ export const assignmentRouter = router({
       const { error: error_total, count } = await ctx.supabase
         .from("assignments")
         // .select("count")
-        .select("*", { count: 'exact', head: true })
+        .select("*", { count: "exact", head: true })
         .eq("annotator_id", input.annotator_id)
-        .eq("task_id", input.task_id)
-        // .single();
+        .eq("task_id", input.task_id);
+      // .single();
 
       if (error_next)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in 1 countAssignmentsByUserAndTask: ${error_next.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in 1 countAssignmentsByUserAndTask: ${error_next.message}`,
+        });
       else if (error_total)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in 2 countAssignmentsByUserAndTask: ${error_total.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in 2 countAssignmentsByUserAndTask: ${error_total.message}`,
+        });
+      // return {
+      //   next: next?.seq_pos ?? total?.count! + 1, // TODO: need to check if this actually works
+      //   total: total?.count ?? 0,
+      // };
       else
-        // return {
-        //   next: next?.seq_pos ?? total?.count! + 1, // TODO: need to check if this actually works
-        //   total: total?.count ?? 0,
-        // };
         return {
           next: next?.seq_pos ?? count! + 1, // TODO: need to check if this actually works
           total: count ?? 0,
         };
     }),
 
-  'deleteAllFromTask': protectedProcedure
-    .input(
-      z.number().int()
-    )
-    .mutation(async ({ctx, input: task_id}) => {
+  deleteAllFromTask: protectedProcedure
+    .input(z.number().int())
+    .mutation(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .delete()
         .eq("task_id", task_id);
 
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in deleteAllAssignmentsFromTask: ${error.message}`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in deleteAllAssignmentsFromTask: ${error.message}`,
+        });
       return true;
-    })
-  
-})
+    }),
+});
 
-export type AssignmentRouter = typeof assignmentRouter 
+export type AssignmentRouter = typeof assignmentRouter;
