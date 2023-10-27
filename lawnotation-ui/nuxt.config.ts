@@ -4,7 +4,7 @@ export default defineNuxtConfig({
     public: {
       baseURL:
         process.env.NODE_ENV === "production"
-          ? "https://lawnotation.vercel.app"
+          ? "https://app.lawnotation.org"
           : "http://localhost:3000",
     },
   },
