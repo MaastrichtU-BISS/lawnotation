@@ -1,33 +1,26 @@
 <template>
-  <Breadcrumb
-    v-if="task"
-    :crumbs="[
-      {
-        name: 'Tasks',
-        link: '/tasks',
-      },
-      {
-        name: `Task ${task.name}`,
-        link: `/tasks/${task.id}`,
-      },
-    ]"
-  />
+  <Breadcrumb v-if="task" :crumbs="[
+    {
+      name: 'Tasks',
+      link: '/tasks',
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/tasks/${task.id}`,
+    },
+  ]" />
 
   <div v-if="task">
     <div class="max-w-screen-md w-full mx-auto" v-if="assignmentCounts">
       <div class="flex justify-between mb-1">
         <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
-        <span class="text-sm font-medium text-blue-700"
-          >{{ assignmentCounts.next - 1 }} / {{ assignmentCounts.total }}</span
-        >
+        <span class="text-sm font-medium text-blue-700">{{ assignmentCounts.next - 1 }} / {{ assignmentCounts.total
+        }}</span>
       </div>
       <div class="w-full bg-gray-200 rounded-full h-2.5">
-        <div
-          class="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-          :style="{
+        <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="{
             width: `${((assignmentCounts.next - 1) / assignmentCounts.total) * 100}%`,
-          }"
-        ></div>
+          }"></div>
       </div>
     </div>
     <div class="text-center my-10">
@@ -37,12 +30,7 @@
         </NuxtLink>
       </div>
     </div>
-    <Table
-      endpoint="assignedAssignments"
-      :filter="{ task_id: task?.id }"
-      :sort="true"
-      :search="true"
-    >
+    <Table endpoint="assignedAssignments" :filter="{ task_id: task?.id }" :sort="true" :search="true">
       <template #row="{ item }: { item: AssignmentTableData }">
         <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
           {{ item.seq_pos }}
@@ -69,6 +57,7 @@
 </template>
 <script setup lang="ts">
 import type { Task, AssignmentTableData } from "~/types";
+import { authorizeClient } from "~/utils/authorize.client";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -103,6 +92,6 @@ onMounted(async () => {
 });
 
 definePageMeta({
-  middleware: ["auth"],
+  middleware: ["auth", async (to) => authorizeClient([["task", +to.params.task_id]])],
 });
 </script>

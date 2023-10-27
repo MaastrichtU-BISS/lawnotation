@@ -43,6 +43,9 @@
 <script setup lang="ts">
 import type { Project } from "~/types";
 import Table from "@/components/Table.vue";
+import { TRPCClientError } from "@trpc/client";
+import { TRPCError } from "@trpc/server";
+import { ZodError, typeToFlattenedError } from "zod";
 
 const projectTable = ref<InstanceType<typeof Table> | null>();
 
@@ -55,16 +58,14 @@ const new_project = reactive<Omit<Project, "id">>({
   editor_id: "",
 });
 
-const createNewProject = () => {
+const createNewProject = async () => {
   try {
     new_project.editor_id = user.value?.id!;
-    $trpc.project.create.mutate(new_project).then((project) => {
-      projectTable.value?.refresh();
-      $toast.success("Project created");
-    });
+    const project = await $trpc.project.create.mutate(new_project)
+    projectTable.value?.refresh()
+    $toast.success("Project created");
   } catch (error) {
-    if (error instanceof Error)
-      $toast.error(`Error creating new projec: ${error.message}`);
+    trpcErrorHandler(error as Error, "creating new project")
   }
 };
 
