@@ -11,8 +11,8 @@ values
   ('24a9b347-2170-41d4-a0e8-6078a9a0bef1', '24a9b347-2170-41d4-a0e8-6078a9a0bef1',	'{"sub":"24a9b347-2170-41d4-a0e8-6078a9a0bef1","email":"annotator@test.com"}', 'annotator@test.com', timezone('utc'::text, now()), timezone('utc'::text, now()), timezone('utc'::text, now())),
   ('24a9b347-2170-41d4-a0e8-6078a9a0bef2', '24a9b347-2170-41d4-a0e8-6078a9a0bef2',	'{"sub":"24a9b347-2170-41d4-a0e8-6078a9a0bef2","email":"editor@test.com"}', 'editor@test.com', timezone('utc'::text, now()), timezone('utc'::text, now()), timezone('utc'::text, now()));
 
-insert into public.users 
-  (id, email, "role")
-values 
-  ('24a9b347-2170-41d4-a0e8-6078a9a0bef1', 'annotator@test.com', 'annotator'::"user_roles"),
-  ('24a9b347-2170-41d4-a0e8-6078a9a0bef2', 'editor@test.com', 'editor'::"user_roles");
+-- insert into public.users 
+--   (id, email, "role")
+-- values 
+--   ('24a9b347-2170-41d4-a0e8-6078a9a0bef1', 'annotator@test.com', 'annotator'::"user_roles"),
+--   ('24a9b347-2170-41d4-a0e8-6078a9a0bef2', 'editor@test.com', 'editor'::"user_roles");
