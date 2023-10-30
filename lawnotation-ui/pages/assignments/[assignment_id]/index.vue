@@ -18,9 +18,9 @@
     },
   ]" />
 
-  <div class="dimmer-wrapper">
+  <div class="dimmer-wrapper min-h-0">
     <Dimmer v-model="loading" />
-    <div class="dimmer-content" style="min-height: 200px">
+    <div class="dimmer-content h-full">
       <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
         :annotations="ls_annotations" :relations="ls_relations" :guidelines="task?.ann_guidelines" :labels="labels">
       </LabelStudio>
@@ -128,6 +128,6 @@ onMounted(async () => {
 definePageMeta({
   middleware: ["auth",
     async (to) => authorizeClient([["assignment", +to.params.assignment_id]])],
-  layout: "wide",
+  layout: "grid-editor",
 });
 </script>

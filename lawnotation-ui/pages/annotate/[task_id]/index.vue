@@ -220,6 +220,6 @@ onMounted(async () => {
 
 definePageMeta({
   middleware: ["auth", async (to) => authorizeClient([["task", +to.params.task_id]])],
-  layout: "grid",
+  layout: "grid-annotater",
 });
 </script>
