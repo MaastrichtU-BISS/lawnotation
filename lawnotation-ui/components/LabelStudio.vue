@@ -1,4 +1,22 @@
 <template>
+  <Teleport to="body">
+    <div
+      v-if="label_popup"
+      class="label-popup absolute flex left-0 top-0 p-2 bg-secondary-high border border-primary rounded space-x-2"
+      style="z-index: 200"
+      :style="{
+        'top': `${label_popup.pos.top}px`,
+        'left': `${label_popup.pos.left}px`
+      }"
+    >
+      <button
+        v-for="label of props.labels"
+        class="w-3 h-3 rounded-sm"
+        :style="{'background-color': label.color}"
+        @click="annotateFromPopup(label)"
+      >&nbsp;</button>
+    </div>
+  </Teleport>
   <div id="label-studio-container" class="p-4 h-full">
     <div id="label-studio" class="h-full"></div>
   </div>
@@ -9,12 +27,17 @@ import type {
   LSSerializedRelation,
   Assignment,
   LsLabels,
+  LsLabel,
   LSSerializedAnnotations,
 } from "~/types";
 
 const { $trpc } = useNuxtApp();
 
 const label_studio = ref();
+const label_popup = ref<false | {
+  pos: {left: number, top: number},
+  range: {start: number, end: number}
+}>(false);
 
 const emit = defineEmits(["previousAssignment", "nextAssignment"]);
 
@@ -197,6 +220,8 @@ const initLS = async () => {
       clickNext();
     },
   });
+
+  console.log("labelstudio", label_studio.value)
 };
 
 const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
@@ -232,6 +257,69 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
     });
   });
 };
+
+const selectionTools = (await import('@/utils/selection-tools'));
+
+const annotateFromPopup = (label: LsLabel) => {
+  if (!label_popup.value)
+    return;
+  console.log("annotating from popup:", label)
+
+  const {start: soff, end: eoff} = label_popup.value.range;
+  
+  const lsAnnotation = {
+    id: "23074982",
+    value: {
+      start: soff,
+      end: eoff,
+      // text: "AAAAA",
+      labels: [label.name],
+    },
+    userGenerate: true,
+  };
+
+  const add = label_studio.value.store.annotationStore.addAnnotation(lsAnnotation)
+  const area = add.createResult(new Range(), [label.name]);
+  area.area.updateGlobalOffsets(soff, eoff);
+  area.area.updateTextOffsets(soff, eoff);
+  console.log("Add:", add)
+  console.log("Res:", area)
+}
+
+const processSelection = async () => {
+
+  const root = document.getElementsByClassName('lsf-richtext')[0];
+  const selection = document.getSelection();
+
+  if (root && selection && selection.type == "Range") {
+    const range = selection.getRangeAt(0);
+
+    const rangeGlobal = selectionTools.rangeToGlobalOffset(range, root)
+
+    const boundRange = range.cloneRange();
+    boundRange.collapse(false);
+    const bound = boundRange.getBoundingClientRect();
+
+    label_popup.value = {
+      pos: {top: bound.top + bound.height, left: bound.left},
+      range: {start: rangeGlobal[0], end: rangeGlobal[1]}
+    }
+
+    const add = label_studio.value.store.annotationStore.addAnnotation({userGenerate: true, result: {
+      id: "23074982",
+      value: {
+        start: rangeGlobal[0],
+        end: rangeGlobal[1],
+        // text: "AAAAA",
+        labels: ["Person"],
+      },
+    }})
+  }
+  else if (label_popup.value)
+  {
+    label_popup.value = false;
+  }
+}
 
 function waitForElement(selector: string): Promise<Element> {
   return new Promise((resolve) => {
@@ -271,6 +359,18 @@ onMounted(() => {
       .item(props.assignment?.difficulty_rating! - 1)
       ?.firstChild as HTMLButtonElement).click();
   });
+  waitForElement(".lsf-richtext").then(async (el) => {
+    (el as HTMLDivElement).addEventListener("mouseup", () => {
+      processSelection()
+    })
+  });
+  document.addEventListener("mouseup", () => {
+    if (label_popup.value) {
+      const selection = document.getSelection();
+      if (selection && selection.type == "Caret")
+        label_popup.value = false;
+    }
+  })
 });
 </script>
 <style>
