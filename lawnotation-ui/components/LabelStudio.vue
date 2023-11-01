@@ -275,10 +275,10 @@ const annotateFromPopup = (label: LsLabel) => {
       // text: "AAAAA",
       labels: [label.name],
     },
-    userGenerate: true,
   };
 
-  const add = label_studio.value.store.annotationStore.addAnnotation(lsAnnotation)
+  const add = label_studio.value.store.annotationStore.addAnnotation({userGenerate: true, result: lsAnnotation})
+  
   const area = add.createResult(new Range(), [label.name]);
   area.area.updateGlobalOffsets(soff, eoff);
   area.area.updateTextOffsets(soff, eoff);
@@ -304,16 +304,6 @@ const processSelection = async () => {
       pos: {top: bound.top + bound.height, left: bound.left},
       range: {start: rangeGlobal[0], end: rangeGlobal[1]}
     }
-
-    const add = label_studio.value.store.annotationStore.addAnnotation({userGenerate: true, result: {
-      id: "23074982",
-      value: {
-        start: rangeGlobal[0],
-        end: rangeGlobal[1],
-        // text: "AAAAA",
-        labels: ["Person"],
-      },
-    }})
   }
   else if (label_popup.value)
   {
