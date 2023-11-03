@@ -6,7 +6,11 @@ import type { AppRouter } from '~/server/trpc/routers'
 export default defineNuxtPlugin(async (app) => {
 
   const sbclient = useSupabaseClient();
-  const token = (await sbclient.auth.getSession()).data.session?.access_token ?? null
+  
+  // const token = (await sbclient.auth.sgetSession()).data.session?.access_token ?? null
+  
+  const session = (await sbclient.auth.getSession()).data.session;
+  const token = session?.access_token
   
   const client = createTRPCNuxtClient<AppRouter>({
     links: [
