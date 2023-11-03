@@ -9,7 +9,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "supabase-studio": "open-cli http://localhost:54323",
-    "supabase-mail": "open-cli http://localhost:54324"
+    "supabase-mail": "open-cli http://localhost:54324",
+    "supabase:db:reset": "npx supabase db reset"
   },
   "devDependencies": {
     "@nuxtjs/supabase": "^1.1.3",
