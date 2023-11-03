@@ -45,7 +45,7 @@ import type { Project } from "~/types";
 import Table from "@/components/Table.vue";
 import { TRPCClientError } from "@trpc/client";
 import { TRPCError } from "@trpc/server";
-import { ZodError, typeToFlattenedError } from "zod";
+import type { ZodError, typeToFlattenedError } from "zod";
 
 const projectTable = ref<InstanceType<typeof Table> | null>();
 
