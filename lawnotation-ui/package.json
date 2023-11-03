@@ -21,7 +21,7 @@
     "open-cli": "^7.2.0",
     "postcss": "^8.4.29",
     "sass": "^1.66.1",
-    "supabase": "^1.93.0"
+    "supabase": "^1.110.1"
   },
   "dependencies": {
     "@heartexlabs/label-studio": "1.4",
@@ -30,6 +30,8 @@
     "@trpc/server": "^10.38.1",
     "@vueform/multiselect": "^2.6.2",
     "apexcharts": "^3.42.0",
+    "child_process": "^1.0.2",
+    "childprocess": "^2.0.2",
     "epic-spinners": "^2.0.0",
     "file-saver": "^2.0.5",
     "flowbite": "^1.8.1",

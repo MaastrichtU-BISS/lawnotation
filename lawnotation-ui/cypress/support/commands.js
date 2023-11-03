@@ -1,25 +1,21 @@
-// ***********************************************
-// This example commands.js shows you how to
-// create various custom commands and overwrite
-// existing commands.
-//
-// For more comprehensive examples of custom
-// commands please read more here:
-// https://on.cypress.io/custom-commands
-// ***********************************************
-//
-//
-// -- This is a parent command --
-// Cypress.Commands.add('login', (email, password) => { ... })
-//
-//
-// -- This is a child command --
-// Cypress.Commands.add('drag', { prevSubject: 'element'}, (subject, options) => { ... })
-//
-//
-// -- This is a dual command --
-// Cypress.Commands.add('dismiss', { prevSubject: 'optional'}, (subject, options) => { ... })
-//
-//
-// -- This will overwrite an existing command --
-// Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
+Cypress.Commands.add("login", () => {
+    cy.visit('/auth/login')
+
+    cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
+    cy.get('input[data-test="email-field-to-login"]').type('annotator@test.com')
+    cy.get('button[data-test="login-button"]').click()
+    cy.wait(2000) 
+    
+    cy.origin('http://localhost:54324', () => {
+
+    cy.visit("http://localhost:54324/m/annotator/")
+    cy.get('aside:first').find('button').eq(1).click()
+    cy.wait(2000)
+    cy.get('.message-list-entry:first').click()
+    cy.contains('a', 'Log In').click()
+  })
+});
+
+Cypress.Commands.add('resetDatabase', () => {
+  cy.task('resetDatabase');
+});

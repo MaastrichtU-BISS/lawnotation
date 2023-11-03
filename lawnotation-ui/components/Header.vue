@@ -1,7 +1,7 @@
 <template>
-  <!-- <div class="bg-neutral-100 px-4 py-4 flex justify-between items-center"> -->
+  <!-- <div class="flex items-center justify-between px-4 py-4 bg-neutral-100"> -->
   <div
-    class="bg-neutral-50 border-b border-neutral-200 px-4 py-4 flex justify-between items-center"
+    class="flex items-center justify-between px-4 py-4 border-b bg-neutral-50 border-neutral-200"
   >
     <div class="w-40">
       <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
@@ -18,6 +18,7 @@
           to="/labelset"
           class="header-link"
           :class="{ active: routeIsActive('/labelset') }"
+          data-test="labelset-link"
           >Labelsets</NuxtLink
         >
         <span class="text-gray-400 select-none">|</span>
@@ -35,7 +36,7 @@
         <span class="text-slate-800" v-if="user?.email">{{
           user.email?.split("@")[0]
         }}</span>
-        <span class="text-gray-400 select-none mx-3">|</span>
+        <span class="mx-3 text-gray-400 select-none">|</span>
         <button class="header-link" @click="signOut()">Sign Out</button>
       </template>
       <template v-else>
