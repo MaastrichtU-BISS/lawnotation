@@ -78,7 +78,7 @@ const removeProjects = async (ids: string[]) => {
 };
 const removeAllProjects = async () => {
   if (!user.value) throw new Error("Invalid User!");
-  await $trpc.project.deleteAllFromUser.mutate();
+  await $trpc.project.deleteAllFromEditor.mutate();
   await projectTable.value?.refresh();
   $toast.success("Projects successfully deleted!");
 };

@@ -113,15 +113,15 @@ export const projectRouter = router({
 
   // Extra procedures
 
-  'deleteAllFromUser': protectedProcedure
+  'deleteAllFromEditor': protectedProcedure
     .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase
         .from("projects")
         .delete()
-        .eq("user_id", ctx.user.id);
+        .eq("editor_id", ctx.user.id); //editor id
         
       if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.deleteAllFromUser: ${error.message}`});
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.deleteAllFromEditor: ${error.message}`});
       return true;
     }),
 
