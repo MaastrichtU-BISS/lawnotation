@@ -201,11 +201,8 @@ export const taskRouter = router({
     .mutation(async ({ ctx, input: task_id }): Promise<Task> => {
       const caller = appRouter.createCaller(ctx);
 
-      // const annotationApi = useAnnotationApi();
-      // const assignmentApi = useAssignmentApi();
-      // const relationApi = useAnnotationRelationApi();
+      const task = await caller.task.findById(task_id);
 
-      const task = await caller.task.findById({ task_id: task_id });
       const new_task = await caller.task.create({
         name: task.name,
         desc: task.desc,
@@ -239,8 +236,6 @@ export const taskRouter = router({
         [K in keyof T]: NonNullable<T[K]>;
       };
 
-      console.log(assignments.length, new_assignments.length);
-
       const annotations = await caller.annotation.findAnnotationsByTask(
         task_id
       );
@@ -258,8 +253,6 @@ export const taskRouter = router({
           };
         })
       );
-
-      console.log(annotations.length, new_annotations.length);
 
       const relations = await caller.relation.findRelationsByTask(task_id);
 
@@ -280,8 +273,6 @@ export const taskRouter = router({
           };
         })
       );
-
-      console.log(relations.length, new_relations.length);
 
       // return 1;
       return new_task;
