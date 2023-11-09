@@ -336,6 +336,10 @@ export interface Database {
           project_id: number | null
         }[]
       }
+      get_all_docs_from_task: {
+        Args: {
+          t_id: number
+        }
       get_all_shared_docs_from_task: {
         Args: {
           t_id: number

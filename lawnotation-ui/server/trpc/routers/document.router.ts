@@ -200,6 +200,21 @@ export const documentRouter = router({
       return data as Document[];
     }),
 
+  findDocumentsByTask: protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: task_id }) => {
+      const { data, error } = await ctx.supabase.rpc("get_all_docs_from_task", {
+        t_id: task_id,
+      });
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findDocumentsByTask: ${error.message}`,
+        });
+      return data as Document[];
+    }),
+
   findSharedDocumentsByTask: protectedProcedure
     .input(z.number().int())
     .query(async ({ ctx, input: task_id }) => {

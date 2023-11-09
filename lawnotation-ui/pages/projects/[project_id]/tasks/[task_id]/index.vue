@@ -25,12 +25,17 @@
                 class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
                 Analyze Agreement Metrics
               </button>
-              <button
-                class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                @click="replicateTask">
-                Replicate Task
-              </button>
             </NuxtLink>
+            <!-- <button
+              class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+              @click="replicateTask">
+              Replicate Task
+            </button> -->
+            <button
+              class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+              @click="exportTask">
+              Export Task
+            </button>
           </div>
           <h3 class="my-3 text-lg font-semibold">Assignments</h3>
           <Table ref="assignmentTable" endpoint="assignments" :filter="{ task_id: task?.id }" :sort="true" :search="true"
@@ -93,6 +98,7 @@ import type { Task, Assignment, AssignmentTableData, User, Project } from "~/typ
 import Table from "~/components/Table.vue";
 import { shuffle, clone } from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
+import { downloadAs } from "~/utils/download_file";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -221,10 +227,71 @@ const removeAllAssignments = async () => {
 
 const replicateTask = async () => {
   loading.value = true;
-  const new_task = await $trpc.task.replicateTask.mutate(+task.value?.id!);
+  const new_task = await $trpc.task.replicateTask.mutate(+task.value?.id!)
   loading.value = false;
   $toast.success(`Task successfully replicated! ${new_task.id}`);
 };
+
+const exportTask = async () => {
+  loading.value = true;
+  let json: {
+    name: string;
+    desc: string;
+    ann_guidelines: string;
+    documents: { name: string; text: string }[];
+    annotations: { document: number, start: number; end: number; label: string; text: string; }[]
+    relations: { from: number, to: number, label: string[], direction: string }[]
+  } = {
+    name: task.value?.name!,
+    desc: task.value?.desc!,
+    ann_guidelines: task.value?.ann_guidelines!,
+    documents: [],
+    annotations: [],
+    relations: []
+  }
+
+  const documentsPromise = $trpc.document.findDocumentsByTask.query(+task.value?.id!);
+  const annotationsPromise = $trpc.annotation.findAnnotationsByTask.query(+task.value?.id!);
+  const relationsPromise = $trpc.relation.findRelationsByTask.query(+task.value?.id!);
+
+  const results = await Promise.all([documentsPromise, annotationsPromise, relationsPromise]);
+  const documents = results[0];
+  const annotations = results[1];
+  const relations = results[2];
+
+  let doc_pos: any = {};
+  let ann_pos: any = {};
+
+  documents.map((d, index) => {
+    doc_pos[d.id] = index;
+    json.documents.push({ name: d.name, text: d.full_text });
+  });
+
+  annotations.map((a, index) => {
+    ann_pos[a.id] = index;
+    json.annotations.push({
+      document: doc_pos[a.assignment.document_id],
+      start: a.start_index,
+      end: a.end_index,
+      label: a.label,
+      text: a.text
+    });
+  });
+
+  relations.map(r => {
+    json.relations.push({
+      from: ann_pos[r.from_id],
+      to: ann_pos[r.to_id],
+      direction: r.direction,
+      label: r.labels
+    })
+  });
+
+  downloadAs(json, `${json.name}.lwn.json`);
+
+  loading.value = false;
+  $toast.success(`Task has been exported!`);
+}
 
 onMounted(async () => {
   task.value = await $trpc.task.findById.query(+route.params.task_id);
