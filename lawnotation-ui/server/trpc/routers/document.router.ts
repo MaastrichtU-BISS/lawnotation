@@ -36,8 +36,7 @@ const documentAuthorizer = async (
     .eq("document_id", document_id)
     .eq("annotator_id", user_id);
 
-  // return annotator.count! > 0;
-  return true;
+  return annotator.count! > 0;
 };
 
 export const documentRouter = router({

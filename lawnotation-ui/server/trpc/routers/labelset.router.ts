@@ -41,8 +41,7 @@ const labelsetAuthorizer = async (
     .eq("tasks.labelset_id", labelset_id)
     .eq("annotator_id", user_id);
 
-  // return annotator.count! > 0;
-  return true;
+  return annotator.count! > 0;
 };
 
 export const labelsetRouter = router({

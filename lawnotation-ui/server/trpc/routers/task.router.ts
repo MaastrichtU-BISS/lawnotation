@@ -39,8 +39,7 @@ const taskAuthorizer = async (
     .eq("task_id", task_id)
     .eq("annotator_id", user_id);
 
-  // return annotator.count! > 0;
-  return true;
+  return annotator.count! > 0;
 };
 
 export const taskRouter = router({
