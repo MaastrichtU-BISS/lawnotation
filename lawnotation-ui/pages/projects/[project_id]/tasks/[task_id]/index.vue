@@ -303,12 +303,18 @@ const exportTask = async () => {
   if (export_options.value.documents) {
     let doc_pos: any = {};
     let ann_pos: any = {};
+    let annotators: any = {};
+    let annotators_index: number = 0;
 
     const documents = await $trpc.document.findDocumentsByTask.query(+task.value?.id!);
+
+    json.counts = {};
+    json.counts.documents = documents.length;
+
     json.documents = [];
     documents.map((d, index) => {
       doc_pos[d.id] = index;
-      json.documents.push({ name: d.name, text: d.full_text });
+      json.documents.push({ name: d.name, text: d.full_text, annotations: [] });
     });
 
     if (export_options.value.annotations && export_options.value.labelset) {
@@ -316,26 +322,36 @@ const exportTask = async () => {
         +task.value?.id!
       );
 
-      json.annotations = [];
+      json.counts.annotations = annotations.length;
 
-      annotations.map((a, index) => {
-        ann_pos[a.id] = index;
-        json.annotations.push({
-          document: doc_pos[a.assignment.document_id],
+      annotations.map((a) => {
+        let doc_anns = json.documents[doc_pos[a.assignment.document_id]].annotations
+        ann_pos[a.id] = doc_anns.length
+
+        if(!(a.assignment.annotator_id in annotators)) {
+          annotators[a.assignment.annotator_id] = ++annotators_index;
+        }
+
+        doc_anns.push({
           start: a.start_index,
           end: a.end_index,
           label: a.label,
           text: a.text,
+          annotator: annotators[a.assignment.annotator_id],
+          relations: []
         });
       });
 
+      json.counts.annotators = annotators_index + 1;
+
       const relations = await $trpc.relation.findRelationsByTask.query(+task.value?.id!);
 
-      json.relations = [];
+      json.counts.relations = relations.length;
 
       relations.map((r) => {
-        json.relations.push({
-          from: ann_pos[r.from_id],
+        let doc_anns = json.documents[doc_pos[r.annotation.assignment.document_id]].annotations;
+        let ann_rels = doc_anns[ann_pos[r.from_id]].relations;
+        ann_rels.push({
           to: ann_pos[r.to_id],
           direction: r.direction,
           label: r.labels,
@@ -344,8 +360,8 @@ const exportTask = async () => {
     }
   }
 
-  // console.log(json)
-  downloadAs(json, `${json.name}.lwn.json`);
+  console.log(json)
+  // downloadAs(json, `${json.name}.lwn.json`);
 
   loading.value = false;
   $toast.success(`Task has been exported!`);
