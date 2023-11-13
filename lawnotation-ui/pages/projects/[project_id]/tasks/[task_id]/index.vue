@@ -18,7 +18,7 @@
     <Dimmer v-model="loading" />
     <div class="dimmer-content">
       <div v-if="task">
-        <div v-show="assignmentTable?.total">
+        <div v-show="totalAssignments">
           <div class="text-center my-3">
             <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
               <button
@@ -57,7 +57,7 @@
             </template>
           </Table>
         </div>
-        <div v-show="!assignmentTable?.total" class="flex justify-center">
+        <div v-show="!totalAssignments" class="flex justify-center">
           <div class="flex flex-col w-1/2 space-y-2 border-neutral-300">
             <h3 class="mt-3 text-lg font-semibold text-center">Create assignments</h3>
             <h3 class="mt-3 text-sm font-semibold">
@@ -101,6 +101,7 @@ const user = useSupabaseUser();
 const route = useRoute();
 const task = ref<Task>();
 const project = ref<Project>();
+const totalAssignments = ref<number>(0);
 const total_docs = ref<number>(0);
 const amount_of_docs = ref<number>(0);
 const amount_of_fixed_docs = ref<number>(0);
@@ -235,6 +236,8 @@ onMounted(async () => {
   });
 
   project.value = await $trpc.project.findById.query(+route.params.project_id);
+
+  totalAssignments.value = (await $trpc.assignment.findAssignmentsByTask.query(task.value.id)).length;
 });
 
 definePageMeta({
