@@ -284,14 +284,14 @@ const exportTask = async () => {
   }
 
   if (export_options.value.desc) {
-    json.description = task.value?.desc!;
+    json.desc = task.value?.desc!;
   }
 
   if (export_options.value.labelset) {
     const labelset = await $trpc.labelset.findById.query(+task.value?.labelset_id!);
     json.labelset = {
       name: labelset.name,
-      description: labelset.desc,
+      desc: labelset.desc,
       labels: labelset.labels,
     };
 
@@ -314,7 +314,7 @@ const exportTask = async () => {
     json.documents = [];
     documents.map((d, index) => {
       doc_pos[d.id] = index;
-      json.documents.push({ name: d.name, text: d.full_text, annotations: [] });
+      json.documents.push({ name: d.name, full_text: d.full_text, annotations: [] });
     });
 
     if (export_options.value.annotations && export_options.value.labelset) {
@@ -360,8 +360,8 @@ const exportTask = async () => {
     }
   }
 
-  console.log(json)
-  // downloadAs(json, `${json.name}.lwn.json`);
+  // console.log(json)
+  downloadAs(json, `${json.name}.json`);
 
   loading.value = false;
   $toast.success(`Task has been exported!`);

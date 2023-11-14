@@ -1,17 +1,14 @@
 <template>
-  <Breadcrumb
-    v-if="project"
-    :crumbs="[
-      {
-        name: 'Projects',
-        link: '/projects',
-      },
-      {
-        name: `Project ${project.name}`,
-        link: `/projects/${project.id}`,
-      },
-    ]"
-  />
+  <Breadcrumb v-if="project" :crumbs="[
+    {
+      name: 'Projects',
+      link: '/projects',
+    },
+    {
+      name: `Project ${project.name}`,
+      link: `/projects/${project.id}`,
+    },
+  ]" />
 
   <div v-if="project">
     <p class="mt-1 mb-3 text-gray-700 text-sm">{{ project.desc }}</p>
@@ -28,16 +25,8 @@
     </div>
 
     <div v-show="tab_active == 'documents'">
-      <Table
-        ref="documentTable"
-        endpoint="documents"
-        :filter="{ project_id: project?.id }"
-        :sort="true"
-        :search="true"
-        :selectable="true"
-        @remove-rows="removeDocuments"
-        @remove-all-rows="removeAllDocuments"
-      >
+      <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
+        :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
         <template #row="{ item }: { item: Document }">
           <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
             {{ item.id }}
@@ -46,10 +35,7 @@
             {{ item.name }}
           </td>
           <td class="px-6 py-2">
-            <NuxtLink
-              class="base"
-              :to="`/projects/${route.params.project_id}/documents/${item.id}`"
-            >
+            <NuxtLink class="base" :to="`/projects/${route.params.project_id}/documents/${item.id}`">
               View
             </NuxtLink>
           </td>
@@ -60,32 +46,15 @@
         <Dimmer v-model="loading_docs" />
         <div class="dimmer-content">
           <span class="mr-3">Add documents</span>
-          <input
-            class="base"
-            type="file"
-            name="data-set"
-            id="doc_input"
-            accept=".txt"
-            webkitdirectory
-            directory
-            multiple
-            @change="change_file($event)"
-          />
+          <input class="base" type="file" name="data-set" id="doc_input" accept=".txt" webkitdirectory directory multiple
+            @change="change_file($event)" />
         </div>
       </div>
     </div>
 
     <div v-show="tab_active == 'tasks'">
-      <Table
-        ref="taskTable"
-        endpoint="tasks"
-        :filter="{ project_id: project?.id }"
-        :sort="true"
-        :search="true"
-        :selectable="true"
-        @remove-rows="removeTasks"
-        @remove-all-rows="removeAllTasks"
-      >
+      <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
+        :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
         <template #row="{ item }: { item: Task }">
           <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
             {{ item.id }}
@@ -97,42 +66,24 @@
             {{ item.desc }}
           </td>
           <td class="px-6 py-2">
-            <NuxtLink
-              class="base"
-              :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-            >
+            <NuxtLink class="base" :to="`/projects/${route.params.project_id}/tasks/${item.id}`">
               View
             </NuxtLink>
           </td>
         </template>
       </Table>
 
-      <div class="my-3">
-        <h3 class="text-lg mt-8">Create new task</h3>
-        <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
-          <input
-            class="base"
-            type="text"
-            placeholder="Task name"
-            v-model="new_task.name"
-          />
-          <textarea
-            class="base"
-            placeholder="Task description"
-            v-model="new_task.desc"
-          ></textarea>
-          <textarea
-            class="base"
-            placeholder="Annotation Guidelines"
-            v-model="new_task.ann_guidelines"
-          ></textarea>
+      <div class="flex my-3 text-center">
+        <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3 mx-3">
+          <h3 class="text-lg mt-8">Create new task</h3>
+          <input class="base" type="text" placeholder="Task name" v-model="new_task.name" />
+          <textarea class="base" placeholder="Task description" v-model="new_task.desc"></textarea>
+          <textarea class="base" placeholder="Annotation Guidelines" v-model="new_task.ann_guidelines"></textarea>
 
           <label for="label_id">Labelset</label>
           <div class="flex items-start w-full space-x-2">
-            <select
-              v-model="new_task.labelset_id"
-              class="w-full flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
-            >
+            <select v-model="new_task.labelset_id"
+              class="w-full flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5">
               <option v-if="labelsets.pending.value" disabled selected value="">
                 Loading labelsets...
               </option>
@@ -146,30 +97,48 @@
               </template>
               <option v-else disabled selected value="">No labelsets found</option>
             </select>
-            <button
-              class="base btn-secondary"
-              style="flex: 0 0 content"
-              @click="() => navigateTo('/labelset/new')"
-            >
+            <button class="base btn-secondary" style="flex: 0 0 content" @click="() => navigateTo('/labelset/new')">
               Create new labelset
             </button>
           </div>
 
           <button class="base btn-primary" @click="createTask">Create Tasks</button>
         </div>
+        <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3 mx-3">
+          <h3 class="text-lg mt-8 semibold">Import task</h3>
+          <div class="flex items-center justify-center w-full">
+            <label for="dropzone-file"
+              class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+              <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 20 16">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
+                </svg>
+                <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop
+                </p>
+                <p class="text-xs text-gray-500">.json</p>
+              </div>
+              <input id="dropzone-file" type="file" class="hidden" @change="importTask" accept=".json" />
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import type { Project, Document, Task, Labelset } from "~/types";
+import type { Project, Document, Task, Labelset, Assignment, Annotation } from "~/types";
 import Table from "~/components/Table.vue";
 import type { _AsyncData } from "nuxt/dist/app/composables/asyncData";
 import { authorizeClient } from "~/utils/authorize.client";
+import trpc from "~/plugins/trpc";
 
 const { $toast, $trpc } = useNuxtApp();
 
 const { project } = usePage<{ project: Project }>().value;
+
+const user = useSupabaseUser();
 
 const route = useRoute();
 
@@ -249,6 +218,73 @@ const createTask = () => {
   }
 };
 
+const importTask = async (event: Event) => {
+
+  const file: File = (event.target as HTMLInputElement).files?.item(0)!;
+  const json = JSON.parse(await file.text());
+
+  console.log(json);
+
+  // creating labelset
+  let new_labelset_id = labelsets.data.value![0].id;
+  if (json.labelset) {
+    new_labelset_id = (await $trpc.labelset.create.mutate({ editor_id: user.value?.id, ...json.labelset })).id;
+  }
+
+  // basic task params
+  let _new_task: Omit<Task, "id"> = {
+    project_id: project.id,
+    name: json.name ?? "Blank",
+    desc: json.desc ?? "Blank",
+    ann_guidelines: json.ann_guidelines ?? "Blank",
+    labelset_id: new_labelset_id
+  }
+
+  // creating task
+  const task = await $trpc.task.create.mutate(_new_task);
+  taskTable.value?.refresh();
+
+  // creating documents
+  if (json.documents) {
+    const documents = await $trpc.document.createMany.mutate(json.documents.map((d: any) => {
+      return {
+        name: d.name,
+        full_text: d.full_text,
+        source: "imported",
+        project_id: project.id
+      }
+    }));
+    documentTable.value?.refresh();
+    console.log(documents)
+
+    // creating assignments
+    if (json.counts?.annotations) {
+      let new_assignments: Omit<Assignment, "id">[] = [];
+      let new_annotations: Omit<Annotation, "id">[] = [];
+
+      // TODO: consider also the annotators with no annotations during export
+      json.documents.map((d: any, i: number) => {
+        for (let annotator_index = 0; annotator_index < json.counts.annotators; annotator_index++) {
+          new_assignments.push({
+            task_id: task.id, 
+            annotator_id: annotator_index.toString(),
+            document_id: documents[i].id,
+            seq_pos: (i / json.counts.annotators) + 1,
+            difficulty_rating: 0,
+            status: "pending"
+          })
+        }
+        // d.annotations.map((a: any, j: number) => {
+          
+        // });
+      });
+      console.log(new_assignments);
+    }
+  }
+
+
+};
+
 const removeDocuments = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
   promises.push(...ids.map((id) => $trpc.document.delete.mutate(+id)));
@@ -296,9 +332,11 @@ definePageMeta({
 <style lang="scss">
 div.tabs-holder {
   @apply text-sm font-medium text-center text-gray-500 border-b border-gray-200;
+
   li.tab button {
     @apply inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300;
   }
+
   li.tab-active button {
     @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
