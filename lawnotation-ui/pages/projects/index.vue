@@ -1,6 +1,6 @@
 <template>
-  <div class="my-4 mx-auto max-w-screen-lg">
-    <h3 class="text-lg font-semibold mb-2">Projects</h3>
+  <div class="max-w-screen-lg mx-auto my-4">
+    <h3 class="mb-2 text-lg font-semibold">Projects</h3>
     <Table
       endpoint="projects"
       ref="projectTable"
@@ -23,8 +23,8 @@
       </template>
     </Table>
 
-    <h3 class="text-lg mt-8">Create new project</h3>
-    <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
+    <h3 class="mt-8 text-lg">Create new project</h3>
+    <div class="flex flex-col w-1/2 pt-3 mt-3 space-y-2 border-t border-neutral-300">
       <input
         class="base"
         type="text"
@@ -45,7 +45,7 @@ import type { Project } from "~/types";
 import Table from "@/components/Table.vue";
 import { TRPCClientError } from "@trpc/client";
 import { TRPCError } from "@trpc/server";
-import { ZodError, typeToFlattenedError } from "zod";
+import type { ZodError, typeToFlattenedError } from "zod";
 
 const projectTable = ref<InstanceType<typeof Table> | null>();
 
@@ -78,7 +78,7 @@ const removeProjects = async (ids: string[]) => {
 };
 const removeAllProjects = async () => {
   if (!user.value) throw new Error("Invalid User!");
-  await $trpc.project.deleteAllFromUser.mutate();
+  await $trpc.project.deleteAllFromEditor.mutate();
   await projectTable.value?.refresh();
   $toast.success("Projects successfully deleted!");
 };
