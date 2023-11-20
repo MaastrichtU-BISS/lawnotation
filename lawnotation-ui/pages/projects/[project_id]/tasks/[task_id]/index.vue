@@ -268,54 +268,71 @@ const exportTask = async () => {
 
   if (export_options.value.documents) {
     let doc_pos: any = {};
+    let ass_pos: any = {};
     let ann_pos: any = {};
     let annotators: any = {};
     let annotators_index: number = 0;
 
+    //Documents
     const documents = await $trpc.document.findDocumentsByTask.query(+task.value?.id!);
-
-    json.counts = {};
-    json.counts.documents = documents.length;
 
     json.documents = [];
     documents.map((d, index) => {
       doc_pos[d.id] = index;
-      json.documents.push({ name: d.name, full_text: d.full_text, annotations: [] });
+      json.documents.push({ name: d.name, full_text: d.full_text, assignments: [] });
     });
 
+    json.counts = {};
+    json.counts.documents = documents.length;
+
+    // Assignments
+    const assignments = await $trpc.assignment.findAssignmentsByTask.query(+task.value?.id!);
+
+    assignments.map(ass => {
+      const doc_assignments = json.documents[doc_pos[ass.document_id]].assignments;
+      ass_pos[ass.id] = doc_assignments.length;
+      if (!(ass.annotator_id in annotators)) {
+        annotators[ass.annotator_id] = ++annotators_index;
+      }
+      doc_assignments.push({
+        annotator: annotators[ass.annotator_id],
+        order: ass.seq_pos,
+        annotations: []
+      })
+    });
+
+    json.counts.assignments = assignments.length;
+    json.counts.annotators = annotators_index;
+
+
     if (export_options.value.annotations && export_options.value.labelset) {
+
+      // Annotations
       const annotations = await $trpc.annotation.findAnnotationsByTask.query(
         +task.value?.id!
       );
 
-      json.counts.annotations = annotations.length;
-
       annotations.map((a) => {
-        let doc_anns = json.documents[doc_pos[a.assignment.document_id]].annotations
+        let doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
         ann_pos[a.id] = doc_anns.length
-
-        if (!(a.assignment.annotator_id in annotators)) {
-          annotators[a.assignment.annotator_id] = ++annotators_index;
-        }
 
         doc_anns.push({
           start: a.start_index,
           end: a.end_index,
           label: a.label,
           text: a.text,
-          annotator: annotators[a.assignment.annotator_id],
           relations: []
         });
       });
 
-      json.counts.annotators = annotators_index + 1;
+      json.counts.annotations = annotations.length;
 
+
+      // Relations
       const relations = await $trpc.relation.findRelationsByTask.query(+task.value?.id!);
 
-      json.counts.relations = relations.length;
-
       relations.map((r) => {
-        let doc_anns = json.documents[doc_pos[r.annotation.assignment.document_id]].annotations;
+        let doc_anns = json.documents[doc_pos[r.annotation.assignment.document_id]].assignments[ass_pos[r.annotation.assignment.id]].annotations;
         let ann_rels = doc_anns[ann_pos[r.from_id]].relations;
         ann_rels.push({
           to: ann_pos[r.to_id],
@@ -323,11 +340,13 @@ const exportTask = async () => {
           label: r.labels,
         });
       });
+
+      json.counts.relations = relations.length;
     }
   }
 
-  // console.log(json)
-  downloadAs(json, `${json.name}.json`);
+  console.log(json)
+  // downloadAs(json, `${json.name}.json`);
 
   loading.value = false;
   $toast.success(`Task has been exported!`);
