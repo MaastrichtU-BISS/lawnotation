@@ -123,6 +123,8 @@
             </label>
           </div>
         </div>
+        <ImportTaskModal v-if="annotators_amount" :annotators_amount="annotators_amount" @done="new_emails_selected" @close="import_modal?.hide()">
+        </ImportTaskModal>
       </div>
     </div>
   </div>
@@ -132,7 +134,9 @@ import type { Project, Document, Task, Labelset, Assignment, Annotation } from "
 import Table from "~/components/Table.vue";
 import type { _AsyncData } from "nuxt/dist/app/composables/asyncData";
 import { authorizeClient } from "~/utils/authorize.client";
-import trpc from "~/plugins/trpc";
+import ImportTaskModal from "~/components/ImportTaskModal.vue";
+import { initFlowbite, Modal } from "flowbite";
+import type { ModalOptions, ModalInterface } from 'flowbite';
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -147,6 +151,10 @@ const loading_docs = ref(false);
 const tab_active = ref<"tasks" | "documents">("tasks");
 
 const labelsets = await $trpc.labelset.find.useQuery({});
+
+const annotators_amount = ref<number>(0);
+
+let import_modal: Modal | null = null;
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
@@ -221,9 +229,12 @@ const createTask = () => {
 const importTask = async (event: Event) => {
 
   const file: File = (event.target as HTMLInputElement).files?.item(0)!;
+  (event.target as any).value = null;
   const json = JSON.parse(await file.text());
 
   console.log(json);
+
+  annotators_amount.value = json.counts?.annotators ?? 0;
 
   // creating labelset
   let new_labelset_id = labelsets.data.value![0].id;
@@ -255,34 +266,60 @@ const importTask = async (event: Event) => {
       }
     }));
     documentTable.value?.refresh();
-    console.log(documents)
 
     // creating assignments
     if (json.counts?.annotations) {
-      let new_assignments: Omit<Assignment, "id">[] = [];
-      let new_annotations: Omit<Annotation, "id">[] = [];
 
-      // TODO: consider also the annotators with no annotations during export
-      json.documents.map((d: any, i: number) => {
-        for (let annotator_index = 0; annotator_index < json.counts.annotators; annotator_index++) {
-          new_assignments.push({
-            task_id: task.id, 
-            annotator_id: annotator_index.toString(),
-            document_id: documents[i].id,
-            seq_pos: (i / json.counts.annotators) + 1,
-            difficulty_rating: 0,
-            status: "pending"
-          })
-        }
-        // d.annotations.map((a: any, j: number) => {
-          
-        // });
-      });
-      console.log(new_assignments);
+      const modalOptions: ModalOptions = {
+        placement: 'center',
+        backdrop: 'dynamic',
+        backdropClasses:
+          'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+        closable: true,
+      };
+
+      import_modal = new Modal(document.getElementById('importFormModal'), modalOptions);
+
+      import_modal.show();
+
+      // let new_assignments: Omit<Assignment, "id">[] = [];
+
+      // json.documents.map((d: any, i: number) => {
+      //   d.assignments.map((ass: any) => {
+      //     new_assignments.push({
+      //       task_id: task.id,
+      //       annotator_id: user.value?.id!,
+      //       document_id: documents[i].id,
+      //       seq_pos: ass.order,
+      //       difficulty_rating: 0,
+      //       status: "pending"
+      //     })
+      //   })
+      // });
+
+      // const assignments = await $trpc.assignment.createMany.mutate(new_assignments);
+
+      // console.log(assignments);
+
+      // ass.annotations.map((ann: any, j: number) => {
+      //       new_annotations.push({
+      //         start_index: ann.start,
+      //         end_index: ann.end,
+      //         label: ann.label,
+      //         text: ann.text,
+      //         assignment_id: 88,
+      //         origin: "imported",
+      //         ls_id: ""
+      //       })
+      //     });
+      // console.log(new_annotations);
     }
   }
+};
 
-
+const new_emails_selected = async (new_emails: string[]) => {
+  console.log(new_emails);
+  import_modal?.hide();
 };
 
 const removeDocuments = async (ids: string[]) => {
@@ -314,6 +351,7 @@ const removeAllTasks = async () => {
 
 onMounted(() => {
   // project.value = projectQuery.data.value!;
+  initFlowbite();
   new_task.project_id = project.id;
 
   $trpc.labelset.find.query({}).then((_labelsets) => {
