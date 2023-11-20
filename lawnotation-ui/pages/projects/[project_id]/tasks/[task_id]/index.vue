@@ -345,8 +345,8 @@ const exportTask = async () => {
     }
   }
 
-  console.log(json)
-  // downloadAs(json, `${json.name}.json`);
+  // console.log(json)
+  downloadAs(json, `${json.name}.json`);
 
   loading.value = false;
   $toast.success(`Task has been exported!`);
