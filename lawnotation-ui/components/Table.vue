@@ -170,7 +170,7 @@
         <tbody>
           <tr
             class="bg-white border-b hover:bg-gray-50"
-            :class="{ 'bg-gray-100': checkedIds.includes(item.id) }"
+            :class="{ '!bg-gray-100': checkedIds.includes(item.id) }"
             v-for="item in rows"
           >
             <td class="px-6 py-2" v-if="props.selectable">
