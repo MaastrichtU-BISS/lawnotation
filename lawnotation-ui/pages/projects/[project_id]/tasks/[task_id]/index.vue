@@ -102,6 +102,7 @@ import { initFlowbite } from "flowbite";
 const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
+const config = useRuntimeConfig();
 
 const route = useRoute();
 const task = ref<Task>();
@@ -169,11 +170,7 @@ const createAssignments = async () => {
     const usersPromises: Promise<User>[] = [];
     for (let i = 0; i < annotators_email.length; ++i) {
       usersPromises.push(
-        // userApi.otpLogin(
-        //   annotators_email[i],
-        //   `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
-        // )
-        $trpc.user.findByEmail.query(annotators_email[i])
+        $trpc.user.otpLogin.query({ email: annotators_email[i], redirectTo: `${config.public.baseURL}/annotate/${task.value.id}?seq=1` })
       );
     }
 
@@ -183,7 +180,7 @@ const createAssignments = async () => {
     const unshuffled: number[] = [
       ...Array(
         amount_of_fixed_docs.value +
-        (amount_of_docs.value - amount_of_fixed_docs.value) / annotators_id.length
+        Math.floor((amount_of_docs.value - amount_of_fixed_docs.value) / annotators_id.length)
       ).keys(),
     ];
 
@@ -193,17 +190,11 @@ const createAssignments = async () => {
     }
 
     for (let i = 0; i < new_assignments.length; ++i) {
-      // new_assignments[i] = {
-      //   ...new_assignments[i],
-      //   annotator_id: annotators_id[i % annotators_id.length],
-      //   seq_pos: (permutations[i % annotators_id.length].pop() ?? 0) + 1
-      // } as Assignment
-
       // @ts-expect-error
       new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
       // @ts-expect-error
       new_assignments[i].seq_pos =
-        (permutations[i % annotators_id.length].pop() ?? 0) + 1;
+        (permutations[i % annotators_id.length].pop() ?? Math.floor(i / annotators_id.length)) + 1;
     }
 
     const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(

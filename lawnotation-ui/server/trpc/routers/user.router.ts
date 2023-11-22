@@ -121,7 +121,7 @@ export const userRouter = router({
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error logging in: ${login.error.message}`});
       
       const user = await ctx.supabase.from("users").select().eq("email", input.email).single();
-      return { user: user.data }
+      return user.data as User;
     }),
     
 })
