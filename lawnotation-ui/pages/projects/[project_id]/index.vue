@@ -280,9 +280,9 @@ onMounted(() => {
   // project.value = projectQuery.data.value!;
   new_task.project_id = project.id;
 
-  $trpc.labelset.find.query({}).then((_labelsets) => {
-    labelsets.push(..._labelsets);
-  });
+  // $trpc.labelset.find.query({}).then((_labelsets) => {
+  //   labelsets.push(..._labelsets);
+  // });
 });
 
 definePageMeta({
