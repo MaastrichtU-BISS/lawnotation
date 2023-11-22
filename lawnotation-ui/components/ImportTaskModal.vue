@@ -23,7 +23,7 @@
         <div class="p-6 space-y-6">
           <div class="items-center justify-center">
             <h4 class="mb-2 font-semibold text-gray-900 dark:text-white">
-              The uploaded Task has {{ annotators_amount }} annotators.
+              The uploaded Task has {{ modelValue }} annotators.
             </h4>
             <p class="mb-4">Please, provide the new ones:</p>
             <ul class="">
@@ -57,15 +57,13 @@
 </template>
 <script setup lang="ts">
 const props = defineProps<{
-  annotators_amount: number
+  modelValue: number
 }>();
 
 const emit = defineEmits(["done", "close"]);
 
-const new_emails = reactive<string[]>([]);
-
 const done = () => {
-  emit("done", new_emails);
+  emit("done", new_emails.value);
 };
 
 const close = () => {
@@ -73,14 +71,15 @@ const close = () => {
 };
 
 const change = (event: InputEvent, index: number) => {
-  new_emails[index] = (event.target as HTMLInputElement).value;
+  new_emails.value[index] = (event.target as HTMLInputElement).value;
 }
 
-onMounted(() => {
-  for (let i = 0; i < props.annotators_amount; i++) {
-    new_emails.push(`annotator${i + 1}@email.com`);
+const new_emails = computed((): string[] => {
+  let res: string[] = [];
+  for (let i = 0; i < props.modelValue; i++) {
+    res.push(`annotator${i + 1}@email.com`);
   }
-})
-
+  return res;
+});
 
 </script>

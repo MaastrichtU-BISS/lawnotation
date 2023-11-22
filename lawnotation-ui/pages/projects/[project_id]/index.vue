@@ -115,28 +115,29 @@
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
                 </svg>
-                <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop
+                <p class="mb-2 text-sm text-gray-500">
+                  <span class="font-semibold">Click to upload</span> or drag and drop
                 </p>
                 <p class="text-xs text-gray-500">.json</p>
               </div>
-              <input id="dropzone-file" type="file" class="hidden" @change="importTask" accept=".json" />
+              <input id="dropzone-file" type="file" class="hidden" @change="loadExportTaskFile" accept=".json" />
             </label>
           </div>
         </div>
-        <ImportTaskModal v-if="annotators_amount" :annotators_amount="annotators_amount" @done="new_emails_selected" @close="import_modal?.hide()">
+        <ImportTaskModal v-model="annotators_amount" @done="new_emails_selected" @close="import_modal?.hide()">
         </ImportTaskModal>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import type { Project, Document, Task, Labelset, Assignment, Annotation } from "~/types";
+import type { Project, Document, Task, Labelset, Assignment, Annotation, User } from "~/types";
 import Table from "~/components/Table.vue";
-import type { _AsyncData } from "nuxt/dist/app/composables/asyncData";
 import { authorizeClient } from "~/utils/authorize.client";
 import ImportTaskModal from "~/components/ImportTaskModal.vue";
-import { initFlowbite, Modal } from "flowbite";
-import type { ModalOptions, ModalInterface } from 'flowbite';
+// import { initFlowbite } from "flowbite";
+import { Modal } from "flowbite";
+import type { ModalOptions } from "flowbite";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -145,6 +146,8 @@ const { project } = usePage<{ project: Project }>().value;
 const user = useSupabaseUser();
 
 const route = useRoute();
+
+const config = useRuntimeConfig();
 
 const loading_docs = ref(false);
 
@@ -155,6 +158,7 @@ const labelsets = await $trpc.labelset.find.useQuery({});
 const annotators_amount = ref<number>(0);
 
 let import_modal: Modal | null = null;
+const import_json = ref<any>(null);
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
@@ -226,80 +230,104 @@ const createTask = () => {
   }
 };
 
-const importTask = async (event: Event) => {
-
+const loadExportTaskFile = async (event: Event) => {
   const file: File = (event.target as HTMLInputElement).files?.item(0)!;
   (event.target as any).value = null;
-  const json = JSON.parse(await file.text());
+  import_json.value = JSON.parse(await file.text());
 
-  console.log(json);
+  console.log(import_json.value);
 
-  annotators_amount.value = json.counts?.annotators ?? 0;
+  if (import_json.value.counts?.annotations) {
+
+    annotators_amount.value = import_json.value.counts?.annotators ?? 0;
+
+    const modalOptions: ModalOptions = {
+    placement: "center",
+    backdrop: "dynamic",
+    backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
+    closable: true,
+  };
+
+  import_modal = new Modal(document.getElementById("importFormModal"), modalOptions);
+
+    import_modal?.show();
+  } else {
+    importTask();
+  }
+};
+
+const new_emails_selected = async (new_emails: string[]) => {
+  import_modal?.hide();
+  importTask(new_emails);
+};
+
+const importTask = async (new_emails: string[] | null = null) => {
 
   // creating labelset
   let new_labelset_id = labelsets.data.value![0].id;
-  if (json.labelset) {
-    new_labelset_id = (await $trpc.labelset.create.mutate({ editor_id: user.value?.id, ...json.labelset })).id;
+  if (import_json.value.labelset) {
+    new_labelset_id = (
+      await $trpc.labelset.create.mutate({ editor_id: user.value?.id, ...import_json.value.labelset })
+    ).id;
   }
 
   // basic task params
   let _new_task: Omit<Task, "id"> = {
     project_id: project.id,
-    name: json.name ?? "Blank",
-    desc: json.desc ?? "Blank",
-    ann_guidelines: json.ann_guidelines ?? "Blank",
-    labelset_id: new_labelset_id
-  }
+    name: import_json.value.name ?? "Blank",
+    desc: import_json.value.desc ?? "Blank",
+    ann_guidelines: import_json.value.ann_guidelines ?? "Blank",
+    labelset_id: new_labelset_id,
+  };
 
   // creating task
   const task = await $trpc.task.create.mutate(_new_task);
   taskTable.value?.refresh();
 
   // creating documents
-  if (json.documents) {
-    const documents = await $trpc.document.createMany.mutate(json.documents.map((d: any) => {
-      return {
-        name: d.name,
-        full_text: d.full_text,
-        source: "imported",
-        project_id: project.id
-      }
-    }));
+  if (import_json.value.documents) {
+    const documents = await $trpc.document.createMany.mutate(
+      import_json.value.documents.map((d: any) => {
+        return {
+          name: d.name,
+          full_text: d.full_text,
+          source: "imported",
+          project_id: project.id,
+        };
+      })
+    );
     documentTable.value?.refresh();
 
-    // creating assignments
-    if (json.counts?.annotations) {
+    if (import_json.value.counts?.annotations && new_emails) {
+      // creating annotators
+      const usersPromises: Promise<User>[] = [];
+      for (let i = 0; i < new_emails.length; ++i) {
+        usersPromises.push(
+          $trpc.user.otpLogin.query({ email: new_emails[i], redirectTo: `${config.public.baseURL}/annotate/${task.id}?seq=1` })
+        );
+      }
 
-      const modalOptions: ModalOptions = {
-        placement: 'center',
-        backdrop: 'dynamic',
-        backdropClasses:
-          'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
-        closable: true,
-      };
+      const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
 
-      import_modal = new Modal(document.getElementById('importFormModal'), modalOptions);
+      // creating assignments
+      let new_assignments: Omit<Assignment, "id">[] = [];
 
-      import_modal.show();
+      import_json.value.documents.map((d: any, i: number) => {
+        d.assignments.map((ass: any) => {
+          new_assignments.push({
+            task_id: task.id,
+            annotator_id: annotators_id[ass.annotator - 1],
+            document_id: documents[i].id,
+            seq_pos: ass.order,
+            difficulty_rating: 0,
+            status: "pending"
+          })
+        })
+      });
 
-      // let new_assignments: Omit<Assignment, "id">[] = [];
+      const assignments = await $trpc.assignment.createMany.mutate(new_assignments);
 
-      // json.documents.map((d: any, i: number) => {
-      //   d.assignments.map((ass: any) => {
-      //     new_assignments.push({
-      //       task_id: task.id,
-      //       annotator_id: user.value?.id!,
-      //       document_id: documents[i].id,
-      //       seq_pos: ass.order,
-      //       difficulty_rating: 0,
-      //       status: "pending"
-      //     })
-      //   })
-      // });
-
-      // const assignments = await $trpc.assignment.createMany.mutate(new_assignments);
-
-      // console.log(assignments);
+      console.log(assignments);
 
       // ass.annotations.map((ann: any, j: number) => {
       //       new_annotations.push({
@@ -315,12 +343,7 @@ const importTask = async (event: Event) => {
       // console.log(new_annotations);
     }
   }
-};
-
-const new_emails_selected = async (new_emails: string[]) => {
-  console.log(new_emails);
-  import_modal?.hide();
-};
+}
 
 const removeDocuments = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
@@ -351,7 +374,7 @@ const removeAllTasks = async () => {
 
 onMounted(() => {
   // project.value = projectQuery.data.value!;
-  initFlowbite();
+  // initFlowbite();
   new_task.project_id = project.id;
 
   $trpc.labelset.find.query({}).then((_labelsets) => {
