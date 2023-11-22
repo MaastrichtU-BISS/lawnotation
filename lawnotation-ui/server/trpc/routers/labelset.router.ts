@@ -133,7 +133,7 @@ export const labelsetRouter = router({
 
   delete: protectedProcedure
     .input(z.number().int())
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase
         .from("labelsets")
         .delete()
