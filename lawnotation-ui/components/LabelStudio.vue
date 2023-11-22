@@ -1,12 +1,12 @@
 <template>
   <Teleport to="body">
     <div
-      v-if="label_popup"
+      v-if="labelPopup"
       class="label-popup absolute flex left-0 top-0 p-2 bg-secondary-high border border-primary rounded space-x-2"
       style="z-index: 200"
       :style="{
-        'top': `${label_popup.pos.top}px`,
-        'left': `${label_popup.pos.left}px`
+        'top': `${labelPopup.pos.top}px`,
+        'left': `${labelPopup.pos.left}px`
       }"
     >
       <button
@@ -17,6 +17,7 @@
       >&nbsp;</button>
     </div>
   </Teleport>
+  <span>Selected Label: {{ selectedLabel }}</span>
   <div id="label-studio-container" class="p-4 h-full">
     <div id="label-studio" class="h-full"></div>
   </div>
@@ -34,7 +35,7 @@ import type {
 const { $trpc } = useNuxtApp();
 
 const label_studio = ref();
-const label_popup = ref<false | {
+const labelPopup = ref<false | {
   pos: {left: number, top: number},
   range: {start: number, end: number}
 }>(false);
@@ -261,11 +262,11 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
 const selectionTools = (await import('@/utils/selection-tools'));
 
 const annotateFromPopup = (label: LsLabel) => {
-  if (!label_popup.value)
+  if (!labelPopup.value)
     return;
   console.log("annotating from popup:", label)
 
-  const {start: soff, end: eoff} = label_popup.value.range;
+  const {start: soff, end: eoff} = labelPopup.value.range;
   
   const lsAnnotation = {
     id: "23074982",
@@ -300,16 +301,26 @@ const processSelection = async () => {
     boundRange.collapse(false);
     const bound = boundRange.getBoundingClientRect();
 
-    label_popup.value = {
+    labelPopup.value = {
       pos: {top: bound.top + bound.height, left: bound.left},
       range: {start: rangeGlobal[0], end: rangeGlobal[1]}
     }
   }
-  else if (label_popup.value)
+  else if (labelPopup.value)
   {
-    label_popup.value = false;
+    labelPopup.value = false;
   }
 }
+
+const selectedLabel = ref<string>();
+
+const clickLabel = (label: string) => {
+  selectedLabel.value = label == selectedLabel.value ? undefined : label;
+  if (labelPopup.value) {
+    const text = props.text?.substring(labelPopup.value.range.start, labelPopup.value.range.end)
+    console.log(`Hypothetically annotating text "${text}"  with ranges ${JSON.stringify(labelPopup.value.range)} with label "${selectedLabel.value}"`)
+  }
+};
 
 function waitForElement(selector: string): Promise<Element> {
   return new Promise((resolve) => {
@@ -354,11 +365,19 @@ onMounted(() => {
       processSelection()
     })
   });
+  waitForElement(".lsf-labels").then((el) => {
+    const labels = document.getElementsByClassName("lsf-label_clickable");
+    [...labels].forEach((x: Element) => {
+      (x as HTMLElement).onclick = () => {
+        clickLabel((x.firstChild as HTMLElement).innerText!);
+      };
+    });
+  });
   document.addEventListener("mouseup", () => {
-    if (label_popup.value) {
+    if (labelPopup.value) {
       const selection = document.getSelection();
       if (selection && selection.type == "Caret")
-        label_popup.value = false;
+        labelPopup.value = false;
     }
   })
 });
