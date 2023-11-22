@@ -131,7 +131,7 @@
           <div class="flex items-start w-full space-x-2">
             <select
               v-model="new_task.labelset_id"
-              class="w-full flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
+              class="w-full flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-primary focus:border-primary px-2.5 py-1.5"
             >
               <option v-if="labelsets.pending.value" disabled selected value="">
                 Loading labelsets...
