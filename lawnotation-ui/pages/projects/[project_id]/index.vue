@@ -73,7 +73,7 @@
                   <button class="base btn-primary">View</button>
                 </NuxtLink>
                 <NuxtLink class="base" :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`">
-                  Edit 
+                  Edit
                 </NuxtLink>
               </td>
             </template>
@@ -250,9 +250,7 @@ const loadExportTaskFile = async (event: Event) => {
   (event.target as any).value = null;
   import_json.value = JSON.parse(await file.text());
 
-  console.log(import_json.value);
-
-  if (import_json.value.counts?.annotations) {
+  if (import_json.value.counts?.annotators) {
 
     annotators_amount.value = import_json.value.counts?.annotators ?? 0;
 
@@ -318,7 +316,7 @@ const importTask = async (new_emails: string[] | null = null) => {
       );
       documentTable.value?.refresh();
 
-      if (import_json.value.counts?.annotations && new_emails) {
+      if (import_json.value.counts?.annotators && new_emails) {
         // creating annotators
         import_progress.value.message = "Creating Annotators";
         const usersPromises: Promise<User>[] = [];
@@ -355,57 +353,59 @@ const importTask = async (new_emails: string[] | null = null) => {
 
         const assignments = await $trpc.assignment.createMany.mutate(new_assignments);
 
-        // Creating annotations
-        import_progress.value.message = "Creating Annotations";
-        let new_annotations: Omit<Annotation, "id">[] = [];
-        let ass_index: number = 0;
-
-        import_json.value.documents.map((d: any) => {
-          d.assignments.map((ass: any) => {
-            ass.annotations.map((ann: any) => {
-              new_annotations.push({
-                start_index: ann.start,
-                end_index: ann.end,
-                label: ann.label,
-                text: ann.text,
-                assignment_id: assignments[ass_index].id,
-                origin: "imported",
-                ls_id: ann.ls_id
-              })
-            });
-            ass_index++;
-          })
-        });
-
-        const annotations = await $trpc.annotation.createMany.mutate(new_annotations);
-
-        // create relations
-        import_progress.value.message = "Creating Relations";
-        if (import_json.value.counts?.relations) {
-          let new_relations: Omit<AnnotationRelation, "id">[] = [];
-          let ann_index: number = 0;
+        if (import_json.value.counts?.annotations) {
+          // Creating annotations
+          import_progress.value.message = "Creating Annotations";
+          let new_annotations: Omit<Annotation, "id">[] = [];
+          let ass_index: number = 0;
 
           import_json.value.documents.map((d: any) => {
             d.assignments.map((ass: any) => {
-              let current_ann: number = 0;
               ass.annotations.map((ann: any) => {
-                ann.relations.map((rel: any) => {
-                  new_relations.push({
-                    from_id: annotations[ann_index + current_ann].id,
-                    to_id: annotations[ann_index + rel.to].id,
-                    labels: rel.labels,
-                    direction: rel.direction,
-                    ls_from: annotations[ann_index + current_ann].ls_id,
-                    ls_to: annotations[ann_index + rel.to].ls_id,
-                  });
+                new_annotations.push({
+                  start_index: ann.start,
+                  end_index: ann.end,
+                  label: ann.label,
+                  text: ann.text,
+                  assignment_id: assignments[ass_index].id,
+                  origin: "imported",
+                  ls_id: ann.ls_id
                 })
-                current_ann++;
               });
-              ann_index += current_ann;
+              ass_index++;
             })
           });
 
-          const relations = await $trpc.relation.createMany.mutate(new_relations);
+          const annotations = await $trpc.annotation.createMany.mutate(new_annotations);
+
+          // create relations
+          import_progress.value.message = "Creating Relations";
+          if (import_json.value.counts?.relations) {
+            let new_relations: Omit<AnnotationRelation, "id">[] = [];
+            let ann_index: number = 0;
+
+            import_json.value.documents.map((d: any) => {
+              d.assignments.map((ass: any) => {
+                let current_ann: number = 0;
+                ass.annotations.map((ann: any) => {
+                  ann.relations.map((rel: any) => {
+                    new_relations.push({
+                      from_id: annotations[ann_index + current_ann].id,
+                      to_id: annotations[ann_index + rel.to].id,
+                      labels: rel.labels,
+                      direction: rel.direction,
+                      ls_from: annotations[ann_index + current_ann].ls_id,
+                      ls_to: annotations[ann_index + rel.to].ls_id,
+                    });
+                  })
+                  current_ann++;
+                });
+                ann_index += current_ann;
+              })
+            });
+
+            const relations = await $trpc.relation.createMany.mutate(new_relations);
+          }
         }
       }
     }
