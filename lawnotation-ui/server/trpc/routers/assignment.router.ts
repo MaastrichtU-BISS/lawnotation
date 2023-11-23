@@ -228,6 +228,27 @@ export const assignmentRouter = router({
       return data as Assignment[];
     }),
 
+    findAssignmentsByTaskAndUser: protectedProcedure
+    .input(z.object({
+      annotator_id: z.string(),
+      task_id: z.number().int()
+    }))
+    .query(async ({ ctx, input }) => {
+      const { data, error } = await ctx.supabase
+        .from("assignments")
+        .select()
+        .eq("task_id", input.task_id)
+        .eq("annotator_id", input.annotator_id)
+        .order("id", { ascending: true });
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findAssignmentsByTaskAndUser: ${error.message}`,
+        });
+      return data as Assignment[];
+    }),
+
   findAssignmentsByUserTaskSeq: protectedProcedure
     .input(
       z.object({

@@ -15,26 +15,49 @@
         {
             name: `Edit`,
             link: `/projects/${project.id}/tasks/${task.id}/edit`,
-        }
+        },
     ]" />
     <div v-if="task" class="dimmer-wrapper pt-2">
         <Dimmer v-model="loading" />
         <div class="dimmer-content">
-            <div class="flex my-3 text-center justify-center">
-                <div class="flex flex-col w-1/2 space-y-2 border-neutral-300 mt-3 pt-3 mx-3">
+            <div class="text-center justify-center">
+                <div class="flex flex-col w-1/2 mx-auto space-y-6 border-neutral-300 mx-3">
                     <h3 class="text-lg mt-8">Edit Task</h3>
-                    <input class="base" type="text" placeholder="Task name" v-model="new_task.name" />
-                    <textarea class="base" placeholder="Task description" v-model="new_task.desc"></textarea>
-                    <textarea class="base" placeholder="Annotation Guidelines" v-model="new_task.ann_guidelines"></textarea>
+                    <input class="base mb-6" type="text" placeholder="Task name" v-model="new_task.name" />
+                    <textarea class="base mb-6" placeholder="Task description" v-model="new_task.desc"></textarea>
+                    <textarea class="base mb-6" placeholder="Annotation Guidelines"
+                        v-model="new_task.ann_guidelines"></textarea>
                     <button class="base btn-primary" @click="editTask">Save Changes</button>
+                </div>
+                <div v-if="new_emails && new_emails.length"
+                    class="flex flex-col my-5 w-1/2 mx-auto space-y-2 border-neutral-300 mt-3 pt-3 mx-3">
+                    <h3 class="text-lg mt-8">Replace Annotators</h3>
+                    <ul class="">
+                        <li v-for="(email, index) in new_emails" class="">
+                            <div class="relative mb-6">
+                                <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
+                                        xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 16">
+                                        <path
+                                            d="m10.036 8.278 9.258-7.79A1.979 1.979 0 0 0 18 0H2A1.987 1.987 0 0 0 .641.541l9.395 7.737Z" />
+                                        <path
+                                            d="M11.241 9.817c-.36.275-.801.425-1.255.427-.428 0-.845-.138-1.187-.395L0 2.6V14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V2.5l-8.759 7.317Z" />
+                                    </svg>
+                                </div>
+                                <input type="text" v-model="new_emails[index]"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            </div>
+                        </li>
+                    </ul>
+                    <button class="base btn-primary" @click="replaceAnnotators">Replace</button>
                 </div>
             </div>
         </div>
     </div>
 </template>
 <script setup lang="ts">
-import type { Task, Project } from "~/types";
-import Dimmer from "~/components/Dimmer.vue"
+import type { Task, Project, User, Assignment } from "~/types";
+import Dimmer from "~/components/Dimmer.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const { $toast, $trpc } = useNuxtApp();
@@ -54,15 +77,19 @@ const new_task = ref<any>({
     desc: "",
     ann_guidelines: "",
     project_id: 0,
-    labelset_id: 0
-})
+    labelset_id: 0,
+});
 
 const new_emails = reactive<string[]>([]);
+const annotators = reactive<User[]>([]);
 
 const editTask = async () => {
     loading.value = true;
     try {
-        task.value = await $trpc.task.update.mutate({ id: task.value?.id!, updates: new_task.value });
+        task.value = await $trpc.task.update.mutate({
+            id: task.value?.id!,
+            updates: new_task.value,
+        });
         loading.value = false;
         $toast.success("Task successfully edited!");
     } catch (error) {
@@ -72,17 +99,46 @@ const editTask = async () => {
     }
 };
 
+const replaceAnnotators = async () => {
+    loading.value = true;
+
+    for (let i = 0; i < new_emails.length; i++) {
+        if (new_emails[i] != annotators[i].email) {
+
+            const assignments = await $trpc.assignment.findAssignmentsByTaskAndUser.query({
+                annotator_id: annotators[i].id,
+                task_id: task.value?.id!
+            });
+
+            let new_user = "";
+            if (/annotator\d+@email.com/.test(new_emails[i])) {
+                new_user = (await $trpc.user.findByEmail.query(new_emails[i])).id;
+            } else {
+                new_user = (await $trpc.user.otpLogin.query({ email: new_emails[i], redirectTo: `${config.public.baseURL}/annotate/${task.value?.id}?seq=1` })).id;
+            }
+
+            for (let j = 0; j < assignments.length; j++) {
+                const ass = assignments[j];
+                $trpc.assignment.update.mutate({ id: ass.id, updates: { ...ass, annotator_id: new_user } });
+            }
+        }
+    }
+
+    loading.value = false;
+    $toast.success("All the assignments have been reassigned")
+
+};
 
 onMounted(async () => {
     task.value = await $trpc.task.findById.query(+route.params.task_id);
     project.value = await $trpc.project.findById.query(+route.params.project_id);
 
-    new_task.value.name = task.value.name;
-    new_task.value.desc = task.value.desc;
-    new_task.value.ann_guidelines = task.value.ann_guidelines;
-    new_task.value.project_id = task.value.project_id;
-    new_task.value.labelset_id = task.value.labelset_id;
+    new_task.value = { ...task.value };
 
+    annotators.splice(0) && annotators.push(...(await $trpc.task.getAllAnnotatorsFromTask.query(+route.params.task_id)));
+
+    new_emails.splice(0) &&
+        new_emails.push(...annotators?.map(u => u.email));
 });
 
 definePageMeta({

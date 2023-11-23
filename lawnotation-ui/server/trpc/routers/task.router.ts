@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Annotation, Task } from "~/types";
+import type { Annotation, Task, User } from "~/types";
 import type { Context } from "../context";
 import { appRouter } from ".";
 import type { Database } from "~/types/supabase";
@@ -178,6 +178,23 @@ export const taskRouter = router({
           message: `Error in tasks.getAllAnnotatorTasks: ${error.message}`,
         });
       return data as Task[];
+    }),
+
+  getAllAnnotatorsFromTask: protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: task_id }) => {
+      const { data, error } = await ctx.supabase.rpc(
+        "get_all_annotators_from_task",
+        {
+          t_id: task_id,
+        }
+      );
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in tasks.getAllAnnotatorsFromTask: ${error.message}`,
+        });
+      return data as User[];
     }),
 
   deleteAllFromProject: protectedProcedure
