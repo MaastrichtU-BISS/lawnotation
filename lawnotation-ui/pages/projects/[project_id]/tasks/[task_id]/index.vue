@@ -312,7 +312,8 @@ const exportTask = async () => {
           end: a.end_index,
           label: a.label,
           text: a.text,
-          relations: []
+          relations: [],
+          ls_id: a.ls_id
         });
       });
 
