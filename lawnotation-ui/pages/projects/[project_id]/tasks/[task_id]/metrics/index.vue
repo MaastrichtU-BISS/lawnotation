@@ -257,10 +257,11 @@ const tolerance = ref<number>(0);
 
 const loading_annotations = ref(false);
 const loading_options = ref(false);
-const download_progress = ref<{ current: number; total: number; loading: boolean }>({
+const download_progress = ref<{ current: number; total: number; loading: boolean; message: string }>({
   current: 0,
   total: 0,
   loading: false,
+  message: ""
 });
 const downloadAllPromises = [];
 const downloadAllResults = [];
