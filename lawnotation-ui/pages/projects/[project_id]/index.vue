@@ -278,7 +278,6 @@ const importTask = async (new_emails: string[] | null = null) => {
   import_progress.value.loading = true;
 
   try {
-
     // creating labelset
     import_progress.value.message = "Creating Labelset";
     let new_labelset_id = labelsets.data.value![0].id;
@@ -404,12 +403,12 @@ const importTask = async (new_emails: string[] | null = null) => {
           });
 
           const relations = await $trpc.relation.createMany.mutate(new_relations);
-
-          import_progress.value.loading = false;
-          $toast.success("Task successfully imported!");
         }
       }
     }
+    
+    import_progress.value.loading = false;
+    $toast.success("Task successfully imported!");
   } catch (error) {
     import_progress.value.loading = false;
     $toast.error(`Error importing the Task!`);
