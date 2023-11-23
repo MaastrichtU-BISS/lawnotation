@@ -406,13 +406,12 @@ const importTask = async (new_emails: string[] | null = null) => {
         }
       }
     }
-    
+
     import_progress.value.loading = false;
     $toast.success("Task successfully imported!");
   } catch (error) {
     import_progress.value.loading = false;
     $toast.error(`Error importing the Task!`);
-    console.log(error);
   }
 }
 
