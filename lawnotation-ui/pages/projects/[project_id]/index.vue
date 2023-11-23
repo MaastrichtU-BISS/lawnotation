@@ -131,7 +131,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { Project, Document, Task, Labelset, Assignment, Annotation, User } from "~/types";
+import type { Project, Document, Task, Labelset, Assignment, Annotation, User, AnnotationRelation } from "~/types";
 import Table from "~/components/Table.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import ImportTaskModal from "~/components/ImportTaskModal.vue";
@@ -300,7 +300,7 @@ const importTask = async (new_emails: string[] | null = null) => {
         };
       })
     );
-    
+
     console.log("documents")
 
     documentTable.value?.refresh();
@@ -308,11 +308,18 @@ const importTask = async (new_emails: string[] | null = null) => {
     if (import_json.value.counts?.annotations && new_emails) {
       // creating annotators
       const usersPromises: Promise<User>[] = [];
-      for (let i = 0; i < new_emails.length; ++i) {
-        usersPromises.push(
-          $trpc.user.otpLogin.query({ email: new_emails[i], redirectTo: `${config.public.baseURL}/annotate/${task.id}?seq=1` })
-        );
-      }
+      new_emails.map(email => {
+        if (/annotator\d+@email.com/.test(email)) {
+          console.log('x')
+          usersPromises.push(
+            $trpc.user.findByEmail.query(email)
+          )
+        } else {
+          usersPromises.push(
+            $trpc.user.otpLogin.query({ email: email, redirectTo: `${config.public.baseURL}/annotate/${task.id}?seq=1` })
+          );
+        }
+      });
 
       const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
       console.log("annotators")
@@ -362,6 +369,36 @@ const importTask = async (new_emails: string[] | null = null) => {
       console.log("annotations")
 
       console.log(annotations)
+
+      // create relations
+      if (import_json.value.counts?.relations) {
+        let new_relations: Omit<AnnotationRelation, "id">[] = [];
+        let ann_index: number = 0;
+
+        import_json.value.documents.map((d: any) => {
+          d.assignments.map((ass: any) => {
+            ass.annotations.map((ann: any) => {
+              ann.relations.map((rel: any) => {
+                new_relations.push({
+                  from_id: annotations[ann_index].id,
+                  to_id: annotations[ann_index + rel.to].id,
+                  labels: rel.labels,
+                  direction: rel.direction,
+                  ls_from: annotations[ann_index].ls_id,
+                  ls_to: annotations[ann_index + rel.to].ls_id,
+                });
+              })
+              ann_index++;
+            });
+          })
+        });
+
+        const relations = await $trpc.relation.createMany.mutate(new_relations);
+
+        console.log("relations")
+
+        console.log(relations)
+      }
     }
   }
 }
