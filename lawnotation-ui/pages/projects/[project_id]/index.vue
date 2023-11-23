@@ -242,13 +242,13 @@ const loadExportTaskFile = async (event: Event) => {
     annotators_amount.value = import_json.value.counts?.annotators ?? 0;
 
     const modalOptions: ModalOptions = {
-    placement: "center",
-    backdrop: "dynamic",
-    backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
-    closable: true,
-  };
+      placement: "center",
+      backdrop: "dynamic",
+      backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
+      closable: true,
+    };
 
-  import_modal = new Modal(document.getElementById("importFormModal"), modalOptions);
+    import_modal = new Modal(document.getElementById("importFormModal"), modalOptions);
 
     import_modal?.show();
   } else {
@@ -271,6 +271,8 @@ const importTask = async (new_emails: string[] | null = null) => {
     ).id;
   }
 
+  console.log("labelset")
+
   // basic task params
   let _new_task: Omit<Task, "id"> = {
     project_id: project.id,
@@ -284,6 +286,8 @@ const importTask = async (new_emails: string[] | null = null) => {
   const task = await $trpc.task.create.mutate(_new_task);
   taskTable.value?.refresh();
 
+  console.log("task")
+
   // creating documents
   if (import_json.value.documents) {
     const documents = await $trpc.document.createMany.mutate(
@@ -296,6 +300,9 @@ const importTask = async (new_emails: string[] | null = null) => {
         };
       })
     );
+    
+    console.log("documents")
+
     documentTable.value?.refresh();
 
     if (import_json.value.counts?.annotations && new_emails) {
@@ -308,6 +315,7 @@ const importTask = async (new_emails: string[] | null = null) => {
       }
 
       const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
+      console.log("annotators")
 
       // creating assignments
       let new_assignments: Omit<Assignment, "id">[] = [];
@@ -326,21 +334,34 @@ const importTask = async (new_emails: string[] | null = null) => {
       });
 
       const assignments = await $trpc.assignment.createMany.mutate(new_assignments);
+      console.log("assignments")
 
-      console.log(assignments);
+      // Creating annotations
+      let new_annotations: Omit<Annotation, "id">[] = [];
+      let ass_index: number = 0;
 
-      // ass.annotations.map((ann: any, j: number) => {
-      //       new_annotations.push({
-      //         start_index: ann.start,
-      //         end_index: ann.end,
-      //         label: ann.label,
-      //         text: ann.text,
-      //         assignment_id: 88,
-      //         origin: "imported",
-      //         ls_id: ""
-      //       })
-      //     });
-      // console.log(new_annotations);
+      import_json.value.documents.map((d: any) => {
+        d.assignments.map((ass: any) => {
+          ass.annotations.map((ann: any) => {
+            new_annotations.push({
+              start_index: ann.start,
+              end_index: ann.end,
+              label: ann.label,
+              text: ann.text,
+              assignment_id: assignments[ass_index].id,
+              origin: "imported",
+              ls_id: ann.ls_id
+            })
+          });
+          ass_index++;
+        })
+      });
+
+      const annotations = await $trpc.annotation.createMany.mutate(new_annotations);
+
+      console.log("annotations")
+
+      console.log(annotations)
     }
   }
 }
