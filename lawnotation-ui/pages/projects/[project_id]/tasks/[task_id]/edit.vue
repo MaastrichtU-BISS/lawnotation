@@ -12,8 +12,12 @@
             name: `Task ${task.name}`,
             link: `/projects/${project.id}/tasks/${task.id}`,
         },
+        {
+            name: `Edit`,
+            link: `/projects/${project.id}/tasks/${task.id}/edit`,
+        }
     ]" />
-    <div class="dimmer-wrapper pt-2">
+    <div v-if="task" class="dimmer-wrapper pt-2">
         <Dimmer v-model="loading" />
         <div class="dimmer-content">
             <div class="flex my-3 text-center justify-center">

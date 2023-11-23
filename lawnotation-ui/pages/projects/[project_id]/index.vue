@@ -69,8 +69,11 @@
                 {{ item.desc }}
               </td>
               <td class="px-6 py-2">
-                <NuxtLink class="base" :to="`/projects/${route.params.project_id}/tasks/${item.id}`">
-                  View
+                <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`">
+                  <button class="base btn-primary">View</button>
+                </NuxtLink>
+                <NuxtLink class="base" :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`">
+                  Edit 
                 </NuxtLink>
               </td>
             </template>
