@@ -329,7 +329,7 @@ const exportTask = async () => {
         ann_rels.push({
           to: ann_pos[r.to_id],
           direction: r.direction,
-          label: r.labels,
+          labels: r.labels,
         });
       });
 
@@ -337,7 +337,6 @@ const exportTask = async () => {
     }
   }
 
-  // console.log(json)
   downloadAs(json, `${json.name}.json`);
 
   loading.value = false;
