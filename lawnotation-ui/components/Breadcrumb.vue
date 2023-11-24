@@ -1,6 +1,6 @@
 <template>
   <ClientOnly>
-    <Teleport to="#breadcrumb-holder">
+    <Teleport to="body">
       <nav class="flex p-4" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1">
           <li class="inline-flex items-center" v-for="(crumb, i) of props.crumbs" :key="crumb.link">

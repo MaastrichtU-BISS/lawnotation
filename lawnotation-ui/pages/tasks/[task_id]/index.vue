@@ -30,7 +30,7 @@
         </NuxtLink>
       </div>
     </div>
-    <Table endpoint="assignedAssignments" :filter="{ task_id: task?.id }" :sort="true" :search="true">
+    <Table endpoint="assignedAssignments" :filter="{ task_id: task.id }" :sort="true" :search="true">
       <template #row="{ item }: { item: AssignmentTableData }">
         <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
           {{ item.seq_pos }}
@@ -47,7 +47,7 @@
           <span>{{ item.difficulty_rating }}</span>
         </td>
         <td class="px-6 py-2">
-          <NuxtLink class="base" :to="`/annotate/${task.id}?seq=${item.seq_pos}`">
+          <NuxtLink class="base" :to="`/annotate/${task.data.value.id}?seq=${item.seq_pos}`">
             View
           </NuxtLink>
         </td>
@@ -64,19 +64,18 @@ const { $toast, $trpc } = useNuxtApp();
 const user = useSupabaseUser();
 
 const route = useRoute();
-const task = ref<Task>();
-const loading = ref(false);
+const task = await $trpc.task.findById.query(+route.params.task_id);
 
 const assignmentCounts = ref<{ next: number; total: number }>();
 
 const loadCounters = async () => {
   try {
     if (!user.value) throw new Error("Must be logged in");
-    if (!task.value) throw new Error("Invalid task");
+    if (!task) throw new Error("Invalid task");
 
     const counts = await $trpc.assignment.countAssignmentsByUserAndTask.query({
       annotator_id: user.value.id,
-      task_id: task.value?.id,
+      task_id: task.id,
     });
 
     assignmentCounts.value = counts;
@@ -87,8 +86,9 @@ const loadCounters = async () => {
 };
 
 onMounted(async () => {
-  task.value = await $trpc.task.findById.query(+route.params.task_id);
-  await loadCounters();
+  // task.value = await $trpc.task.findById.query(+route.params.task_id);
+  if (!task)
+    await loadCounters();
 });
 
 definePageMeta({
