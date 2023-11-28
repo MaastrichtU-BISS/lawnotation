@@ -99,11 +99,13 @@ const { $toast, $trpc } = useNuxtApp();
 const user = useSupabaseUser();
 
 const route = useRoute();
-const task = ref<Task>();
-const project = ref<Project>();
+const task = await $trpc.task.findById.query(+route.params.task_id);
+const project = await $trpc.project.findById.query(+route.params.project_id);
 const totalAssignments = ref<number>(0);
-const total_docs = ref<number>(0);
-const amount_of_docs = ref<number>(0);
+const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
+const amount_of_docs = totalAmountOfDocs ?? 0;
+const total_docs = amount_of_docs;
+
 const amount_of_fixed_docs = ref<number>(0);
 const annotators_email = reactive<string[]>([]);
 const loading = ref(false);
@@ -121,12 +123,12 @@ const addAnnotator = () => {
 const createAssignments = async () => {
   try {
     loading.value = true;
-    if (!task.value) throw new Error("Task not found");
+    if (!task) throw new Error("Task not found");
 
     // Get the documents
     const docs = await $trpc.document.takeUpToNRandomDocuments.query({
-      project_id: task.value.project_id,
-      n: amount_of_docs.value,
+      project_id: task.project_id,
+      n: amount_of_docs,
     });
 
     const new_assignments: Pick<Assignment, "task_id" | "document_id">[] = [];
@@ -135,7 +137,7 @@ const createAssignments = async () => {
     for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
       for (let j = 0; j < annotators_email.length; ++j) {
         const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
-          task_id: task.value!.id,
+          task_id: task.id,
           document_id: docs[i],
         };
         new_assignments.push(new_assignment);
@@ -143,9 +145,9 @@ const createAssignments = async () => {
     }
 
     // Create unique assignments (only with docs info)
-    for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
+    for (let i = amount_of_fixed_docs.value; i < amount_of_docs; ++i) {
       const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
-        task_id: task.value!.id,
+        task_id: task.id,
         document_id: docs[i],
       };
       new_assignments.push(new_assignment);
@@ -169,7 +171,7 @@ const createAssignments = async () => {
     const unshuffled: number[] = [
       ...Array(
         amount_of_fixed_docs.value +
-        (amount_of_docs.value - amount_of_fixed_docs.value) / annotators_id.length
+        (amount_of_docs - amount_of_fixed_docs.value) / annotators_id.length
       ).keys(),
     ];
 
@@ -214,30 +216,21 @@ const removeAssignments = async (ids: string[]) => {
   $toast.success("Assignments successfully deleted!");
 };
 const removeAllAssignments = async () => {
-  if (!task.value) throw new Error("Invalid Task!");
-  await $trpc.assignment.deleteAllFromTask.mutate(task.value.id);
+  if (!task) throw new Error("Invalid Task!");
+  await $trpc.assignment.deleteAllFromTask.mutate(task.id);
   await assignmentTable.value?.refresh();
   $toast.success("Assignments successfully deleted!");
 };
 
 const replicateTask = async () => {
   loading.value = true;
-  const new_task = await $trpc.task.replicateTask.mutate(+task.value?.id!);
+  const new_task = await $trpc.task.replicateTask.mutate(task.id);
   loading.value = false;
   $toast.success(`Task successfully replicated! ${new_task.id}`);
 };
 
 onMounted(async () => {
-  task.value = await $trpc.task.findById.query(+route.params.task_id);
-
-  $trpc.document.totalAmountOfDocs.query(+task.value.project_id).then((count) => {
-    amount_of_docs.value = count ? count : 0;
-    total_docs.value = amount_of_docs.value;
-  });
-
-  project.value = await $trpc.project.findById.query(+route.params.project_id);
-
-  totalAssignments.value = (await $trpc.assignment.findAssignmentsByTask.query(task.value.id)).length;
+  totalAssignments.value = (await $trpc.assignment.findAssignmentsByTask.query(task.id)).length;
 });
 
 definePageMeta({
