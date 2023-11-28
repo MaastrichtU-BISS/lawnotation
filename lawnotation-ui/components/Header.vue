@@ -12,6 +12,7 @@
           to="/projects"
           class="header-link"
           :class="{ active: routeIsActive('/projects') }"
+          data-test="Projects-link"
           >Projects</NuxtLink
         >
         <NuxtLink

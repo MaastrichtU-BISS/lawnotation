@@ -133,3 +133,4 @@ definePageMeta({
   middleware: ["auth", async (to) => authorizeClient([["labelset", +to.params.labelset_id]])],
 });
 </script>
+ 

@@ -14,7 +14,7 @@
   />
 
   <div v-if="project">
-    <p class="mt-1 mb-3 text-gray-700 text-sm">{{ project.desc }}</p>
+    <p class="mt-1 mb-3 text-sm text-gray-700">{{ project.desc }}</p>
 
     <div class="tabs-holder">
       <ul class="flex flex-wrap -mb-px">
@@ -22,7 +22,7 @@
           <button @click="tab_active = 'tasks'">Tasks</button>
         </li>
         <li :class="tab_active == 'documents' ? 'tab-active' : 'tab'">
-          <button @click="tab_active = 'documents'">Documents</button>
+          <button data-test="Documents" @click="tab_active = 'documents'">Documents</button>
         </li>
       </ul>
     </div>
@@ -61,6 +61,7 @@
         <div class="dimmer-content">
           <span class="mr-3">Add documents</span>
           <input
+            data-test="Upload-documents"
             class="base"
             type="file"
             name="data-set"
@@ -98,6 +99,7 @@
           </td>
           <td class="px-6 py-2">
             <NuxtLink
+              data-test="View-task"
               class="base"
               :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
             >
@@ -108,20 +110,23 @@
       </Table>
 
       <div class="my-3">
-        <h3 class="text-lg mt-8">Create new task</h3>
-        <div class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3">
+        <h3 class="mt-8 text-lg">Create new task</h3>
+        <div class="flex flex-col w-1/2 pt-3 mt-3 space-y-2 border-t border-neutral-300">
           <input
+            data-test="Task-name"
             class="base"
             type="text"
             placeholder="Task name"
             v-model="new_task.name"
           />
           <textarea
+            data-test="Task-description"
             class="base"
             placeholder="Task description"
             v-model="new_task.desc"
           ></textarea>
           <textarea
+            data-test="Annotation Guidelines"
             class="base"
             placeholder="Annotation Guidelines"
             v-model="new_task.ann_guidelines"
@@ -130,6 +135,7 @@
           <label for="label_id">Labelset</label>
           <div class="flex items-start w-full space-x-2">
             <select
+              data-test="Select-labelset"
               v-model="new_task.labelset_id"
               class="w-full flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
             >
@@ -155,7 +161,7 @@
             </button>
           </div>
 
-          <button class="base btn-primary" @click="createTask">Create Tasks</button>
+          <button data-test="Create-tasks" class="base btn-primary" @click="createTask">Create Tasks</button>
         </div>
       </div>
     </div>
@@ -277,12 +283,7 @@ const removeAllTasks = async () => {
 };
 
 onMounted(() => {
-  // project.value = projectQuery.data.value!;
   new_task.project_id = project.id;
-
-  $trpc.labelset.find.query({}).then((_labelsets) => {
-    labelsets.push(..._labelsets);
-  });
 });
 
 definePageMeta({

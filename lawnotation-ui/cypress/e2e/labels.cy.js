@@ -13,10 +13,8 @@ describe('Test label functionality', () => {
         cy.get('button[data-test="add-label"]').click()
         cy.get('button[data-test="create-labelset"]').click()
         cy.get('a[data-test="Edit-labelset"]').first().click() // start editing label
-        cy.get('input[data-test="Edit-labelset-name"]').clear()
-        cy.get('input[data-test="Edit-labelset-name"]').type('test1.1')
-        cy.get('textarea[data-test="Edit-labelset-description"]').clear()
-        cy.get('textarea[data-test="Edit-labelset-description"]').type('test1.1')
+        cy.get('input[data-test="Edit-labelset-name"]').clear().type('test1.1')
+        cy.get('textarea[data-test="Edit-labelset-description"]').clear().type('test1.1')
         cy.get('input[data-test="label-name"]').type('test101')
         cy.get('button[data-test="Add-label"]').click()
         cy.get('button[data-test="Save-changes"]').click()
@@ -24,6 +22,8 @@ describe('Test label functionality', () => {
         cy.get('a[data-test="Edit-labelset"]').first().click() // start deleting label
         cy.get('svg[data-test="delete-label"]').first().click()
         cy.get('a[data-test="labelset-link"]').click()
-        })
         
+
+
+        })
 })
