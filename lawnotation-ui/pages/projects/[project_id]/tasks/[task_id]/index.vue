@@ -101,7 +101,8 @@ const user = useSupabaseUser();
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
 const project = await $trpc.project.findById.query(+route.params.project_id);
-const totalAssignments = ref<number>(0);
+// const totalAssignments = (await $trpc.assignment.findAssignmentsByTask.query(task.id)).length;
+const totalAssignments = (await $trpc.table.assignments.query({filter: {task_id: task.id}})).total;
 const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
 const amount_of_docs = totalAmountOfDocs ?? 0;
 const total_docs = amount_of_docs;
@@ -228,10 +229,6 @@ const replicateTask = async () => {
   loading.value = false;
   $toast.success(`Task successfully replicated! ${new_task.id}`);
 };
-
-onMounted(async () => {
-  totalAssignments.value = (await $trpc.assignment.findAssignmentsByTask.query(task.id)).length;
-});
 
 definePageMeta({
   middleware: ["auth",
