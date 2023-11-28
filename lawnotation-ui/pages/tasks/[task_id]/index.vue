@@ -87,8 +87,7 @@ const loadCounters = async () => {
 
 onMounted(async () => {
   // task.value = await $trpc.task.findById.query(+route.params.task_id);
-  if (!task)
-    await loadCounters();
+  await loadCounters();
 });
 
 definePageMeta({
