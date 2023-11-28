@@ -47,7 +47,7 @@
           <span>{{ item.difficulty_rating }}</span>
         </td>
         <td class="px-6 py-2">
-          <NuxtLink class="base" :to="`/annotate/${task.data.value.id}?seq=${item.seq_pos}`">
+          <NuxtLink class="base" :to="`/annotate/${task.id}?seq=${item.seq_pos}`">
             View
           </NuxtLink>
         </td>
