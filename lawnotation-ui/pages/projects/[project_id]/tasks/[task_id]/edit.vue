@@ -45,6 +45,7 @@
                                     </svg>
                                 </div>
                                 <input type="text" v-model="new_emails[index]"
+                                    :placeholder="`annotator ${annotators[index].annotator_number}`"
                                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                             </div>
                         </li>
@@ -56,7 +57,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import type { Task, Project, User, Assignment } from "~/types";
+import type { Task, Project, Annotator, Assignment } from "~/types";
 import Dimmer from "~/components/Dimmer.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 
@@ -81,7 +82,9 @@ const new_task = ref<any>({
 });
 
 const new_emails = reactive<string[]>([]);
-const annotators = reactive<User[]>([]);
+
+
+const annotators = reactive<Annotator[]>([]);
 
 const editTask = async () => {
     loading.value = true;
@@ -103,17 +106,15 @@ const replaceAnnotators = async () => {
     loading.value = true;
 
     for (let i = 0; i < new_emails.length; i++) {
-        if (new_emails[i] != annotators[i].email) {
+        if (new_emails[i].length && (new_emails[i] != annotators[i].email)) {
 
             const assignments = await $trpc.assignment.findAssignmentsByTaskAndUser.query({
-                annotator_id: annotators[i].id,
+                annotator_number: annotators[i].annotator_number,
                 task_id: task.value?.id!
             });
 
             let new_user = "";
-            if (/annotator\d+@email.com/.test(new_emails[i])) {
-                new_user = (await $trpc.user.findByEmail.query(new_emails[i])).id;
-            } else {
+            if (new_emails[i] && new_emails.length) {
                 new_user = (await $trpc.user.otpLogin.query({ email: new_emails[i], redirectTo: `${config.public.baseURL}/annotate/${task.value?.id}?seq=1` })).id;
             }
 
@@ -121,6 +122,8 @@ const replaceAnnotators = async () => {
                 const ass = assignments[j];
                 $trpc.assignment.update.mutate({ id: ass.id, updates: { ...ass, annotator_id: new_user } });
             }
+
+            annotators[i].email = new_emails[i];
         }
     }
 
@@ -135,10 +138,12 @@ onMounted(async () => {
 
     new_task.value = { ...task.value };
 
-    annotators.splice(0) && annotators.push(...(await $trpc.task.getAllAnnotatorsFromTask.query(+route.params.task_id)));
+    annotators.splice(0) && annotators.push(
+        ...(await $trpc.task.getAllAnnotatorsFromTask.query(+route.params.task_id))
+    );
 
     new_emails.splice(0) &&
-        new_emails.push(...annotators?.map(u => u.email));
+        new_emails.push(...annotators?.map(u => u.email ?? ""));
 });
 
 definePageMeta({

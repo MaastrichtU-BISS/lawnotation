@@ -46,7 +46,7 @@
                 {{ item.id }}
               </td>
               <td class="px-6 py-2">
-                {{ item.annotator.email }}
+                {{ item.annotator?.email?? `annotator ${item.annotator_number}` }}
               </td>
               <td class="px-6 py-2">
                 {{ item.document.name }}

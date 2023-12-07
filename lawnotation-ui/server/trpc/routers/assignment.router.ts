@@ -11,6 +11,7 @@ const ZAssignmentFields = z.object({
   status: z.union([z.literal("pending"), z.literal("done")]),
   seq_pos: z.number().int(),
   difficulty_rating: z.number().int(),
+  annotator_number: z.number().int()
 });
 
 const assignmentAuthorizer = async (
@@ -63,6 +64,7 @@ export const assignmentRouter = router({
           status: z.union([z.literal("pending"), z.literal("done")]).optional(),
           seq_pos: z.number().int().optional(),
           difficulty_rating: z.number().int().optional(),
+          annotator_number: z.number().int().optional()
         })
       )
     )
@@ -230,16 +232,26 @@ export const assignmentRouter = router({
 
     findAssignmentsByTaskAndUser: protectedProcedure
     .input(z.object({
-      annotator_id: z.string(),
+      annotator_id: z.string().optional(),
+      annotator_number: z.number().int().optional(),
       task_id: z.number().int()
     }))
     .query(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .select()
-        .eq("task_id", input.task_id)
-        .eq("annotator_id", input.annotator_id)
-        .order("id", { ascending: true });
+      
+      let query = ctx.supabase
+      .from("assignments")
+      .select()
+      .eq("task_id", input.task_id);
+
+      if(input.annotator_id) {
+        query = query.eq("annotator_id", input.annotator_id);
+      }
+
+      if(input.annotator_number) {
+        query = query.eq("annotator_number", input.annotator_number);
+      }
+
+      const { data, error } = await query.order("id", { ascending: true });
 
       if (error)
         throw new TRPCError({

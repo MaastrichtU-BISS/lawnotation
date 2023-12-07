@@ -321,10 +321,8 @@ const importTask = async (new_emails: string[] | null = null) => {
         import_progress.value.message = "Creating Annotators";
         const usersPromises: Promise<User>[] = [];
         new_emails.map(email => {
-          if (/annotator\d+@email.com/.test(email)) {
-            usersPromises.push(
-              $trpc.user.findByEmail.query(email)
-            )
+          if (!email || !email.length) {
+            usersPromises.push(Promise.resolve({ id: '', email: '', role: 'annotator'}))
           } else {
             usersPromises.push(
               $trpc.user.otpLogin.query({ email: email, redirectTo: `${config.public.baseURL}/annotate/${task.id}?seq=1` })
@@ -340,14 +338,22 @@ const importTask = async (new_emails: string[] | null = null) => {
 
         import_json.value.documents.map((d: any, i: number) => {
           d.assignments.map((ass: any) => {
-            new_assignments.push({
+            
+            let ann_id: string | null = annotators_id[ass.annotator - 1];
+
+            let new_ass: any = {
               task_id: task.id,
-              annotator_id: annotators_id[ass.annotator - 1],
               document_id: documents[i].id,
               seq_pos: ass.order,
-              difficulty_rating: 0,
-              status: "pending"
-            })
+              status: "pending",
+              annotator_number: ass.annotator
+            }
+
+            if(ann_id && ann_id.length) {
+              new_ass.annotator_id = ann_id;
+            } 
+
+            new_assignments.push(new_ass)
           })
         });
 
