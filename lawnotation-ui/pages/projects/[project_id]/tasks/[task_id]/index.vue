@@ -31,7 +31,8 @@
               class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
               Duplicate Task
             </button>
-            <button type="button" data-modal-target="exportFormModal" data-modal-toggle="exportFormModal"
+            <button type="button"
+              @click="export_modal?.show()"
               class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
               Export Task
             </button>
@@ -90,7 +91,7 @@
             </button>
           </div>
         </div>
-        <ExportTaskModal v-model="export_options" @export="exportTask"></ExportTaskModal>
+        <ExportTaskModal v-model="export_options" @export="exportTask" @close="export_modal?.hide()"></ExportTaskModal>
       </div>
     </div>
   </div>
@@ -98,11 +99,12 @@
 <script setup lang="ts">
 import type { Task, Assignment, AssignmentTableData, User, Project } from "~/types";
 import Table from "~/components/Table.vue";
+import { Modal } from "flowbite";
 import { shuffle, clone } from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import { ExportTaskOptions } from "~/utils/io";
-import { initFlowbite } from "flowbite";
+import type { ModalOptions } from "flowbite";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -117,6 +119,8 @@ const totalAssignments = await $trpc.table.assignments.useQuery({filter: {task_i
 const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
 const total_docs = totalAmountOfDocs ?? 0;
 const amount_of_docs = ref<number>(total_docs);
+
+let export_modal: Modal | null = null;
 
 const amount_of_fixed_docs = ref<number>(0);
 const annotators_email = reactive<string[]>([]);
@@ -357,7 +361,14 @@ const exportTask = async () => {
 };
 
 onMounted(async () => {
-  initFlowbite();
+  const modalOptions: ModalOptions = {
+      placement: "center",
+      backdrop: "dynamic",
+      backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
+      closable: true,
+    };
+
+    export_modal = new Modal(document.getElementById("exportFormModal"), modalOptions);
 });
 
 definePageMeta({
