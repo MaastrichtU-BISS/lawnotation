@@ -55,7 +55,7 @@ export const labelsetRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      let query = ctx.supabase.from("labelsets").select();
+      let query = ctx.supabase.from("labelsets").select().eq("editor_id", ctx.user.id);
       if (input.range) query = query.range(input.range[0], input.range[1]);
       if (input.filter) query = query.match(input.filter);
 

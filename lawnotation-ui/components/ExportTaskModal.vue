@@ -19,7 +19,7 @@
             type="button"
             id="exportFormModalClick"
             class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
-            data-modal-hide="exportFormModal"
+            @click="emitClose"
           >
             <svg
               class="w-3 h-3"
@@ -198,7 +198,7 @@ const props = defineProps<{
   modelValue: ExportTaskOptions;
 }>();
 
-const emit = defineEmits(["export"]);
+const emit = defineEmits(["export", "close"]);
 
 const click_labelset = () => {
   if (props.modelValue.labelset) {
@@ -211,6 +211,10 @@ const click_documents = () => {
   if (props.modelValue.documents) {
     props.modelValue.annotations = false;
   }
+};
+
+const emitClose = () => {
+  emit("close");
 };
 
 const export_task = () => {
