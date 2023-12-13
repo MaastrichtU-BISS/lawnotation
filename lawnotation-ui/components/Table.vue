@@ -95,11 +95,6 @@
               <input
                 type="checkbox"
                 v-model="allCheckbox"
-                :aaaindeterminate.prop="
-                  rows.length > 0 &&
-                  checkedIds.length > 0 &&
-                  rows.length != checkedIds.length
-                "
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
               />
             </th>
@@ -170,7 +165,7 @@
         <tbody>
           <tr
             class="bg-white border-b hover:bg-gray-50"
-            :class="{ 'bg-gray-100': checkedIds.includes(item.id) }"
+            :class="{ '!bg-gray-100': checkedIds.includes(item.id) }"
             v-for="item in rows"
           >
             <td class="px-6 py-2" v-if="props.selectable">

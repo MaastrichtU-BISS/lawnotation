@@ -441,13 +441,13 @@ const removeTasks = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
   promises.push(...ids.map((id) => $trpc.task.delete.mutate(+id)));
   await Promise.all(promises);
-  await documentTable.value?.refresh();
+  await taskTable.value?.refresh();
   $toast.success("Tasks successfully deleted!");
 };
 const removeAllTasks = async () => {
   if (!project) throw new Error("Invalid Project!");
   await $trpc.task.deleteAllFromProject.mutate(project.id);
-  await documentTable.value?.refresh();
+  await taskTable.value?.refresh();
   $toast.success("Tasks successfully deleted!");
 };
 
@@ -456,9 +456,9 @@ onMounted(() => {
   // initFlowbite();
   new_task.project_id = project.id;
 
-  $trpc.labelset.find.query({}).then((_labelsets) => {
-    labelsets.push(..._labelsets);
-  });
+  // $trpc.labelset.find.query({}).then((_labelsets) => {
+  //   labelsets.push(..._labelsets);
+  // });
 });
 
 definePageMeta({
