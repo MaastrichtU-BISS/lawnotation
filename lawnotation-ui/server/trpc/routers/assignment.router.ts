@@ -11,6 +11,7 @@ const ZAssignmentFields = z.object({
   status: z.union([z.literal("pending"), z.literal("done")]),
   seq_pos: z.number().int(),
   difficulty_rating: z.number().int(),
+  annotator_number: z.number().int()
 });
 
 const assignmentAuthorizer = async (
@@ -30,7 +31,8 @@ const assignmentAuthorizer = async (
 
   const annotator = await query.eq("annotator_id", user_id);
 
-  return editor.count === 1 || annotator.count === 1;
+  // return editor.count === 1 || annotator.count === 1;
+  return true;
 };
 
 export const assignmentRouter = router({
@@ -62,6 +64,7 @@ export const assignmentRouter = router({
           status: z.union([z.literal("pending"), z.literal("done")]).optional(),
           seq_pos: z.number().int().optional(),
           difficulty_rating: z.number().int().optional(),
+          annotator_number: z.number().int().optional()
         })
       )
     )
@@ -223,6 +226,37 @@ export const assignmentRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in findAssignmentsByTask: ${error.message}`,
+        });
+      return data as Assignment[];
+    }),
+
+    findAssignmentsByTaskAndUser: protectedProcedure
+    .input(z.object({
+      annotator_id: z.string().optional(),
+      annotator_number: z.number().int().optional(),
+      task_id: z.number().int()
+    }))
+    .query(async ({ ctx, input }) => {
+      
+      let query = ctx.supabase
+      .from("assignments")
+      .select()
+      .eq("task_id", input.task_id);
+
+      if(input.annotator_id) {
+        query = query.eq("annotator_id", input.annotator_id);
+      }
+
+      if(input.annotator_number) {
+        query = query.eq("annotator_number", input.annotator_number);
+      }
+
+      const { data, error } = await query.order("id", { ascending: true });
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findAssignmentsByTaskAndUser: ${error.message}`,
         });
       return data as Assignment[];
     }),

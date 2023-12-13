@@ -6,6 +6,7 @@ export type Assignment = {
   status: "pending" | "done";
   seq_pos: number;
   difficulty_rating: number;
+  annotator_number: number;
 };
 
 export type AssignmentTableData = {
@@ -24,4 +25,5 @@ export type AssignmentTableData = {
   status: string;
   seq_pos: number;
   difficulty_rating: number;
+  annotator_number: number;
 };

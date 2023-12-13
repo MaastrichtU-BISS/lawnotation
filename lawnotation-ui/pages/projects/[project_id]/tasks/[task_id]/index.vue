@@ -17,22 +17,28 @@
   <div class="my-3 dimmer-wrapper">
     <Dimmer v-model="loading" />
     <div class="dimmer-content">
-      <div v-if="task">
-        <div v-show="totalAssignments">
-          <div class="text-center my-3">
-            <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
+      <div v-show="totalAssignments">
+        <div class="text-center my-3">
+          <div v-if="task" class="inline">
+            <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
               <button
                 class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
                 Analyze Agreement Metrics
               </button>
-              <button
-                class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                @click="replicateTask">
-                Replicate Task
-              </button>
             </NuxtLink>
           </div>
-          <h3 class="my-3 text-lg font-semibold">Assignments</h3>
+          <button type="button"
+            @click="replicateTask"
+            class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
+            Duplicate Task
+          </button>
+          <button type="button" data-modal-target="exportFormModal" data-modal-toggle="exportFormModal"
+            class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
+            Export Task
+          </button>
+        </div>
+        <h3 class="my-3 text-lg font-semibold">Assignments</h3>
+        <div v-if="task">
           <Table ref="assignmentTable" endpoint="assignments" :filter="{ task_id: task?.id }" :sort="true" :search="true"
             :selectable="true" @remove-rows="removeAssignments" @remove-all-rows="removeAllAssignments">
             <template #row="{ item }: { item: AssignmentTableData }">
@@ -40,7 +46,7 @@
                 {{ item.id }}
               </td>
               <td class="px-6 py-2">
-                {{ item.annotator.email }}
+                {{ item.annotator?.email?? `annotator ${item.annotator_number}` }}
               </td>
               <td class="px-6 py-2">
                 {{ item.document.name }}
@@ -57,34 +63,35 @@
             </template>
           </Table>
         </div>
-        <div v-show="!totalAssignments" class="flex justify-center">
-          <div class="flex flex-col w-1/2 space-y-2 border-neutral-300">
-            <h3 class="mt-3 text-lg font-semibold text-center">Create assignments</h3>
-            <h3 class="mt-3 text-sm font-semibold">
-              Annotators: {{ annotators_email.length }}
-            </h3>
-            <ul class="list-disc list-inside">
-              <li v-for="ann_email in annotators_email" :key="ann_email">
-                <span>{{ ann_email }}</span>
-              </li>
-            </ul>
-            <input class="base" id="annotator_email" type="email" name="email" v-model="email"
-              @keydown.enter="addAnnotator()" />
-            <button class="base btn-primary" @click="addAnnotator">Add</button>
-            <label for="amount_of_docs">Amount of Documents (total)</label>
-            <input class="base" id="amount_of_docs" type="number" name="" v-model="amount_of_docs" :max="total_docs"
-              min="1" />
-            <label for="fixed_docs">
-              Amount of Fixed Documents (to share among annotators)
-            </label>
-            <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
-              min="0" />
-            <button class="base btn-primary" @click="createAssignments">
-              Create Assignments
-            </button>
-          </div>
+      </div>
+      <div v-show="!assignmentTable?.total" class="flex justify-center">
+        <div class="flex flex-col w-1/2 space-y-2 border-neutral-300">
+          <h3 class="mt-3 text-lg font-semibold text-center">Create assignments</h3>
+          <h3 class="mt-3 text-sm font-semibold">
+            Annotators: {{ annotators_email.length }}
+          </h3>
+          <ul class="list-disc list-inside">
+            <li v-for="ann_email in annotators_email" :key="ann_email">
+              <span>{{ ann_email }}</span>
+            </li>
+          </ul>
+          <input class="base" id="annotator_email" type="email" name="email" v-model="email"
+            @keydown.enter="addAnnotator()" />
+          <button class="base btn-primary" @click="addAnnotator">Add</button>
+          <label for="amount_of_docs">Amount of Documents (total)</label>
+          <input class="base" id="amount_of_docs" type="number" name="" v-model="amount_of_docs" :max="total_docs"
+            min="1" />
+          <label for="fixed_docs">
+            Amount of Fixed Documents (to share among annotators)
+          </label>
+          <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
+            min="0" />
+          <button class="base btn-primary" @click="createAssignments">
+            Create Assignments
+          </button>
         </div>
       </div>
+      <ExportTaskModal v-model="export_options" @export="exportTask"></ExportTaskModal>
     </div>
   </div>
 </template>
@@ -93,10 +100,14 @@ import type { Task, Assignment, AssignmentTableData, User, Project } from "~/typ
 import Table from "~/components/Table.vue";
 import { shuffle, clone } from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
+import { downloadAs } from "~/utils/download_file";
+import { ExportTaskOptions } from "~/utils/io";
+import { initFlowbite } from "flowbite";
 
 const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
+const config = useRuntimeConfig();
 
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
@@ -109,6 +120,15 @@ const total_docs = amount_of_docs;
 
 const amount_of_fixed_docs = ref<number>(0);
 const annotators_email = reactive<string[]>([]);
+const export_options = ref<ExportTaskOptions>({
+  name: true,
+  desc: true,
+  ann_guidelines: true,
+  labelset: true,
+  documents: false,
+  annotations: false,
+});
+
 const loading = ref(false);
 
 const email = ref("");
@@ -158,11 +178,7 @@ const createAssignments = async () => {
     const usersPromises: Promise<User>[] = [];
     for (let i = 0; i < annotators_email.length; ++i) {
       usersPromises.push(
-        // userApi.otpLogin(
-        //   annotators_email[i],
-        //   `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
-        // )
-        $trpc.user.findByEmail.query(annotators_email[i])
+        $trpc.user.otpLogin.query({ email: annotators_email[i], redirectTo: `${config.public.baseURL}/annotate/${task.id}?seq=1` })
       );
     }
 
@@ -172,7 +188,7 @@ const createAssignments = async () => {
     const unshuffled: number[] = [
       ...Array(
         amount_of_fixed_docs.value +
-        (amount_of_docs - amount_of_fixed_docs.value) / annotators_id.length
+        Math.floor((amount_of_docs - amount_of_fixed_docs.value) / annotators_id.length)
       ).keys(),
     ];
 
@@ -182,17 +198,11 @@ const createAssignments = async () => {
     }
 
     for (let i = 0; i < new_assignments.length; ++i) {
-      // new_assignments[i] = {
-      //   ...new_assignments[i],
-      //   annotator_id: annotators_id[i % annotators_id.length],
-      //   seq_pos: (permutations[i % annotators_id.length].pop() ?? 0) + 1
-      // } as Assignment
-
       // @ts-expect-error
       new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
       // @ts-expect-error
       new_assignments[i].seq_pos =
-        (permutations[i % annotators_id.length].pop() ?? 0) + 1;
+        (permutations[i % annotators_id.length].pop() ?? Math.floor(i / annotators_id.length)) + 1;
     }
 
     const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
@@ -230,9 +240,126 @@ const replicateTask = async () => {
   $toast.success(`Task successfully replicated! ${new_task.id}`);
 };
 
+const exportTask = async () => {
+  loading.value = true;
+  let json: any = {};
+
+  if (export_options.value.name) {
+    json.name = task?.name!;
+  }
+
+  if (export_options.value.desc) {
+    json.desc = task?.desc!;
+  }
+
+  if (export_options.value.labelset) {
+    const labelset = await $trpc.labelset.findById.query(+task?.labelset_id!);
+    json.labelset = {
+      name: labelset.name,
+      desc: labelset.desc,
+      labels: labelset.labels,
+    };
+
+    if (export_options.value.ann_guidelines) {
+      json.ann_guidelines = task?.ann_guidelines!;
+    }
+  }
+
+  if (export_options.value.documents) {
+    let doc_pos: any = {};
+    let ass_pos: any = {};
+    let ann_pos: any = {};
+    let annotators: any = {};
+    let annotators_index: number = 0;
+
+    //Documents
+    const documents = await $trpc.document.findDocumentsByTask.query(+task?.id!);
+
+    json.documents = [];
+    documents.map((d, index) => {
+      doc_pos[d.id] = index;
+      json.documents.push({ name: d.name, full_text: d.full_text, assignments: [] });
+    });
+
+    json.counts = {};
+    json.counts.documents = documents.length;
+
+    // Assignments
+    const assignments = await $trpc.assignment.findAssignmentsByTask.query(+task?.id!);
+
+    assignments.map(ass => {
+      const doc_assignments = json.documents[doc_pos[ass.document_id]].assignments;
+      ass_pos[ass.id] = doc_assignments.length;
+      if (!(ass.annotator_id in annotators)) {
+        annotators[ass.annotator_id] = ++annotators_index;
+      }
+      doc_assignments.push({
+        annotator: annotators[ass.annotator_id],
+        order: ass.seq_pos,
+        annotations: []
+      })
+    });
+
+    json.counts.assignments = assignments.length;
+    json.counts.annotators = annotators_index;
+
+
+    if (export_options.value.annotations && export_options.value.labelset) {
+
+      // Annotations
+      const annotations = await $trpc.annotation.findAnnotationsByTask.query(
+        +task?.id!
+      );
+
+      annotations.map((a) => {
+        let doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
+        ann_pos[a.id] = doc_anns.length
+
+        doc_anns.push({
+          start: a.start_index,
+          end: a.end_index,
+          label: a.label,
+          text: a.text,
+          relations: [],
+          ls_id: a.ls_id
+        });
+      });
+
+      json.counts.annotations = annotations.length;
+
+
+      // Relations
+      const relations = await $trpc.relation.findRelationsByTask.query(+task?.id!);
+
+      relations.map((r) => {
+        let doc_anns = json.documents[doc_pos[r.annotation.assignment.document_id]].assignments[ass_pos[r.annotation.assignment.id]].annotations;
+        let ann_rels = doc_anns[ann_pos[r.from_id]].relations;
+        ann_rels.push({
+          to: ann_pos[r.to_id],
+          direction: r.direction,
+          labels: r.labels,
+        });
+      });
+
+      json.counts.relations = relations.length;
+    }
+  }
+
+  downloadAs(json, `${json.name}.json`);
+
+  loading.value = false;
+  $toast.success(`Task has been exported!`);
+};
+
+onMounted(async () => {
+  initFlowbite();
+});
+
 definePageMeta({
-  middleware: ["auth",
+  middleware: [
+    "auth",
     async (to) => authorizeClient([["task", +to.params.task_id]]),
-    async (to) => authorizeClient([["project", +to.params.project_id]])],
+    async (to) => authorizeClient([["project", +to.params.project_id]]),
+  ],
 });
 </script>
