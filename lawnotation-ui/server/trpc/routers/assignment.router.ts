@@ -31,8 +31,8 @@ const assignmentAuthorizer = async (
 
   const annotator = await query.eq("annotator_id", user_id);
 
-  // return editor.count === 1 || annotator.count === 1;
-  return true;
+  return editor.count === 1 || annotator.count === 1;
+  // return true;
 };
 
 export const assignmentRouter = router({

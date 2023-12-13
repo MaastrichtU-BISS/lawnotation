@@ -17,8 +17,8 @@ const projectAuthorizer = async (project_id: number, user_id: string, ctx: Conte
     .eq('id', project_id)
     .eq('editor_id', user_id);
 
-  // return count === 1
-  return true;
+  return count === 1
+  // return true;
 }
 
 export const projectRouter = router({
