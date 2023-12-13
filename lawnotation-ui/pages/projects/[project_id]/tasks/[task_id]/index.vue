@@ -115,8 +115,8 @@ const project = await $trpc.project.findById.query(+route.params.project_id);
 const totalAssignments = await $trpc.table.assignments.useQuery({filter: {task_id: task.id}});
 
 const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
-const amount_of_docs = totalAmountOfDocs ?? 0;
-const total_docs = amount_of_docs;
+const total_docs = totalAmountOfDocs ?? 0;
+const amount_of_docs = ref<number>(total_docs);
 
 const amount_of_fixed_docs = ref<number>(0);
 const annotators_email = reactive<string[]>([]);
@@ -149,7 +149,7 @@ const createAssignments = async () => {
     // Get the documents
     const docs = await $trpc.document.takeUpToNRandomDocuments.query({
       project_id: task.project_id,
-      n: amount_of_docs,
+      n: amount_of_docs.value,
     });
 
     const new_assignments: Pick<Assignment, "task_id" | "document_id">[] = [];
@@ -166,7 +166,7 @@ const createAssignments = async () => {
     }
 
     // Create unique assignments (only with docs info)
-    for (let i = amount_of_fixed_docs.value; i < amount_of_docs; ++i) {
+    for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
       const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
         task_id: task.id,
         document_id: docs[i],
@@ -188,7 +188,7 @@ const createAssignments = async () => {
     const unshuffled: number[] = [
       ...Array(
         amount_of_fixed_docs.value +
-        Math.floor((amount_of_docs - amount_of_fixed_docs.value) / annotators_id.length)
+        Math.floor((amount_of_docs.value - amount_of_fixed_docs.value) / annotators_id.length)
       ).keys(),
     ];
 
@@ -215,8 +215,10 @@ const createAssignments = async () => {
     $toast.success("Assignments successfully created");
   } catch (error) {
     loading.value = false;
-    if (error instanceof Error)
+    if (error instanceof Error) {
+      console.error(error);
       $toast.error(`Error creating assignment: ${error.message}`);
+    }
   }
 };
 
@@ -225,12 +227,14 @@ const removeAssignments = async (ids: string[]) => {
   promises.push(...ids.map((id) => $trpc.assignment.delete.mutate(+id)));
   await Promise.all(promises);
   await assignmentTable.value?.refresh();
+  await totalAssignments.refresh();
   $toast.success("Assignments successfully deleted!");
 };
 const removeAllAssignments = async () => {
   if (!task) throw new Error("Invalid Task!");
   await $trpc.assignment.deleteAllFromTask.mutate(task.id);
   await assignmentTable.value?.refresh();
+  await totalAssignments.refresh();
   $toast.success("Assignments successfully deleted!");
 };
 
