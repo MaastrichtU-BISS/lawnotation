@@ -14,7 +14,7 @@ Most commonly, authorization logic will be defined as a tRPC middleware (in the 
     .query((opts) => {...})
 }
 ```
-Generally, users that have the 'admin' role should be able to access all procedures. To reduce boilerplate code in the authorization definitions for all of these repeated clauses, a middleware factory was made. Though its usage might seem intimidating, it significantly simplifies the required code for authorizing a user. The middleware, next to tRPC's `opts` object takes as input a function that returns a boolean: `true` if the user is authorized, and `false` if not.
+Generally, users that have the 'admin' role should be able to access all procedures. To reduce boilerplate code in the authorization definitions for all of these repeated clauses, a middleware factory was made. Though its usage might seem intimidating, it significantly simplifies the required code for authorizing a user. The middleware, next to tRPC's `opts` object, takes as input a function that returns a boolean: `true` if the user is authorized, and `false` if it is not.
 
 An example of using the `authorizer` middleware factory:
 ```ts
@@ -29,7 +29,7 @@ An example of using the `authorizer` middleware factory:
 }
 ```
 
-This example will only allow access to admin-users, since it the resolver function always returns false (for regular users), while the authorizer function contains logic for granting access to admins.
+This example will only allow access to admin-users, since the resolver function always returns false (for regular users), while the authorizer function contains logic for granting access to admins.
 
 When there are many procedures with equivalent permissions, for example because they refer to the same resource, one can create a function authorizing this specific resource. Take the project authenticator for instance:
 
@@ -75,7 +75,7 @@ export const projectRouter = router({
 ```
 
 ### Definition in page
-As described above, we take into account the authorization definitions in the procedures when validating users navigating to pages. The definition of what resources are attempted to be accessed on the page, are defined in the `definePageMeta()` 's middleware section. For this middleware, we have also created a factory, called `authorizeClient()`. This function takes an array of 2-tuples. Each entry of each tuple contains the resource type and the identifier for the resource respectively. Due to technical difficulties passing complete tRPC-paths (including router and procedure name), we only assume the resource-type to be the router-name, and try to access the `findById` procedure on that router. Make sure that the factory is passed after the regular `auth`-middleware, since this initializes initial authentication-related properties, which are required to adequately perform the authorization query.
+As described above, we take into account the authorization definitions in the procedures when validating users navigating to pages. The definition of what resources are attempted to be accessed on the page, are defined in the `definePageMeta()` 's middleware section. For this middleware, we have also created a factory, called `authorizeClient()`. This function takes an array of 2-tuples. Each entry of each tuple contains the resource type and the identifier for the resource respectively. Due to technical difficulties of passing complete tRPC-paths (including router and procedure name), we only assume the resource-type to be the router-name, and try to access the `findById` procedure on that router. Make sure that in the middleware array, the factory is passed after the regular `auth`-middleware, since this initializes initial authentication-related properties which are required to adequately perform the authorization query.
 
 An example of the page implementation for the project page: 
 ```ts
