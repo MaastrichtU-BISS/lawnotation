@@ -281,7 +281,7 @@ const importTask = async (new_emails: string[] | null = null) => {
   try {
     // creating labelset
     import_progress.value.message = "Creating Labelset";
-    let new_labelset_id = labelsets.data.value![0].id;
+    let new_labelset_id = labelsets.data.value![0]?.id ?? 0;
     if (import_json.value.labelset) {
       new_labelset_id = (
         await $trpc.labelset.create.mutate({ editor_id: user.value?.id, ...import_json.value.labelset })
@@ -420,7 +420,7 @@ const importTask = async (new_emails: string[] | null = null) => {
     $toast.success("Task successfully imported!");
   } catch (error) {
     import_progress.value.loading = false;
-    $toast.error(`Error importing the Task!`);
+    $toast.error(`Error importing the Task! ${error}`);
   }
 }
 
