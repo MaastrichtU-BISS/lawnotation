@@ -23,6 +23,12 @@ dependencies:
   apexcharts:
     specifier: ^3.42.0
     version: 3.44.0
+  child_process:
+    specifier: ^1.0.2
+    version: 1.0.2
+  childprocess:
+    specifier: ^2.0.2
+    version: 2.0.2
   epic-spinners:
     specifier: ^2.0.0
     version: 2.0.0(vue@3.3.6)
@@ -86,8 +92,8 @@ devDependencies:
     specifier: ^1.66.1
     version: 1.69.4
   supabase:
-    specifier: ^1.93.0
-    version: 1.106.1
+    specifier: ^1.110.1
+    version: 1.123.4
 
 packages:
 
@@ -2409,6 +2415,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -3825,6 +3832,17 @@ packages:
     engines: {node: '>= 0.8.0'}
     dev: true
 
+  /child_process@1.0.2:
+    resolution: {integrity: sha512-Wmza/JzL0SiWz7kl6MhIKT5ceIlnFPJX+lwUGj7Clhy5MMldsSoJR0+uvRzOS5Kv45Mq7t1PoE8TsOA9bzvb6g==}
+    dev: false
+
+  /childprocess@2.0.2:
+    resolution: {integrity: sha512-ONqPBsbg+0c+s3p7HfOVm4zN3MnkfsDelUC8geQ1uH796Z4A/ArGLAaSp2HPRa+0qDPCJLz1Tw0d0vRa0ZITuw==}
+    engines: {node: '>=0.12.0'}
+    dependencies:
+      utility: 1.6.0
+    dev: false
+
   /chokidar@3.5.3:
     resolution: {integrity: sha512-Dr3sfKRP6oTcjf2JmUmFJfeVMvXBdegxB0iVQ5eb2V10uFJUCAS8OByZdVAyVb8xXNz3GjjTgj9kLWsZTqE6kw==}
     engines: {node: '>= 8.10.0'}
@@ -4058,6 +4076,10 @@ packages:
       depd: 2.0.0
       keygrip: 1.1.0
     dev: true
+
+  /copy-to@2.0.1:
+    resolution: {integrity: sha512-3DdaFaU/Zf1AnpLiFDeNCD4TOWe3Zl2RZaTzUvWiIk5ERzcCodOE20Vqq4fzCbNoHURFHT4/us/Lfq+S2zyY4w==}
+    dev: false
 
   /core-js-compat@3.33.1:
     resolution: {integrity: sha512-6pYKNOgD/j/bkC5xS5IIg6bncid3rfrI42oBH1SQJbsmYPKF7rhzcFzYCcxYMmNQQ0rCEB8WqpW7QHndOggaeQ==}
@@ -4979,7 +5001,6 @@ packages:
 
   /escape-html@1.0.3:
     resolution: {integrity: sha512-NiSupZ4OeuGwr68lGIeym/ksIZMJodUGOSCZ/FSnTxcrekbvqrgdUxlJOMpijaKZVjAJrWrGs/6Jy8OMuyj9ow==}
-    dev: true
 
   /escape-string-regexp@1.0.5:
     resolution: {integrity: sha512-vbRorB5FUQWvla16U8R/qgaFIya2qGzwDrNmCZuYKrbdSUMG6I1ZCGQRefkRVhuOkIGVne7BQ35DSfo1qvJqFg==}
@@ -6843,6 +6864,10 @@ packages:
     resolution: {integrity: sha512-7ZtY5KTCNheRGfEFxnedV5zFiORN1+Y1N6zvPTnHQd8ENUvfaDBeuJDZb2bN/oXwXxu3qkTXDzy57W5vAmDTBw==}
     engines: {node: ^14 || ^16 || >=18}
     hasBin: true
+    dev: true
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
     dev: true
 
   /negotiator@0.6.3:
@@ -8968,8 +8993,8 @@ packages:
       ts-interface-checker: 0.1.13
     dev: true
 
-  /supabase@1.106.1:
-    resolution: {integrity: sha512-Wc1GYraDRCRGZIkCPoN00QuSP//Cm2Q4q5B6LvEHb2dKoezO7Mx7SYZ5rhh3X0ko9Yii0ABeN2GE88ZVL9R5mg==}
+  /supabase@1.123.4:
+    resolution: {integrity: sha512-HFQOU+n73Ah9sYbja7tdjuqT6QNDzkKXfLCCIbD9GdggbTvGZa3D+0hJPADL4y0vAfsoB5tlx3WBXswnbWIXiw==}
     engines: {npm: '>=8'}
     hasBin: true
     requiresBuild: true
@@ -9673,6 +9698,14 @@ packages:
 
   /util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+
+  /utility@1.6.0:
+    resolution: {integrity: sha512-/NNDHF3i9grlAankmmL/f3TBVVCcWoEYE+g6Ugi+H8sC9ClhjEFRD/VO0G7Ti+kimlBCV7E9rTBjVnKiY6o9IA==}
+    engines: {node: '>= 0.10.0'}
+    dependencies:
+      copy-to: 2.0.1
+      escape-html: 1.0.3
+    dev: false
 
   /uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
