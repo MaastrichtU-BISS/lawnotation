@@ -2,35 +2,64 @@
   <div class="bg-gray-50">
     <div class="mx-auto max-w-screen-lg py-16">
       <h1>Privacy Policy</h1>
-      <p>Effective Date: 30-08-2023 (DD-MM-YYYY)</p>
+      <p>Effective Date: 19-12-2023 (DD-MM-YYYY)</p>
       <p>
-        Thank you for using Lawnotation (“we,” “our”, “us”, or “our platform”). To best
-        protect your privacy, the only personal information we collect is your email
-        address. This Privacy Policy explains how we collect, use, disclose, and safeguard
-        your email address and other non-personal data when you access or use our online
-        platform. By accessing or using our platform, you consent to the terms of this
-        Privacy Policy.
+        Thank you for using Lawnotation (“we,” “our”, “us”, or “our platform”). Your
+        privacy is important to Maastricht University (UM) and that is why UM handles your
+        data with care. The UM is the controller of your personal data. How UM guarantees
+        your privacy is set out in this privacy statement. This privacy statement
+        specifically relates to the processing of personal data in the context of when you
+        access or use our online Lawnotation platform.
       </p>
-      <h2>Information We Collect</h2>
       <p>
-        We collect your email address when you voluntarily provide it to us through our
-        platform by signing up for an account. We do not collect any other personally
-        identifiable information.
+        The UM also has a general privacy statement, which you can find at
+        <a href="https://www.maastrichtuniversity.nl">www.maastrichtuniversity.nl</a>.
+        Here and there reference will be made to this general privacy statement for more
+        information.
+      </p>
+
+      <h2>Contact details</h2>
+      <p>
+        If you have any questions regarding the use of the Lawnotation platform please
+        contact
+        <a href="mailto:biss-devs@maastrichtuniversity.nl"
+          >biss-devs@maastrichtuniversity.nl</a
+        >.
+      </p>
+      <p>
+        If you have any questions about this privacy statement, would like to know more
+        about how UM handles personal data or perhaps you have a complaint, you can
+        contact:
+      </p>
+      <p>
+        <span class="block">Maastricht University</span>
+        <span class="block">Attn: Data Protection Officer</span>
+        <span class="block">PO Box 616 6200 MD Maastricht</span>
+        <span class="block">
+          <a href="mailto:privacy@maastrichtuniversity.nl"
+            >privacy@maastrichtuniversity.nl</a
+          >
+        </span>
+      </p>
+      <p>
+        You can also reach the UM data protection officer directly via
+        <a href="mailto:fg@maastrichtuniversity.nl">fg@maastrichtuniversity.nl</a>.
+      </p>
+
+      <h2>Which personal data UM processes</h2>
+      <p>
+        UM processes your email address. UM obtains these personal data directly from you,
+        by signing up for an account for our platform. We do not collect any other
+        personal data.
       </p>
       <p>
         All other data collected is related to the use of Lawnotation itself. This data is
         related to, but not limited to, projects, documents, tasks, assignments, label
         sets, and annotations.
       </p>
-      <h2>How We Store Your Data</h2>
-      <p>
-        Your email address and other non-personal data is stored into a secured
-        third-party database with whom we have signed a DPA (Data Processing Adendum). By
-        default this third-party does not have access to the content (including your email
-        address) of the database.
-      </p>
-      <h2>How We Use Your Email Address</h2>
-      <p>We use the email addresses we collect for the following purposes:</p>
+
+      <h2>Purposes</h2>
+      <p>UM processes your personal data for the following purposes:</p>
       <p>
         <strong>Sending login emails:</strong> when you login on our platform using your
         email address for the first time, we automatically create an account for you using
@@ -54,12 +83,29 @@
         Lawnotation platform, no more than once per week. Subscribing to our newsletter is
         optional and voluntary. You can unsubscribe at any time.
       </p>
+
+      <h2>Legal grounds</h2>
+      <p>
+        Whenever UM processes your personal data, it does so with a lawful basis for
+        processing. UM will process personal data in performance of the agreement between
+        UM and you. UM may also request your permission to process some personal data. In
+        that case, the ground for processing is consent.
+      </p>
+
+      <h2>How We Store Your Data</h2>
+      <p>
+        UM has taken measures to ensure that only those people involved in processing your
+        data have access to them. Your email address and other non-personal data is stored
+        into a secured third-party database (Supabase) with whom we have signed a Data
+        Processing Agreement (DPA).
+      </p>
+
       <h2>Disclosure of Your Email Address</h2>
       <p>
         We do not sell, trade, or otherwise transfer your email address to outside
         parties. We may, however, share your email address with a trusted third-party
-        service provider to help us with email delivery services. This third party is
-        obligated to keep your information confidential and secure.
+        service provider (Mailtrap) with whom we have signed a Data Processing Agreement
+        (DPA) to help us with email delivery services.
       </p>
       <p>
         Whenever another user adds you to a project on Lawnotation, all members of the
@@ -67,6 +113,7 @@
         Lawnotation and invite other users, all invited members will be able to see your
         email address.
       </p>
+
       <h2>Access to Your Data</h2>
       <p>
         You have access to all the data you create on Lawnotation. If you are a team
@@ -77,30 +124,62 @@
         The developers of Lawnotation have access to your data limited to development and
         debugging purposes only.
       </p>
+
       <h2>Data Security</h2>
       <p>
         We use industry-standard security measures to protect your email address and other
-        data from unauthorized access, alteration, disclosure, or destruction. However, no
-        method of transmission over the internet or electronic storage is completely
-        secure, and we cannot guarantee the absolute security of your information.
+        data from unauthorized access, alteration, disclosure, or destruction.
       </p>
+
+      <h2>Retention periods</h2>
+      <p>
+        Retention periods UM retains personal data no longer than is necessary to achieve
+        the purpose of the data processing or to meet a legal obligation.
+      </p>
+
       <h2>Your Rights</h2>
       <p>
-        You have the right to access the personal information we hold about you and to
-        request that we correct, update, or delete it.
+        Privacy legislation gives you a number of rights with regard to your personal
+        data. These rights are outlined below. You can find more information about these
+        rights and how to exercise them in the general privacy statement at
+        <a href="https://www.maastrichtuniversity.nl">www.maastrichtuniversity.nl</a>.
       </p>
+      <p>
+        You have the right to access your personal data and to have those data corrected
+        or deleted. In addition, you have the right to restrict the processing of your
+        data, to transfer your data to another party, and to object when they are
+        processed on the basis of a legitimate interest.
+      </p>
+      <p>
+        If you wish to exercise one of the above rights, please send an email to
+        <a href="mailto:privacy@maastrichtuniversity.nl"
+          >privacy@maastrichtuniversity.nl</a
+        >
+        or directly to the data protection officer at
+        <a href="mailto:fg@maastrichtuniversity.nl">fg@maastrichtuniversity.nl</a>.
+      </p>
+      <p>
+        If you have a complaint about the processing of your personal data at UM, please
+        contact us using the above contact details. You also have the right to file a
+        complaint with the Dutch Data Protection Authority. You can find out how to do so
+        on the
+        <a
+          href="https://autoriteitpersoonsgegevens.nl/een-tip-of-klacht-indienen-bij-de-ap"
+          >website of the Data Protection Authority</a
+        >.
+      </p>
+
       <h2>Changes to this Privacy Policy</h2>
       <p>
-        We may update this Privacy Policy from time to time to reflect changes to our
+        We may update this privacy statement from time to time to reflect changes to our
         practices or for other operational, legal, or regulatory reasons. We will notify
-        you of any material changes by posting the updated Privacy Policy on our platform.
-        Your continued use of the platform after such changes signifies your acceptance of
-        the updated Privacy Policy.
+        you of any material changes by posting the updated privacy statement on our
+        platform. Your continued use of the platform after such changes signifies your
+        acceptance of the updated privacy statement.
       </p>
       <h2>Contact Us</h2>
       <p>
-        If you have any questions, concerns, or requests regarding this Privacy Policy or
-        how we handle your email address, please contact us at
+        Please contact us at
         <a href="mailto:biss-devs@maastrichtuniversity.nl"
           >biss-devs@maastrichtuniversity.nl</a
         >.
