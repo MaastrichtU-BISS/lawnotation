@@ -170,6 +170,26 @@ export const useAssignmentApi = () => {
     else return data as Assignment;
   };
 
+  const findAssignmentByTaskAndUserAndDocument = async (
+    task_id: string,
+    annotator_id: string,
+    document_id: string
+  ): Promise<Assignment> => {
+    const { data, error } = await supabase
+      .from("assignments")
+      .select("*")
+      .eq("task_id", task_id)
+      .eq("annotator_id", annotator_id)
+      .eq("document_id", document_id)
+      .single();
+
+    if (error)
+      throw Error(
+        `Error in findNextAssignmentsByUserAndTask: ${error.message}`
+      );
+    else return data as Assignment;
+  };
+
   const findNextAssignmentByUser = async (
     annotator_id: string
   ): Promise<Assignment> => {
@@ -264,6 +284,7 @@ export const useAssignmentApi = () => {
     updateAssignment,
     deleteAssignment,
     deleteAllAssignments,
+    findAssignmentByTaskAndUserAndDocument,
     findNextAssignmentsByUserAndTask,
     findNextAssignmentByUser,
     countAssignmentsByUserAndTask,

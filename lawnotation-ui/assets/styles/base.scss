@@ -1,0 +1,54 @@
+a.base {
+    @apply text-primary-high;
+
+    &:hover {
+        @apply underline text-primary;
+    }
+}
+
+input[type="text"].base, input[type="number"].base,
+input[type="file"].base, input[type="email"].base {
+    // from: https://tailwindui.com/components/application-ui/forms/form-layouts
+
+    @apply rounded-md border-0 px-2 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400;
+
+    &:focus {
+        @apply ring-2 ring-inset ring-primary;
+    }
+
+    @media sm {
+        @apply sm:text-sm sm:leading-6;
+    }
+}
+
+textarea.base {
+    @apply p-2 rounded-md border-0 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400;
+
+    &:focus {
+        @apply ring-2 ring-inset ring-primary;
+    }
+
+    @media sm {
+        @apply sm:py-1.5 sm:text-sm sm:leading-6;
+    }
+}
+
+button.base {
+    &.btn-secondary {
+        @apply rounded-md bg-secondary-high px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-secondary-low;
+        &:hover {
+            @apply bg-secondary;
+        }
+    }
+
+    &.btn-primary {
+        @apply rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm;
+        &:hover {
+            @apply bg-primary-high;
+        }
+
+        &:focus-visible {
+            @apply outline outline-2 outline-offset-2 outline-primary-low;
+        }
+    }
+} 

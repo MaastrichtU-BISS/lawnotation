@@ -1,4 +1,3 @@
-import { Annotation, RichAnnotation } from "~/data/annotation";
 
 export type RangeLabel = {
   start: number;
@@ -29,6 +28,12 @@ export type DifficultyMetricResult = {
   unrated: number;
   krippendorff: MetricResult | undefined;
   values: number[];
+  table: {
+    annotator: string;
+    doc_id: string;
+    ass_id: string;
+    rating: number;
+  }[];
 };
 
 export function newEmptyMetricResult(name: string): MetricResult {
@@ -61,8 +66,17 @@ export function createContingencyTable(
       zeros: 0,
       ones: 0,
     };
-    const index = containsRangeLabel(table, ann, tolerance, contained);
-    if (index < 0) {
+
+    let matches = false;
+    if (table.length > 0) {
+      matches = containsRangeLabel(
+        table[table.length - 1],
+        ann,
+        tolerance,
+        contained
+      );
+    }
+    if (!matches) {
       table.push(ann);
       annotators.forEach((a) => {
         const owns_annotation = x.annotator == a;
@@ -71,9 +85,9 @@ export function createContingencyTable(
         else table[table.length - 1].zeros++;
       });
     } else {
-      table[index].ones++;
-      table[index].zeros--;
-      table[index].annotators[x.annotator] = 1;
+      table[table.length - 1].ones++;
+      table[table.length - 1].zeros--;
+      table[table.length - 1].annotators[x.annotator] = 1;
     }
   });
 
@@ -85,29 +99,26 @@ export function isContained(x: RangeLabel, y: RangeLabel): boolean {
 }
 
 export function containsRangeLabel(
-  list: RangeLabel[],
-  range: RangeLabel,
+  x: RangeLabel,
+  y: RangeLabel,
   tolerance: number = 0,
   contained: boolean = false
-): number {
-  for (let i = list.length - 1; i >= 0; i--) {
-    const x = list[i];
-    if (x.doc_id == range.doc_id && x.label == range.label && x.zeros > 0) {
+): boolean {
+  if (x.doc_id == y.doc_id && x.label == y.label && x.zeros > 0) {
+    if (contained) {
+      return isContained(x, y) || isContained(y, x);
+    } else {
       for (let t = 0; t <= tolerance; t++) {
-        if (contained && (isContained(x, range) || isContained(range, x))) {
-          return i;
-        } else {
-          if (
-            Math.abs(x.start - range.start) <= t &&
-            Math.abs(x.end - range.end) <= tolerance - t
-          ) {
-            return i;
-          }
+        if (
+          Math.abs(x.start - y.start) <= t &&
+          Math.abs(x.end - y.end) <= tolerance - t
+        ) {
+          return true;
         }
       }
     }
   }
-  return -1;
+  return false;
 }
 
 export function getExampleFleiss() {
@@ -266,9 +277,11 @@ export function separateIntoWords(annotations: RichAnnotation[]) {
         hidden: false,
         ann_id: ann.ann_id,
         doc_id: ann.doc_id,
+        doc_name: ann.doc_name,
       });
       limit--;
     }
   });
+  sortByDocumentAndRange(new_annotations);
   return new_annotations;
 }

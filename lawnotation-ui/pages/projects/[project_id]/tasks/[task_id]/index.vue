@@ -1,79 +1,58 @@
 <template>
-  <Breadcrumb
-    v-if="task && project"
-    :crumbs="[
-      {
-        name: 'Projects',
-        link: '/projects',
-      },
-      {
-        name: `Project ${project.name}`,
-        link: `/projects/${project.id}`,
-      },
-      {
-        name: `Task ${task.name}`,
-        link: `/projects/${project.id}/tasks/${task.id}`,
-      },
-    ]"
-  />
+  <Breadcrumb v-if="task && project" :crumbs="[
+    {
+      name: 'Projects',
+      link: '/projects',
+    },
+    {
+      name: `Project ${project.name}`,
+      link: `/projects/${project.id}`,
+    },
+    {
+      name: `Task ${task.name}`,
+      link: `/projects/${project.id}/tasks/${task.id}`,
+    },
+  ]" />
 
-  <div v-if="task">
-    <div class="dimmer-wrapper">
-      <Dimmer v-model="assignmentTable.loading" />
-      <div class="dimmer-content">
-        <div v-show="assignmentTable.total">
+  <div class="my-3 dimmer-wrapper">
+    <Dimmer v-model="loading" />
+    <div class="dimmer-content">
+      <div v-if="task">
+        <div v-if="totalAssignments.data.value?.total">
           <div class="text-center my-3">
-            <NuxtLink :to="`/projects/${task.project_id}/tasks/${task.id}/metrics`">
+            <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
               <button
-                class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-              >
+                class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
                 Analyze Agreement Metrics
               </button>
             </NuxtLink>
-            <button
-              class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+            <button type="button"
               @click="replicateTask"
-            >
-              Replicate Task
+              class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
+              Duplicate Task
+            </button>
+            <button type="button"
+              @click="export_modal?.show()"
+              class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
+              Export Task
             </button>
           </div>
           <h3 class="my-3 text-lg font-semibold">Assignments</h3>
-          <Table
-            :name="'assignments'"
-            :tabledata="assignmentTable"
-            :sort="true"
-            :search="true"
-            :remove="true"
-            @remove-rows="removeAssignments"
-            @remove-all-rows="removeAllAssignments"
-          >
-            <template #row="{ item }: { item: AssignmentTableData }">
-              <tr class="bg-white border-b hover:bg-gray-50">
-                <td class="px-6 py-2">
-                  <input
-                    type="checkbox"
-                    :data-id="item.id.toString()"
-                    name="assignments_table_checkbox"
-                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                  />
-                </td>
-                <td
-                  scope="row"
-                  class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-                >
+          <div v-if="task">
+            <Table ref="assignmentTable" endpoint="assignments" :filter="{ task_id: task?.id }" :sort="true" :search="true"
+              :selectable="true" @remove-rows="removeAssignments" @remove-all-rows="removeAllAssignments">
+              <template #row="{ item }: { item: AssignmentTableData }">
+                <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
                   {{ item.id }}
                 </td>
                 <td class="px-6 py-2">
-                  {{ item.annotator.email }}
+                  {{ item.annotator?.email?? `annotator ${item.annotator_number}` }}
                 </td>
                 <td class="px-6 py-2">
                   {{ item.document.name }}
                 </td>
                 <td class="px-6 py-2">
-                  <span
-                    :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'"
-                    >{{ item.status }}</span
-                  >
+                  <span :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{ item.status }}</span>
                 </td>
                 <td class="px-6 py-2">
                   <span>{{ item.difficulty_rating }}</span>
@@ -81,11 +60,11 @@
                 <td class="px-6 py-2">
                   <NuxtLink class="base" :to="`/assignments/${item.id}`"> View </NuxtLink>
                 </td>
-              </tr>
-            </template>
-          </Table>
+              </template>
+            </Table>
+          </div>
         </div>
-        <div v-show="!assignmentTable.total" class="flex justify-center">
+        <div v-else class="flex justify-center">
           <div class="flex flex-col w-1/2 space-y-2 border-neutral-300">
             <h3 class="mt-3 text-lg font-semibold text-center">Create assignments</h3>
             <h3 class="mt-3 text-sm font-semibold">
@@ -96,108 +75,69 @@
                 <span>{{ ann_email }}</span>
               </li>
             </ul>
-            <input
-              class="base"
-              id="annotator_email"
-              type="email"
-              name="email"
-              v-model="email"
-              @keydown.enter="addAnnotator()"
-            />
+            <input class="base" id="annotator_email" type="email" name="email" v-model="email"
+              @keydown.enter="addAnnotator()" />
             <button class="base btn-primary" @click="addAnnotator">Add</button>
             <label for="amount_of_docs">Amount of Documents (total)</label>
-            <input
-              class="base"
-              id="amount_of_docs"
-              type="number"
-              name=""
-              v-model="amount_of_docs"
-              :max="total_docs"
-              min="1"
-            />
+            <input class="base" id="amount_of_docs" type="number" name="" v-model="amount_of_docs" :max="total_docs"
+              min="1" />
             <label for="fixed_docs">
               Amount of Fixed Documents (to share among annotators)
             </label>
-            <input
-              class="base"
-              id="fixed_docs"
-              type="number"
-              name=""
-              v-model="amount_of_fixed_docs"
-              :max="total_docs"
-              min="0"
-            />
+            <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
+              min="0" />
             <button class="base btn-primary" @click="createAssignments">
               Create Assignments
             </button>
           </div>
         </div>
+        <ExportTaskModal v-model="export_options" @export="exportTask" @close="export_modal?.hide()"></ExportTaskModal>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { Task, useTaskApi } from "~/data/task";
-import { Document, useDocumentApi } from "~/data/document";
-import { Assignment, AssignmentTableData, useAssignmentApi } from "~/data/assignment";
-import { User, useUserApi } from "~/data/user";
-import { TableData } from "~/utils/table";
-import { shuffle } from "lodash";
-import { Project, useProjectApi } from "~/data/project";
+import type { Task, Assignment, AssignmentTableData, User, Project } from "~/types";
+import Table from "~/components/Table.vue";
+import { Modal } from "flowbite";
+import { shuffle, clone } from "lodash";
+import { authorizeClient } from "~/utils/authorize.client";
+import { downloadAs } from "~/utils/download_file";
+import { ExportTaskOptions } from "~/utils/io";
+import type { ModalOptions } from "flowbite";
 
-const config = useRuntimeConfig();
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
-const taskApi = useTaskApi();
-const projectApi = useProjectApi();
-const documentApi = useDocumentApi();
-const assignmentApi = useAssignmentApi();
-const userApi = useUserApi();
+const config = useRuntimeConfig();
 
 const route = useRoute();
-const task = ref<Task>();
-const project = ref<Project>();
-const total_docs = ref<number>(0);
-const amount_of_docs = ref<number>(0);
+const task = await $trpc.task.findById.query(+route.params.task_id);
+const project = await $trpc.project.findById.query(+route.params.project_id);
+const totalAssignments = await $trpc.table.assignments.useQuery({filter: {task_id: task.id}});
+
+const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
+const total_docs = totalAmountOfDocs ?? 0;
+const amount_of_docs = ref<number>(total_docs);
+
+let export_modal: Modal | null = null;
+
 const amount_of_fixed_docs = ref<number>(0);
 const annotators_email = reactive<string[]>([]);
+const export_options = ref<ExportTaskOptions>({
+  name: true,
+  desc: true,
+  ann_guidelines: true,
+  labelset: true,
+  documents: false,
+  annotations: false,
+});
+
 const loading = ref(false);
 
 const email = ref("");
 
-const assignmentTable = createTableData<AssignmentTableData>(
-  {
-    Id: {
-      field: "id",
-      sort: true,
-    },
-    Annotator: {
-      field: "annotator.email",
-      search: true,
-    },
-    Document: {
-      field: "document.name",
-      search: true,
-    },
-    Status: {
-      field: "status",
-      sort: true,
-    },
-    Difficulty: {
-      field: "difficulty_rating",
-      sort: true,
-    },
-    Action: {},
-  },
-  {
-    type: "table",
-    from: "assignments",
-    select:
-      "id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, difficulty_rating, seq_pos",
-    filter: () => ({ task_id: task.value?.id }),
-  }
-);
+const assignmentTable = ref<InstanceType<typeof Table>>();
 
 const addAnnotator = () => {
   if (email.value == "") throw new Error("Email field is required");
@@ -208,123 +148,234 @@ const addAnnotator = () => {
 const createAssignments = async () => {
   try {
     loading.value = true;
-    if (!task.value) throw new Error("Task not found");
+    if (!task) throw new Error("Task not found");
 
     // Get the documents
-    const docs = await documentApi.takeUpToNRandomDocuments(
-      task.value.project_id.toString(),
-      amount_of_docs.value
-    );
+    const docs = await $trpc.document.takeUpToNRandomDocuments.query({
+      project_id: task.project_id,
+      n: amount_of_docs.value,
+    });
 
-    const new_assignments: Omit<Assignment, "id" | "annotator_id" | "status">[] = [];
+    const new_assignments: Pick<Assignment, "task_id" | "document_id">[] = [];
 
-    // Create shared assignments (only with docs info, no users yet)
+    // Create shared assignments (only with docs info)
     for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
       for (let j = 0; j < annotators_email.length; ++j) {
-        const new_assignment: Omit<Assignment, "id" | "annotator_id" | "status"> = {
-          task_id: task.value!.id,
+        const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
+          task_id: task.id,
           document_id: docs[i],
         };
         new_assignments.push(new_assignment);
       }
     }
 
-    // Create unique assignments (only with docs info, no users yet)
+    // Create unique assignments (only with docs info)
     for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
-      const new_assignment: Omit<Assignment, "id" | "annotator_id" | "status"> = {
-        task_id: task.value!.id,
+      const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
+        task_id: task.id,
         document_id: docs[i],
       };
       new_assignments.push(new_assignment);
     }
 
-    const created_assignments: Assignment[] = await assignmentApi.createAssignments(
-      new_assignments
-    );
-
     // Get Users
     const usersPromises: Promise<User>[] = [];
     for (let i = 0; i < annotators_email.length; ++i) {
       usersPromises.push(
-        // userApi.otpLogin(
-        //   annotators_email[i],
-        //   `${config.public.baseURL}/annotate/${created_assignments[i].task_id}`
-        // )
-        userApi.findByEmail(annotators_email[i])
+        $trpc.user.otpLogin.query({ email: annotators_email[i], redirectTo: `${config.public.baseURL}/annotate/${task.id}?seq=1` })
       );
     }
 
     const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
 
     // Assign users and order to assignments
-    let unshuffled: number[] = [
+    const unshuffled: number[] = [
       ...Array(
         amount_of_fixed_docs.value +
-          (amount_of_docs.value - amount_of_fixed_docs.value) / annotators_id.length
+        Math.floor((amount_of_docs.value - amount_of_fixed_docs.value) / annotators_id.length)
       ).keys(),
     ];
 
-    let permutations = [];
+    const permutations = [];
     for (let i = 0; i < annotators_id.length; ++i) {
-      permutations.push(shuffle(unshuffled));
+      permutations.push(shuffle(clone(unshuffled)));
     }
 
-    const assignmentsPromises: Promise<Boolean>[] = [];
-    for (let i = 0; i < created_assignments.length; ++i) {
-      created_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
-      created_assignments[i].seq_pos = permutations[i % annotators_id.length].pop() + 1;
-      assignmentsPromises.push(
-        assignmentApi.updateAssignment(
-          created_assignments[i].id.toString(),
-          created_assignments[i]
-        )
-      );
+    for (let i = 0; i < new_assignments.length; ++i) {
+      // @ts-expect-error
+      new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
+      // @ts-expect-error
+      new_assignments[i].seq_pos =
+        (permutations[i % annotators_id.length].pop() ?? Math.floor(i / annotators_id.length)) + 1;
     }
 
-    const updated_assignments = await Promise.all(assignmentsPromises);
-    assignmentTable.load();
+    const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
+      new_assignments
+    );
+
+    assignmentTable.value?.refresh();
+    totalAssignments.refresh();
     loading.value = false;
     $toast.success("Assignments successfully created");
   } catch (error) {
     loading.value = false;
-    if (error instanceof Error)
+    if (error instanceof Error) {
+      console.error(error);
       $toast.error(`Error creating assignment: ${error.message}`);
+    }
   }
 };
 
 const removeAssignments = async (ids: string[]) => {
   const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => assignmentApi.deleteAssignment(id)));
+  promises.push(...ids.map((id) => $trpc.assignment.delete.mutate(+id)));
   await Promise.all(promises);
-  await assignmentTable.load();
+  await assignmentTable.value?.refresh();
+  await totalAssignments.refresh();
   $toast.success("Assignments successfully deleted!");
 };
 const removeAllAssignments = async () => {
-  if (!task.value) throw new Error("Invalid Task!");
-  await assignmentApi.deleteAllAssignments(task.value?.id.toString());
-  await assignmentTable.load();
+  if (!task) throw new Error("Invalid Task!");
+  await $trpc.assignment.deleteAllFromTask.mutate(task.id);
+  await assignmentTable.value?.refresh();
+  await totalAssignments.refresh();
   $toast.success("Assignments successfully deleted!");
 };
 
 const replicateTask = async () => {
-  assignmentTable.loading = true;
-  const new_task = await taskApi.replicateTask(task.value?.id.toString()!);
-  assignmentTable.loading = false;
+  loading.value = true;
+  const new_task = await $trpc.task.replicateTask.mutate(task.id);
+  loading.value = false;
   $toast.success(`Task successfully replicated! ${new_task.id}`);
 };
 
+const exportTask = async () => {
+  loading.value = true;
+  let json: any = {};
+
+  if (export_options.value.name) {
+    json.name = task?.name!;
+  }
+
+  if (export_options.value.desc) {
+    json.desc = task?.desc!;
+  }
+
+  if (export_options.value.labelset) {
+    const labelset = await $trpc.labelset.findById.query(+task?.labelset_id!);
+    json.labelset = {
+      name: labelset.name,
+      desc: labelset.desc,
+      labels: labelset.labels,
+    };
+
+    if (export_options.value.ann_guidelines) {
+      json.ann_guidelines = task?.ann_guidelines!;
+    }
+  }
+
+  if (export_options.value.documents) {
+    let doc_pos: any = {};
+    let ass_pos: any = {};
+    let ann_pos: any = {};
+    let annotators: any = {};
+    let annotators_index: number = 0;
+
+    //Documents
+    const documents = await $trpc.document.findDocumentsByTask.query(+task?.id!);
+
+    json.documents = [];
+    documents.map((d, index) => {
+      doc_pos[d.id] = index;
+      json.documents.push({ name: d.name, full_text: d.full_text, assignments: [] });
+    });
+
+    json.counts = {};
+    json.counts.documents = documents.length;
+
+    // Assignments
+    const assignments = await $trpc.assignment.findAssignmentsByTask.query(+task?.id!);
+
+    assignments.map(ass => {
+      const doc_assignments = json.documents[doc_pos[ass.document_id]].assignments;
+      ass_pos[ass.id] = doc_assignments.length;
+      if (!(ass.annotator_id in annotators)) {
+        annotators[ass.annotator_id] = ++annotators_index;
+      }
+      doc_assignments.push({
+        annotator: annotators[ass.annotator_id],
+        order: ass.seq_pos,
+        annotations: []
+      })
+    });
+
+    json.counts.assignments = assignments.length;
+    json.counts.annotators = annotators_index;
+
+
+    if (export_options.value.annotations && export_options.value.labelset) {
+
+      // Annotations
+      const annotations = await $trpc.annotation.findAnnotationsByTask.query(
+        +task?.id!
+      );
+
+      annotations.map((a) => {
+        let doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
+        ann_pos[a.id] = doc_anns.length
+
+        doc_anns.push({
+          start: a.start_index,
+          end: a.end_index,
+          label: a.label,
+          text: a.text,
+          relations: [],
+          ls_id: a.ls_id
+        });
+      });
+
+      json.counts.annotations = annotations.length;
+
+
+      // Relations
+      const relations = await $trpc.relation.findRelationsByTask.query(+task?.id!);
+
+      relations.map((r) => {
+        let doc_anns = json.documents[doc_pos[r.annotation.assignment.document_id]].assignments[ass_pos[r.annotation.assignment.id]].annotations;
+        let ann_rels = doc_anns[ann_pos[r.from_id]].relations;
+        ann_rels.push({
+          to: ann_pos[r.to_id],
+          direction: r.direction,
+          labels: r.labels,
+        });
+      });
+
+      json.counts.relations = relations.length;
+    }
+  }
+
+  downloadAs(json, `${json.name}.json`);
+
+  loading.value = false;
+  $toast.success(`Task has been exported!`);
+};
+
 onMounted(async () => {
-  task.value = await taskApi.findTask(route.params.task_id as string);
+  const modalOptions: ModalOptions = {
+      placement: "center",
+      backdrop: "dynamic",
+      backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
+      closable: true,
+    };
 
-  documentApi.totalAmountOfDocs(task.value.project_id.toString()).then((count) => {
-    amount_of_docs.value = count ? count : 0;
-    total_docs.value = amount_of_docs.value;
-  });
-
-  project.value = await projectApi.findProject(route.params.project_id as string);
+    export_modal = new Modal(document.getElementById("exportFormModal"), modalOptions);
 });
 
 definePageMeta({
-  middleware: ["auth"],
+  middleware: [
+    "auth",
+    async (to) => authorizeClient([["task", +to.params.task_id]]),
+    async (to) => authorizeClient([["project", +to.params.project_id]]),
+  ],
 });
 </script>

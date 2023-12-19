@@ -1,255 +1,146 @@
 <template>
   <div>
-    <Breadcrumb
-      v-if="task && project"
-      :crumbs="[
-        {
-          name: 'Projects',
-          link: '/projects',
-        },
-        {
-          name: `Project ${project.name}`,
-          link: `/projects/${project.id}`,
-        },
-        {
-          name: `Task ${task.name}`,
-          link: `/projects/${project.id}/tasks/${task.id}`,
-        },
-        {
-          name: `Metrics`,
-          link: `/projects/${project.id}/tasks/${task.id}/metrics`,
-        },
-      ]"
-    />
+    <Breadcrumb v-if="task && project" :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+      {
+        name: `Task ${task.name}`,
+        link: `/projects/${project.id}/tasks/${task.id}`,
+      },
+      {
+        name: `Metrics`,
+        link: `/projects/${project.id}/tasks/${task.id}/metrics`,
+      },
+    ]" />
     <div class="dimmer-wrapper pt-2">
       <DimmerProgress v-if="download_progress.loading" v-model="download_progress" />
       <Dimmer v-else v-model="loading" />
       <div class="dimmer-content">
-        <aside
-          id="logo-sidebar"
+        <aside id="logo-sidebar"
           class="fixed left-0 z-40 w-80 side-panel-h transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
-          aria-label="Sidebar"
-          style="margin-top: inherit"
-        >
+          aria-label="Sidebar" style="margin-top: inherit">
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 text-sm">
               <li>
-                <label
-                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >Label</label
-                >
-                <Multiselect
-                  v-model="selectedLabel"
-                  :options="labelsOptions"
-                  :searchable="true"
-                  placeholder="Select a Label"
-                  @change="selectLabel"
-                />
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label</label>
+                <Multiselect v-model="selectedLabel" :options="labelsOptions" :searchable="true"
+                  placeholder="Select a Label" @change="selectLabel" />
               </li>
               <li>
-                <label
-                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >Document(s)</label
-                >
-                <Multiselect
-                  v-model="selectedDocumentsOrEmpty"
-                  :mode="'tags'"
-                  :close-on-select="false"
-                  :options="documentsOptions"
-                  :searchable="true"
-                  placeholder="All"
-                  @change="selectDocument"
-                />
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Document(s)</label>
+                <Multiselect v-model="selectedDocumentsOrEmpty" :mode="'tags'" :close-on-select="false"
+                  :options="documentsOptions" :searchable="true" placeholder="All" @change="selectDocument" />
               </li>
               <li>
-                <label
-                  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >Annotators</label
-                >
-                <Multiselect
-                  v-model="selectedAnnotatorsOrEmpty"
-                  :options="annotatorsOptions"
-                  :mode="'tags'"
-                  :searchable="true"
-                  :close-on-select="false"
-                  placeholder="All"
-                  @change="selectAnnotators"
-                />
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Annotators</label>
+                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions" :mode="'tags'"
+                  :searchable="true" :close-on-select="false" placeholder="All" @change="selectAnnotators" />
               </li>
               <li>
                 <div>
                   <div class="flex justify-between">
-                    <label
-                      for="small-input"
-                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                      >Tolerance</label
-                    >
-                    <InfoToolTip
-                      :id="'tooltip_tolerance'"
-                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'"
-                    />
+                    <label for="small-input"
+                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tolerance</label>
+                    <InfoToolTip :id="'tooltip_tolerance'"
+                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'" />
                   </div>
-                  <input
-                    type="number"
-                    id="small-input"
-                    v-model="tolerance"
-                    min="0"
-                    :max="10"
-                    step="1"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  />
+                  <input type="number" id="small-input" v-model="tolerance" min="0" :max="10" step="1"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
                 </div>
               </li>
               <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
-                  <label
-                    class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                  >
-                    <span
-                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Annotation</span
-                    >
-                    <input
-                      type="checkbox"
-                      value=""
-                      class="sr-only peer"
-                      @input="
-                    ($event: Event) => {
-                        modeToggle($event.target.checked);
+                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Annotation</span>
+                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
+                      modeToggle($event.target.checked);
                     }
-                  "
-                    />
+                      " />
                     <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                    ></div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Word</span
-                    >
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
                   </label>
-                  <InfoToolTip
-                    :id="'tooltip_annotation_word'"
-                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'"
-                  />
+                  <InfoToolTip :id="'tooltip_annotation_word'"
+                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
                 </div>
               </li>
               <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
-                  <label
-                    class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                  >
-                    <span
-                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Equal</span
-                    >
-                    <input
-                      type="checkbox"
-                      value=""
-                      class="sr-only peer"
-                      @input="
-                        ($event: Event) => {
-                            contained = !contained;
-                            tolerance = 0;
-                        }
-                      "
-                    />
+                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Equal</span>
+                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
+                      contained = !contained;
+                      tolerance = 0;
+                    }
+                      " />
 
                     <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                    ></div>
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
                     <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Overlap</span
-                    >
+                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Overlap</span>
                   </label>
-                  <InfoToolTip
-                    :id="'tooltip_equal_overlap'"
-                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`"
-                  />
+                  <InfoToolTip :id="'tooltip_equal_overlap'"
+                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`" />
                 </div>
               </li>
               <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
-                  <label
-                    class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer"
-                  >
-                    <span
-                      class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300"
-                      >Include NTA</span
-                    >
-                    <input
-                      type="checkbox"
-                      value=""
-                      :checked="hideNonText"
-                      class="sr-only peer"
-                      @input="
-                    ($event: Event) => {
+                  <label class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Include NTA</span>
+                    <input type="checkbox" value="" :checked="hideNonText" class="sr-only peer" @input="($event: Event) => {
                       toggleTextToHidden($event?.target?.checked);
                     }
-                  "
-                    />
+                      " />
 
                     <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-                    ></div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start"
-                      >Exclude NTA</span
-                    >
+                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Exclude
+                      NTA</span>
                   </label>
 
-                  <InfoToolTip
-                    :id="'tooltip_nta'"
-                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'"
-                  />
+                  <InfoToolTip :id="'tooltip_nta'"
+                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'" />
                 </div>
               </li>
               <li class="">
-                <button
-                  data-modal-target="difficultyMetricsModal"
-                  data-modal-toggle="difficultyMetricsModal"
+                <button data-modal-target="difficultyMetricsModal" data-modal-toggle="difficultyMetricsModal"
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                  @click="clickComputeDifficultyMetrics"
-                >
-                  Compute Difficulty Metrics
+                  @click="clickComputeDifficultyMetrics">
+                  Compute Confidence Metrics
                 </button>
               </li>
               <li>
-                <button
-                  :disabled="!selectedLabel"
+                <button :disabled="!selectedLabel"
                   class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                  @click="clickComputeMetrics"
-                >
+                  @click="clickComputeMetrics">
                   Compute Annotation Metrics
                 </button>
               </li>
-              <ul
-                class="pt-4 mt-4 space-y-2 font-medium pb-3 border-gray-200 dark:border-gray-700"
-              >
+              <ul class="pt-4 mt-4 space-y-2 font-medium pb-3 border-gray-200 dark:border-gray-700">
                 <li>
                   <div class="relative overflow-x-auto">
-                    <table
-                      class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
-                    >
-                      <thead
-                        class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
-                      >
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
                           <th scope="col" class="px-6 py-3">Metric</th>
                           <th scope="col" class="px-6 py-3">Value</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr
-                          class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                        >
-                          <th
-                            scope="row"
-                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                          >
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             Krippendorff's alpha
                           </th>
                           <td class="px-6 py-4">
@@ -258,13 +149,8 @@
                             }}</span>
                           </td>
                         </tr>
-                        <tr
-                          class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                        >
-                          <th
-                            scope="row"
-                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                          >
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             Fleiss' Kappa
                           </th>
                           <td class="px-6 py-4">
@@ -274,10 +160,7 @@
                           </td>
                         </tr>
                         <tr class="bg-white dark:bg-gray-800">
-                          <th
-                            scope="row"
-                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                          >
+                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             Cohen's Kappa
                           </th>
                           <td class="px-6 py-4">
@@ -293,8 +176,7 @@
                 <li class="">
                   <button
                     class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                    @click="get_json"
-                  >
+                    @click="clickDownloadAll">
                     Download all
                   </button>
                 </li>
@@ -311,40 +193,19 @@
             </div>
             <ul>
               <li v-for="(ann, index) in annotations">
-                <RangeLabelCmpt
-                  :annotation="ann"
-                  :index="index"
-                  :is-new-doc="isNewDoc(index)"
-                  :can-merge-up="canMergeUp(index)"
-                  :can-merge-down="canMergeDown(index)"
-                  @separate="emitSeparate"
-                  @mergeUp="emitMergeUp"
-                  @mergeDown="emitMergeDown"
-                  @set-hidden="emitSetHidden"
-                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"
-                ></RangeLabelCmpt>
+                <RangeLabelCmpt :annotation="ann" :index="index" :is-new-doc="isNewDoc(index)"
+                  :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)" @separate="emitSeparate"
+                  @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
+                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"></RangeLabelCmpt>
               </li>
             </ul>
 
-            <a
-              href="#annotations_list"
-              type="button"
-              class="absolute bottom-0 right-0 mb-3 mr-3 text-white bg-secondary hover:bg-secondary/80 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-            >
-              <svg
-                class="w-4 h-4 text-white dark:text-white"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 10 14"
-              >
-                <path
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13V1m0 0L1 5m4-4 4 4"
-                ></path>
+            <a href="#annotations_list" type="button"
+              class="absolute bottom-0 right-0 mb-3 mr-3 text-white bg-secondary hover:bg-secondary/80 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+              <svg class="w-4 h-4 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+                fill="none" viewBox="0 0 10 14">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M5 13V1m0 0L1 5m4-4 4 4"></path>
               </svg>
               <span class="sr-only">Go up</span>
             </a>
@@ -358,14 +219,8 @@
 <script setup lang="ts">
 import * as XLSX from "xlsx";
 import Multiselect from "@vueform/multiselect";
-import { Task, useTaskApi } from "~/data/task";
-import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { RichAnnotation, useAnnotationApi } from "~/data/annotation";
-import { Document, useDocumentApi } from "~/data/document";
-import { Labelset, useLabelsetApi } from "~/data/labelset";
-import { Project, useProjectApi } from "~/data/project";
-import { User, useUserApi } from "~/data/user";
-import {
+import type { Task, RichAnnotation, Project } from "~/types";
+import type {
   MetricResult,
   newEmptyMetricResult,
   DifficultyMetricResult,
@@ -375,20 +230,15 @@ import { initFlowbite } from "flowbite";
 import _, { zip } from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
-// const FileSaver = require("file-saver");
 import { saveAs } from "file-saver";
 import JSZip, { file } from "jszip";
+import { RangeLabel } from "~/utils/metrics";
+import { authorizeClient } from "~/utils/authorize.client";
 
 const config = useRuntimeConfig();
-const { $toast } = useNuxtApp();
+const { $toast, $trpc } = useNuxtApp();
 
 // const user = useSupabaseUser();
-const taskApi = useTaskApi();
-const projectApi = useProjectApi();
-const annotationApi = useAnnotationApi();
-const documentApi = useDocumentApi();
-const labelsetApi = useLabelsetApi();
-const userApi = useUserApi();
 
 const route = useRoute();
 const task = ref<Task>();
@@ -407,10 +257,11 @@ const tolerance = ref<number>(0);
 
 const loading_annotations = ref(false);
 const loading_options = ref(false);
-const download_progress = ref<{ current: number; total: number; loading: boolean }>({
+const download_progress = ref<{ current: number; total: number; loading: boolean; message: string }>({
   current: 0,
   total: 0,
   loading: false,
+  message: ""
 });
 const downloadAllPromises = [];
 const downloadAllResults = [];
@@ -455,6 +306,15 @@ const selectedDocuments = computed((): string[] => {
     ? selectedDocumentsOrEmpty.value
     : documentsOptions.map((d) => d.value);
 });
+
+function getBase64(file: File) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+}
 
 const selectLabel = (value: string) => {
   selectedLabel.value = value;
@@ -511,18 +371,23 @@ const updateAnnotations = async () => {
     difficulty: undefined,
     loading: false,
   };
-  annotations.splice(0);
-  const anns = await getAnnotations(
-    task.value?.id.toString()!,
-    selectedLabel.value!,
-    selectedDocumentsOrEmpty.value!,
-    selectedAnnotatorsOrEmpty.value!,
-    separate_into_words.value,
-    hideNonText.value
-  );
-  annotations_length.value = anns.length;
-  if (anns.length < annotations_limit) annotations.push(...anns);
-  loading_annotations.value = false;
+  try {
+    annotations.splice(0);
+    const anns = await getAnnotations(
+      task.value?.id.toString()!,
+      selectedLabel.value!,
+      selectedDocumentsOrEmpty.value!,
+      selectedAnnotatorsOrEmpty.value!,
+      separate_into_words.value,
+      hideNonText.value
+    );
+    console.log(anns);
+    annotations_length.value = anns.length;
+    if (anns.length < annotations_limit) annotations.push(...anns);
+    loading_annotations.value = false;
+  } catch (error) {
+    loading_annotations.value = false;
+  }
 };
 
 const compute_metrics = async (
@@ -554,7 +419,7 @@ const compute_metrics = async (
     annotations: annotations,
   });
 
-  return $fetch(`/api/metrics/get_metrics`, {
+  return $fetch("/api/metrics/get_metrics", {
     method: "POST",
     body: body,
   });
@@ -612,6 +477,7 @@ const clickComputeDifficultyMetrics = async () => {
       selectedAnnotatorsOrEmpty.value,
       selectedDocumentsOrEmpty.value
     );
+    console.log(metric);
     metrics_result.value.difficulty = metric;
     metrics_result.value.loading = false;
   } catch (error) {
@@ -646,41 +512,44 @@ const get_json = async () => {
       labels: labelsOptions,
       documents: selectedDocumentsOrEmpty.value,
       annotators: selectedAnnotatorsOrEmpty.value,
+      byWords: separate_into_words.value,
+      hideNonText: hideNonText.value,
     },
   });
 
   console.log(anns);
-  let labels: string[] = ["NOT ANNOTATED"].concat(labelsOptions);
-  let doc_index = 0;
   let label_index = 0;
-  let doc_pos: any = {};
-  let label_pos: any = {};
-  let json: any = { task_id: task.value?.id, task_name: task.value?.name, documents: [] };
-  anns.map((a) => {
-    if (!(a.doc_id in doc_pos)) {
-      doc_pos[a.doc_id] = doc_index++;
-
-      json["documents"].push({
-        doc_id: Number.parseInt(a.doc_id),
-        doc_name: a.doc_name,
-        labels: labels.map((l) => {
-          if (!(l in label_pos)) {
-            label_pos[l] = label_index++;
-          }
-          return { value: l, annotations: [] };
-        }),
-      });
-    }
-    json["documents"][doc_pos[a.doc_id]]["labels"][label_pos[a.label]][
-      "annotations"
-    ].push({
-      annotation_id: a.ann_id,
-      text: a.text,
-      annotator: a.annotator,
-      start: a.start,
-      end: a.end,
-      hidden: a.hidden,
+  let json: any = {
+    task_id: task.value?.id,
+    task_name: task.value?.name,
+    task_description: task.value?.desc,
+    labels: [],
+    annotators: selectedAnnotators.value,
+  };
+  anns.map((l) => {
+    json.labels.push({ value: labelsOptions[label_index], documents: [] });
+    let prev_doc_id = -1;
+    let doc_index = 0;
+    l.map((a) => {
+      if (!a.hidden) {
+        if (prev_doc_id != a.doc_id) {
+          json.labels[label_index].documents.push({
+            document_id: a.doc_id,
+            document_name: a.doc_name,
+            annotations: [],
+          });
+          doc_index++;
+        }
+        json.labels[label_index].documents[doc_index - 1].annotations.push({
+          start: a.start,
+          end: a.end,
+          text: a.text,
+          annotator: a.annotator,
+        });
+        prev_doc_id = a.doc_id;
+      }
     });
+    label_index++;
   });
 
   console.log(json);
@@ -723,87 +592,32 @@ async function download_all(data: any) {
   let results: { wb: string; name: string }[] = [];
   download_progress.value.current = 0;
   download_progress.value.total =
-    selectedDocuments.value.length * labelsOptions.length * 2 + labelsOptions.length * 2;
+    (selectedDocuments.value.length + 1) * labelsOptions.length * 3 +
+    (selectedDocuments.value.length + 1);
   try {
+    // All confidence
     try {
-      const workbookDifficulty = XLSX.utils.book_new();
-      const diff_metric_body = JSON.stringify({
-        task_id: data.task_id,
-        annotators_length: data.annotators.length,
-        annotators: data.annotatorOrEmpty,
-        documents: data.documentsOrEmpty,
-      });
-
-      const dm = await $fetch("/api/metrics/difficulty", {
-        method: "POST",
-        body: diff_metric_body,
-      });
-      const worksheetDifficulty = XLSX.utils.json_to_sheet([
-        {
-          total: dm.total,
-          rated: dm.rated,
-          average_stars: dm.average,
-          "1_stars": dm.values[1],
-          "2_stars": dm.values[2],
-          "3_stars": dm.values[3],
-          "4_stars": dm.values[4],
-          "5_stars": dm.values[5],
-          krippendorff: dm.krippendorff?.result,
-          p0: dm.krippendorff?.po,
-          pe: dm.krippendorff?.pe,
-        },
-      ]);
-      XLSX.utils.book_append_sheet(
-        workbookDifficulty,
-        worksheetDifficulty,
-        "Difficulty Metrics"
+      const workBookConfidence = await getConfidenceSheet(
+        data.task_id,
+        data.annotators.length,
+        data.annotatorOrEmpty,
+        data.documentsOrEmpty
       );
+
       results.push({
-        wb: getZippeableBlob(workbookDifficulty),
+        wb: getZippeableBlob(workBookConfidence),
         name: `_confidence.xlsx`,
       });
       download_progress.value.current++;
-    } catch (error) {}
-    for (let i = 0; i < data.documents.length; i++) {
-      const document = data.documents[i];
-      const workbookMetrics = XLSX.utils.book_new();
-      const workbookAnnotations = XLSX.utils.book_new();
-      for (let j = 0; j < data.labelsOptions.length; j++) {
-        const label = data.labelsOptions[j];
-        const sheets: XLSX.WorkSheet[] = await getXlslTab(
-          data.task_id,
-          label,
-          [document],
-          data.annotators,
-          data.annotatorsOrEmpty,
-          data.tolerance,
-          data.byWords,
-          data.hideNonText,
-          data.contained,
-          data.documentsData,
-          data.documentsOptions
-        );
-        XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-        XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-        download_progress.value.current += 2;
-      }
-      const filename = document + "-" + data.documentsData[document].name.split(".")[0];
-      results.push({
-        wb: getZippeableBlob(workbookMetrics),
-        name: `${filename}_metrics.xlsx`,
-      });
+    } catch (error) { }
 
-      results.push({
-        wb: getZippeableBlob(workbookAnnotations),
-        name: `${filename}_annotations.xlsx`,
-      });
-    }
-
+    // All metrics
     const workbookMetrics = XLSX.utils.book_new();
     const workbookAnnotations = XLSX.utils.book_new();
+    const workbookDescriptive = XLSX.utils.book_new();
     for (let i = 0; i < data.labelsOptions.length; i++) {
       const label = data.labelsOptions[i];
-      const sheets = await getXlslTab(
+      const metrics = await compute_metrics(
         data.task_id,
         label,
         data.documentsOrEmpty,
@@ -816,153 +630,282 @@ async function download_all(data: any) {
         data.documentsData,
         data.documentsOptions
       );
-      XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], label);
-      XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], label);
-      download_progress.value.current += 2;
+      console.log("x");
+      const metrics_sheet = await getMetricsSheet(
+        metrics,
+        label,
+        data.documentsOrEmpty,
+        data
+      );
+      const metrics_sample = metrics[0].table?? metrics[2].table!;
+      const annotations_sheet = await getAnnotationsSheet(metrics_sample);
+      const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
+        metrics_sample,
+        data.annotators
+      );
+
+      XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label);
+      XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label);
+      XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label);
+
+      download_progress.value.current += 3;
     }
     results.push({
       wb: getZippeableBlob(workbookMetrics),
       name: `_metrics.xlsx`,
     });
-
     results.push({
       wb: getZippeableBlob(workbookAnnotations),
       name: `_annotations.xlsx`,
     });
+    results.push({
+      wb: getZippeableBlob(workbookDescriptive),
+      name: `_descriptive.xlsx`,
+    });
+
+    // Per document
+    for (let i = 0; i < data.documents.length; i++) {
+      const document = data.documents[i];
+      const filename = document + "-" + data.documentsData[document].name.split(".")[0];
+      // per document confidence
+      try {
+        const workBookConfidence = await getConfidenceSheet(
+          data.task_id,
+          data.annotators.length,
+          data.annotatorOrEmpty,
+          [document]
+        );
+
+        results.push({
+          wb: getZippeableBlob(workBookConfidence),
+          name: `${filename}_confidence.xlsx`,
+        });
+
+        download_progress.value.current++;
+      } catch (error) {
+        console.log(error);
+      }
+      const workbookMetrics = XLSX.utils.book_new();
+      const workbookAnnotations = XLSX.utils.book_new();
+      const workbookDescriptive = XLSX.utils.book_new();
+      for (let j = 0; j < data.labelsOptions.length; j++) {
+        // per document metrics
+        const label = data.labelsOptions[j];
+        const metrics = await compute_metrics(
+          data.task_id,
+          label,
+          [document],
+          data.annotators,
+          data.annotatorsOrEmpty,
+          data.tolerance,
+          data.byWords,
+          data.hideNonText,
+          data.contained,
+          data.documentsData,
+          data.documentsOptions
+        );
+        console.log("x");
+
+        const metrics_sheet = await getMetricsSheet(metrics, label, [document], data);
+        const metrics_sample = metrics[0].table?? metrics[2].table!;
+        const annotations_sheet = await getAnnotationsSheet(metrics_sample);
+        const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
+          metrics_sample,
+          data.annotators
+        );
+        XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label);
+        XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label);
+        XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label);
+
+        download_progress.value.current += 3;
+      }
+
+      results.push({
+        wb: getZippeableBlob(workbookMetrics),
+        name: `${filename}_metrics.xlsx`,
+      });
+
+      results.push({
+        wb: getZippeableBlob(workbookAnnotations),
+        name: `${filename}_annotations.xlsx`,
+      });
+
+      results.push({
+        wb: getZippeableBlob(workbookDescriptive),
+        name: `${filename}_descriptive.xlsx`,
+      });
+    }
+
     return results;
-  } catch (error) {}
+  } catch (error) { }
   return [];
 }
 
-async function getXlslTab(
-  task_id: string,
+async function getMetricsSheet(
+  metrics: MetricResult[],
   label: string,
   documents: string[],
-  annotators: string[],
-  annotatorsOrEmpty: string[],
-  tolerance: number,
-  byWords: boolean,
-  hideNonText: boolean,
-  contained: boolean,
-  documentsData: any,
-  documentsOptions: string[]
+  data: any
 ) {
-  const rowsMetrics: any[] = [];
-  const rowsAnnotations: any[] = [];
+  let rows: any[] = [];
 
-  let timeout = 100;
-  // while (true) {
-  try {
-    const metric_body = JSON.stringify({
-      task_id: task_id,
-      label: label,
-      documents: documents,
-      annotators: annotators,
-      annotatorsOrEmpty: annotatorsOrEmpty,
-      tolerance: tolerance,
-      byWords: byWords,
-      hideNonText: hideNonText,
-      contained: contained,
-      documentsData: documentsData,
-      documentsOptions: documentsOptions,
-    });
-    console.log(label, documents, annotators);
-    const metrics = await $fetch("/api/metrics/get_metrics", {
-      method: "POST",
-      body: metric_body,
-    });
-    console.log("XXX");
-    metrics.map((m) => {
-      if (m.result !== undefined)
-        rowsMetrics.push({
-          metric: m.name,
-          annotators: annotators.length > 2 ? "all" : annotators.join(","),
-          value: m.result,
-          p0: m.po,
-          pe: m.pe,
-          tolerance: tolerance,
-          consider_contained: contained ? "yes" : "no",
+  metrics.map((m) => {
+    if (m.result !== undefined)
+      rows.push({
+        metric: m.name,
+        annotators: data.annotators.join(","),
+        value: m.result,
+        p0: m.po,
+        pe: m.pe,
+        tolerance: data.tolerance,
+        consider_contained: data.contained ? "yes" : "no",
+      });
+  });
+
+  if (data.annotators.length > 2) {
+    for (let i = 0; i < data.annotators.length; i++) {
+      for (let j = i + 1; j < data.annotators.length; j++) {
+        const metrics = await compute_metrics(
+          data.task_id,
+          label,
+          documents,
+          [data.annotators[i], data.annotators[j]],
+          [data.annotators[i], data.annotators[j]],
+          data.tolerance,
+          data.byWords,
+          data.hideNonText,
+          data.contained,
+          data.documentsData,
+          data.documentsOptions
+        );
+
+        metrics.map((m) => {
+          if (m.result !== undefined)
+            rows.push({
+              metric: m.name,
+              annotators: data.annotators[i] + "," + data.annotators[j],
+              value: m.result,
+              p0: m.po,
+              pe: m.pe,
+              tolerance: data.tolerance,
+              consider_contained: data.contained ? "yes" : "no",
+            });
         });
-    });
-    const tables = annotators.length > 2 ? metrics[0].table : metrics[2].table;
-    tables?.forEach((r: any) => {
+      }
+    }
+  }
+
+  return XLSX.utils.json_to_sheet(rows);
+}
+
+async function getAnnotationsSheet(table: RangeLabel[]) {
+  let rows: any[] = [];
+  if (table) {
+    table.map((r: RangeLabel) => {
       Object.entries(r.annotators).forEach(([k, v]) => {
-        const ann = {
+        rows.push({
+          document: r.doc_id + "-" + r.doc_name,
           annotator: k,
           start: r.start,
           end: r.end,
           text: r.text,
           value: v,
-        };
-
-        rowsAnnotations.push(
-          documents.length != 1
-            ? {
-                document: r.doc_id + "-" + documentsData[r.doc_id].name,
-                ...ann,
-              }
-            : ann
-        );
+        });
       });
     });
-    // break;
-  } catch (error) {
-    timeout--;
-    console.log("FAILED", error);
   }
-  // }
 
-  if (annotators.length > 2) {
-    for (let i = 0; i < annotators.length; i++) {
-      for (let j = i + 1; j < annotators.length; j++) {
-        let ck_timeout = 100;
-        // while (true) {
-        try {
-          const metric_body = JSON.stringify({
-            task_id: task_id,
-            label: label,
-            documents: documents,
-            annotators: [annotators[i], annotators[j]],
-            annotatorsOrEmpty: [annotators[i], annotators[j]],
-            tolerance: tolerance,
-            byWords: byWords,
-            hideNonText: hideNonText,
-            contained: contained,
-            documentsData: documentsData,
-            documentsOptions: documentsOptions,
-          });
+  return XLSX.utils.json_to_sheet(rows);
+}
 
-          const ck_metrics = await $fetch("/api/metrics/get_metrics", {
-            method: "POST",
-            body: metric_body,
-          });
-
-          ck_metrics.map((m) => {
-            if (m.name == "cohens_kappa") {
-              rowsMetrics.push({
-                metric: m.name,
-                annotators: annotators[i] + "," + annotators[j],
-                value: m.result,
-                p0: m.po,
-                pe: m.pe,
-                tolerance: tolerance,
-                consider_contained: contained ? "yes" : "no",
-              });
-            }
-          });
-          // break;
-        } catch (error) {
-          ck_timeout--;
-          console.log("FAILED", error);
+async function getDescriptiveAnnotatorSheet(table: RangeLabel[], annotators: string[]) {
+  let rows: any[] = [];
+  let dic: any = {};
+  let nanns: number = 0;
+  annotators.map((a) => {
+    dic[a] = { amount: 0, na_amount: 0 };
+  });
+  if (table) {
+    table.map((r: RangeLabel) => {
+      Object.entries(r.annotators).forEach(([k, v]) => {
+        if (v) {
+          dic[k]["amount"]++;
         }
-        // }
+      });
+      if (r.label == "NOT ANNOTATED") {
+        nanns++;
       }
-    }
+    });
+    Object.entries(dic).forEach(([k, v]) => {
+      rows.push({
+        annotator: k,
+        annotations: dic[k]["amount"],
+        non_annotations: nanns,
+      });
+    });
   }
 
-  const worksheetMetrics = XLSX.utils.json_to_sheet(rowsMetrics);
-  const worksheetAnnotations = XLSX.utils.json_to_sheet(rowsAnnotations);
-  return [worksheetMetrics, worksheetAnnotations];
+  return XLSX.utils.json_to_sheet(rows);
+}
+
+async function getConfidenceSheet(
+  task_id: string,
+  annotators_length: number,
+  annotators: string[],
+  documents: string[]
+) {
+  const workbookDifficulty = XLSX.utils.book_new();
+  const diff_metric_body = JSON.stringify({
+    task_id: task_id,
+    annotators_length: annotators_length,
+    annotators: annotators,
+    documents: documents,
+  });
+
+  const dm = await $fetch("/api/metrics/difficulty", {
+    method: "POST",
+    body: diff_metric_body,
+  });
+
+  const worksheetDifficulty = XLSX.utils.json_to_sheet([
+    {
+      total: dm.total,
+      rated: dm.rated,
+      average_stars: dm.average,
+      "1_stars": dm.values[1],
+      "2_stars": dm.values[2],
+      "3_stars": dm.values[3],
+      "4_stars": dm.values[4],
+      "5_stars": dm.values[5],
+      krippendorff: dm.krippendorff?.result,
+      p0: dm.krippendorff?.po,
+      pe: dm.krippendorff?.pe,
+    },
+  ]);
+
+  const worksheetDifficultyAnnotator = XLSX.utils.json_to_sheet(
+    dm.table.map((r) => {
+      return {
+        annotator: r.annotator,
+        doc_id: r.doc_id,
+        assignment_id: r.ass_id,
+        stars: r.rating,
+      };
+    })
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbookDifficulty,
+    worksheetDifficulty,
+    "Confidence Metrics"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbookDifficulty,
+    worksheetDifficultyAnnotator,
+    "Annotators "
+  );
+  return workbookDifficulty;
 }
 
 function getZippeableBlob(workBook: XLSX.WorkBook) {
@@ -1016,6 +959,7 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
     hidden: false,
     ann_id: current.ann_id,
     doc_id: current.doc_id,
+    doc_name: current.doc_name,
   });
   loading_annotations.value = false;
 };
@@ -1066,7 +1010,7 @@ const toggleTextToHidden = (value: boolean): RichAnnotation[] => {
   return setTextToHidden(annotations, value);
 };
 
-const emitSetHidden = (ann_index: number, hidden: Boolean): void => {
+const emitSetHidden = (ann_index: number, hidden: boolean): void => {
   annotations[ann_index].hidden = hidden;
 };
 
@@ -1075,36 +1019,36 @@ onMounted(async () => {
 
   loading_options.value = true;
 
-  task.value = await taskApi.findTask(route.params.task_id.toString());
+  task.value = await $trpc.task.findById.query(+route.params.task_id);
 
-  project.value = await projectApi.findProject(route.params.project_id as string);
+  project.value = await $trpc.project.findById.query(+route.params.project_id);
 
   labelsOptions.push(
-    ...(await labelsetApi.findLabelset(task.value.labelset_id.toString())).labels.map(
+    ...(await $trpc.labelset.findById.query(+task.value.labelset_id)).labels.map(
       (l) => l.name
     )
   );
 
   documentsOptions.push(
-    ...(await documentApi.findSharedDocumentsByTask(task.value.id.toString())).map(
-      (d) => {
-        if (!(d.id in documentsData.value)) {
-          documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
-        }
-        return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
+    ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map((d) => {
+      if (!(d.id in documentsData.value)) {
+        documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
       }
-    )
+      return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
+    })
   );
 
   annotatorsOptions.push(
-    ...(await userApi.findUsersByTask(task.value.id.toString())).map((a) => a.email)
+    ...(await $trpc.user.findUsersByTask.query(+task.value.id)).map((a) => a.email!)
   );
 
   loading_options.value = false;
 });
 
 definePageMeta({
-  middleware: ["auth"],
+  middleware: ["auth",
+    async (to) => authorizeClient([["task", +to.params.task_id]]),
+    async (to) => authorizeClient([["project", +to.params.project_id]])],
   layout: "wide",
 });
 </script>
@@ -1120,6 +1064,7 @@ button:disabled {
 .list-leave-active {
   transition: all 0.5s ease;
 }
+
 .list-enter-from,
 .list-leave-to {
   opacity: 0;

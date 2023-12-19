@@ -1,10 +1,7 @@
 import { serverSupabaseClient } from "#supabase/server";
-import { Assignment } from "~/data/assignment";
-import {
-  DifficultyMetricResult,
-  MetricResult,
-  newEmptyMetricResult,
-} from "~/utils/metrics";
+import type { Assignment } from "~/types";
+import type { DifficultyMetricResult, MetricResult } from "~/utils/metrics";
+import { newEmptyMetricResult } from "~/utils/metrics";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
@@ -17,11 +14,22 @@ export default eventHandler(async (event) => {
     data.documents
   );
 
-  return computeMetric(
-    assignments.map((a) => a.difficulty_rating),
+  let result = computeMetric(
+    assignments.map((a: any) => a.difficulty_rating),
     data.annotators_length,
     5
   );
+
+  result.table = assignments.map((a: any) => {
+    return {
+      annotator: a.user.email,
+      doc_id: a.document_id,
+      ass_id: a.id,
+      rating: a.difficulty_rating,
+    };
+  });
+
+  return result;
 });
 
 function weightOrdinal(i: number, j: number, q: number): number {
@@ -42,6 +50,7 @@ function computeMetric(
     unrated: 0,
     krippendorff: undefined,
     values: new Array(q + 1).fill(0),
+    table: [],
   } as DifficultyMetricResult;
 
   let sum: number = 0;
@@ -83,7 +92,6 @@ function krippendorff(
   }
 
   n = rating_table.length;
-  //   console.log("rating_table: ", rating_table);
 
   let agreement_table: number[][] = [];
   for (let i = 0; i < n; i++) {
@@ -94,8 +102,6 @@ function krippendorff(
     }
   }
 
-  //   console.log(agreement_table);
-
   let weights_table: number[][] = [];
   for (let i = 0; i < q; i++) {
     weights_table.push(new Array(q).fill(0));
@@ -103,8 +109,6 @@ function krippendorff(
       weights_table[i][j] = weightFunc(i, j, q);
     }
   }
-
-  //   console.log(weights_table);
 
   let _rik: number[][] = [];
   let ri = [];
@@ -161,17 +165,6 @@ function krippendorff(
 
   const ka = (pa - pe) / (1 - pe);
 
-  //   console.log("_rik: ", _rik);
-  //   console.log("ri: ", ri);
-  //   console.log("_r: ", _r);
-  //   console.log("pi: ", pi);
-  //   console.log("_pa: ", _pa);
-  //   console.log("e: ", e);
-  //   console.log("pa: ", pa);
-  //   console.log("pik: ", pik);
-  //   console.log("pe: ", pe);
-  //   console.log("ka: ", ka);
-
   result.pe = pe;
   result.po = pa;
   result.result = ka;
@@ -184,8 +177,8 @@ async function findAssignmentsByTaskUsersDocuments(
   task_id: string,
   annotators_id: string[] = [],
   documents_id: string[] = []
-): Promise<Assignment[]> {
-  const supabase = serverSupabaseClient(event);
+): Promise<any> {
+  const supabase = await serverSupabaseClient(event);
   let query = supabase
     .from("assignments")
     .select("*, user:users!inner(id, email)")
@@ -203,5 +196,5 @@ async function findAssignmentsByTaskUsersDocuments(
     throw Error(
       `Error in findAssignmentsByTaskUsersDocuments: ${error.message}`
     );
-  else return data as Assignment[];
+  else return data;
 }

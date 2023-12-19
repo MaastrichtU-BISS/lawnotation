@@ -1,21 +1,18 @@
 <template>
-  <div id="label-studio-container" class="m-4">
-    <div id="label-studio"></div>
+  <div id="label-studio-container" class="p-4 h-full">
+    <div id="label-studio" class="h-full"></div>
   </div>
 </template>
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
-import { LSSerializedAnnotation, useAnnotationApi } from "~/data/annotation";
-import {
+import type {
   LSSerializedRelation,
-  useAnnotationRelationApi,
-} from "~/data/annotation_relations";
-import { Assignment, useAssignmentApi } from "~/data/assignment";
-import { LsLabels } from "~/data/labelset";
+  Assignment,
+  LsLabels,
+  LSSerializedAnnotations,
+} from "~/types";
 
-const annotationApi = useAnnotationApi();
-const relationApi = useAnnotationRelationApi();
-const assignmentApi = useAssignmentApi();
+const { $trpc } = useNuxtApp();
 
 const label_studio = ref();
 
@@ -24,13 +21,13 @@ const emit = defineEmits(["previousAssignment", "nextAssignment"]);
 const props = defineProps<{
   user: any;
   assignment: Assignment | undefined;
-  annotations: LSSerializedAnnotation | undefined;
+  annotations: LSSerializedAnnotations | undefined;
   relations: LSSerializedRelation[] | undefined;
   text: string | undefined;
   labels: LsLabels | undefined;
   isEditor: boolean | undefined;
   guidelines: string | undefined;
-  mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
+  // mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
 
 const serializeLSAnnotations = () => {
@@ -66,54 +63,63 @@ const clickNext = async () => {
   }
 
   await updateAnnotationsAndRelations(serializedAnnotations);
-  await assignmentApi.updateAssignment(props.assignment.id.toString(), {
-    status: "done",
-    difficulty_rating: rating,
+  await $trpc.assignment.update.mutate({
+    id: props.assignment.id,
+    updates: {
+      status: "done",
+      difficulty_rating: rating,
+    },
   });
   emit("nextAssignment");
 };
 
 const initLS = async () => {
+  // Following is to prevent error:
+  const script = document.createElement("script");
+  script.src = "data:text/javascript,void(0);";
+  document.body.appendChild(script);
+
   // @ts-expect-error
   const LabelStudio = (await import("@heartexlabs/label-studio")).default;
   label_studio.value = new LabelStudio("label-studio", {
     config: `
-                <View style="display: block;">
-                  <View style="display: flex;">
-                    <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3em">
-                      <Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
-                      <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
-                        ${props.labels
-                          ?.map(
-                            (l) =>
-                              `<Label value="${l.name}" background="${l.color}" style="display: inline-table"/>`
-                          )
-                          .join("\n")}
-                      </Labels>
-                    </View>
-                    <View>
-                      <View style="height: auto; overflow-y: auto; padding: 0 1.7em 1em">
-                        <Text name="text" value="$text" />
-                      </View>
-                      <Relations>
-                        <Relation value="Is a" />
-                        <Relation value="Has a" />
-                        <Relation value="Implies" />
-                        <Relation value="Depends on" />
-                        <Relation value="Belongs to" />
-                        <Relation value="Related to" />
-                        <Relation value="Is not" />
-                        <Relation value="Part of" />
-                      </Relations>
-                    </View>
+                <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
+                  <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto;">
+                    <Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
+                    <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
+                      ${props.labels
+                        ?.map(
+                          (l) =>
+                            `<Label value="${l.name}" background="${l.color}" style="display: inline-table; user-select: none;"/>`
+                        )
+                        .join("\n")}
+                    </Labels>
                   </View>
-                  <View style="padding: .7em; border-top: 1px solid rgba(0,0,0,.1)">
-                    <Header style="margin-bottom: 0; margin: 0px" value="Confidence (1=not confident at all, 5=very confident)"/>
+                  <View style="width: 100%; overflow-y: auto;">
+                    <View style="height: auto; padding: 0 1.7em 1em;">
+                      <Text name="text" value="$text" />
+                    </View>
+                    <Relations>
+                      <Relation value="Is a" />
+                      <Relation value="Has a" />
+                      <Relation value="Implies" />
+                      <Relation value="Depends on" />
+                      <Relation value="Belongs to" />
+                      <Relation value="Related to" />
+                      <Relation value="Is not" />
+                      <Relation value="Part of" />
+                    </Relations>
+                  </View>
+                  <View style="padding: .7em; border-top: 1px solid rgba(0,0,0,.1);  grid-column: span 2;">
+                    <Header style="margin-bottom: 0; margin: 0px; user-select: none;" value="Confidence (1=not confident at all, 5=very confident)"/>
                     <Rating value="$diff-rating" toName="rating" name="rating" maxRating="5" icon="star" size="medium" />
                   </View>
                 </View>
                 `,
-    description: `<html><pre>${props.guidelines}</pre></html>`,
+    description: `<html><a href="${props.guidelines}">${props.guidelines}</a></html>`,
+    settings: {
+      continuousLabeling: true,
+    },
     interfaces: [
       "panel",
       "update",
@@ -174,19 +180,19 @@ const initLS = async () => {
     // 'next'
     onSubmitAnnotation: async (
       LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
     ) => {
       clickNext();
     },
     onAcceptAnnotation: async (
       LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
     ) => {
       clickNext();
     },
     onUpdateAnnotation: async (
       LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotation }
+      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
     ) => {
       clickNext();
     },
@@ -198,11 +204,11 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
 
   // create annotations
   const ls_anns = serializedAnnotations.filter((x) => x.type == "labels");
-  const db_anns = annotationApi.convert_ls2db(ls_anns, props.assignment?.id);
-  const created_anns = await annotationApi.updateAssignmentAnnotations(
-    props.assignment?.id,
-    db_anns
-  );
+  const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id);
+  const created_anns = await $trpc.annotation.updateAssignmentAnnotations.mutate({
+    assignment_id: props.assignment?.id,
+    annotations: db_anns,
+  });
 
   if (!created_anns) return;
 
@@ -219,7 +225,11 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
       if (created_anns[i].ls_id == (rel as LSSerializedRelation).to_id)
         to = created_anns[i].id;
     }
-    relationApi.createRelation(rel as LSSerializedRelation, from, to);
+    $trpc.relation.create.mutate({
+      fields: rel as LSSerializedRelation,
+      from_id: from,
+      to_id: to,
+    });
   });
 };
 
@@ -256,10 +266,10 @@ onMounted(() => {
   );
   waitForElement(".ant-rate").then((el) => {
     if (props.assignment?.difficulty_rating! < 1) return;
-    document
+    (document
       .getElementsByClassName("ant-rate-star-zero")
       .item(props.assignment?.difficulty_rating! - 1)
-      ?.firstChild?.click();
+      ?.firstChild as HTMLButtonElement).click();
   });
 });
 </script>
@@ -313,9 +323,20 @@ onMounted(() => {
   visibility: visible;
 }
 
+.ant-input {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .lsf-label__text {
   white-space: pre-wrap;
   /* word-break: break-all; */
+  user-select: none;
+}
+
+.lsf-label__hotkey {
+  user-select: none;
 }
 
 .lsf-label {
@@ -327,8 +348,15 @@ onMounted(() => {
   display: none !important;
 }
 
+.ls-common,
+.main-content-wrapper--1qjJ0,
+.lsf-main-view {
+  min-height: 0;
+}
+
 .lsf-main-view__annotation {
   padding: 0;
+  height: 100%;
 }
 
 sup {
@@ -341,5 +369,9 @@ sup {
 
 .lsf-entity__info {
   display: none;
+}
+
+.ls-menu {
+  overflow-y: auto;
 }
 </style>

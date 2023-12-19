@@ -1,9 +1,9 @@
-import { RichAnnotation } from "~/data/annotation";
+import type { RichAnnotation } from "~/types";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);
 
-  let promises: Promise<RichAnnotation>[] = [];
+  let promises: Promise<RichAnnotation[]>[] = [];
   data.labels.map((l: string) => {
     promises.push(
       $fetch("/api/metrics/get_annotations", {
@@ -13,6 +13,8 @@ export default eventHandler(async (event) => {
           label: l,
           documents: data.documents,
           annotators: data.annotators,
+          byWords: data.byWords,
+          hideNonText: data.hideNonText,
         }),
       })
     );
