@@ -2,8 +2,12 @@ describe('Test label functionality', () => {
     before(() => {
         cy.resetDatabase();
       });
-    it('Enters label studio and tests functionality', () => {
+
+      it('Logs into lawnotation'), () => {
         cy.login()
+    }
+
+    it('Enters label studio and tests functionality', () => {
         cy.get('a[data-test="labelset-link"]').click() 
         cy.wait(1000)
         cy.get('button[data-test="Create-new-labelset"]').click()
@@ -22,8 +26,5 @@ describe('Test label functionality', () => {
         cy.get('a[data-test="Edit-labelset"]').first().click() // start deleting label
         cy.get('svg[data-test="delete-label"]').first().click()
         cy.get('a[data-test="labelset-link"]').click()
-        
-
-
         })
 })

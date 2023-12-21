@@ -1,7 +1,9 @@
 describe('Navigate to projects and test functionality ', () => {
-      
-    it('Enter projects and Add, Delete and Edit ', () => {
+    it('Logs into lawnotation'), () => {
         cy.login()
+    }
+
+    it('Enter projects and Add, Delete and Edit ', () => {
         cy.get('a[data-test="Projects-link"]').click()
         cy.wait(1000) 
         cy.addProject('Deletetest')
@@ -18,36 +20,38 @@ describe('Navigate to projects and test functionality ', () => {
         cy.wait(1000)
         cy.get('[data-test="Checkbox"]').eq(2).check()
         cy.wait(1000)
-        cy.get('button[data-test="remove-selected-rows"]').eq(1).click({force: true}) 
+        cy.get('button[data-test="remove-selected-rows"]').eq(1).click({force: true})   //test if the project is deleted
         cy.wait(1000)
         cy.get('button').contains('Confirm').click()
         cy.wait(1000)
         cy.reload()
-        cy.get('a[data-test="View-task"]').should("have.length", 2)  
+        cy.get('a[data-test="View-task"]').should("have.length", 2) 
         cy.wait(1000)
-        cy.get('button[data-test="remove-all"]').eq(1).click({force: true}) 
+        cy.get('button[data-test="remove-all"]').eq(1).click({force: true})  //test if the project is deleted
         cy.get('button').contains('Confirm').click()
         cy.reload()
-        cy.get('a[data-test="View-task"]').should("have.length", 0) 
+        cy.get('a[data-test="View-task"]').should("have.length", 0)
         cy.get('a[data-test="Projects-link"]').click()
         cy.wait(1000)
         cy.get('[data-test="Checkbox"]').eq(0).check()
         cy.wait(1000)
         cy.get('[data-test="Checkbox"]').eq(2).check()
         cy.wait(1000)
-        cy.get('button[data-test="remove-selected-rows"]').click({force: true}) 
+        cy.get('button[data-test="remove-selected-rows"]').eq(0).click({force: true})  //test if the project is deleted
         cy.reload()
-        cy.get('a[data-test="Edit-project-link"]').should("have.length", 2) 
+        cy.get('a[data-test="Edit-project-link"]').should("have.length", 2)  //test if the project is deleted
         cy.reload()
         cy.wait(1000)
-        cy.get('button[data-test="remove-all"]').eq(0).click() 
+        cy.get('button[data-test="remove-all"]').eq(1).click({force: true}) 
         cy.wait(1000)
         cy.get('button').contains('Confirm').click()
         cy.reload()
-        cy.get('a[data-test="Edit-project-link"]').should("have.length", 0) 
+        cy.get('a[data-test="Edit-project-link"]').should("have.length", 0) //test if the project is deleted
         cy.reload()
         cy.wait(1000)
-        //start editing tasks
+    })
+    it('Edits a project', () => {
+        cy.get('a[data-test="Projects-link"]').click()
         cy.addProject('Edittest')
         cy.get('a[data-test="Edit-project-link"]').eq(0).click()
         cy.addTask('test')

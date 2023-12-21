@@ -1,9 +1,12 @@
 describe('Navigate to assignments and test functionality ', () => {
-    it('Test assignments', () => {
+    it('Logs into lawnotation'), () => {
         cy.login()
+    }
+
+    it('Test assignments', () => {
         cy.get('a[data-test="Projects-link"]').click()
         cy.wait(1000)
-        // cy.addProject('Assaignments test')
+        // cy.addProject('Assignments test')
         cy.wait(1000)
         cy.get('a[data-test="Edit-project-link"]').eq(0).click()
         cy.get('a[data-test="View-task"]').eq(0).click()
@@ -23,5 +26,4 @@ describe('Navigate to assignments and test functionality ', () => {
         cy.wait(1000)
         // cy.contains('Lorem').dblclick({force: true}) 
     })
-
 })
