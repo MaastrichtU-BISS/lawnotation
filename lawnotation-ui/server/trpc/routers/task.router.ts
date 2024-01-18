@@ -298,4 +298,4 @@ export const taskRouter = router({
     }),
 });
 
-export type LabelsetRouter = typeof taskRouter;
+export type TaskRouter = typeof taskRouter;
