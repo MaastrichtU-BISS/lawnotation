@@ -1,4 +1,5 @@
 export type Publication = {
+  id: number;
   editor_id: string,
   status: "published" | "unpublished"
   file_url: string;

@@ -89,7 +89,7 @@ export const publicationRouter = router({
         });
       return data as Publication;
     }),
-
+    
   create: protectedProcedure
     .input(ZPublicationFields)
     .mutation(async ({ ctx, input }) => {

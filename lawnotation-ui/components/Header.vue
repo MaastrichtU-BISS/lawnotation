@@ -7,9 +7,12 @@
     <div v-if="user" class="space-x-4">
       <template v-if="role == 'editor'">
         <NuxtLink to="/projects" class="header-link" :class="{'active': routeIsActive('/projects')}">Projects</NuxtLink>
+        <span class="text-gray-400 select-none">|</span>
         <NuxtLink to="/labelset" class="header-link" :class="{'active': routeIsActive('/labelset')}">Labelsets</NuxtLink>
         <span class="text-gray-400 select-none">|</span>
       </template>
+      <NuxtLink to="/publications" class="header-link" :class="{'active': routeIsActive('/publications')}">Publications</NuxtLink>
+      <span class="text-gray-400 select-none">|</span>
       <NuxtLink to="/tasks" class="header-link" :class="{'active': routeIsActive('/tasks')}">Assigned Tasks</NuxtLink>
     </div>
     <div class="auth">

@@ -234,6 +234,5 @@ const publish = async () => {
 };
 
 onMounted(() => {
-  console.log(props.publication)
 });
 </script>

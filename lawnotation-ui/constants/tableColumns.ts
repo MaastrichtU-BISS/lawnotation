@@ -68,6 +68,34 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
     Action: null,
   },
 
+  'publications': {
+    Id: {
+      field: "id",
+      sortable: true,
+    },
+    Task: {
+      field: "task_name",
+      sortable: true,
+      searchable: true,
+    },
+    Labels: {
+      field: "labels_name",
+      sortable: true,
+      searchable: true,
+    },
+    Author: {
+      field: "author",
+      sortable: true,
+      searchable: true,
+    },
+    Contact: {
+      field: "contact",
+      sortable: true,
+      searchable: true,
+    },
+    Link: null,
+  },
+
   'assignments': {
     Id: {
       field: "id",
