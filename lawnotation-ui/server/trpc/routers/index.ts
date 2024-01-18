@@ -8,6 +8,7 @@ import { documentRouter } from './document.router';
 import { labelsetRouter } from './labelset.router';
 import { projectRouter } from './project.router';
 import { taskRouter } from './task.router';
+import { publicationRouter } from './publication.router';
 import { userRouter } from './user.router';
 import { metricsRouter } from './metrics.router';
 import { tableRouter } from './table.router';
@@ -20,6 +21,7 @@ export const appRouter = router({
   labelset: labelsetRouter,
   project: projectRouter,
   task: taskRouter,
+  publication: publicationRouter,
   user: userRouter,
 
   table: tableRouter,

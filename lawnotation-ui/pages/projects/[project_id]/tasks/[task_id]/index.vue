@@ -26,27 +26,25 @@
                 Analyze Agreement Metrics
               </button>
             </NuxtLink>
-            <button type="button"
-              @click="replicateTask"
+            <button type="button" @click="replicateTask"
               class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
               Duplicate Task
             </button>
-            <button type="button"
-              @click="export_modal?.show()"
-              class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
-              Export Task
+            <button type="button" @click="export_modal?.show()"
+              class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
+              Export / Publish
             </button>
           </div>
           <h3 class="my-3 text-lg font-semibold">Assignments</h3>
           <div v-if="task">
-            <Table ref="assignmentTable" endpoint="assignments" :filter="{ task_id: task?.id }" :sort="true" :search="true"
-              :selectable="true" @remove-rows="removeAssignments" @remove-all-rows="removeAllAssignments">
+            <Table ref="assignmentTable" endpoint="assignments" :filter="{ task_id: task?.id }" :sort="true"
+              :search="true" :selectable="true" @remove-rows="removeAssignments" @remove-all-rows="removeAllAssignments">
               <template #row="{ item }: { item: AssignmentTableData }">
                 <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
                   {{ item.id }}
                 </td>
                 <td class="px-6 py-2">
-                  {{ item.annotator?.email?? `annotator ${item.annotator_number}` }}
+                  {{ item.annotator?.email ?? `annotator ${item.annotator_number}` }}
                 </td>
                 <td class="px-6 py-2">
                   {{ item.document.name }}
@@ -91,13 +89,14 @@
             </button>
           </div>
         </div>
-        <ExportTaskModal v-model="export_options" @export="exportTask" @close="export_modal?.hide()"></ExportTaskModal>
+        <ExportTaskModal v-model="export_options" :publication="publication" @export="exportTask"
+          @close="export_modal?.hide()"></ExportTaskModal>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import type { Task, Assignment, AssignmentTableData, User, Project } from "~/types";
+import type { Task, Assignment, AssignmentTableData, User, Project, Publication } from "~/types";
 import Table from "~/components/Table.vue";
 import { Modal } from "flowbite";
 import { shuffle, clone } from "lodash";
@@ -114,11 +113,21 @@ const config = useRuntimeConfig();
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
 const project = await $trpc.project.findById.query(+route.params.project_id);
-const totalAssignments = await $trpc.table.assignments.useQuery({filter: {task_id: task.id}});
+const totalAssignments = await $trpc.table.assignments.useQuery({ filter: { task_id: task.id } });
 
 const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
 const total_docs = totalAmountOfDocs ?? 0;
 const amount_of_docs = ref<number>(total_docs);
+
+const publication = ref<Publication>({
+  editor_id: user.value?.id!,
+  status: "published",
+  file_url: "",
+  task_name: task.name,
+  labels_name: (await $trpc.labelset.findById.query(+task.labelset_id)).name,
+  author: "",
+  contact: user.value?.email!
+});
 
 let export_modal: Modal | null = null;
 
@@ -250,7 +259,7 @@ const replicateTask = async () => {
 };
 
 const exportTask = async () => {
-  loading.value = true;
+  // loading.value = true;
   let json: any = {};
 
   if (export_options.value.name) {
@@ -356,19 +365,23 @@ const exportTask = async () => {
 
   downloadAs(json, `${json.name}.json`);
 
-  loading.value = false;
+  // loading.value = false;
   $toast.success(`Task has been exported!`);
 };
 
 onMounted(async () => {
   const modalOptions: ModalOptions = {
-      placement: "center",
-      backdrop: "dynamic",
-      backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
-      closable: true,
-    };
+    placement: "center",
+    backdrop: "dynamic",
+    backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
+    closable: true,
+  };
 
-    export_modal = new Modal(document.getElementById("exportFormModal"), modalOptions);
+  export_modal = new Modal(document.getElementById("exportFormModal"), modalOptions);
+
+
+  publication.value.labels_name = (await $trpc.labelset.findById.query(+task.labelset_id)).name;
+
 });
 
 definePageMeta({
