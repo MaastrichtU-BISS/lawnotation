@@ -27,13 +27,11 @@ describe('Navigate to projects and test functionality ', () => {
         cy.wait(1000)
         cy.get('button').contains('Confirm').click()
         cy.wait(1000)
-        cy.reload()
         cy.get('a[data-test="View-task"]').should("have.length", 2)
 
         cy.wait(1000)
         cy.get('button[data-test="remove-all"]').eq(1).click({ force: true })  //test if the project is deleted
         cy.get('button').contains('Confirm').click()
-        cy.reload()
         cy.get('a[data-test="View-task"]').should("have.length", 0)
 
         cy.get('a[data-test="projects-link"]').click()
@@ -43,17 +41,13 @@ describe('Navigate to projects and test functionality ', () => {
         cy.get('[data-test="checkbox"]').eq(2).check()
         cy.wait(1000)
         cy.get('button[data-test="remove-selected-rows"]').eq(0).click({ force: true })  //test if the project is deleted
-        cy.reload()
         cy.get('a[data-test="edit-project-link"]').should("have.length", 2)  //test if the project is deleted
         
-        cy.reload()
         cy.wait(1000)
         cy.get('button[data-test="remove-all"]').eq(1).click({ force: true })
         cy.wait(1000)
         cy.get('button').contains('Confirm').click()
-        cy.reload()
         cy.get('a[data-test="edit-project-link"]').should("have.length", 0) //test if the project is deleted
-        cy.reload()
         cy.wait(1000)
     })
 
