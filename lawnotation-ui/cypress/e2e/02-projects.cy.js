@@ -4,7 +4,7 @@ describe('Navigate to projects and test functionality ', () => {
     });
 
     it('Enter projects and Add, Delete and Edit ', () => {
-        cy.get('a[data-test="Projects-link"]').click()
+        cy.get('a[data-test="projects-link"]').click()
         cy.wait(1000)
         cy.addProject('Deletetest')
         cy.addProject('Deletetest')
@@ -31,7 +31,7 @@ describe('Navigate to projects and test functionality ', () => {
         cy.get('button').contains('Confirm').click()
         cy.reload()
         cy.get('a[data-test="View-task"]').should("have.length", 0)
-        cy.get('a[data-test="Projects-link"]').click()
+        cy.get('a[data-test="projects-link"]').click()
         cy.wait(1000)
         cy.get('[data-test="Checkbox"]').eq(0).check()
         cy.wait(1000)
@@ -52,7 +52,7 @@ describe('Navigate to projects and test functionality ', () => {
     })
 
     it('Edits a project', () => {
-        cy.get('a[data-test="Projects-link"]').click()
+        cy.get('a[data-test="projects-link"]').click()
         cy.addProject('Edittest')
         cy.get('a[data-test="Edit-project-link"]').eq(0).click()
         cy.addTask('test')
@@ -60,6 +60,6 @@ describe('Navigate to projects and test functionality ', () => {
         cy.get('button[data-test="Documents"]').click()
         cy.get('input[type=file]').selectFile('./cypress/support/Test.txt')
         cy.get('td').contains('Test.txt').should('exist')
-        cy.get('a[data-test="Projects-link"]').click
+        cy.get('a[data-test="projects-link"]').click
     })
 })

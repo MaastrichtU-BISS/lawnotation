@@ -4,7 +4,7 @@ describe('Navigate to assignments and test functionality ', () => {
     });
 
     it('Test assignments', () => {
-        cy.get('a[data-test="Projects-link"]').click()
+        cy.get('a[data-test="projects-link"]').click()
         cy.wait(1000)
         // cy.addProject('Assignments test')
         cy.wait(1000)
