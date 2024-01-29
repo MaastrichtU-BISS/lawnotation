@@ -19,8 +19,8 @@
     <hr class="pb-4 mt-2" />
     <div class="row">
       <div class="flex flex-col space-y-2">
-        <input class="base" type="text" data-test="Edit-labelset-name" v-model="labelset.name" placeholder="Labelset name" />
-        <textarea class="base" data-test="Edit-labelset-description" :value="labelset.desc"
+        <input class="base" type="text" data-test="edit-labelset-name" v-model="labelset.name" placeholder="Labelset name" />
+        <textarea class="base" data-test="edit-labelset-description" :value="labelset.desc"
           @input="labelset.desc = ($event.target as HTMLTextAreaElement)?.value"
           placeholder="Labelset description"></textarea>
       </div>
