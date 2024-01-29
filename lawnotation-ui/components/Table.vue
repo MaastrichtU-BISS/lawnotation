@@ -178,7 +178,7 @@
           >
             <td class="px-6 py-2" v-if="props.selectable">
               <input
-              data-test="Checkbox"
+                data-test="checkbox"
                 type="checkbox"
                 :value="item.id"
                 v-model="checkedIds"

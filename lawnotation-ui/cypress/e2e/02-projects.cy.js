@@ -33,9 +33,9 @@ describe('Navigate to projects and test functionality ', () => {
         cy.get('a[data-test="View-task"]').should("have.length", 0)
         cy.get('a[data-test="projects-link"]').click()
         cy.wait(1000)
-        cy.get('[data-test="Checkbox"]').eq(0).check()
+        cy.get('[data-test="checkbox"]').eq(0).check()
         cy.wait(1000)
-        cy.get('[data-test="Checkbox"]').eq(2).check()
+        cy.get('[data-test="checkbox"]').eq(2).check()
         cy.wait(1000)
         cy.get('button[data-test="remove-selected-rows"]').eq(0).click({ force: true })  //test if the project is deleted
         cy.reload()
