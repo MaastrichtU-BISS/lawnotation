@@ -63,7 +63,6 @@
         <div class="dimmer-content">
           <span class="mr-3">Add documents</span>
           <input
-            data-test="Upload-documents"
             class="base"
             type="file"
             name="data-set"
@@ -73,6 +72,7 @@
             directory
             multiple
             @change="change_file($event)"
+            data-test="upload-documents"
           />
         </div>
       </div>

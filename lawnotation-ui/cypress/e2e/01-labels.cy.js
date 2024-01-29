@@ -8,8 +8,8 @@ describe('Test label functionality', () => {
   });
 
   it('Enters label studio and tests functionality', () => {
+    cy.wait(3000)
     cy.get('a[data-test="labelset-link"]').click()
-    cy.wait(1000)
     cy.get('button[data-test="create-new-labelset"]').click()
     cy.get('input[data-test="labelset-name"]').type('test1')
     cy.get('textarea[data-test="labelset-description"]').type('test1')
