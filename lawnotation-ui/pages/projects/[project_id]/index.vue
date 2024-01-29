@@ -113,20 +113,20 @@
         <h3 class="mt-8 text-lg">Create new task</h3>
         <div class="flex flex-col w-1/2 pt-3 mt-3 space-y-2 border-t border-neutral-300">
           <input
-            data-test="Task-name"
+            data-test="task-name"
             class="base"
             type="text"
             placeholder="Task name"
             v-model="new_task.name"
           />
           <textarea
-            data-test="Task-description"
+            data-test="task-description"
             class="base"
             placeholder="Task description"
             v-model="new_task.desc"
           ></textarea>
           <textarea
-            data-test="Annotation Guidelines"
+            data-test="annotation-guidelines"
             class="base"
             placeholder="Annotation Guidelines"
             v-model="new_task.ann_guidelines"
@@ -135,7 +135,7 @@
           <label for="label_id">Labelset</label>
           <div class="flex items-start w-full space-x-2">
             <select
-              data-test="Select-labelset"
+              data-test="select-labelset"
               v-model="new_task.labelset_id"
               class="w-full flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
             >
@@ -161,7 +161,7 @@
             </button>
           </div>
 
-          <button data-test="Create-tasks" class="base btn-primary" @click="createTask">Create Tasks</button>
+          <button data-test="create-tasks" class="base btn-primary" @click="createTask">Create Tasks</button>
         </div>
       </div>
     </div>
