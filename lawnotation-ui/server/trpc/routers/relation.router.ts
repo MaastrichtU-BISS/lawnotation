@@ -85,13 +85,13 @@ export const relationRouter = router({
       const { data, error } = await ctx.supabase
         .from("annotation_relations")
         .select(
-          "*, annotation:from_id!inner(id, assignment:assignments!inner(id, task_id))"
+          "*, annotation:from_id!inner(id, assignment:assignments!inner(id, task_id, document_id))"
         )
         .eq("from_id.assignments.task_id", task_id);
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findRelationsByTask: ${error.message}`});
-      return data as AnnotationRelation[];
+      return data;
     }),
 
   // previously 'findRelation':

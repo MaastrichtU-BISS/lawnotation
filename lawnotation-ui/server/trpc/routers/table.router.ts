@@ -30,15 +30,16 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
       sort: z.object({
         column: z.string().nullable(),
         dir: z.union([z.literal('ASC'), z.literal('DESC')])
-      }),
+      }).default({column: null, dir: 'ASC'}),
       search: z.object({
         column: z.string().nullable(),
         query: z.string()
-      }),
+      }).default({column: null, query: ""}),
+
       filter: z.record(z.string(), z.any()).optional(),
 
-      page: z.number(),
-      items_per_page: z.number()
+      page: z.number().min(1).default(1),
+      items_per_page: z.number().default(10)
     })
   )
   .output(
@@ -145,7 +146,7 @@ export const tableRouter = router({
   'assignments': createTableProcedure({
     type: 'supabase_table',
     from: 'assignments',
-    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, difficulty_rating, seq_pos'
+    select: 'id, task_id, status, difficulty_rating, seq_pos, annotator_number, annotator:users!inner(id, email), document:documents!inner(id, name, source)'
     // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
   }),
 

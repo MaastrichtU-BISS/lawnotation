@@ -66,9 +66,11 @@
         </div>
       </div>
 
-      <p class="mt-10 text-center text-sm text-gray-500">
-        You will receive a link in your mailbox which you can use to sign-in. Note that if
-        you do not have an account yet, this will automatically create one for you.
+      <p class="mt-8 text-center text-sm text-gray-500">
+        By clicking the 'Send link' button, you consent to our <NuxtLink to="/terms-of-service" class="underline">Terms of Service</NuxtLink> and
+        <NuxtLink to="/privacy-policy" class="underline">Privacy Policy</NuxtLink>. You
+        will receive a link in your mailbox which you can use to sign-in. Note that if you
+        do not have an account yet, this will automatically create one for you.
       </p>
     </div>
   </div>

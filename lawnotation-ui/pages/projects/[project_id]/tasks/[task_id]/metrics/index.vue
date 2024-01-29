@@ -257,10 +257,11 @@ const tolerance = ref<number>(0);
 
 const loading_annotations = ref(false);
 const loading_options = ref(false);
-const download_progress = ref<{ current: number; total: number; loading: boolean }>({
+const download_progress = ref<{ current: number; total: number; loading: boolean; message: string }>({
   current: 0,
   total: 0,
   loading: false,
+  message: ""
 });
 const downloadAllPromises = [];
 const downloadAllResults = [];
@@ -636,9 +637,10 @@ async function download_all(data: any) {
         data.documentsOrEmpty,
         data
       );
-      const annotations_sheet = await getAnnotationsSheet(metrics[0].table!);
+      const metrics_sample = metrics[0].table?? metrics[2].table!;
+      const annotations_sheet = await getAnnotationsSheet(metrics_sample);
       const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
-        metrics[0].table!,
+        metrics_sample,
         data.annotators
       );
 
@@ -705,10 +707,10 @@ async function download_all(data: any) {
         console.log("x");
 
         const metrics_sheet = await getMetricsSheet(metrics, label, [document], data);
-
-        const annotations_sheet = await getAnnotationsSheet(metrics[0].table!);
+        const metrics_sample = metrics[0].table?? metrics[2].table!;
+        const annotations_sheet = await getAnnotationsSheet(metrics_sample);
         const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
-          metrics[0].table!,
+          metrics_sample,
           data.annotators
         );
         XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label);

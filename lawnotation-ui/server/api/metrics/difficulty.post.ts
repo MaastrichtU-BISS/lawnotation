@@ -1,10 +1,7 @@
 import { serverSupabaseClient } from "#supabase/server";
 import type { Assignment } from "~/types";
-import type {
-  DifficultyMetricResult,
-  MetricResult,
-  newEmptyMetricResult,
-} from "~/utils/metrics";
+import type { DifficultyMetricResult, MetricResult } from "~/utils/metrics";
+import { newEmptyMetricResult } from "~/utils/metrics";
 
 export default eventHandler(async (event) => {
   const data = await readBody(event);

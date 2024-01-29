@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Annotation, Task } from "~/types";
+import type { Annotation, Task, User, Annotator } from "~/types";
 import type { Context } from "../context";
 import { appRouter } from ".";
 import type { Database } from "~/types/supabase";
@@ -40,6 +40,7 @@ const taskAuthorizer = async (
     .eq("annotator_id", user_id);
 
   return annotator.count! > 0;
+  // return true;
 };
 
 export const taskRouter = router({
@@ -179,6 +180,23 @@ export const taskRouter = router({
       return data as Task[];
     }),
 
+  getAllAnnotatorsFromTask: protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: task_id }) => {
+      const { data, error } = await ctx.supabase.rpc(
+        "get_all_annotators_from_task",
+        {
+          t_id: task_id,
+        }
+      );
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in tasks.getAllAnnotatorsFromTask: ${error.message}`,
+        });
+      return data as Annotator[];
+    }),
+
   deleteAllFromProject: protectedProcedure
     .input(z.number().int())
     .mutation(async ({ ctx, input: project_id }) => {
@@ -196,16 +214,14 @@ export const taskRouter = router({
     }),
 
   // Note: wont work, probably
+  // Now it does ;)
   replicateTask: protectedProcedure
     .input(z.number().int())
     .mutation(async ({ ctx, input: task_id }): Promise<Task> => {
       const caller = appRouter.createCaller(ctx);
 
-      // const annotationApi = useAnnotationApi();
-      // const assignmentApi = useAssignmentApi();
-      // const relationApi = useAnnotationRelationApi();
+      const task = await caller.task.findById(task_id);
 
-      const task = await caller.task.findById({ task_id: task_id });
       const new_task = await caller.task.create({
         name: task.name,
         desc: task.desc,
@@ -239,8 +255,6 @@ export const taskRouter = router({
         [K in keyof T]: NonNullable<T[K]>;
       };
 
-      console.log(assignments.length, new_assignments.length);
-
       const annotations = await caller.annotation.findAnnotationsByTask(
         task_id
       );
@@ -258,8 +272,6 @@ export const taskRouter = router({
           };
         })
       );
-
-      console.log(annotations.length, new_annotations.length);
 
       const relations = await caller.relation.findRelationsByTask(task_id);
 
@@ -280,8 +292,6 @@ export const taskRouter = router({
           };
         })
       );
-
-      console.log(relations.length, new_relations.length);
 
       // return 1;
       return new_task;

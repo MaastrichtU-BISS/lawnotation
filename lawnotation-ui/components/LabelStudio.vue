@@ -116,7 +116,7 @@ const initLS = async () => {
                   </View>
                 </View>
                 `,
-    description: `<html><pre>${props.guidelines}</pre></html>`,
+    description: `<html><a href="${props.guidelines}">${props.guidelines}</a></html>`,
     settings: {
       continuousLabeling: true,
     },

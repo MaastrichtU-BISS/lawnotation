@@ -42,6 +42,7 @@ const labelsetAuthorizer = async (
     .eq("annotator_id", user_id);
 
   return annotator.count! > 0;
+  // return true;
 };
 
 export const labelsetRouter = router({
@@ -54,7 +55,7 @@ export const labelsetRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      let query = ctx.supabase.from("labelsets").select();
+      let query = ctx.supabase.from("labelsets").select().eq("editor_id", ctx.user.id);
       if (input.range) query = query.range(input.range[0], input.range[1]);
       if (input.filter) query = query.match(input.filter);
 
@@ -133,7 +134,7 @@ export const labelsetRouter = router({
 
   delete: protectedProcedure
     .input(z.number().int())
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase
         .from("labelsets")
         .delete()

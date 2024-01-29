@@ -184,7 +184,7 @@ export const annotationRouter = router({
     .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase
         .from("annotations")
-        .select("*, assignment:assignments!inner(id, task_id)")
+        .select("*, assignment:assignments!inner(id, task_id, document_id, annotator_id)")
         .eq("assignment.task_id", task_id)
         .order("id");
 

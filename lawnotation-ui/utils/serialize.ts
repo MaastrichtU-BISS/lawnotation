@@ -23,7 +23,7 @@ export const convert_annotation_db2ls = (anns: Annotation[], assignment_id: numb
   const arr = anns.map((a) => {
     return {
       id: a.ls_id,
-      origin: a.origin,
+      origin: "manual",
       from_name: "label",
       to_name: "text",
       type: "labels",

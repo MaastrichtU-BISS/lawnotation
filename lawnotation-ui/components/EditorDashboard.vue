@@ -106,7 +106,7 @@ const chartDifficultyOptions = ref({
     id: "difficulty",
   },
   title: {
-    text: "Assignments difficulty",
+    text: "Assignments confidence",
     align: "center",
   },
   subtitle: {
