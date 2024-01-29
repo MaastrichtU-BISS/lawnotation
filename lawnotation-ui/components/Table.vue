@@ -24,22 +24,22 @@
       <div class="flex items-center justify-end m-2">
         <span class="flex-grow" v-if="props.selectable">
           <button
-            data-test="remove-all"
             v-show="total > 0"
             @click="removeAll"
             type="button"
             style="outline: none"
             class="mr-2 text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-2.5 text-center"
+            data-test="remove-all"
           >
             Remove all ({{ total }})
           </button>
           <button
-            data-test="remove-selected-rows"
             v-show="checkedIds.length"
             @click="removeSelected(checkedIds)"
             type="button"
             style="outline: none"
             class="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-2.5 text-center"
+            data-test="remove-selected-rows"
           >
             Remove selected rows ({{ checkedIds.length }})
           </button>
@@ -95,10 +95,10 @@
             <!-- <slot name="head"></slot> -->
             <th class="px-6 py-2" v-if="props.selectable">
               <input
-                data-test="Checkbox-all"
                 type="checkbox"
                 v-model="allCheckbox"
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                data-test="Checkbox-all"
               />
             </th>
             <th
@@ -173,11 +173,11 @@
           >
             <td class="px-6 py-2" v-if="props.selectable">
               <input
-                data-test="checkbox"
                 type="checkbox"
                 :value="item.id"
                 v-model="checkedIds"
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                data-test="checkbox"
               />
             </td>
             <slot name="row" :item="item" :key="item.id"></slot>
