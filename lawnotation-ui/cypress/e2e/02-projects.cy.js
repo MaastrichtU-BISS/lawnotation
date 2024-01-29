@@ -4,8 +4,8 @@ describe('Navigate to projects and test functionality ', () => {
     });
 
     it('Enter projects and Add, Delete and Edit ', () => {
-        cy.get('a[data-test="projects-link"]').click()
         cy.wait(1000)
+        cy.get('a[data-test="projects-link"]').click()
 
         cy.addProject('Project1')
         cy.addProject('Project2')
@@ -58,6 +58,7 @@ describe('Navigate to projects and test functionality ', () => {
     })
 
     it('Edits a project', () => {
+        cy.wait(1000)
         cy.get('a[data-test="projects-link"]').click()
         cy.addProject('Edittest')
         cy.get('a[data-test="edit-project-link"]').eq(0).click()
