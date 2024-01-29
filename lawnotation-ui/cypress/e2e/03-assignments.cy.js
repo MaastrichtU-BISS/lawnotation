@@ -8,7 +8,7 @@ describe('Navigate to assignments and test functionality ', () => {
         cy.wait(1000)
         // cy.addProject('Assignments test')
         cy.wait(1000)
-        cy.get('a[data-test="Edit-project-link"]').eq(0).click()
+        cy.get('a[data-test="edit-project-link"]').eq(0).click()
         cy.get('a[data-test="View-task"]').eq(0).click()
         cy.wait(1000)
         cy.contains('Create assignments').then(($body) => {

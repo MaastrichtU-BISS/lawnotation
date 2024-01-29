@@ -18,7 +18,7 @@
           {{ item.name }}
         </td>
         <td class="px-6 py-2">
-          <NuxtLink data-test="Edit-project-link" class="base" :to="`/projects/${item.id}`"> Edit </NuxtLink>
+          <NuxtLink data-test="edit-project-link" class="base" :to="`/projects/${item.id}`"> Edit </NuxtLink>
         </td>
       </template>
     </Table>
