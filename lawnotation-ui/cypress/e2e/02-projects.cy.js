@@ -1,8 +1,4 @@
 describe('Navigate to projects and test functionality ', () => {
-    before(() => {
-        cy.resetDatabase();
-    });
-
     beforeEach(() => {
         cy.login();
     });
