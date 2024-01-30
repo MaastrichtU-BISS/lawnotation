@@ -1,9 +1,13 @@
-describe('Navigate to assignments and test functionality ', () => {
+describe('Assign a project to the annotator account as the editor', () => {
+    before(() => {
+        cy.resetDatabase();
+    });
+
     beforeEach(() => {
         cy.login();
     });
 
-    it('Test assignments', () => {
+    it('Create project, add task and document, and assign to the annotator account', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
         cy.addProject('Assignments test')
@@ -14,9 +18,9 @@ describe('Navigate to assignments and test functionality ', () => {
         cy.get('button[data-test="documents-tab"]').click()
         cy.get('input[data-test="upload-documents"]').selectFile('./cypress/support/Test.txt')
         cy.get('td').contains('Test.txt').should('exist')
-        
+
         cy.get('button[data-test="tasks-tab"]').click()
-        cy.get('a[data-test="View-task"]').click()
+        cy.get('button[data-test="view-task-button"]').click()
         cy.contains('Create assignments').then(($body) => {
             if ($body.text().includes('Create assignments') && $body.is(':visible')) {
                 cy.get('input[id="annotator_email"]').type('annotator@test.com')

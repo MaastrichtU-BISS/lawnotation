@@ -1,4 +1,4 @@
-describe('Navigate to projects and test functionality ', () => {
+describe('Testing projects and tasks with the editor account', () => {
     before(() => {
         cy.resetDatabase();
     });
@@ -7,7 +7,7 @@ describe('Navigate to projects and test functionality ', () => {
         cy.login();
     });
 
-    it('Enter projects and Add, Delete and Edit ', () => {
+    it('Add, edit and remove projects and tasks', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
 
@@ -16,7 +16,7 @@ describe('Navigate to projects and test functionality ', () => {
         cy.addProject('Project3')
         cy.addProject('Project4')
 
-        cy.get('a[data-test="edit-project-link"]').eq(0).click()
+        cy.get('a[data-test="edit-project-link"]').first().click()
         cy.addTask('Task1')
         cy.addTask('Task2')
         cy.addTask('Task3')
@@ -24,27 +24,27 @@ describe('Navigate to projects and test functionality ', () => {
 
         cy.get('input[data-test="checkbox"]').eq(0).check()
         cy.get('input[data-test="checkbox"]').eq(2).check()
-        cy.get('button[data-test="remove-selected-rows"]').eq(1).click({ force: true })   //test if the project is deleted
+        cy.get('[data-test="tasks-table"]').find('button[data-test="remove-selected-rows"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="View-task"]').should("have.length", 2)
+        cy.get('button[data-test="view-task-button"]').should("have.length", 2)
 
-        cy.get('button[data-test="remove-all"]').eq(1).click({ force: true })  //test if the project is deleted
+        cy.get('[data-test="tasks-table"]').find('button[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="View-task"]').should("have.length", 0)
+        cy.get('button[data-test="view-task-button"]').should("have.length", 0)
 
         cy.get('a[data-test="projects-link"]').click()
         cy.get('[data-test="checkbox"]').eq(0).check()
         cy.get('[data-test="checkbox"]').eq(2).check()
-        cy.get('button[data-test="remove-selected-rows"]').eq(0).click({ force: true })  //test if the project is deleted
+        cy.get('button[data-test="remove-selected-rows"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="edit-project-link"]').should("have.length", 2)  //test if the project is deleted
+        cy.get('a[data-test="edit-project-link"]').should("have.length", 2)
 
-        cy.get('button[data-test="remove-all"]').click({ force: true })
+        cy.get('button[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="edit-project-link"]').should("have.length", 0) //test if the project is deleted
+        cy.get('a[data-test="edit-project-link"]').should("have.length", 0)
     })
 
-    it('Edits a project', () => {
+    it('Edit a task', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
         cy.addProject('Edit test')
@@ -53,12 +53,17 @@ describe('Navigate to projects and test functionality ', () => {
         cy.addTask('Task1')
         cy.addTask('Task2')
 
-        cy.get('button[data-test="documents-tab"]').click()
-        cy.get('input[data-test="upload-documents"]').selectFile('./cypress/support/Test.txt')
-        cy.get('td').contains('Test.txt').should('exist')
+        cy.get('a[data-test="edit-task-link"]').last().click()
+        cy.wait(1000)
+        cy.get('input[data-test="task-name"]').clear().type('Task3')
+        cy.get('textarea[data-test="task-description"]').clear().type('Task description')
+        cy.get('textarea[data-test="annotation-guidelines"]').clear().type('Annotation guidelines')
+        cy.get('button[data-test="save-changes-button"]').click()
+        cy.get('#breadcrumb-holder').find('li').eq(1).click()
+        cy.get('td').contains('Task3').should('exist')
 
         cy.get('a[data-test="projects-link"]').click()
-        cy.get('button[data-test="remove-all"]').click({ force: true })
+        cy.get('button[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="edit-project-link"]').should("have.length", 0)
     })

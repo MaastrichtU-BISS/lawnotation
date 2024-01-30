@@ -81,7 +81,7 @@
     <div class="dimmer-wrapper pt-2">
       <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
       <div class="dimmer-content">
-        <div v-show="tab_active == 'tasks'">
+        <div v-show="tab_active == 'tasks'" data-test="tasks-table">
           <Table
             ref="taskTable"
             endpoint="tasks"
@@ -109,13 +109,13 @@
                 <NuxtLink
                   class="base mr-2"
                   :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-                  data-test="View-task"
                 >
-                  <button class="base btn-primary">View</button>
+                  <button class="base btn-primary" data-test="view-task-button">View</button>
                 </NuxtLink>
                 <NuxtLink
                   class="base"
                   :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
+                  data-test="edit-task-link"
                 >
                   Edit
                 </NuxtLink>
