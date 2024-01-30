@@ -1,10 +1,12 @@
+import Role from '../support/role';
+
 describe('Assign a project to the annotator account as the editor', () => {
     before(() => {
         cy.resetDatabase();
     });
 
     beforeEach(() => {
-        cy.login();
+        cy.login(Role.EDITOR);
     });
 
     it('Create project, add task and document, and assign to the annotator account', () => {

@@ -1,13 +1,15 @@
-Cypress.Commands.add("login", () => {
+import Role from './role';
+
+Cypress.Commands.add("login", (role: Role) => {
   cy.visit('/auth/login')
 
   cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
-  cy.get('input[data-test="email-field-to-login"]').type('editor@test.com')
+  cy.get('input[data-test="email-field-to-login"]').type(`${role}@test.com`)
   cy.get('button[data-test="login-button"]').click()
   cy.wait(2000)
 
-  cy.origin('http://localhost:54324', () => {
-    cy.visit("http://localhost:54324/m/editor/")
+  cy.origin('http://localhost:54324', { args: { role } }, ({ role }) => {
+    cy.visit(`http://localhost:54324/m/${role}/`)
     cy.get('aside:first').find('button').eq(1).click()
     cy.wait(2000)
     cy.get('.message-list-entry:first').click()

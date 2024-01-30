@@ -1,6 +1,8 @@
+import Role from '../support/role';
+
 describe('Login annotator and test basic actions', () => {
   beforeEach(() => {
-    cy.login();
+    cy.login(Role.ANNOTATOR);
   });
 
   it('goes to index', () => {

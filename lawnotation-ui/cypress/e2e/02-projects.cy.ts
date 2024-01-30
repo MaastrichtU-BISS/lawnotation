@@ -1,10 +1,12 @@
+import Role from '../support/role';
+
 describe('Testing projects and tasks with the editor account', () => {
     before(() => {
         cy.resetDatabase();
     });
 
     beforeEach(() => {
-        cy.login();
+        cy.login(Role.EDITOR);
     });
 
     it('Add, edit and remove projects and tasks', () => {
