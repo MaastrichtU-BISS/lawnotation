@@ -34,7 +34,7 @@ describe('Navigate to projects and test functionality ', () => {
         cy.get('button[data-test="remove-selected-rows"]').eq(0).click({ force: true })  //test if the project is deleted
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="edit-project-link"]').should("have.length", 2)  //test if the project is deleted
-        
+
         cy.get('button[data-test="remove-all"]').click({ force: true })
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="edit-project-link"]').should("have.length", 0) //test if the project is deleted
@@ -44,7 +44,7 @@ describe('Navigate to projects and test functionality ', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
         cy.addProject('Edit test')
-        
+
         cy.get('a[data-test="edit-project-link"]').eq(0).click()
         cy.addTask('Task1')
         cy.addTask('Task2')
@@ -52,10 +52,10 @@ describe('Navigate to projects and test functionality ', () => {
         cy.get('button[data-test="Documents"]').click()
         cy.get('input[data-test="upload-documents"]').selectFile('./cypress/support/Test.txt')
         cy.get('td').contains('Test.txt').should('exist')
-        
+
         cy.get('a[data-test="projects-link"]').click()
         cy.get('button[data-test="remove-all"]').click({ force: true })
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="edit-project-link"]').should("have.length", 0) 
+        cy.get('a[data-test="edit-project-link"]').should("have.length", 0)
     })
 })
