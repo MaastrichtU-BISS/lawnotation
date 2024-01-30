@@ -29,6 +29,6 @@ Cypress.Commands.add('addTask', (taskname) => {
   cy.get('input[data-test="task-name"]').clear().type(taskname)
   cy.get('textarea[data-test="task-description"]').clear().type('test task')
   cy.get('textarea[data-test="annotation-guidelines"]').clear().type('1.{enter}2.{enter}3.{enter}')
-  cy.get('select[data-test="select-labelset"]').select("test1.1") // this probably wont pass if the database resets 
+  cy.get('select[data-test="select-labelset"]').select(1)
   cy.get('button[data-test="create-tasks"]').click()
 })
