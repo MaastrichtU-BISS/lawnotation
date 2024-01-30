@@ -103,7 +103,7 @@ import { Modal } from "flowbite";
 import { shuffle, clone } from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
-import { ExportTaskOptions } from "~/utils/io";
+import type { ExportTaskOptions } from "~/utils/io";
 import type { ModalOptions } from "flowbite";
 
 const { $toast, $trpc } = useNuxtApp();
