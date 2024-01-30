@@ -16,3 +16,8 @@ values
 -- values 
 --   ('24a9b347-2170-41d4-a0e8-6078a9a0bef1', 'annotator@test.com', 'annotator'::"user_roles"),
 --   ('24a9b347-2170-41d4-a0e8-6078a9a0bef2', 'editor@test.com', 'editor'::"user_roles");
+
+insert into public.labelsets
+  (name, "desc", labels, editor_id)
+values
+  ('Seeded labelset', 'Seeded labelset description', '[{"name":"Label1","color":"#54a486"}]', '24a9b347-2170-41d4-a0e8-6078a9a0bef2');
