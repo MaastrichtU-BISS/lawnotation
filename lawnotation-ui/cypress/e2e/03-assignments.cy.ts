@@ -21,17 +21,19 @@ describe('Assign a project to the annotator account as the editor', () => {
 
         cy.get('button[data-test="tasks-tab"]').click()
         cy.get('button[data-test="view-task-button"]').click()
-        cy.contains('Create assignments').then(($body) => {
-            if ($body.text().includes('Create assignments') && $body.is(':visible')) {
-                cy.get('input[id="annotator_email"]').type('annotator@test.com')
-                cy.get('button').contains('Add').click()
-                cy.get('button').contains('Create Assignments').click()
-                cy.get('a').contains('View').eq(0).click()
-            }
-            else {
-                cy.get('a').contains('View').eq(0).click()
-            }
-        })
+        cy.contains('Create assignments').should('exist')
+        cy.get('input[id="annotator_email"]').type('annotator@test.com')
+        cy.get('button').contains('Add').click()
+        cy.get('button').contains('Create Assignments').click()
+
+        cy.get('td').contains('annotator@test.com').should('exist')
+        cy.get('td').contains('Test.txt').should('exist')
+        cy.get('#breadcrumb-holder').find('li').eq(1).click()
+        cy.get('button[data-test="view-task-button"]').click()
+        cy.get('td').contains('annotator@test.com').should('exist')
+        cy.get('td').contains('Test.txt').should('exist')
+        
+        cy.get('a').contains('View').first().click()
         cy.get('span').contains('Label1')
         cy.get('div').contains('Lorem')
     })
