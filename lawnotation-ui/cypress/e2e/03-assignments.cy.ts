@@ -11,7 +11,7 @@ describe('Navigate to assignments and test functionality ', () => {
         cy.get('a[data-test="edit-project-link"]').first().click()
         cy.addTask('Task')
 
-        cy.get('button[data-test="Documents"]').click()
+        cy.get('button[data-test="documents-tab"]').click()
         cy.get('input[data-test="upload-documents"]').selectFile('./cypress/support/Test.txt')
         cy.get('td').contains('Test.txt').should('exist')
         

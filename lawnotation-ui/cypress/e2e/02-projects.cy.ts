@@ -53,7 +53,7 @@ describe('Navigate to projects and test functionality ', () => {
         cy.addTask('Task1')
         cy.addTask('Task2')
 
-        cy.get('button[data-test="Documents"]').click()
+        cy.get('button[data-test="documents-tab"]').click()
         cy.get('input[data-test="upload-documents"]').selectFile('./cypress/support/Test.txt')
         cy.get('td').contains('Test.txt').should('exist')
 
