@@ -43,13 +43,19 @@ describe('Navigate to projects and test functionality ', () => {
     it('Edits a project', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
-        cy.addProject('Edittest')
+        cy.addProject('Edit test')
+        
         cy.get('a[data-test="edit-project-link"]').eq(0).click()
-        cy.addTask('test')
-        cy.addTask('test')
+        cy.addTask('Task1')
+        cy.addTask('Task2')
+
         cy.get('button[data-test="Documents"]').click()
         cy.get('input[data-test="upload-documents"]').selectFile('./cypress/support/Test.txt')
         cy.get('td').contains('Test.txt').should('exist')
+        
         cy.get('a[data-test="projects-link"]').click()
+        cy.get('button[data-test="remove-all"]').click({ force: true })
+        cy.get('button').contains('Confirm').click()
+        cy.get('a[data-test="edit-project-link"]').should("have.length", 0) 
     })
 })
