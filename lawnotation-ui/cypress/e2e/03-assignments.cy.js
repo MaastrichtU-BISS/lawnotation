@@ -4,13 +4,19 @@ describe('Navigate to assignments and test functionality ', () => {
     });
 
     it('Test assignments', () => {
-        cy.wait(1000)
+        cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
-        // cy.addProject('Assignments test')
-        cy.wait(1000)
-        cy.get('a[data-test="edit-project-link"]').eq(0).click()
-        cy.get('a[data-test="View-task"]').eq(0).click()
-        cy.wait(1000)
+        cy.addProject('Assignments test')
+
+        cy.get('a[data-test="edit-project-link"]').first().click()
+        cy.addTask('Task')
+
+        cy.get('button[data-test="Documents"]').click()
+        cy.get('input[data-test="upload-documents"]').selectFile('./cypress/support/Test.txt')
+        cy.get('td').contains('Test.txt').should('exist')
+        
+        cy.get('button[data-test="tasks-tab"]').click()
+        cy.get('a[data-test="View-task"]').click()
         cy.contains('Create assignments').then(($body) => {
             if ($body.text().includes('Create assignments') && $body.is(':visible')) {
                 cy.get('input[id="annotator_email"]').type('annotator@test.com')
@@ -22,8 +28,7 @@ describe('Navigate to assignments and test functionality ', () => {
                 cy.get('a').contains('View').eq(0).click()
             }
         })
-        cy.get('span').contains('test1').click()
-        cy.wait(1000)
-        // cy.contains('Lorem').dblclick({force: true}) 
+        cy.get('span').contains('Label1')
+        cy.get('div').contains('Lorem')
     })
 })
