@@ -22,7 +22,7 @@
           <button @click="tab_active = 'tasks'">Tasks</button>
         </li>
         <li :class="tab_active == 'documents' ? 'tab-active' : 'tab'">
-          <button data-test="Documents" @click="tab_active = 'documents'">
+          <button @click="tab_active = 'documents'" data-test="Documents">
             Documents
           </button>
         </li>
