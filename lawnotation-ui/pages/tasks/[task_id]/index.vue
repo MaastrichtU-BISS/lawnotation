@@ -26,7 +26,7 @@
     <div class="text-center my-10">
       <div v-if="assignmentCounts && assignmentCounts.next <= assignmentCounts.total">
         <NuxtLink :to="`/annotate/${task.id}?seq=${assignmentCounts?.next}`">
-          <button class="base btn-primary">Annotate Next Assignment</button>
+          <button class="base btn-primary" data-test="annotate-next-assignment-button">Annotate Next Assignment</button>
         </NuxtLink>
       </div>
     </div>

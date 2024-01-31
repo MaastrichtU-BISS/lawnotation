@@ -1,13 +1,23 @@
 import Role from '../support/role';
 
-describe('Login annotator and test basic actions', () => {
+describe('Login as annotator and test assignment', () => {
   beforeEach(() => {
     cy.login(Role.ANNOTATOR);
   });
 
-  it('goes to index', () => {
+  it('Go to assignment and annotate', () => {
     cy.wait(3000)
-    cy.get('a[data-test="assigned-tasks-menu-item"]')
     cy.get('button[data-test="start-annotating-button"]').should('not.exist')
+
+    cy.get('[data-test="assigned-tasks-menu-item"]').click()
+    cy.get('[data-test="view-task-button"]').click()
+    cy.get('button[data-test="annotate-next-assignment-button"]').click()
+
+    cy.wait(1000)
+    cy.get('span[data-label="Label1"]').should('not.exist')
+    cy.get('span').contains('Label1').click()
+    cy.selectText('Lorem')
+    cy.contains('Lorem').click(10, 10)
+    cy.get('span[data-label="Label1"]').contains('Lorem').should('exist')
   })
 })
