@@ -36,7 +36,7 @@ describe('Assign a project to the annotator account as the editor', () => {
         cy.get('td').contains('Test.txt').should('exist')
         
         cy.get('a').contains('View').first().click()
-        cy.get('span').contains('Label1')
-        cy.get('div').contains('Lorem')
+        cy.get('span').contains('Label1').should('exist')
+        cy.get('div').contains('Lorem').should('exist')
     })
 })
