@@ -362,7 +362,7 @@ export const assignmentRouter = router({
         .eq("status", "pending")
         .order("seq_pos", { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
       // const { data: total, error: error_total } = await ctx.supabase
       const { error: error_total, count } = await ctx.supabase
         .from("assignments")
