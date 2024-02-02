@@ -23,11 +23,11 @@
             <div class="text-center justify-center">
                 <div class="flex flex-col w-1/2 mx-auto space-y-6 border-neutral-300 mx-3">
                     <h3 class="text-lg mt-8">Edit Task</h3>
-                    <input class="base mb-6" type="text" placeholder="Task name" v-model="new_task.name" />
-                    <textarea class="base mb-6" placeholder="Task description" v-model="new_task.desc"></textarea>
+                    <input class="base mb-6" type="text" placeholder="Task name" v-model="new_task.name" data-test="task-name" />
+                    <textarea class="base mb-6" placeholder="Task description" v-model="new_task.desc" data-test="task-description"></textarea>
                     <textarea class="base mb-6" placeholder="Annotation Guidelines"
-                        v-model="new_task.ann_guidelines"></textarea>
-                    <button class="base btn-primary" @click="editTask">Save Changes</button>
+                        v-model="new_task.ann_guidelines" data-test="annotation-guidelines"></textarea>
+                    <button class="base btn-primary" @click="editTask" data-test="save-changes-button">Save Changes</button>
                 </div>
                 <div v-if="new_emails && new_emails.length"
                     class="flex flex-col my-5 w-1/2 mx-auto space-y-2 border-neutral-300 mt-3 pt-3 mx-3">

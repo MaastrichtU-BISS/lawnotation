@@ -18,7 +18,7 @@
           {{ item.name }}
         </td>
         <td class="px-6 py-2">
-          <NuxtLink class="base" :to="`/projects/${item.id}`"> Edit </NuxtLink>
+          <NuxtLink data-test="edit-project-link" class="base" :to="`/projects/${item.id}`"> Edit </NuxtLink>
         </td>
       </template>
     </Table>
@@ -26,17 +26,19 @@
     <h3 class="mt-8 text-lg">Create new project</h3>
     <div class="flex flex-col w-1/2 pt-3 mt-3 space-y-2 border-t border-neutral-300">
       <input
+        data-test="project-name"
         class="base"
         type="text"
         placeholder="Project name"
         v-model="new_project.name"
       />
       <textarea
+        data-test="project-description"
         class="base"
         placeholder="Project description"
         v-model="new_project.desc"
       ></textarea>
-      <button class="flex-none base btn-primary" @click="createNewProject">Add</button>
+      <button data-test="add-project" class="flex-none base btn-primary" @click="createNewProject">Add</button>
     </div>
   </div>
 </template>

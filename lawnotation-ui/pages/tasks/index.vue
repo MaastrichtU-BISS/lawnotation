@@ -10,7 +10,7 @@
           {{ item.name }}
         </td>
         <td class="px-6 py-2">
-          <NuxtLink class="base" :to="`/tasks/${item.id}`"> View </NuxtLink>
+          <NuxtLink class="base" :to="`/tasks/${item.id}`" data-test="view-task-button">View</NuxtLink>
         </td>
       </template>
     </Table>
