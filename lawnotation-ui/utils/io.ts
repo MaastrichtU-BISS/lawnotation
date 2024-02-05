@@ -6,4 +6,5 @@ export type ExportTaskOptions = {
   documents: boolean;
   annotations: boolean;
   loaded: boolean;
+  loading: boolean;
 };

@@ -1,7 +1,9 @@
+export enum PublicationStatus { PUBLISHED="published", UNPUBLISHED="unpublished" }
+
 export type Publication = {
   id: number;
   editor_id: string,
-  status: "published" | "unpublished"
+  status: PublicationStatus
   file_url: string;
   guidelines_url: string;
   task_name: string;

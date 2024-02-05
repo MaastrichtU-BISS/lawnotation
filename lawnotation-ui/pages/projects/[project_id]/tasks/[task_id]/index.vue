@@ -89,14 +89,14 @@
             </button>
           </div>
         </div>
-        <ExportTaskModal v-model="export_options" :publication="publication" @export="exportTask"
-          @close="export_modal?.hide()"></ExportTaskModal>
+        <ExportTaskModal v-model="formValues"  @export="exportTask"
+          @close="export_modal?.hide()" @resetForm="resetForm"></ExportTaskModal>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import type { Task, Assignment, AssignmentTableData, User, Project, Publication } from "~/types";
+import { Task, Assignment, AssignmentTableData, User, Project, Publication, PublicationStatus } from "~/types";
 import Table from "~/components/Table.vue";
 import { Modal } from "flowbite";
 import { shuffle, clone } from "lodash";
@@ -121,37 +121,46 @@ const amount_of_docs = ref<number>(total_docs);
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
 
-const publication = ref<Omit<Publication, "id">>({
-  editor_id: user.value?.id!,
-  status: "published",
-  file_url: "",
-  guidelines_url: task.ann_guidelines,
-  task_name: task.name,
-  task_description: task.desc,
-  labels_name: labels.name,
-  labels_description: labels.desc,
-  author: "",
-  contact: user.value?.email!,
-  documents: 0,
-  assignments: 0,
-  annotators: 0,
-  annotations: 0,
-  relations: 0
-});
+const defaultFormValues = {
+  export_options: {
+    name: true,
+    desc: true,
+    ann_guidelines: true,
+    labelset: true,
+    documents: false,
+    annotations: false,
+    loaded: false,
+    loading: false
+  }, 
+  publication: {
+    editor_id: user.value?.id!,
+    status: PublicationStatus.PUBLISHED,
+    file_url: "",
+    guidelines_url: task.ann_guidelines,
+    task_name: task.name,
+    task_description: task.desc,
+    labels_name: labels.name,
+    labels_description: labels.desc,
+    author: "",
+    contact: user.value?.email!,
+    documents: 0,
+    assignments: 0,
+    annotators: 0,
+    annotations: 0,
+    relations: 0
+  }
+};
+
+const formValues = ref<{
+  export_options: ExportTaskOptions;
+  publication: Omit<Publication, "id">;
+}>(JSON.parse(JSON.stringify(defaultFormValues)));
+
 
 let export_modal: Modal | null = null;
 
 const amount_of_fixed_docs = ref<number>(0);
 const annotators_email = reactive<string[]>([]);
-const export_options = ref<ExportTaskOptions>({
-  name: true,
-  desc: true,
-  ann_guidelines: true,
-  labelset: true,
-  documents: false,
-  annotations: false,
-  loaded: false
-});
 
 const loading = ref(false);
 
@@ -270,18 +279,18 @@ const replicateTask = async () => {
 };
 
 const exportTask = async () => {
-  // loading.value = true;
+  formValues.value.export_options.loading = true;
   let json: any = {};
 
-  if (export_options.value.name) {
+  if (formValues.value.export_options.name) {
     json.name = task?.name!;
   }
 
-  if (export_options.value.desc) {
+  if (formValues.value.export_options.desc) {
     json.desc = task?.desc!;
   }
 
-  if (export_options.value.labelset) {
+  if (formValues.value.export_options.labelset) {
     const labelset = await $trpc.labelset.findById.query(+task?.labelset_id!);
     json.labelset = {
       name: labelset.name,
@@ -289,12 +298,12 @@ const exportTask = async () => {
       labels: labelset.labels,
     };
 
-    if (export_options.value.ann_guidelines) {
+    if (formValues.value.export_options.ann_guidelines) {
       json.ann_guidelines = task?.ann_guidelines!;
     }
   }
 
-  if (export_options.value.documents) {
+  if (formValues.value.export_options.documents) {
     let doc_pos: any = {};
     let ass_pos: any = {};
     let ann_pos: any = {};
@@ -312,7 +321,7 @@ const exportTask = async () => {
 
     json.counts = {};
     json.counts.documents = documents.length;
-    publication.value.documents = documents.length;
+    formValues.value.publication.documents = documents.length;
 
     // Assignments
     const assignments = await $trpc.assignment.findAssignmentsByTask.query(+task?.id!);
@@ -331,12 +340,12 @@ const exportTask = async () => {
     });
 
     json.counts.assignments = assignments.length;
-    publication.value.assignments = assignments.length;
+    formValues.value.publication.assignments = assignments.length;
     json.counts.annotators = annotators_index;
-    publication.value.annotators = annotators.length;
+    formValues.value.publication.annotators = annotators_index;
 
 
-    if (export_options.value.annotations && export_options.value.labelset) {
+    if (formValues.value.export_options.annotations && formValues.value.export_options.labelset) {
 
       // Annotations
       const annotations = await $trpc.annotation.findAnnotationsByTask.query(
@@ -358,7 +367,7 @@ const exportTask = async () => {
       });
 
       json.counts.annotations = annotations.length;
-      publication.value.annotations = annotations.length;
+      formValues.value.publication.annotations = annotations.length;
 
       // Relations
       const relations = await $trpc.relation.findRelationsByTask.query(+task?.id!);
@@ -374,15 +383,19 @@ const exportTask = async () => {
       });
 
       json.counts.relations = relations.length;
-      publication.value.relations = relations.length;
+      formValues.value.publication.relations = relations.length;
     }
   }
 
   downloadAs(json, `${json.name}.json`);
-  export_options.value.loaded = true;
-  // loading.value = false;
+  formValues.value.export_options.loaded = true;
+  formValues.value.export_options.loading = false;
   $toast.success(`Task has been exported!`);
 };
+
+const resetForm = () => {
+  Object.assign(formValues.value, JSON.parse(JSON.stringify(defaultFormValues)));
+}
 
 onMounted(async () => {
   const modalOptions: ModalOptions = {
@@ -393,9 +406,6 @@ onMounted(async () => {
   };
 
   export_modal = new Modal(document.getElementById("exportFormModal"), modalOptions);
-
-
-  publication.value.labels_name = (await $trpc.labelset.findById.query(+task.labelset_id)).name;
 
 });
 

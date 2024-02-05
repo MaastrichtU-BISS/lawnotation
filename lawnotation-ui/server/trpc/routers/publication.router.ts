@@ -1,17 +1,25 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Publication } from "~/types";
+import { Publication, PublicationStatus } from "~/types";
 import type { Context } from "../context";
 
 const ZPublicationFields = z.object({
   editor_id: z.string(),
-  status: z.union([z.literal("published"), z.literal("unpublished")]),
+  status: z.union([z.literal(PublicationStatus.PUBLISHED), z.literal(PublicationStatus.UNPUBLISHED)]),
   task_name: z.string(),
+  task_description: z.string(),
   labels_name: z.string(),
+  labels_description: z.string(),
   file_url: z.string(),
+  guidelines_url: z.string(),
   author: z.string(),
   contact: z.string(),
+  documents: z.number().int(),
+  assignments: z.number().int(),
+  annotators: z.number().int(),
+  annotations: z.number().int(),
+  relations: z.number().int()
 });
 
 const publicationAuthorizer = async (
