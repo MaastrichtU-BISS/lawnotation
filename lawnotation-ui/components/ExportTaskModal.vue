@@ -22,7 +22,7 @@
         <!-- Modal body -->
         <div class="p-6 space-y-6">
           <div class="items-center justify-center">
-            <div v-if="page==1" id="export-step-1">
+            <div v-if="page == 1" id="export-step-1">
               <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
                 Select what you want to include in the exported file.
               </h3>
@@ -103,9 +103,7 @@
                       d="M8 1v11m0 0 4-4m-4 4L4 8m11 4v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-3" />
                   </svg>
                 </button>
-                <button 
-                  @click="page++"
-                  type="button"
+                <button :disabled="!modelValue.loaded" @click="page++" type="button"
                   class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                   Start publishing
                   <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
@@ -116,56 +114,64 @@
                 </button>
               </div>
             </div>
-            <div v-if="page==2" id="export-step-2">
+            <div v-if="page == 2" id="export-step-2">
               <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
                 Include metadata to make your results be discoverable within the platform.
               </h3>
               <div class="relative z-0 w-full mb-5 group">
-                <input v-model="props.publication.file_url" type="url" name="file_url" id="file_url"
+                <input v-model="publicationValues.file_url" type="url" name="file_url" id="file_url"
                   class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
                   placeholder=" " required />
                 <label for="file_url"
                   class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">
                   File url</label>
               </div>
-              <div class="relative z-0 w-full mb-5 group">
-                <input v-model="props.publication.task_name" type="text" name="task_name" id="task_name"
+              <div v-if="modelValue.ann_guidelines" class="relative z-0 w-full mb-5 group">
+                <input v-model="publicationValues.guidelines_url" type="url" name="guidelines_url" id="guidelines_url"
                   class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-                  placeholder=" " required />
-                <label for="task_name"
-                  class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Task
-                  name</label>
-              </div>
-              <div class="relative z-0 w-full mb-5 group">
-                <input v-model="props.publication.labels_name" type="text" name="labels_name" id="labels_name"
-                  class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-                  placeholder=" " required />
-                <label for="labels_name"
-                  class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">
-                  Labels name</label>
+                  placeholder=" " />
+                <label for="guidelines_url"
+                  class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">
+                  Guidelines url</label>
               </div>
               <div class="grid md:grid-cols-2 md:gap-6">
                 <div class="relative z-0 w-full mb-5 group">
-                  <input v-model="props.publication.author" type="text" name="author" id="author"
+                  <input v-model="publicationValues.task_name" type="text" name="task_name" id="task_name"
                     class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
                     placeholder=" " required />
+                  <label for="task_name"
+                    class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Task
+                    name</label>
+                </div>
+                <div class="relative z-0 w-full mb-5 group">
+                  <input v-model="publicationValues.labels_name" type="text" name="labels_name" id="labels_name"
+                    class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                    placeholder=" " required />
+                  <label for="labels_name"
+                    class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">
+                    Labels name</label>
+                </div>
+              </div>
+              <div class="grid md:grid-cols-2 md:gap-6">
+                <div class="relative z-0 w-full mb-5 group">
+                  <input v-model="publicationValues.author" type="text" name="author" id="author"
+                    class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                    placeholder=" " />
                   <label for="author"
                     class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">
                     Author</label>
                 </div>
                 <div class="relative z-0 w-full mb-5 group">
-                  <input v-model="props.publication.contact" type="email" name="contact" id="contact"
+                  <input v-model="publicationValues.contact" type="email" name="contact" id="contact"
                     class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-                    placeholder=" " required />
+                    placeholder=" " />
                   <label for="contact"
                     class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">
                     Contact</label>
                 </div>
               </div>
               <div class="flex justify-between my-5">
-                <button 
-                  @click="page--"
-                  type="button"
+                <button @click="goBack" type="button"
                   class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                   <svg class="rtl:rotate-180 w-3.5 h-3.5 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
                     fill="none" viewBox="0 0 14 10">
@@ -174,9 +180,7 @@
                   </svg>
                   Back
                 </button>
-                <button 
-                  @click="publish"
-                  type="button"
+                <button @click="publish" type="button"
                   class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                   Publish
                 </button>
@@ -193,15 +197,16 @@ import { ExportTaskOptions } from "~/utils/io";
 import type { Publication } from "~/types"
 const props = defineProps<{
   modelValue: ExportTaskOptions;
-  publication: Publication;
+  publication: Omit<Publication, "id">;
 }>();
 
 const { $toast, $trpc } = useNuxtApp();
 
 const page = ref<number>(1);
+const publicationValues = ref<Omit<Publication, "id">>({... props.publication});
+const defaultFormValues = Object.assign({... props.publication});
 
 const emit = defineEmits(["export", "close"]);
-
 
 const click_labelset = () => {
   if (props.modelValue.labelset) {
@@ -216,8 +221,18 @@ const click_documents = () => {
   }
 };
 
-const emitClose = () => {
+const resetForm = () => {
+   publicationValues.value = { ... defaultFormValues} 
+}
+
+const goBack = () => {
+  resetForm();
   page.value = 1;
+  props.modelValue.loaded = false;
+}
+
+const emitClose = () => {
+  goBack();
   emit("close");
 };
 
@@ -226,10 +241,33 @@ const export_task = () => {
 };
 
 const publish = async () => {
+
+  if(!publicationValues.value.file_url) {
+    $toast.error("File url is required");
+    return;
+  }
+
+  try {
+    const url = new URL(publicationValues.value.file_url);
+  } catch (_) {
+    $toast.error("Invalid File url");
+    return;
+  }
+
+  if(props.modelValue.ann_guidelines && !publicationValues.value.guidelines_url) {
+    $toast.error("Guidelines url is required");
+    return;
+  }
+
+  try {
+    const url = new URL(publicationValues.value.guidelines_url);
+  } catch (_) {
+    $toast.error("Invalid Guidelines url");
+    return;
+  }
+
   document.getElementById("exportFormModalClick")?.click();
-  const publication: Publication = await $trpc.publication.create.mutate(props.publication);
-  props.publication.file_url = "";
-  props.publication.author = "";
+  await $trpc.publication.create.mutate(props.publication);
   $toast.success("Task successfully published");
 };
 

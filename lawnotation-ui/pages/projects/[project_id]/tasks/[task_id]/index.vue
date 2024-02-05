@@ -119,10 +119,11 @@ const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.proj
 const total_docs = totalAmountOfDocs ?? 0;
 const amount_of_docs = ref<number>(total_docs);
 
-const publication = ref<Publication>({
+const publication = ref<Omit<Publication, "id">>({
   editor_id: user.value?.id!,
   status: "published",
   file_url: "",
+  guidelines_url: task.ann_guidelines,
   task_name: task.name,
   labels_name: (await $trpc.labelset.findById.query(+task.labelset_id)).name,
   author: "",
@@ -140,6 +141,7 @@ const export_options = ref<ExportTaskOptions>({
   labelset: true,
   documents: false,
   annotations: false,
+  loaded: false
 });
 
 const loading = ref(false);
@@ -364,7 +366,7 @@ const exportTask = async () => {
   }
 
   downloadAs(json, `${json.name}.json`);
-
+  export_options.value.loaded = true;
   // loading.value = false;
   $toast.success(`Task has been exported!`);
 };
