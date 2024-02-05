@@ -119,15 +119,24 @@ const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.proj
 const total_docs = totalAmountOfDocs ?? 0;
 const amount_of_docs = ref<number>(total_docs);
 
+const labels = await $trpc.labelset.findById.query(+task.labelset_id);
+
 const publication = ref<Omit<Publication, "id">>({
   editor_id: user.value?.id!,
   status: "published",
   file_url: "",
   guidelines_url: task.ann_guidelines,
   task_name: task.name,
-  labels_name: (await $trpc.labelset.findById.query(+task.labelset_id)).name,
+  task_description: task.desc,
+  labels_name: labels.name,
+  labels_description: labels.desc,
   author: "",
-  contact: user.value?.email!
+  contact: user.value?.email!,
+  documents: 0,
+  assignments: 0,
+  annotators: 0,
+  annotations: 0,
+  relations: 0
 });
 
 let export_modal: Modal | null = null;
@@ -303,6 +312,7 @@ const exportTask = async () => {
 
     json.counts = {};
     json.counts.documents = documents.length;
+    publication.value.documents = documents.length;
 
     // Assignments
     const assignments = await $trpc.assignment.findAssignmentsByTask.query(+task?.id!);
@@ -321,7 +331,9 @@ const exportTask = async () => {
     });
 
     json.counts.assignments = assignments.length;
+    publication.value.assignments = assignments.length;
     json.counts.annotators = annotators_index;
+    publication.value.annotators = annotators.length;
 
 
     if (export_options.value.annotations && export_options.value.labelset) {
@@ -346,7 +358,7 @@ const exportTask = async () => {
       });
 
       json.counts.annotations = annotations.length;
-
+      publication.value.annotations = annotations.length;
 
       // Relations
       const relations = await $trpc.relation.findRelationsByTask.query(+task?.id!);
@@ -362,6 +374,7 @@ const exportTask = async () => {
       });
 
       json.counts.relations = relations.length;
+      publication.value.relations = relations.length;
     }
   }
 
