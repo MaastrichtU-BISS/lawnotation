@@ -10,16 +10,19 @@
                     {{ item.task_name }}
                 </td>
                 <td class="px-6 py-2">
-                    {{ item.labels_name }}
-                </td>
-                <td class="px-6 py-2">
                     {{ item.author }}
                 </td>
                 <td class="px-6 py-2">
-                    {{ item.contact }}
+                    <a v-if="item.guidelines_url" class="base" target="_blank" :href="`${item.guidelines_url}`"> See guidelines </a>
                 </td>
                 <td class="px-6 py-2">
-                    <a class="base" target="_blank" :href="`${item.file_url}`"> Here </a>
+                    <NuxtLink class="base mr-2" :to="`/publications/${item.id}`">
+                        <button class="base btn-primary">Details</button>
+                    </NuxtLink>
+                    <NuxtLink v-if="item.editor_id == user?.id" class="base mr-2" :to="`/publications/${item.id}`">
+                        <button class="base btn-primary">Edit</button>
+                    </NuxtLink>
+                    <a class="base" target="_blank" :href="`${item.file_url}`">go to file</a>
                 </td>
             </template>
         </Table>
