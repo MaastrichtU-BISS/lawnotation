@@ -118,7 +118,7 @@
                 </div>
                 <div class="pb-3 ml-6">
                     <a :href="publication.file_url" target="_blank">
-                        <button class="base btn-primary">Go to File</button>
+                        <button class="base btn-secondary">Go to Data</button>
                     </a>
                 </div>
             </div>
