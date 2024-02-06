@@ -22,7 +22,9 @@
     </template>
     <div class="relative overflow-x-auto sm:rounded-lg">
       <div class="flex items-center justify-end m-2">
+        <slot name="heading"></slot>
         <span class="flex-grow" v-if="props.selectable">
+          
           <button
             v-show="total > 0"
             @click="removeAll"
@@ -44,9 +46,9 @@
         </span>
         <span
           class="flex"
-          v-if="args.search && Object.keys(searchableColumns).length > 0"
         >
           <select
+            v-if="props.search && Object.keys(searchableColumns).length > 0"
             v-model="args.search.column"
             class="w-40 p-2 text-sm text-gray-900 border-0 ring-1 ring-inset ring-secondary shadow-sm rounded-md bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-primary"
           >
@@ -80,7 +82,7 @@
                 v-model="args.search.query"
                 type="text"
                 class="rounded-md border-0 bg-gray-50 p-2 pl-10 text-sm w-80 text-gray-900 shadow-sm ring-1 ring-inset ring-secondary focus:ring-2 focus:ring-primary placeholder:text-gray-400"
-                :placeholder="`Search for ${args.search.column}`"
+                placeholder="Search"
               />
             </div>
           </div>
@@ -402,6 +404,10 @@ const args = reactive<{
   page: 1,
   items_per_page: 10,
 });
+
+watch(() => props.filter, () => {
+  args.filter = props.filter
+})
 
 const { data, refresh, status, pending, error } = $trpc.table[props.endpoint].useQuery(
   args

@@ -7,6 +7,7 @@ export type SupabaseDataSource = {
       type: "supabase_table";
       select?: string;
       from: string;
+      search_columns?: Record<string, string[]>
       // filter can be defined on server (like user_id) and on client (like project_id)
       filter?: object | (( { ctx }: { ctx: Context } ) => object);
     }
@@ -32,9 +33,9 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
         dir: z.union([z.literal('ASC'), z.literal('DESC')])
       }).default({column: null, dir: 'ASC'}),
       search: z.object({
-        column: z.string().nullable(),
+        column: z.string().nullable().optional(),
         query: z.string()
-      }).default({column: null, query: ""}),
+      }).default({query: ""}),
 
       filter: z.record(z.string(), z.any()).optional(),
 
@@ -70,14 +71,27 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
           .match(filter)
           .range(offset, offset + limit - 1);
 
-        if (input.search.column && input.search.query) {
+        if (input.search.query) {
           // Approach 1: using 'or' method (fails due to cast and in general)
           // const search_conds = Object.values(columns).filter(x => x.field).map(x => `${x.field}.ilike.%${td.search}%`).join(",").split(",")[1];
           // query = query.or(search_conds);
           // Approach 2: textSearch method (produces inconsistent results)
           // query = query.textSearch(td.search.column, td.search.query);
           // Approach 3: search on one, valid (text) field
-          query = query.ilike(input.search.column, `%${input.search.query}%`);
+          if(source.search_columns !== undefined) {
+            for (let [table, columns] of Object.entries(source.search_columns)) {
+              const wheres = [];
+              for (let col of columns) {
+                wheres.push(`${col}.ilike.*${input.search.query}*`)
+              }
+              if (table == 'flat')
+                query = query.or(wheres.join(','));
+              else
+                query = query.or(wheres.join(','), {foreignTable: table})
+            }
+          } else if(input.search.column) {
+            query = query.ilike(input.search.column, `%${input.search.query}%`);
+          }
         }
 
         if (input.sort.column) {
@@ -146,13 +160,8 @@ export const tableRouter = router({
   'publications': createTableProcedure({
     type: 'supabase_table',
     from: 'publications',
+    search_columns: {flat: ['author','task_name', 'task_description', 'labels_name', 'labels_description', 'contact']}
     // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
-  }),
-
-  'myPublications': createTableProcedure({
-    type: 'supabase_table',
-    from: 'publications',
-    filter: ({ctx}) => ({ editor_id: ctx.user?.id }),
   }),
 
   'assignments': createTableProcedure({
