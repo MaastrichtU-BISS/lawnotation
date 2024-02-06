@@ -149,6 +149,12 @@ export const tableRouter = router({
     // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
   }),
 
+  'myPublications': createTableProcedure({
+    type: 'supabase_table',
+    from: 'publications',
+    filter: ({ctx}) => ({ editor_id: ctx.user?.id }),
+  }),
+
   'assignments': createTableProcedure({
     type: 'supabase_table',
     from: 'assignments',
