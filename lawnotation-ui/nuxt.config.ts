@@ -1,6 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   runtimeConfig: {
+    mailtrapToken: process.env.MAILTRAP_TOKEN,
     public: {
       baseURL:
         process.env.NODE_ENV === "production"
