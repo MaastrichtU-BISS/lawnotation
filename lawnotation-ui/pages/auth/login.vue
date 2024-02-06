@@ -78,7 +78,6 @@
 <script setup lang="ts">
 const { $toast, $trpc } = useNuxtApp();
 
-const config = useRuntimeConfig();
 const loading = ref(false);
 
 const email = ref<string>("");
@@ -92,9 +91,9 @@ const signIn = () => {
   }
 
   $trpc.user
-    .otpLogin.query({email: email.value, redirectTo: `${config.public.baseURL}/auth/validate`})
-    .then((user) => {
-      $toast.success(`Login link has been sent to: ${email.value}`);
+    .otpLogin.query(email.value)
+    .then((resp) => {
+      $toast.success(resp.message);
       loading.value = false;
     })
     .catch((error) => {
