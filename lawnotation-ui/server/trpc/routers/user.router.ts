@@ -133,9 +133,11 @@ export const userRouter = router({
 
       const mailClient = new MailtrapClient({ token: config.mailtrapToken });
       
-      const body = `Hello ${email},
-You've requested to login to Lawnotation. Click <a href="${ loginLink }"></a> to login to Lawnotation.
-If you haven't requested the login, please report to the administrator.`;
+      const body = `Hello ${email},<br />
+You've requested to login to Lawnotation. <a href="${ loginLink }">Click here</a> to login to Lawnotation.<br />
+If you haven't requested the login, please report to the <a href="mailto:biss-devs@maastrichtuniversity.nl">administrator</a>.<br />
+
+Cheers!`;
 
       let mail;
       try {
