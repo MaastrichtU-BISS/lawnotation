@@ -113,6 +113,7 @@ export const userRouter = router({
     .query(async ({ctx, input: email}) => {
       
       const config = useRuntimeConfig();
+      config.public.baseURL = 'https://lawnotation-git-fix-auth-prefetch-biss-um.vercel.app'
       const client = ctx.getSupabaseServiceRoleClient();
 
       const generateLink = await client.auth.admin.generateLink({
