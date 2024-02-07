@@ -159,8 +159,13 @@ const verifyToken = () => {
       token: token.value,
       type: 'email',
     })
-    .then((data) => {
-      $toast.success("Logged in successfully");
+    .then((verify) => {
+      if (verify.error) {
+        $toast.error(`Error signing in: ${verify.error.message}`);
+        loading.value = false;
+      } else {
+        $toast.success("Logged in successfully");
+      }
     })
     .catch((error) => {
       $toast.error(`Error signing in: ${error.message}`);
