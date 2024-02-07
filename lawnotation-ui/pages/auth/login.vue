@@ -165,6 +165,7 @@ const verifyToken = () => {
         loading.value = false;
       } else {
         $toast.success("Logged in successfully");
+        location.href='/'
       }
     })
     .catch((error) => {
@@ -194,22 +195,13 @@ const signIn = () => {
     })
 };
 
-onMounted(() => {
-  // If user is found here, we need to assign location.href, since 
-  // navigateTo doesn't reload the trpc plugin to fetch the token
-  // from the cookie.
-  const user = useSupabaseUser();
-  if (user.value) return location.href = '/';
-  watch(user, () => {
-    if (user.value) return location.href = '/';
-  })
-})
-
 definePageMeta({
   layout: "blank",
-  middleware: () => {
-    const user = useSupabaseUser();
-    if (user.value) location.href = '/';
+  middleware: async () => {
+    const client = useSupabaseClient();
+    const {data: {user: user}} = await client.auth.getUser();
+
+    if (user) location.href = '/';
   }
 });
 </script>
