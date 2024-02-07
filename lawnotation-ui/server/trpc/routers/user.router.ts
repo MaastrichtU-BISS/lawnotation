@@ -2,7 +2,6 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { authorizer, protectedProcedure, publicProcedure, router } from '~/server/trpc'
 import type { User } from '~/types';
-import { MailtrapClient } from "mailtrap"
 
 // const ZUserFields = z.object({
 //   email: z.string().email(),
@@ -106,67 +105,11 @@ export const userRouter = router({
       return data.properties;
     }),
 
-  'otpLoginIntermediate': publicProcedure
-    .input(
-      z.string().email()
-    )
-    .use(opts => authorizer(opts, async () => false))
-    .query(async ({ctx, input: email}) => {
-      
-      const config = useRuntimeConfig();
-      const baseURL = config.public.baseURL;
-      const client = ctx.getSupabaseServiceRoleClient();
-
-      const generateLink = await client.auth.admin.generateLink({
-        type: "magiclink",
-        email: email,
-        options: { redirectTo: `${baseURL}/auth/validate` },
-      });
-
-      if (generateLink.error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: "Unable to generate link"});
-
-      const supabaseLink = generateLink.data.properties.action_link;
-      const loginLink = `${baseURL}/auth/preverify?url=${encodeURIComponent(supabaseLink)}`;
-      // const user = await ctx.supabase.from("users").select().eq("email", email).single();
-      
-      if (!config.mailtrapToken)
-        throw Error("Mailtrap API token not set")
-
-      const mailClient = new MailtrapClient({ token: config.mailtrapToken });
-      
-      const body = `Hello ${email},<br />
-You've requested to login to Lawnotation. <a href="${ loginLink }">Click here</a> to login to Lawnotation.<br />
-If you haven't requested the login, please report to the <a href="mailto:biss-devs@maastrichtuniversity.nl">administrator</a>.<br />
-<br />
-Cheers!`;
-
-      let mail;
-      try {
-        mail = await mailClient.send({
-          from: {email: 'no-reply@login.lawnotation.org', name: 'Lawnotation'},
-          to: [{email}],
-          subject: 'Login details for Lawnotation',
-          html: body
-        })
-      } catch (e) {
-        if (e instanceof Error) {
-          throw new TRPCError({message: 'There was an error sending the email. Please try again later', code: 'INTERNAL_SERVER_ERROR'})
-        }
-      }
-
-      if (mail && !mail.success)
-        throw new TRPCError({message: 'There was an error sending the email. Please try again later', code: 'INTERNAL_SERVER_ERROR'})
-
-      return { message: "Login link has been sent! Please check your inbox" };
-    }),
-
   'otpLogin': publicProcedure
     .input(
       z.string().email()
     )
     .query(async ({ctx, input: email}) => {
-      
       const login = await ctx.supabase.auth.signInWithOtp({ email: email })
 
       if (login.error)
