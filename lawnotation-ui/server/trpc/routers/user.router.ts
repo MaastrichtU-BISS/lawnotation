@@ -113,20 +113,21 @@ export const userRouter = router({
     .query(async ({ctx, input: email}) => {
       
       const config = useRuntimeConfig();
-      config.public.baseURL = 'https://lawnotation-git-fix-auth-prefetch-biss-um.vercel.app'
+      // const baseURL = config.public.baseURL;
+      const baseURL = 'https://lawnotation-git-fix-auth-prefetch-biss-um.vercel.app'
       const client = ctx.getSupabaseServiceRoleClient();
 
       const generateLink = await client.auth.admin.generateLink({
         type: "magiclink",
         email: email,
-        options: { redirectTo: `${config.public.baseURL}/auth/validate` },
+        options: { redirectTo: `${baseURL}/auth/validate` },
       });
 
       if (generateLink.error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: "Unable to generate link"});
 
       const supabaseLink = generateLink.data.properties.action_link;
-      const loginLink = `${config.public.baseURL}/auth/preverify?url=${encodeURIComponent(supabaseLink)}`;
+      const loginLink = `${baseURL}/auth/preverify?url=${encodeURIComponent(supabaseLink)}`;
       // const user = await ctx.supabase.from("users").select().eq("email", email).single();
       
       if (!config.mailtrapToken)
