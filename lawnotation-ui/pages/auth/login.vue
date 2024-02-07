@@ -209,7 +209,7 @@ definePageMeta({
   layout: "blank",
   middleware: () => {
     const user = useSupabaseUser();
-    if (user.value) return navigateTo('/')
+    if (user.value) location.href = '/';
   }
 });
 </script>
