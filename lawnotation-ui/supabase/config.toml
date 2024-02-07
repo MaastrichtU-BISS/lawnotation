@@ -132,3 +132,7 @@ port = 54327
 vector_port = 54328
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
+
+[auth.email.template.magic_link]
+subject = "You are invited to Acme Inc"
+content_path = "./supabase/templates/magic-link.html"
