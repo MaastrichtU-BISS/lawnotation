@@ -106,15 +106,15 @@ export const userRouter = router({
       return data.properties;
     }),
 
-  'otpLogin': publicProcedure
+  'otpLoginIntermediate': publicProcedure
     .input(
       z.string().email()
     )
+    .use(opts => authorizer(opts, async () => false))
     .query(async ({ctx, input: email}) => {
       
       const config = useRuntimeConfig();
-      // const baseURL = config.public.baseURL;
-      const baseURL = 'https://lawnotation-git-fix-auth-prefetch-biss-um.vercel.app'
+      const baseURL = config.public.baseURL;
       const client = ctx.getSupabaseServiceRoleClient();
 
       const generateLink = await client.auth.admin.generateLink({
@@ -158,27 +158,21 @@ Cheers!`;
       if (mail && !mail.success)
         throw new TRPCError({message: 'There was an error sending the email. Please try again later', code: 'INTERNAL_SERVER_ERROR'})
 
-      return {message: "Login link has been sent! Please check your inbox"};
+      return { message: "Login link has been sent! Please check your inbox" };
     }),
-    
 
-  'otpLoginOld': publicProcedure
+  'otpLogin': publicProcedure
     .input(
-      z.object({
-        email: z.string().email(),
-        redirectTo: z.string()
-      })
+      z.string().email()
     )
-    .query(async ({ctx, input}) => {
-      // const client = serverSupabaseClient(event)
-      // const body = await readBody(event)
-      const login = await ctx.supabase.auth.signInWithOtp({email: input.email, options: { emailRedirectTo: input.redirectTo } })
+    .query(async ({ctx, input: email}) => {
+      
+      const login = await ctx.supabase.auth.signInWithOtp({ email: email })
 
       if (login.error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error logging in: ${login.error.message}`});
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error sending token: ${login.error.message}`});
       
-      const user = await ctx.supabase.from("users").select().eq("email", input.email).single();
-      return user.data as User;
+      return { message: "Login token has been sent! Please check your inbox" };
     }),
     
 })
