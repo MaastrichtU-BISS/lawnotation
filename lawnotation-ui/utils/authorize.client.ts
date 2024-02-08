@@ -6,19 +6,19 @@ import { AppRouter } from "~/server/trpc/routers";
 type DecoratedRouter = AppRouter["_def"]["record"];
 
 export const authorizeClient: <TRouter extends keyof DecoratedRouter>(
-  entities: Array<[TRouter, string | number]>
+  entities: Array<[TRouter, string | number, string]>
 ) => void = async (entities) => {
   const { $trpc } = useNuxtApp();
 
   const pageObject: Record<string, object> = {};
 
-  for (const [router, identifier] of entities) {
-    if (!$trpc[router] || !$trpc[router]["findById"])
+  for (const [router, identifier, endpoint = 'findById'] of entities) {
+    if (!$trpc[router] || !$trpc[router][endpoint])
       throw createError({
         statusCode: 500,
         message: "Sorry, something went wrong!",
       });
-    const query = await $trpc[router]["findById"].useQuery(identifier);
+    const query = await $trpc[router][endpoint].useQuery(identifier);
     if (query.error.value) {
       const code = query.error.value.data?.httpStatus
         ? query.error.value.data.httpStatus
