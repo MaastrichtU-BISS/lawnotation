@@ -116,7 +116,7 @@ const chartDifficultyOptions = ref({
   legend: {
     position: "bottom",
   },
-  labels: ["Unrated", "Very Easy", "Easy", "Normal", "Hard", "Very Hard"],
+  labels: ["Unrated", "Unsure", "Not that sure", "Neutral", "Pretty Sure", "Full Confidence"],
   colors: [
     "rgb(173, 216, 230)",
     "rgb(0, 227, 150)",
