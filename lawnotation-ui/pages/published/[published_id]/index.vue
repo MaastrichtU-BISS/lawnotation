@@ -1,18 +1,18 @@
 <template>
     <Breadcrumb v-if="publication" :crumbs="[
         {
-            name: 'Publications',
-            link: '/publications',
+            name: 'Published Data',
+            link: '/published',
         },
         {
-            name: `Publication ${publication.task_name}`,
-            link: `/publications/${publication.id}`,
+            name: `${publication.task_name}`,
+            link: `/published/${publication.id}`,
         },
     ]" />
 
     <div v-if="publication">
         <div class="max-w-screen-lg mx-auto my-4">
-            <h3 class="mb-2 text-lg font-semibold">Publication</h3>
+            <h3 class="mb-2 text-lg font-semibold">Published</h3>
             <div class="flex items-center justify-center">
                 <div class="border-b pb-3">
                     <div class="text-lg font-bold text-center mb-3">Metadata</div>
@@ -134,14 +134,15 @@ const route = useRoute();
 const publication = ref<Publication>();
 
 onMounted(async () => {
-    $trpc.publication.findById.query(+route.params.publication_id).then((p) => {
+    $trpc.publication.findById.query(+route.params.published_id).then((p) => {
         publication.value = p;
     });
 });
 
 definePageMeta({
     middleware: [
-        "auth"
+        "auth",
+        async (to) => authorizeClient([["publication", +to.params.published_id]]),
     ],
 });
 </script>
