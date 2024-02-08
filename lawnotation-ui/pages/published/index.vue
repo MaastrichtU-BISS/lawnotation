@@ -15,11 +15,11 @@
                 </div>
             </template>
             <template #row="{ item }: { item: Publication }">
-                <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-                    :class="item.status == 'unpublished' ? 'text-red' : ''">
+                <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
                     {{ item.id }}
                 </td>
                 <td class="px-6 py-2">
+                    <span v-if="myPublications" :class="`bg-${item.status == PublicationStatus.PUBLISHED ? 'green' : 'red'}-500`" class="inline-flex w-3 h-3 me-2 rounded-full"></span>
                     {{ item.task_name }}
                 </td>
                 <td class="px-6 py-2">
@@ -45,14 +45,10 @@
     </div>
 </template>
 <script setup lang="ts">
-import type { Publication } from "~/types";
+import { Publication, PublicationStatus } from "~/types";
 import Table from "@/components/Table.vue";
-import { TRPCClientError } from "@trpc/client";
-import { TRPCError } from "@trpc/server";
-import type { ZodError, typeToFlattenedError } from "zod";
 
 const user = useSupabaseUser();
-const { $toast, $trpc } = useNuxtApp();
 
 const publicationTable = ref<InstanceType<typeof Table> | null>();
 
