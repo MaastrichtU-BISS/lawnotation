@@ -1,10 +1,10 @@
 <template>
   <div>
     <section
-      class="charts my-5 py-12 flex justify-center p-6 bg-white border border-gray-200 rounded-lg shadow"
+      class="flex justify-center p-6 py-12 my-5 bg-white border border-gray-200 rounded-lg shadow charts"
     >
       <div class="">
-        <h2 class="text-center text-2xl font-bold leading-9 tracking-tight text-gray-700">
+        <h2 class="text-2xl font-bold leading-9 tracking-tight text-center text-gray-700">
           Continue where you left off
         </h2>
         <NuxtLink
@@ -20,7 +20,7 @@
     </section>
     <ClientOnly
       ><section
-        class="charts my-5 py-12 flex justify-center p-6 bg-white border border-gray-200 rounded-lg shadow"
+        class="flex justify-center p-6 py-12 my-5 bg-white border border-gray-200 rounded-lg shadow charts"
       >
         <span style="width: 400px">
           <apexchart

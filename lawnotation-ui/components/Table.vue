@@ -31,6 +31,7 @@
             type="button"
             style="outline: none"
             class="mr-2 text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-2.5 text-center"
+            data-test="remove-all"
           >
             Remove all ({{ total }})
           </button>
@@ -40,6 +41,7 @@
             type="button"
             style="outline: none"
             class="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-2.5 text-center"
+            data-test="remove-selected-rows"
           >
             Remove selected rows ({{ checkedIds.length }})
           </button>
@@ -50,7 +52,7 @@
           <select
             v-if="props.search && Object.keys(searchableColumns).length > 0"
             v-model="args.search.column"
-            class="w-40 p-2 text-sm text-gray-900 border-0 ring-1 ring-inset ring-secondary shadow-sm rounded-md bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-primary"
+            class="w-40 p-2 text-sm text-gray-900 border-0 rounded-md shadow-sm ring-1 ring-inset ring-secondary bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-primary"
           >
             <option
               v-for="[colname, colfield] of Object.entries(searchableColumns)"
@@ -98,6 +100,7 @@
                 type="checkbox"
                 v-model="allCheckbox"
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                data-test="Checkbox-all"
               />
             </th>
             <th
@@ -108,7 +111,7 @@
               <span class="flex">
                 {{ colname }}
                 <span
-                  class="ml-2 w-4 h-4 cursor-pointer"
+                  class="w-4 h-4 ml-2 cursor-pointer"
                   v-if="args.sort && col && col.sortable"
                   @click="sortClick(col.field)"
                 >
@@ -176,6 +179,7 @@
                 :value="item.id"
                 v-model="checkedIds"
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                data-test="checkbox"
               />
             </td>
             <slot name="row" :item="item" :key="item.id"></slot>
@@ -185,7 +189,7 @@
 
       <nav
         v-if="pagination"
-        class="pagination-holder flex items-center justify-between pt-4"
+        class="flex items-center justify-between pt-4 pagination-holder"
         aria-label="Table navigation"
       >
         <span class="text-sm font-normal text-gray-500">
@@ -203,7 +207,7 @@
             <button
               @click="args.page != 1 && setPage(1)"
               :disabled="args.page == 1"
-              class="pagination-item-default ml-0 rounded-l-lg"
+              class="ml-0 rounded-l-lg pagination-item-default"
             >
               <span class="sr-only">First</span>
               <svg
@@ -226,7 +230,7 @@
             <button
               @click="args.page > 1 && setPage(args.page - 1)"
               :disabled="args.page == 1"
-              class="pagination-item-default ml-0"
+              class="ml-0 pagination-item-default"
             >
               <span class="sr-only">Previous</span>
               <svg
@@ -296,7 +300,7 @@
             <button
               @click="args.page != total_pages && setPage(total_pages)"
               :disabled="args.page == total_pages"
-              class="pagination-item-default ml-0 rounded-r-lg"
+              class="ml-0 rounded-r-lg pagination-item-default"
             >
               <span class="sr-only">Last</span>
               <svg

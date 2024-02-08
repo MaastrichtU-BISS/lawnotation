@@ -17,7 +17,7 @@
       <h2 class="text-2xl">
         {{ new_labelset.name ? `New labelset: ${new_labelset.name}` : "New labelset" }}
       </h2>
-      <button class="base btn-primary" @click="create_new_labelset">Create</button>
+      <button class="base btn-primary" @click="create_new_labelset" data-test="create-labelset">Create</button>
     </div>
     <hr class="pb-4 mt-2" />
     <div class="row">
@@ -27,25 +27,28 @@
           type="text"
           v-model="new_labelset.name"
           placeholder="Labelset name"
+          data-test="labelset-name"
         />
         <textarea
           class="base"
           :value="new_labelset.desc"
           @input="new_labelset.desc = ($event.target as HTMLTextAreaElement)?.value"
           placeholder="Labelset description"
+          data-test="labelset-description"
         ></textarea>
       </div>
       <hr class="my-3" />
       <div class="flex space-x-4">
-        <input v-model="new_label.color" type="color" class="base self-center" />
+        <input v-model="new_label.color" type="color" class="self-center base" />
         <input
           class="base grow"
           v-model="new_label.name"
           placeholder="Label name"
           type="text"
           @keydown.enter="add_label()"
+          data-test="label-name"
         />
-        <button @click="add_label()" class="base btn-primary">Add</button>
+        <button @click="add_label()" class="base btn-primary" data-test="add-label">Add</button>
         <input
           class="hidden"
           type="file"
@@ -56,7 +59,7 @@
       <hr class="my-3" />
       <div class="col">
         <div
-          class="label-holder flex items-center gap-3 mb-2"
+          class="flex items-center gap-3 mb-2 label-holder"
           v-for="(label, i) of new_labelset.labels"
           :key="label.name"
         >
@@ -77,7 +80,7 @@
             </svg>
           </button>
           <span
-            class="label px-3 py-1 rounded"
+            class="px-3 py-1 rounded label"
             :style="{ backgroundColor: `${label.color}` }"
             >{{ label.name }}</span
           >

@@ -14,7 +14,7 @@
     <div class="max-w-screen-md w-full mx-auto" v-if="assignmentCounts">
       <div class="flex justify-between mb-1">
         <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
-        <span class="text-sm font-medium text-blue-700">{{ assignmentCounts.next - 1 }} / {{ assignmentCounts.total
+        <span class="text-sm font-medium text-blue-700" data-test="progress">{{ assignmentCounts.next - 1 }} / {{ assignmentCounts.total
         }}</span>
       </div>
       <div class="w-full bg-gray-200 rounded-full h-2.5">
@@ -26,7 +26,7 @@
     <div class="text-center my-10">
       <div v-if="assignmentCounts && assignmentCounts.next <= assignmentCounts.total">
         <NuxtLink :to="`/annotate/${task.id}?seq=${assignmentCounts?.next}`">
-          <button class="base btn-primary">Annotate Next Assignment</button>
+          <button class="base btn-primary" data-test="annotate-next-assignment-button">Annotate Next Assignment</button>
         </NuxtLink>
       </div>
     </div>

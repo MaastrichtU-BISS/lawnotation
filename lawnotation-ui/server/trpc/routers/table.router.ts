@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-import { Context } from '~/server/trpc/context';
+import type { Context } from '~/server/trpc/context';
 
 export type SupabaseDataSource = {
       type: "supabase_table";

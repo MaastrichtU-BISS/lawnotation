@@ -107,21 +107,15 @@ export const userRouter = router({
 
   'otpLogin': publicProcedure
     .input(
-      z.object({
-        email: z.string().email(),
-        redirectTo: z.string().url()
-      })
+      z.string().email()
     )
-    .query(async ({ctx, input}) => {
-      // const client = serverSupabaseClient(event)
-      // const body = await readBody(event)
-      const login = await ctx.supabase.auth.signInWithOtp({email: input.email, options: { emailRedirectTo: input.redirectTo } })
+    .query(async ({ctx, input: email}) => {
+      const login = await ctx.supabase.auth.signInWithOtp({ email: email })
 
       if (login.error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error logging in: ${login.error.message}`});
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error sending token: ${login.error.message}`});
       
-      const user = await ctx.supabase.from("users").select().eq("email", input.email).single();
-      return user.data as User;
+      return { message: "Login token has been sent! Please check your inbox" };
     }),
     
 })
