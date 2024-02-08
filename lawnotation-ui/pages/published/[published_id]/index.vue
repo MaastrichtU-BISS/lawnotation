@@ -12,7 +12,7 @@
 
     <div v-if="publication">
         <div class="max-w-screen-lg mx-auto my-4">
-            <h3 class="mb-2 text-lg font-semibold">Published</h3>
+            <h3 class="mb-2 text-lg font-semibold">Published Data</h3>
             <div class="flex items-center justify-center">
                 <div class="border-b pb-3">
                     <div class="text-lg font-bold text-center mb-3">Metadata</div>
