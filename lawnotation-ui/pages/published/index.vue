@@ -19,7 +19,10 @@
                     {{ item.id }}
                 </td>
                 <td class="px-6 py-2">
-                    <span v-if="myPublications" :class="`bg-${item.status == PublicationStatus.PUBLISHED ? 'green' : 'red'}-500`" class="inline-flex w-3 h-3 me-2 rounded-full"></span>
+                    <template v-if="myPublications">
+                        <span v-if="item.status == PublicationStatus.PUBLISHED" title="Published" class="inline-flex outline text-blue-600 bg-blue-600 w-3 h-3 me-2 rounded-full"></span>
+                        <span v-else title="Unpublished" class="inline-flex outline text-blue-600 w-3 h-3 me-2 rounded-full" ></span>
+                    </template>
                     {{ item.task_name }}
                 </td>
                 <td class="px-6 py-2">
