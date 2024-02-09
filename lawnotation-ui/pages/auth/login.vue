@@ -41,7 +41,7 @@
             class="flex w-full justify-center rounded-md bg-slate-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
             data-test="login-button"
           >
-            <span v-if="!loading">Send link</span>
+            <span v-if="!loading">Send code</span>
             <template v-else>
               <svg
                 aria-hidden="true"
@@ -66,7 +66,7 @@
       </div>
 
       <p class="mt-8 text-center text-sm text-gray-500">
-        By clicking the 'Send link' button, you consent to our <NuxtLink to="/terms-of-service" class="underline">Terms of Service</NuxtLink> and
+        By clicking the 'Send code' button, you consent to our <NuxtLink to="/terms-of-service" class="underline">Terms of Service</NuxtLink> and
         <NuxtLink to="/privacy-policy" class="underline">Privacy Policy</NuxtLink>. You
         will receive a link in your mailbox which you can use to sign-in. Note that if you
         do not have an account yet, this will automatically create one for you.
@@ -165,6 +165,7 @@ const verifyToken = () => {
         loading.value = false;
       } else {
         $toast.success("Logged in successfully");
+        location.href='/'
       }
     })
     .catch((error) => {
@@ -194,22 +195,13 @@ const signIn = () => {
     })
 };
 
-onMounted(() => {
-  // If user is found here, we need to assign location.href, since 
-  // navigateTo doesn't reload the trpc plugin to fetch the token
-  // from the cookie.
-  const user = useSupabaseUser();
-  if (user.value) return location.href = '/';
-  watch(user, () => {
-    if (user.value) return location.href = '/';
-  })
-})
-
 definePageMeta({
   layout: "blank",
-  middleware: () => {
-    const user = useSupabaseUser();
-    if (user.value) location.href = '/';
+  middleware: async () => {
+    const client = useSupabaseClient();
+    const {data: {user: user}} = await client.auth.getUser();
+
+    if (user) location.href = '/';
   }
 });
 </script>

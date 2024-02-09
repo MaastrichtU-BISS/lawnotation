@@ -15,6 +15,7 @@
           data-test="projects-link"
           >Projects</NuxtLink
         >
+        <span class="text-gray-400 select-none">|</span>
         <NuxtLink
           to="/labelset"
           class="header-link"
@@ -24,6 +25,8 @@
         >
         <span class="text-gray-400 select-none">|</span>
       </template>
+      <NuxtLink to="/published" class="header-link" :class="{'active': routeIsActive('/published')}">Published Data</NuxtLink>
+      <span class="text-gray-400 select-none">|</span>
       <NuxtLink
         to="/tasks"
         class="header-link"

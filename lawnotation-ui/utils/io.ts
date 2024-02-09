@@ -5,4 +5,6 @@ export type ExportTaskOptions = {
   labelset: boolean;
   documents: boolean;
   annotations: boolean;
+  loaded: boolean;
+  loading: boolean;
 };

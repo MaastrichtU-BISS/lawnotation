@@ -68,6 +68,28 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
     Action: null,
   },
 
+  'publications': {
+    Id: {
+      field: "id",
+      sortable: true,
+    },
+    Task: {
+      field: "task_name",
+      sortable: true,
+    },
+    Author: {
+      field: "author",
+      sortable: true,
+    },
+    Guidelines: {
+      field: "guidelines_url",
+    },
+    Data: {
+      field: "file_url"
+    },
+    Action: null,
+  },
+
   'assignments': {
     Id: {
       field: "id",
@@ -75,11 +97,11 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
     },
     Annotator: {
       field: "annotator.email",
-      searchable: true,
+      searchable: true
     },
     Document: {
       field: "document.name",
-      searchable: true,
+      searchable: true
     },
     Status: {
       field: "status",
