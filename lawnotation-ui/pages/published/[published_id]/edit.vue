@@ -129,9 +129,17 @@
                     </div>
                 </div>
             </div>
-            <div class="text-center mb-5">
-                <button class="base btn-primary" @click="editPublication" data-test="save-changes-button">Save
-                    Changes</button>
+            <div class="flex justify-center mb-5">
+                <button class="base btn-primary ml-5" @click="editPublication" data-test="save-changes-button">Save
+                    Changes
+                </button>
+            </div>
+            <div class="text-end mb-5">
+                <button type="button" @click="remove"
+                    class="text-xs text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-2 py-1 text-center"
+                    data-test="remove" style="outline: none;">
+                    Remove
+                </button>
             </div>
         </div>
     </div>
@@ -140,6 +148,7 @@
 import { Publication, PublicationStatus } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 import Dimmer from "~/components/Dimmer.vue";
+import { confirmBox } from "~/utils/confirmBox";
 
 const { $trpc, $toast } = useNuxtApp();
 
@@ -169,13 +178,36 @@ const editPublication = async () => {
     try {
         const result = await $trpc.publication.update.mutate({ id: publication.id, updates: new_publication.value });
         $toast.success("Update successfully");
-        navigateTo('/published')
+        navigateTo('/published');
     } catch (error) {
         $toast.error(`Update failed: ${error}`);
     } finally {
         loading.value = false;
     }
-}
+};
+
+const remove = async () => {
+    confirmBox(
+        `Are you sure you want to delete this published data?`,
+        "The metadata will be deleted from the Lawnotation platform, but the externally hosted data and guidelines will remain intact",
+        "warning"
+    ).then((result) => {
+        if (result.isConfirmed) {
+            loading.value = true;
+            $trpc.publication.delete.mutate(publication.id)
+                .then(data => {
+                    $toast.success(`Published data was deleted successfully`);
+                    navigateTo('/published');
+                })
+                .catch(error => {
+                    $toast.error(`Publoished data could not be deleted: ${error}`);
+                })
+                .finally(() => {
+                    loading.value = false;
+                });
+        }
+    });
+};
 
 definePageMeta({
     middleware: [
