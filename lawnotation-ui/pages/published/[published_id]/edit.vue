@@ -169,6 +169,7 @@ const editPublication = async () => {
     try {
         const result = await $trpc.publication.update.mutate({ id: publication.id, updates: new_publication.value });
         $toast.success("Update successfully");
+        navigateTo('/published')
     } catch (error) {
         $toast.error(`Update failed: ${error}`);
     } finally {
