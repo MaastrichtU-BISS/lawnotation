@@ -57,10 +57,12 @@ export const assignmentRouter = router({
         if (invite.error)
           throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error inviting: ${invite.error.message}`});
         
-        user_id = invite.data.user.id;
+        user_id = invite.data.user.id as string;
       } else {
         // email is already an user
-        user_id = email_found.data.id;
+        user_id = email_found.data.id as string;
+
+        await serviceClient.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
       
         // ...
         console.log("Hypothetically sending notification to user that it is assigned to new task")  
