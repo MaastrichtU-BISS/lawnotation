@@ -219,7 +219,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ExportTaskOptions } from "~/utils/io";
+import type { ExportTaskOptions } from "~/utils/io";
 import type { Publication } from "~/types"
 const props = defineProps<{
   modelValue: {
