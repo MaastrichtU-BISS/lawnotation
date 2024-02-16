@@ -1,5 +1,10 @@
 <template>
   <div>
+    <div v-if="alert_assigned_task_id" class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400" role="alert">
+      <span class="font-medium">Assign alert!</span>
+      You have been assigned to a new task. <NuxtLink :to="`/annotate/${alert_assigned_task_id}?seq=1`">Click here</NuxtLink> to start annotating
+    </div>
+
     <section
       class="flex justify-center p-6 py-12 my-5 bg-white border border-gray-200 rounded-lg shadow charts"
       v-if="nextAssignment"
@@ -115,6 +120,8 @@ import type { Assignment } from "~/types/assignment";
 const { $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
+const supa = useSupabaseClient();
+
 const projectsCount = ref<number>(0);
 const tasksCount = ref<number>(0);
 const assignmentsCount = ref<number>(0);
@@ -167,7 +174,15 @@ const chartCompletionSeries = reactive<number[]>([0, 0]);
 
 const nextAssignment = ref<Assignment | null>(null);
 
+const alert_assigned_task_id = ref<number>()
+
 onMounted(async () => {
+  if (user.value?.user_metadata?.assigned_task_id) {
+    alert_assigned_task_id.value = user.value?.user_metadata?.assigned_task_id;
+    await $trpc.user.clearInviteMetadata.mutate();
+    supa.auth.refreshSession()
+  }
+  
   $trpc.project.getCountByUser.query(user.value?.id!).then((result) => {
     if (result)
       projectsCount.value = result;

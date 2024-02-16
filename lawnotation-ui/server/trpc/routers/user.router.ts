@@ -6,6 +6,20 @@ import { zValidEmail } from '~/utils/validators';
 
 export const userRouter = router({
 
+  'clearInviteMetadata': protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const serviceClient = ctx.getSupabaseServiceRoleClient();
+      const user_metadata = ctx.user.user_metadata;
+      console.log(1, user_metadata)
+      if (user_metadata.assigned_task_id)
+        user_metadata.assigned_task_id = null;
+      console.log(2, user_metadata)
+
+      const update = await serviceClient.auth.admin.updateUserById(ctx.user.id, {user_metadata});
+      console.log(3, update.data.user?.user_metadata)
+      console.log(5, update.data.user?.id)
+    }),
+
   'findById': protectedProcedure
     .input(
       z.number().int()

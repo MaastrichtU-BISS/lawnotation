@@ -52,7 +52,7 @@ export const assignmentRouter = router({
       let user_id: User['id'] | null = null;
       if (!email_found.data) {
         // email is a new user
-        const invite = await serviceClient.auth.admin.inviteUserByEmail(input.email, {data: {invited_task_id: input.task_id}})
+        const invite = await serviceClient.auth.admin.inviteUserByEmail(input.email, {data: {assigned_task_id: input.task_id}})
 
         if (invite.error)
           throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error inviting: ${invite.error.message}`});
