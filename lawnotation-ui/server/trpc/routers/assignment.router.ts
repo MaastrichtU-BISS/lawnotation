@@ -1,12 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Assignment } from "~/types";
+import type { Assignment, User } from "~/types";
 import type { Context } from "../context";
 import { zValidEmail } from "~/utils/validators";
 
 const ZAssignmentFields = z.object({
-  annotator_id: z.string(),
+  annotator_id: z.string().nullable(),
   task_id: z.number().int(),
   document_id: z.number().int(),
   status: z.union([z.literal("pending"), z.literal("done")]),
@@ -37,6 +37,60 @@ const assignmentAuthorizer = async (
 };
 
 export const assignmentRouter = router({
+
+  assignUserToTask: protectedProcedure
+    .input(
+      z.object({
+        email: zValidEmail,
+        task_id: z.number()
+      })
+    )
+    .query(async ({ctx, input}) => {
+      const serviceClient = ctx.getSupabaseServiceRoleClient();
+
+      const email_found = (await serviceClient.from('users').select('id').eq('email', input.email).maybeSingle());
+      let user_id: User['id'] | null = null;
+      if (!email_found.data) {
+        // email is a new user
+        const invite = await serviceClient.auth.admin.inviteUserByEmail(input.email, {data: {invited_task_id: input.task_id}})
+
+        if (invite.error)
+          throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error inviting: ${invite.error.message}`});
+        
+        user_id = invite.data.user.id;
+      } else {
+        // email is already an user
+        user_id = email_found.data.id;
+      
+        // ...
+        console.log("Hypothetically sending notification to user that it is assigned to new task")  
+      }
+
+      if (!user_id)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error retrieving or inviting the specified user`});
+
+      return user_id;
+    }),
+
+  importAssignments: protectedProcedure
+    .input(
+      z.object({
+        email: zValidEmail,
+        task_id: z.number()
+      })
+    )
+    .query(async ({ctx, input}) => {
+      const serviceClient = ctx.getSupabaseServiceRoleClient();
+      const invite = await serviceClient.auth.admin.inviteUserByEmail(input.email, {data: {invited_task_id: input.task_id}})
+
+      if (invite.error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error inviting: ${invite.error.message}`});
+      
+      
+      
+      return ;
+    }),
+
   create: protectedProcedure
     .input(ZAssignmentFields)
     .mutation(async ({ ctx, input }) => {
