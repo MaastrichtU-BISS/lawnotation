@@ -242,6 +242,8 @@ const createAssignments = async () => {
       // @ts-expect-error
       new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
       // @ts-expect-error
+      new_assignments[i].annotator_number = (i % annotators_id.length) + 1
+      // @ts-expect-error
       new_assignments[i].seq_pos =
         (permutations[i % annotators_id.length].pop() ?? Math.floor(i / annotators_id.length)) + 1;
     }

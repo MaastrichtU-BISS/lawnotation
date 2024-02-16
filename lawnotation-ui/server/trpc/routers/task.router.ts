@@ -100,7 +100,7 @@ export const taskRouter = router({
           for (let j = 0; j < assignments.length; j++) {
               const ass = assignments[j];
               try {
-                  await caller.assignment.update({ id: ass.id, updates: { ...ass, annotator_id: new_user } });
+                  await caller.assignment.update({ id: ass.id, updates: { annotator_id: new_user } });
                   stats.success++;
               } catch {
                   stats.failed++;
