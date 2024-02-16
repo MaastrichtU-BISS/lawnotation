@@ -83,7 +83,6 @@ const new_task = ref<any>({
 
 const new_emails = reactive<string[]>([]);
 
-
 const annotators = reactive<Annotator[]>([]);
 
 const editTask = async () => {
@@ -103,33 +102,58 @@ const editTask = async () => {
 };
 
 const replaceAnnotators = async () => {
+    if (!task.value)
+        return;
+
     loading.value = true;
 
-    for (let i = 0; i < new_emails.length; i++) {
-        if (new_emails[i].length && (new_emails[i] != annotators[i].email)) {
 
-            const assignments = await $trpc.assignment.findAssignmentsByTaskAndUser.query({
-                annotator_number: annotators[i].annotator_number,
-                task_id: task.value?.id!
-            });
+    // const stats = {
+    //     success: 0,
+    //     failed: 0
+    // };
 
-            let new_user = "";
-            if (new_emails[i] && new_emails.length) {
-                new_user = (await $trpc.user.otpLogin.query({ email: new_emails[i], redirectTo: `${config.public.baseURL}/annotate/${task.value?.id}?seq=1` })).id;
-            }
+    // for (let i = 0; i < new_emails.length; i++) {
+    //     if (new_emails[i] != annotators[i].email) {
 
-            for (let j = 0; j < assignments.length; j++) {
-                const ass = assignments[j];
-                $trpc.assignment.update.mutate({ id: ass.id, updates: { ...ass, annotator_id: new_user } });
-            }
+    //         const assignments = await $trpc.assignment.findAssignmentsByTaskAndUser.query({
+    //             annotator_number: annotators[i].annotator_number,
+    //             task_id: task.value?.id!
+    //         });
 
-            annotators[i].email = new_emails[i];
+    //         let new_user = null;
+    //         if (new_emails[i] && new_emails.length) {
+    //             new_user = await $trpc.assignment.assignUserToTask.query({ email: new_emails[i], task_id: task.value.id });
+    //         }
+
+    //         for (let j = 0; j < assignments.length; j++) {
+    //             const ass = assignments[j];
+    //             try {
+    //                 await $trpc.assignment.update.mutate({ id: ass.id, updates: { ...ass, annotator_id: new_user } });
+    //                 stats.success++;
+    //             } catch {
+    //                 stats.failed++;
+    //             }
+    //         }
+
+    //         annotators[i].email = new_emails[i];
+    //     }
+    // }
+
+    try {
+        const update = await $trpc.task.updateAssignees.mutate({
+            new_emails,
+            task_id: task.value.id
+        });
+        annotators.splice(0) && annotators.push(...update.annotators)
+        $toast.success(update.message)
+    } catch (error) {
+        if ((error as Object).hasOwnProperty('message')) {
+            $toast.error((error as any).message)
         }
-    }
+    }    
 
     loading.value = false;
-    $toast.success("All the assignments have been reassigned")
-
 };
 
 onMounted(async () => {
