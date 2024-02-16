@@ -1,6 +1,6 @@
 // export * from './supabase';
 export * from './annotation';
-export * from './assignment';
+export type * from './assignment';
 export * from './document';
 export * from './labelset';
 export * from './project';

@@ -96,7 +96,14 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Task, Assignment, AssignmentTableData, User, Project, Publication, PublicationStatus } from "~/types";
+import { 
+  type Task,
+  type Assignment,
+  type AssignmentTableData,
+  type User,
+  type Project,
+  type Publication,
+   PublicationStatus } from "~/types";
 import Table from "~/components/Table.vue";
 import { Modal } from "flowbite";
 import { shuffle, clone } from "lodash";
