@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Assignment } from "~/types";
 import type { Context } from "../context";
+import { zValidEmail } from "~/utils/validators";
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string(),
@@ -336,14 +337,14 @@ export const assignmentRouter = router({
         .order("task_id", { ascending: false })
         .order("seq_pos", { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in findNextAssignmentByUser: ${error.message}`,
         });
-      return data as Assignment;
+      return data as Assignment | null;
     }),
 
   countAssignmentsByUserAndTask: protectedProcedure

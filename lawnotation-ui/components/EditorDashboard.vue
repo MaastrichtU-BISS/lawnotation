@@ -1,5 +1,24 @@
 <template>
   <div>
+    <section
+      class="flex justify-center p-6 py-12 my-5 bg-white border border-gray-200 rounded-lg shadow charts"
+      v-if="nextAssignment"
+    >
+      <div class="">
+        <h2 class="text-2xl font-bold leading-9 tracking-tight text-center text-gray-700">
+          Continue where you left off
+        </h2>
+        <NuxtLink
+          :to="`/annotate/${nextAssignment.task_id}?seq=${nextAssignment.seq_pos}`"
+        >
+          <button
+            class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+          >
+            Start annotating
+          </button>
+        </NuxtLink>
+      </div>
+    </section>
     <section class="countups my-5 pt-5">
       <div class="flex justify-center text-center">
         <div
@@ -91,6 +110,7 @@
 </template>
 <script setup lang="ts">
 import CountUp from "vue-countup-v3";
+import type { Assignment } from "~/types/assignment";
 
 const { $trpc } = useNuxtApp();
 
@@ -145,6 +165,8 @@ const chartCompletionOptions = ref({
 });
 const chartCompletionSeries = reactive<number[]>([0, 0]);
 
+const nextAssignment = ref<Assignment | null>(null);
+
 onMounted(async () => {
   $trpc.project.getCountByUser.query(user.value?.id!).then((result) => {
     if (result)
@@ -175,6 +197,10 @@ onMounted(async () => {
     for (let i = 0; i < result.length; i++) {
       chartCompletionSeries[i] = result[i].count;
     }
+  });
+
+  $trpc.assignment.findNextAssignmentByUser.query(user.value?.id!).then((result) => {
+    nextAssignment.value = result;
   });
 });
 </script>

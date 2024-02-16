@@ -2,11 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { authorizer, protectedProcedure, publicProcedure, router } from '~/server/trpc'
 import type { User } from '~/types';
-
-// const ZUserFields = z.object({
-//   email: z.string().email(),
-//   role: z.union([z.literal("editor"), z.literal("annotator")])
-// });
+import { zValidEmail } from '~/utils/validators';
 
 export const userRouter = router({
 
@@ -24,7 +20,7 @@ export const userRouter = router({
 
   'findByEmail': protectedProcedure
     .input(
-      z.string().email()
+      zValidEmail
     )
     .query(async ({ ctx, input: email }) => {
       const { data, error } = await ctx.supabase.from("users").select().eq('email', email).single();
@@ -66,30 +62,31 @@ export const userRouter = router({
     }),
 
   // TODO: definitely test!
-  'inviteUser': protectedProcedure
-    .input(
-      z.object({
-        email: z.string().email(),
-        redirectTo: z.string().url()
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      const serviceClient = ctx.getSupabaseServiceRoleClient()
-      const { data, error } = await serviceClient.auth.admin.generateLink({
-        type: "magiclink",
-        email: input.email,
-        options: {
-          redirectTo: input.redirectTo
-        } 
-      })
+  // 'inviteUser': protectedProcedure
+  //   .input(
+  //     z.object({
+  //       email: z.string().email(),
+  //       redirectTo: z.string().url()
+  //     })
+  //   )
+  //   .query(async ({ ctx, input }) => {
+  //     const serviceClient = ctx.getSupabaseServiceRoleClient()
+  //     const { data, error } = await serviceClient.auth.admin.generateLink({
+  //       type: "magiclink",
+  //       email: input.email,
+  //       options: {
+  //         redirectTo: input.redirectTo
+  //       } 
+  //     })
       
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.inviteUser: ${error.message}`});
-      return data;
-    }),
+  //     if (error)
+  //       throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.inviteUser: ${error.message}`});
+  //     return data;
+  //   }),
+  
   'generateLink': protectedProcedure
     .input(
-      z.string().email()
+      zValidEmail
     )
     .use(opts => authorizer(opts, async () => false))
     .query(async ({ctx, input: email}) => {
@@ -107,7 +104,7 @@ export const userRouter = router({
 
   'otpLogin': publicProcedure
     .input(
-      z.string().email()
+      zValidEmail
     )
     .query(async ({ctx, input: email}) => {
       const login = await ctx.supabase.auth.signInWithOtp({ email: email })
