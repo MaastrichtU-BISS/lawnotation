@@ -216,14 +216,14 @@ const createAssignments = async () => {
     }
 
     // Get Users
-    const usersPromises: Promise<User>[] = [];
+    const usersPromises: Promise<User['id']>[] = [];
     for (let i = 0; i < annotators_email.length; ++i) {
       usersPromises.push(
-        $trpc.user.otpLogin.query({ email: annotators_email[i], redirectTo: `${config.public.baseURL}/annotate/${task.id}?seq=1` })
+        $trpc.assignment.assignUserToTask.query({ email: annotators_email[i], task_id: task.id })
       );
     }
 
-    const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
+    const annotators_id = (await Promise.all(usersPromises));
 
     // Assign users and order to assignments
     const unshuffled: number[] = [
