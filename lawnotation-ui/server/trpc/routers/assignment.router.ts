@@ -14,6 +14,8 @@ const ZAssignmentFields = z.object({
   annotator_number: z.number().int()
 });
 
+
+// assingmentEditorAuthorizer 
 const assignmentAuthorizer = async (
   assignment_id: number,
   user_id: string,
@@ -34,10 +36,28 @@ const assignmentAuthorizer = async (
   return editor.count === 1 || annotator.count === 1;
   // return true;
 };
+const assignmentAnnotatorAuthorizer = async (
+  assignment_id: number,
+  user_id: string,
+  ctx: Context
+) => {
+  const query = ctx.supabase
+    .from("assignments")
+    .select("*", {
+      count: "exact",
+      head: true,
+    })
+    .eq("id", assignment_id);
+
+
+  const annotator = await query.eq("annotator_id", user_id);
+
+  return annotator.count === 1;
+};
 
 export const assignmentRouter = router({
   create: protectedProcedure
-    .input(ZAssignmentFields)
+    .input(ZAssignmentFields) 
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")

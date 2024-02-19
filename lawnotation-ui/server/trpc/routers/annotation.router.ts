@@ -1,7 +1,8 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
-import { protectedProcedure, router } from '~/server/trpc'
+import {  authorizer, protectedProcedure, router } from '~/server/trpc'
 import type { Annotation } from '~/types';
+import type { Context } from "../context";
 
 const ZAnnotationFields = z.object({
   label: z.string(),
@@ -11,7 +12,44 @@ const ZAnnotationFields = z.object({
   text: z.string(),
   origin: z.string(),
   ls_id: z.string(),
-});
+}); 
+
+const annotationEditorAuthorizer = async (
+  assignment_id: number,
+  user_id: string,
+  ctx: Context
+) => {
+  const query = await ctx.supabase
+    .from("annotations")
+    .select("assignments!inner(id, tasks!inner(id, projects!inner(editor_id)))", {
+      count: "exact",
+      head: true,
+    })
+    .eq("id", assignment_id)
+    .eq("assignments.tasks.projects.editor_id", user_id);
+    
+    console.log("annotationEditorAuthorizer: ", query)
+
+  return query.count === 1;
+};
+
+const annotationAnnotatorAuthorizer = async (
+  assignment_id: number,
+  user_id: string,
+  ctx: Context
+) => {
+  const query = await ctx.supabase
+    .from("annotations")
+    .select("assignments!inner(annotator_id)" , {
+      count: "exact",
+      head: true
+    })
+    .eq("id", assignment_id)
+    .eq("assignments.annotator_id", user_id);
+
+    console.log("annotationAnnotatorAuthorizer: ", query);
+  return query.count === 1;
+};
 
 export const annotationRouter = router({
   /* General Crud Definitions */
@@ -38,6 +76,11 @@ export const annotationRouter = router({
 
   'findById': protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+    authorizer(opts, () =>
+    annotationEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+    )
+  )
     .query(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase.from("annotations").select().eq('id', input).single();
       
