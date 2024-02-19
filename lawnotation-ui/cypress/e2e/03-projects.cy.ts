@@ -1,10 +1,6 @@
 import Role from '../support/role';
 
 describe('Testing projects and tasks with the editor account', () => {
-    before(() => {
-        cy.resetDatabase();
-    });
-
     beforeEach(() => {
         cy.login(Role.EDITOR);
     });
