@@ -1,10 +1,6 @@
 import Role from '../support/role';
 
 describe('Test label functionality', () => {
-  before(() => {
-    cy.resetDatabase();
-  });
-
   beforeEach(() => {
     cy.login(Role.EDITOR);
   });
