@@ -7,24 +7,22 @@
       <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
     </div>
     <div v-if="user" class="space-x-4">
-      <template v-if="role == 'editor'">
-        <NuxtLink
-          to="/projects"
-          class="header-link"
-          :class="{ active: routeIsActive('/projects') }"
-          data-test="projects-link"
-          >Projects</NuxtLink
-        >
-        <span class="text-gray-400 select-none">|</span>
-        <NuxtLink
-          to="/labelset"
-          class="header-link"
-          :class="{ active: routeIsActive('/labelset') }"
-          data-test="labelset-link"
-          >Labelsets</NuxtLink
-        >
-        <span class="text-gray-400 select-none">|</span>
-      </template>
+      <NuxtLink
+        to="/projects"
+        class="header-link"
+        :class="{ active: routeIsActive('/projects') }"
+        data-test="projects-link"
+        >Projects</NuxtLink
+      >
+      <span class="text-gray-400 select-none">|</span>
+      <NuxtLink
+        to="/labelset"
+        class="header-link"
+        :class="{ active: routeIsActive('/labelset') }"
+        data-test="labelset-link"
+        >Labelsets</NuxtLink
+      >
+      <span class="text-gray-400 select-none">|</span>
       <NuxtLink to="/published" class="header-link" :class="{'active': routeIsActive('/published')}">Published Data</NuxtLink>
       <span class="text-gray-400 select-none">|</span>
       <NuxtLink
@@ -61,7 +59,6 @@ const user = useSupabaseUser();
 const { $trpc } = useNuxtApp();
 
 const route = useRoute();
-const role = ref<string>((await $trpc.user.findByEmail.query(user.value!.email!)).role);
 
 const routeIsActive = computed(() => {
   return (match: string) => {

@@ -12,7 +12,15 @@
 
     <div v-if="publication">
         <div class="max-w-screen-lg mx-auto my-4">
-            <h3 class="mb-2 text-lg font-semibold">Published Data</h3>
+            <div class="flex justify-between">
+                <h3 class="mb-2 text-lg font-semibold">Published Data</h3>
+                <template v-if="publication.editor_id == user?.id">
+                    <a :href="`/published/${publication.id}/edit`">
+                        <button
+                            class="py-1.5 px-5 text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100">Edit</button>
+                    </a>
+                </template>
+            </div>
             <div class="flex items-center justify-center">
                 <div class="border-b pb-3">
                     <div class="text-lg font-bold text-center mb-3">Metadata</div>
@@ -129,7 +137,7 @@
 import type { Publication } from "~/types";
 
 const { $trpc } = useNuxtApp();
-
+const user = useSupabaseUser();
 const route = useRoute();
 const publication = ref<Publication>();
 

@@ -134,5 +134,9 @@ vector_port = 54328
 backend = "postgres"
 
 [auth.email.template.magic_link]
-subject = "You are invited to Acme Inc"
+subject = "Your login code for Lawnotation"
 content_path = "./supabase/templates/magic-link.html"
+
+[auth.email.template.invite]
+subject = "You are invited to Lawnotation"
+content_path = "./supabase/templates/invite.html"

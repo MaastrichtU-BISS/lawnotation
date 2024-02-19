@@ -12,7 +12,7 @@
       },
     ]"
   />
-
+  
   <div v-if="project">
     <p class="mt-1 mb-3 text-sm text-gray-700">{{ project.desc }}</p>
 
@@ -418,8 +418,9 @@ const importTask = async (new_emails: string[] | null = null) => {
     taskTable.value?.refresh();
 
     // creating documents
-    import_progress.value.message = "Creating Documents";
     if (import_json.value.documents) {
+      import_progress.value.message = "Creating Documents";
+
       const documents = await $trpc.document.createMany.mutate(
         import_json.value.documents.map((d: any) => {
           return {
@@ -435,21 +436,23 @@ const importTask = async (new_emails: string[] | null = null) => {
       if (import_json.value.counts?.annotators && new_emails) {
         // creating annotators
         import_progress.value.message = "Creating Annotators";
-        const usersPromises: Promise<User>[] = [];
+
+        const usersPromises: Promise<User['id'] | null>[] = [];
         new_emails.map((email) => {
           if (!email || !email.length) {
-            usersPromises.push(Promise.resolve({ id: "", email: "", role: "annotator" }));
+            usersPromises.push(Promise.resolve(null));
           } else {
             usersPromises.push(
-              $trpc.user.otpLogin.query({
+              $trpc.assignment.assignUserToTask.query({
                 email: email,
-                redirectTo: `${config.public.baseURL}/annotate/${task.id}?seq=1`,
+                task_id: task.id
               })
             );
           }
+
         });
 
-        const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
+        const annotator_ids = (await Promise.all(usersPromises));
 
         // creating assignments
         import_progress.value.message = "Creating Assignments";
@@ -457,7 +460,7 @@ const importTask = async (new_emails: string[] | null = null) => {
 
         import_json.value.documents.map((d: any, i: number) => {
           d.assignments.map((ass: any) => {
-            let ann_id: string | null = annotators_id[ass.annotator - 1];
+            let ann_id: string | null = annotator_ids[ass.annotator - 1];
 
             let new_ass: any = {
               task_id: task.id,
@@ -466,8 +469,8 @@ const importTask = async (new_emails: string[] | null = null) => {
               status: "pending",
               annotator_number: ass.annotator,
             };
-
-            if (ann_id && ann_id.length) {
+            
+            if (ann_id) {
               new_ass.annotator_id = ann_id;
             }
 

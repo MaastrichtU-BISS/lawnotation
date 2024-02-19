@@ -96,14 +96,15 @@
   </div>
 </template>
 <script setup lang="ts">
-import { 
-  type Task,
-  type Assignment,
-  type AssignmentTableData,
-  type User,
-  type Project,
-  type Publication,
-   PublicationStatus } from "~/types";
+import type {
+  Task,
+  Assignment,
+  AssignmentTableData,
+  User,
+  Project,
+  Publication,
+} from "~/types";
+import { PublicationStatus } from "~/types"
 import Table from "~/components/Table.vue";
 import { Modal } from "flowbite";
 import { shuffle, clone } from "lodash";
@@ -215,14 +216,14 @@ const createAssignments = async () => {
     }
 
     // Get Users
-    const usersPromises: Promise<User>[] = [];
+    const usersPromises: Promise<User['id']>[] = [];
     for (let i = 0; i < annotators_email.length; ++i) {
       usersPromises.push(
-        $trpc.user.otpLogin.query({ email: annotators_email[i], redirectTo: `${config.public.baseURL}/annotate/${task.id}?seq=1` })
+        $trpc.assignment.assignUserToTask.query({ email: annotators_email[i], task_id: task.id })
       );
     }
 
-    const annotators_id = (await Promise.all(usersPromises)).map((u) => u.id);
+    const annotators_id = (await Promise.all(usersPromises));
 
     // Assign users and order to assignments
     const unshuffled: number[] = [
@@ -240,6 +241,8 @@ const createAssignments = async () => {
     for (let i = 0; i < new_assignments.length; ++i) {
       // @ts-expect-error
       new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
+      // @ts-expect-error
+      new_assignments[i].annotator_number = (i % annotators_id.length) + 1
       // @ts-expect-error
       new_assignments[i].seq_pos =
         (permutations[i % annotators_id.length].pop() ?? Math.floor(i / annotators_id.length)) + 1;

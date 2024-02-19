@@ -1,5 +1,6 @@
 <h2>Hey {{ .Email }},</h2>
 <p>You’ve requested to login to Lawnotation.</p>
-<p>Your 6-digit code is: <span style="font-size: 1.3em">{{ .Token }}</span></p>
+<p style="margin-bottom: 0;">Your 6-digit code is:</p>
+<p style="margin-top: 0; background-color: #c3c3c3; width: fit-content; padding: 1rem;"><span id="login-code" style="font-size: 1.3em; color: #333">{{ .Token }}</span></p>
 <p>If you haven’t requested the login, please report to the <a href="mailto:biss-devs@maastrichtuniversity.nl">administrator</a>.</p>
 <p>Cheers!</p>
