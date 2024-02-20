@@ -65,7 +65,7 @@ export const assignmentRouter = router({
         await serviceClient.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
       
         // ...
-        console.log("Hypothetically sending notification to user that it is assigned to new task")  
+        console.log(`Hypothetically sending notification to user ${user_id} that it is assigned to new task`)
       }
 
       if (!user_id)
