@@ -37,7 +37,12 @@ const assignmentAuthorizer = async (
 };
 
 export const assignmentRouter = router({
-
+  /**
+   * This method creates inivites an email to create an account if it doesn't 
+   * already have one. Next, it will assign the provided task_id to the metadata
+   * of the user account, so that a flash message appears when they log-in.
+   * Note that this method doesn't actually create the assignments.
+   */
   assignUserToTask: protectedProcedure
     .input(
       z.object({
