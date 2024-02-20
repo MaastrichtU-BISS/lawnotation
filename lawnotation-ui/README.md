@@ -1,42 +1,89 @@
-# Nuxt 3 Minimal Starter
+# Lawnotation
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+## Stack
 
-## Setup
+- Nuxt 3 (Vue 3) for the front- and back-end
+- Supabase for authentication and database
+- TRPC to link the front- and back-end
 
-Make sure to install the dependencies:
+## Development
 
-```bash
-# yarn
-yarn install
+### 0. Prerequisite
 
-# npm
-npm install
+The project assumes you have the following installed on your system for development:
 
-# pnpm
+- Docker
+- pnpm
+
+Additionally, for testing:
+
+- Cypress required packages:
+  - https://docs.cypress.io/guides/getting-started/installing-cypress#System-requirements
+
+### 1. Install the required packages
+
+```
 pnpm install
 ```
 
-## Development Server
+### 2. Start the local supabase enviroment to get the relevant details
 
-Start the development server on `http://localhost:3000`
-
-```bash
-npm run dev
+```
+pnpm exec supabase start
 ```
 
-## Production
+### 3. Setup the .env file
 
-Build the application for production:
+First, copy the `.env.example` to `.env`
 
-```bash
-npm run build
+```
+cp .env.example .env
 ```
 
-Locally preview production build:
+Next, fill in the values.
 
-```bash
-npm run preview
+#### Supabase
+
+For the supabase environment variables, copy the values from Supabase settings -> API:
+
+- `SUPABASE_URL`: `Project URL`
+- `SUPABASE_KEY`: `anon`
+- `SUPABASE_SERVICE_KEY`: `service_role`
+
+### 4. Run the services
+
+#### 4.1 Supabase
+
+Supabase should still be running in the background from the previous command (step 2). You can check this by executing:
+
+```
+pnpm exec supabase status
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+#### 4.2 Nuxt
+
+You can start the nuxt instance using:
+
+```
+pnpm dev
+```
+
+## Testing
+
+### Automated testing using Cypress
+
+```
+pnpm cypress
+```
+
+Pro tip: use a different browser than your default to test. E.g. test with Firefox if your default is Chrome. This helps to also cover browser dependant bugs.
+
+### Manual testing
+
+1. Open http://localhost:3000/
+2. On the login page, fill in editor@test.com or annotator@test.com
+3. Find the login mail by running:
+
+```
+pnpm supabase-mail
+```
