@@ -4,7 +4,7 @@ Cypress.Commands.add("login", (role: Role) => {
   cy.visit('/auth/login')
 
   cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
-  cy.get('input[data-test="email-field-to-login"]').type(`${role}@test.com`)
+  cy.get('input[data-test="email-field-to-login"]').type(`${role}@example.com`)
   cy.get('button[data-test="login-button"]').click()
   cy.wait(4000)
 

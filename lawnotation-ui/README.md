@@ -81,7 +81,7 @@ Pro tip: use a different browser than your default to test. E.g. test with Firef
 ### Manual testing
 
 1. Open http://localhost:3000/
-2. On the login page, fill in editor@test.com or annotator@test.com
+2. On the login page, fill in editor@example.com or annotator@example.com
 3. Find the login mail by running:
 
 ```
