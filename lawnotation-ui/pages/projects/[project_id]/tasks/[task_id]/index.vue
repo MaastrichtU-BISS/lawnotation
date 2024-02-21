@@ -68,19 +68,12 @@
             <h3 class="mt-3 text-sm font-semibold">
               Annotators: {{ annotators_email.length }}
             </h3>
-            <ul class="list-disc list-inside">
-              <li v-for="ann_email in annotators_email" :key="ann_email">
-                <span>{{ ann_email }}</span>
-              </li>
-            </ul>
-            <input class="base" id="annotator_email" type="email" name="email" v-model="email"
-              @keydown.enter="addAnnotator()" />
-            <button class="base btn-primary" @click="addAnnotator">Add</button>
-            <label for="amount_of_docs">Amount of Documents (total)</label>
+            <Chips v-model="annotators_email" separator=","  />
+            <label for="amount_of_docs">Number of Documents (total)</label>
             <input class="base" id="amount_of_docs" type="number" name="" v-model="amount_of_docs" :max="total_docs"
               min="1" />
             <label for="fixed_docs">
-              Amount of Fixed Documents (to share among annotators)
+              Number of Fixed Documents (to share among annotators)
             </label>
             <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
               min="0" />
