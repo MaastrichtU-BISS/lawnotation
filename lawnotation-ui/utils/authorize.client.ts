@@ -1,23 +1,28 @@
-import { _AsyncData } from "nuxt/dist/app/composables/asyncData";
+import type { _AsyncData } from "nuxt/dist/app/composables/asyncData";
+import type { AppRouter } from "~/server/trpc/routers";
 import { createTRPCNuxtClient } from "trpc-nuxt/client";
-import { AppRouter } from "~/server/trpc/routers";
 
 // type DecoratedRouter = ReturnType<typeof createTRPCNuxtClient<AppRouter>>
 type DecoratedRouter = AppRouter["_def"]["record"];
 
 export const authorizeClient: <TRouter extends keyof DecoratedRouter>(
-  entities: Array<[TRouter, string | number, string]>
+  entities: Array<
+      | [TRouter, string | number, string]
+      | [TRouter, string | number]
+    >
 ) => void = async (entities) => {
   const { $trpc } = useNuxtApp();
 
   const pageObject: Record<string, object> = {};
 
   for (const [router, identifier, endpoint = 'findById'] of entities) {
+    // @ts-expect-error
     if (!$trpc[router] || !$trpc[router][endpoint])
       throw createError({
         statusCode: 500,
         message: "Sorry, something went wrong!",
       });
+    // @ts-expect-error
     const query = await $trpc[router][endpoint].useQuery(identifier);
     if (query.error.value) {
       const code = query.error.value.data?.httpStatus
