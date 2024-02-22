@@ -161,19 +161,13 @@ const formValues = ref<{
 let export_modal: Modal | null = null;
 
 const amount_of_fixed_docs = ref<number>(0);
-const annotators_email = reactive<string[]>([]);
+const annotators_email = ref<string[]>([]);
 
 const loading = ref(false);
 
 const email = ref("");
 
 const assignmentTable = ref<InstanceType<typeof Table>>();
-
-const addAnnotator = () => {
-  if (email.value == "") throw new Error("Email field is required");
-  annotators_email.push(email.value);
-  email.value = "";
-};
 
 const createAssignments = async () => {
   try {
@@ -190,7 +184,7 @@ const createAssignments = async () => {
 
     // Create shared assignments (only with docs info)
     for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
-      for (let j = 0; j < annotators_email.length; ++j) {
+      for (let j = 0; j < annotators_email.value.length; ++j) {
         const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
           task_id: task.id,
           document_id: docs[i],
@@ -210,9 +204,9 @@ const createAssignments = async () => {
 
     // Get Users
     const usersPromises: Promise<User['id']>[] = [];
-    for (let i = 0; i < annotators_email.length; ++i) {
+    for (let i = 0; i < annotators_email.value.length; ++i) {
       usersPromises.push(
-        $trpc.assignment.assignUserToTask.query({ email: annotators_email[i], task_id: task.id })
+        $trpc.assignment.assignUserToTask.query({ email: annotators_email.value[i], task_id: task.id })
       );
     }
 

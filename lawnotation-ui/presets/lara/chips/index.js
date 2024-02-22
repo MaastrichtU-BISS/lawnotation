@@ -62,7 +62,7 @@ export default {
 
             // Shape
             'appearance-none rounded-none',
-            'border-0 outline-none',
+            'border-0 outline-none focus:ring-0',
             'shadow-none',
 
             // Color
