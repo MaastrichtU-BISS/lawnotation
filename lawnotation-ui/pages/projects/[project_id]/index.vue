@@ -52,7 +52,7 @@
               class="base"
               :to="`/projects/${route.params.project_id}/documents/${item.id}`"
             >
-            <button class="base btn-primary">View</button>
+            <Button label="View" size="small" />
             </NuxtLink>
           </td>
         </template>
@@ -110,14 +110,13 @@
                   class="base mr-2"
                   :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
                 >
-                  <button class="base btn-primary" data-test="view-task-button">View</button>
+                  <Button label="View" size="small" data-test="view-task-button"/>
                 </NuxtLink>
                 <NuxtLink
-                  class="base"
                   :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                   data-test="edit-task-link"
                 >
-                  Edit
+                  <Button label="Edit" size="small" link />
                 </NuxtLink>
               </td>
             </template>
