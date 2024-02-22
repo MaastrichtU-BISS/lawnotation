@@ -9,8 +9,8 @@
                 <span class="font-bold text-2xl block mb-2 mt-4">{{ message.header }}</span>
                 <p class="mb-0">{{ message.message }}</p>
                 <div class="flex items-center gap-2 mt-4">
-                    <Button label="Save" @click="acceptCallback" />
-                    <Button label="Cancel" outlined @click="rejectCallback" />
+                    <Button label="Cancel" class="mr-6" size="small" icon="pi pi-times" iconPos="right" outlined @click="rejectCallback" />
+                    <Button label="Save" icon="pi pi-check" size="small" iconPos="right" @click="acceptCallback" />
                 </div>
             </div>
         </template>

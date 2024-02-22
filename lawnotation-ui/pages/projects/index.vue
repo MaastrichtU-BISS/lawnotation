@@ -32,9 +32,9 @@
         </span>
       </div>
       <Textarea v-model="new_project.desc" data-test="project-description" autoResize rows="5" cols="30" placeholder="Description" class="w-full mb-4"/>
-      <div class="flex justify-between mt-4">
-        <Button label="Cancel" icon="pi pi-times" iconPos="right" severity="secondary" @click="showCreateModal = false"/>
-        <Button data-test="add-project" label="Create" icon="pi pi-check" iconPos="right" @click="createNewProject"/>
+      <div class="flex justify-center mt-4">
+        <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined @click="showCreateModal = false"/>
+        <Button data-test="add-project" label="Create" size="small" icon="pi pi-check" iconPos="right" @click="createNewProject"/>
       </div>
     </Dialog>
   </div>
