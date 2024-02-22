@@ -200,7 +200,7 @@ const remove = async () => {
                     navigateTo('/published');
                 })
                 .catch(error => {
-                    $toast.error(`Publoished data could not be deleted: ${error}`);
+                    $toast.error(`Published data could not be deleted: ${error}`);
                 })
                 .finally(() => {
                     loading.value = false;
