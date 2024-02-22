@@ -40,7 +40,7 @@
                         <Button label="View" size="small" />
                     </NuxtLink>
                     <NuxtLink v-if="item.editor_id == user?.id" class="mr-2" :to="`/published/${item.id}/edit`">
-                        <Button label="Edit" size="small" />
+                        <Button label="Edit" size="small" link />
                     </NuxtLink>
                 </td>
             </template>
