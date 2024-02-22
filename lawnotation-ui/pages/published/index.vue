@@ -37,10 +37,10 @@
                 </td>
                 <td class="px-6 py-2">
                     <NuxtLink class="base mr-2" :to="`/published/${item.id}`">
-                        <button class="base btn-primary text-xs">Details</button>
+                        <button class="base btn-primary text-xs">View</button>
                     </NuxtLink>
                     <NuxtLink v-if="item.editor_id == user?.id" class="base mr-2" :to="`/published/${item.id}/edit`">
-                        <button class="base btn-secondary">Edit</button>
+                       Edit
                     </NuxtLink>
                 </td>
             </template>
@@ -48,7 +48,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import { Publication, PublicationStatus } from "~/types";
+import { type Publication, PublicationStatus } from "~/types";
 import Table from "@/components/Table.vue";
 
 const user = useSupabaseUser();

@@ -52,7 +52,7 @@
               class="base"
               :to="`/projects/${route.params.project_id}/documents/${item.id}`"
             >
-              View
+            <button class="base btn-primary">View</button>
             </NuxtLink>
           </td>
         </template>

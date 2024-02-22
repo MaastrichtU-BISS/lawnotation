@@ -18,7 +18,7 @@
                 <a :href="`/published/${publication.id}`">
                     <button
                         class="py-1.5 px-5 text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100">
-                        Details
+                        View
                     </button>
                 </a>
             </div>
@@ -145,7 +145,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import { Publication, PublicationStatus } from "~/types";
+import { type Publication, PublicationStatus } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 import Dimmer from "~/components/Dimmer.vue";
 import { confirmBox } from "~/utils/confirmBox";
