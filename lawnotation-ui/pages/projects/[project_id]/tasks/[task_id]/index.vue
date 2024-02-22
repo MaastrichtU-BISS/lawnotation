@@ -167,9 +167,14 @@ const annotators_email = ref<string[]>([]);
 
 const loading = ref(false);
 
-const email = ref("");
-
 const assignmentTable = ref<InstanceType<typeof Table>>();
+
+watch(annotators_email, (new_val) => {
+  if(new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
+    new_val.pop();
+    $toast.error('Invalid email!')
+  }
+});
 
 const createAssignments = async () => {
   try {
