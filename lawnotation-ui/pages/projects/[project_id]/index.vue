@@ -92,7 +92,7 @@
             @remove-rows="removeTasks"
             @remove-all-rows="removeAllTasks"
           >
-            <template #row="{ item }: { item: Task }">
+            <template #row="{ item }: { item: Task & {assignments: [{count: number}]} }">
               <td
                 scope="row"
                 class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
@@ -110,7 +110,9 @@
                   class="base mr-2"
                   :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
                 >
-                  <button class="base btn-primary" data-test="view-task-button">View</button>
+                  <button class="base btn-primary" data-test="view-task-button">
+                    {{ item.assignments[0].count ? "View" : "Assign" }}
+                  </button>
                 </NuxtLink>
                 <NuxtLink
                   class="base"

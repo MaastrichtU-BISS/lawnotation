@@ -154,6 +154,7 @@ export const tableRouter = router({
   'tasks': createTableProcedure({
     type: 'supabase_table',
     from: 'tasks',
+    select: '*, assignments:assignments(count)'
     // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
   }),
 
