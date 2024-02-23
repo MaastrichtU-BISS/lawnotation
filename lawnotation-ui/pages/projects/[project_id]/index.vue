@@ -116,9 +116,7 @@
                   class="base"
                   :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                   data-test="edit-task-link"
-                >
-                  Edit
-                </NuxtLink>
+                >Edit</NuxtLink>
               </td>
             </template>
           </Table>
