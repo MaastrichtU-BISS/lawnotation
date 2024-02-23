@@ -112,6 +112,8 @@ const loadNext = async () => {
   if (assignmentCounts.value && seq_pos.value + 1 > assignmentCounts.value.total) {
     // TODO: go to page /done
     $toast.success(`All assignments were completed!`);
+    if (task.value)
+      navigateTo(`/tasks/${task.value.id}`)
   } else {
     seq_pos.value++;
     await loadData();
