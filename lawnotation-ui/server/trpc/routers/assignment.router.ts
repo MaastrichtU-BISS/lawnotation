@@ -434,12 +434,12 @@ export const assignmentRouter = router({
         .eq("task_id", input.task_id);
       // .single();
 
-      if (error_next)
+      if (error_next) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in 1 countAssignmentsByUserAndTask: ${error_next.message}`,
         });
-      else if (error_total)
+      } else if (error_total) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in 2 countAssignmentsByUserAndTask: ${error_total.message}`,
@@ -448,11 +448,12 @@ export const assignmentRouter = router({
       //   next: next?.seq_pos ?? total?.count! + 1, // TODO: need to check if this actually works
       //   total: total?.count ?? 0,
       // };
-      else
+      } else {
         return {
           next: next?.seq_pos ?? count! + 1, // TODO: need to check if this actually works
           total: count ?? 0,
         };
+      }
     }),
 
   deleteAllFromTask: protectedProcedure
