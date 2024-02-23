@@ -161,7 +161,7 @@ const verifyToken = () => {
     })
     .then((verify) => {
       if (verify.error) {
-        $toast.error(`Error signing in: ${verify.error.message}`);
+        $toast.error(`Error verifying code: ${verify.error.message}`);
         loading.value = false;
       } else {
         $toast.success("Logged in successfully");
@@ -169,7 +169,7 @@ const verifyToken = () => {
       }
     })
     .catch((error) => {
-      $toast.error(`Error signing in: ${error.message}`);
+      $toast.error(`Error verifying code: ${error.message}`);
       loading.value = false;
     })
 }

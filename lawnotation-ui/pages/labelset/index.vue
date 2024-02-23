@@ -20,7 +20,9 @@
           {{ item.desc }}
         </td>
         <td class="px-6 py-2">
-          <NuxtLink class="base" data-test="edit-labelset" :to="`/labelset/${item.id}`"> View </NuxtLink>
+          <NuxtLink class="base" data-test="edit-labelset" :to="`/labelset/${item.id}`">
+            <button class="base btn-primary">View</button>
+          </NuxtLink>
         </td>
       </template>
     </Table>

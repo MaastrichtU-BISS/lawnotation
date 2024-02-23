@@ -4,17 +4,21 @@ Cypress.Commands.add("login", (role: Role) => {
   cy.visit('/auth/login')
 
   cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
-  cy.get('input[data-test="email-field-to-login"]').type(`${role}@test.com`)
+  cy.get('input[data-test="email-field-to-login"]').type(`${role}@example.com`)
   cy.get('button[data-test="login-button"]').click()
-  cy.wait(2000)
+  cy.wait(4000)
 
-  cy.origin('http://localhost:54324', { args: { role } }, ({ role }) => {
-    cy.visit(`http://localhost:54324/m/${role}/`)
-    cy.get('aside:first').find('button').eq(1).click()
-    cy.wait(2000)
-    cy.get('.message-list-entry:first').click()
-    cy.contains('a', 'Log In').click()
-  })
+  cy.request(`http://127.0.0.1:54324/api/v1/mailbox/${role}`).then((response) => {
+    return response.body.pop().id;
+  }).then((mailId) => {
+    return cy.request(`http://127.0.0.1:54324/serve/mailbox/${role}/${mailId}`).then((response) => {
+      return response.body.html
+    })
+  }).then(html => {
+    return Cypress.$(html).find('span').text();
+  }).then(code => cy.get('input[data-test="token-field-to-login"]').type(code))
+
+  cy.get('button[data-test="login-button"]').click()
 });
 
 Cypress.Commands.add('resetDatabase', () => {
@@ -35,11 +39,11 @@ Cypress.Commands.add('addTask', (taskname) => {
   cy.get('button[data-test="create-tasks"]').click()
 })
 
-Cypress.Commands.add('selectText', function(text) {
+Cypress.Commands.add('selectText', function (text) {
   cy.contains(text).then(($el) => {
     const el = $el[0];
     const document = el.ownerDocument;
-    
+
     const range = document.createRange();
     range.selectNodeContents(el);
 

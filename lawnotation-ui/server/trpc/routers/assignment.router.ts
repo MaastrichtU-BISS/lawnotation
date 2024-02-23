@@ -57,7 +57,12 @@ const assignmentAnnotatorAuthorizer = async (
 };
 
 export const assignmentRouter = router({
-
+  /**
+   * This method creates inivites an email to create an account if it doesn't 
+   * already have one. Next, it will assign the provided task_id to the metadata
+   * of the user account, so that a flash message appears when they log-in.
+   * Note that this method doesn't actually create the assignments.
+   */
   assignUserToTask: protectedProcedure
     .input(
       z.object({
@@ -85,7 +90,7 @@ export const assignmentRouter = router({
         await serviceClient.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
       
         // ...
-        console.log("Hypothetically sending notification to user that it is assigned to new task")  
+        console.log(`Hypothetically sending notification to user ${user_id} that it is assigned to new task`)
       }
 
       if (!user_id)
@@ -449,12 +454,12 @@ export const assignmentRouter = router({
         .eq("task_id", input.task_id);
       // .single();
 
-      if (error_next)
+      if (error_next) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in 1 countAssignmentsByUserAndTask: ${error_next.message}`,
         });
-      else if (error_total)
+      } else if (error_total) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in 2 countAssignmentsByUserAndTask: ${error_total.message}`,
@@ -463,11 +468,12 @@ export const assignmentRouter = router({
       //   next: next?.seq_pos ?? total?.count! + 1, // TODO: need to check if this actually works
       //   total: total?.count ?? 0,
       // };
-      else
+      } else {
         return {
           next: next?.seq_pos ?? count! + 1, // TODO: need to check if this actually works
           total: count ?? 0,
         };
+      }
     }),
 
   deleteAllFromTask: protectedProcedure
