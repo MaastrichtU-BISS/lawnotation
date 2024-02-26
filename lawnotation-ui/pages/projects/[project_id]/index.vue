@@ -1,18 +1,15 @@
 <template>
-  <Breadcrumb
-    v-if="project"
-    :crumbs="[
-      {
-        name: 'Projects',
-        link: '/projects',
-      },
-      {
-        name: `Project ${project.name}`,
-        link: `/projects/${project.id}`,
-      },
-    ]"
-  />
-  
+  <Breadcrumb v-if="project" :crumbs="[
+    {
+      name: 'Projects',
+      link: '/projects',
+    },
+    {
+      name: `Project ${project.name}`,
+      link: `/projects/${project.id}`,
+    },
+  ]" />
+
   <div v-if="project">
     <p class="mt-1 mb-3 text-sm text-gray-700">{{ project.desc }}</p>
 
@@ -30,16 +27,8 @@
     </div>
 
     <div v-show="tab_active == 'documents'">
-      <Table
-        ref="documentTable"
-        endpoint="documents"
-        :filter="{ project_id: project?.id }"
-        :sort="true"
-        :search="true"
-        :selectable="true"
-        @remove-rows="removeDocuments"
-        @remove-all-rows="removeAllDocuments"
-      >
+      <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
+        :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
         <template #row="{ item }: { item: Document }">
           <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
             {{ item.id }}
@@ -48,11 +37,8 @@
             {{ item.name }}
           </td>
           <td class="px-6 py-2">
-            <NuxtLink
-              class="base"
-              :to="`/projects/${route.params.project_id}/documents/${item.id}`"
-            >
-            <Button label="View" size="small" />
+            <NuxtLink class="base" :to="`/projects/${route.params.project_id}/documents/${item.id}`">
+              <Button label="View" size="small" />
             </NuxtLink>
           </td>
         </template>
@@ -62,18 +48,8 @@
         <Dimmer v-model="loading_docs" />
         <div class="dimmer-content">
           <span class="mr-3">Add documents</span>
-          <input
-            class="base"
-            type="file"
-            name="data-set"
-            id="doc_input"
-            accept=".txt"
-            webkitdirectory
-            directory
-            multiple
-            @change="change_file($event)"
-            data-test="upload-documents"
-          />
+          <input class="base" type="file" name="data-set" id="doc_input" accept=".txt" webkitdirectory directory multiple
+            @change="change_file($event)" data-test="upload-documents" />
         </div>
       </div>
     </div>
@@ -82,21 +58,13 @@
       <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
       <div class="dimmer-content">
         <div v-show="tab_active == 'tasks'" data-test="tasks-table">
-          <Table
-            ref="taskTable"
-            endpoint="tasks"
-            :filter="{ project_id: project?.id }"
-            :sort="true"
-            :search="true"
-            :selectable="true"
-            @remove-rows="removeTasks"
-            @remove-all-rows="removeAllTasks"
-          >
+          <div class="flex justify-end">
+            <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right" />
+          </div>
+          <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
+            :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
             <template #row="{ item }: { item: Task }">
-              <td
-                scope="row"
-                class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
-              >
+              <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
                 {{ item.id }}
               </td>
               <td class="px-6 py-2">
@@ -106,133 +74,84 @@
                 {{ item.desc }}
               </td>
               <td class="px-6 py-2">
-                <NuxtLink
-                  class="base mr-2"
-                  :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-                >
-                  <Button label="View" size="small" data-test="view-task-button"/>
+                <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`">
+                  <Button label="View" size="small" data-test="view-task-button" />
                 </NuxtLink>
-                <NuxtLink
-                  :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
-                  data-test="edit-task-link"
-                >
+                <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`" data-test="edit-task-link">
                   <Button label="Edit" size="small" link />
                 </NuxtLink>
               </td>
             </template>
           </Table>
-
-          <div class="flex my-3 text-center">
-            <div
-              class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3 mx-3"
-            >
-              <h3 class="text-lg mt-8">Create new task</h3>
-              <input
-                class="base"
-                type="text"
-                placeholder="Task name"
-                v-model="new_task.name"
-                data-test="task-name"
-              />
-              <textarea
-                class="base"
-                placeholder="Task description"
-                v-model="new_task.desc"
-                data-test="task-description"
-              ></textarea>
-              <textarea
-                class="base"
-                placeholder="Annotation Guidelines"
-                v-model="new_task.ann_guidelines"
-                data-test="annotation-guidelines"
-              ></textarea>
-
-              <label for="label_id">Labelset</label>
-              <div class="flex items-start w-full space-x-2">
-                <select
-                  v-model="new_task.labelset_id"
-                  class="w-full flex-grow bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-2.5 py-1.5"
-                  data-test="select-labelset"
-                >
-                  <option v-if="labelsets.pending.value" disabled selected value="">
-                    Loading labelsets...
-                  </option>
-                  <template
-                    v-else-if="labelsets.data.value && labelsets.data.value.length"
-                  >
-                    <option :value="undefined" disabled selected hidden>
-                      Select from list
-                    </option>
-                    <option v-for="labelset of labelsets.data.value" :value="labelset.id">
-                      {{ labelset.name }}
-                    </option>
-                  </template>
-                  <option v-else disabled selected value="">No labelsets found</option>
-                </select>
-                <button
-                  class="base btn-secondary"
-                  style="flex: 0 0 content"
-                  @click="() => navigateTo('/labelset/new')"
-                >
-                  Create new labelset
-                </button>
-              </div>
-
-              <button
-                class="base btn-primary"
-                @click="createTask"
-                data-test="create-tasks"
-              >
-                Create Tasks
-              </button>
-            </div>
-            <div
-              class="flex flex-col w-1/2 space-y-2 border-t border-neutral-300 mt-3 pt-3 mx-3"
-            >
-              <h3 class="text-lg mt-8 semibold">Import task</h3>
-              <div class="flex items-center justify-center w-full">
-                <label
-                  for="dropzone-file"
-                  class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-                >
-                  <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                    <svg
-                      class="w-8 h-8 mb-4 text-gray-500"
-                      aria-hidden="true"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 20 16"
-                    >
-                      <path
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-                      />
-                    </svg>
-                    <p class="mb-2 text-sm text-gray-500">
-                      <span class="font-semibold">Click to upload</span> or drag and drop
-                    </p>
-                    <p class="text-xs text-gray-500">.json</p>
+          <Dialog v-model:visible="showCreateTaskModal" modal header="Create task">
+            <TabView v-model:active-index="activeTabTaskModal" class="min-h-[465px]">
+              <TabPanel header="New">
+                  <div class="flex justify-center mb-4">
+                    <span class="relative w-full">
+                      <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
+                        class="peer w-full" placeholder="" />
+                      <label for="task_name"
+                        class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
+                    </span>
                   </div>
-                  <input
-                    id="dropzone-file"
-                    type="file"
-                    class="hidden"
-                    @change="loadExportTaskFile"
-                    accept=".json"
-                  />
-                </label>
-              </div>
-            </div>
-            <ImportTaskModal
-              v-model="annotators_amount"
-              @done="new_emails_selected"
-              @close="import_modal?.hide()"
-            >
-            </ImportTaskModal>
-          </div>
+                  <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
+                    placeholder="Description" class="w-full mb-4" />
+                  <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
+                    cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
+                  <div class="flex justify-between items-center pb-4">
+                    <Dropdown data-test="select-labelset" v-model="new_task.labelset_id" :options="labelsets.data.value"
+                      filter optionLabel="name" option-value="id" placeholder="Select Labelset"
+                      class="w-full md:w-[20rem]" />
+                    <NuxtLink :to="`/labelsets/new`">
+                      <Button label="Create new labelset" size="small" link />
+                    </NuxtLink>
+                  </div>
+                  <div class="flex justify-center mt-4">
+                    <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
+                      @click="showCreateTaskModal = false;" />
+                    <Button data-test="create-tasks" label="Create" size="small" icon="pi pi-check" iconPos="right"
+                      @click="createTask" />
+                  </div>
+              </TabPanel>
+              <TabPanel header="Upload">
+                <div v-if="!uploadHasStarted" class="pt-6 mt-6">
+                  <label for="dropzone-file"
+                    class="flex flex-col items-center justify-center w-full border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                    <div class="flex flex-col h-64 items-center justify-center">
+                      <i class="pi pi-upload mb-2" size="small" />
+                      <p class="mb-2 text-sm text-gray-500">
+                        <span class="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p class="text-xs text-gray-500">.json</p>
+                    </div>
+                    <input id="dropzone-file" type="file" class="hidden" @change="loadExportTaskFile" accept=".json" />
+                  </label>
+                </div>
+                <div v-else>
+                  <div class="text-center">
+                    <h4 class="mb-2 font-semibold text-gray-900 dark:text-white">
+                      The uploaded Task has {{ new_annotators.length }} annotators.
+                    </h4>
+                    <p class="mb-4">Please, provide the new ones:</p>
+                  </div>
+                  <div v-for="(new_ann, index) in new_annotators" class="flex justify-center mb-4">
+                    <span class="relative w-full">
+                      <InputText v-model="new_annotators[index]" autocomplete="off"
+                        class="peer w-full" placeholder="" :id="`annotator_${index}`"/>
+                      <label :for="`annotator_${index}`"
+                        class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{ `annotator ${index + 1}` }}</label>
+                    </span>
+                  </div>
+                  <div class="flex justify-center mt-4 pt-4">
+                    <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
+                      @click="showCreateTaskModal = false;" />
+                    <Button label="Create" size="small" icon="pi pi-check" iconPos="right"
+                      @click="importTask" />
+                  </div>
+                </div>
+              </TabPanel>
+            </TabView>
+          </Dialog>
         </div>
       </div>
     </div>
@@ -252,10 +171,6 @@ import type {
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import { authorizeClient } from "~/utils/authorize.client";
-import ImportTaskModal from "~/components/ImportTaskModal.vue";
-// import { initFlowbite } from "flowbite";
-import { Modal } from "flowbite";
-import type { ModalOptions } from "flowbite";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -271,11 +186,13 @@ const loading_docs = ref(false);
 
 const tab_active = ref<"tasks" | "documents">("tasks");
 
+const showCreateTaskModal = ref<boolean>(false);
+const new_annotators = ref<string[]>([]);
+const uploadHasStarted = ref<boolean>(false);
+const activeTabTaskModal = ref<number>(0);
+
 const labelsets = await $trpc.labelset.find.useQuery({});
 
-const annotators_amount = ref<number>(0);
-
-let import_modal: Modal | null = null;
 const import_json = ref<any>(null);
 const import_progress = ref<{
   loading: boolean;
@@ -350,14 +267,35 @@ const createTask = () => {
 
     // For some reason casting as Omit<Task, "id"> is necessary here.
     $trpc.task.create.mutate(new_task as Omit<Task, "id">).then(() => {
-      // tasks.push(task);
       taskTable.value?.refresh();
       $toast.success("Task created");
     });
   } catch (error) {
     if (error instanceof Error) $toast.error(`Error creating task: ${error.message}`);
+  } finally {
+    showCreateTaskModal.value = false;
   }
 };
+
+watch(showCreateTaskModal, (new_val) => {
+  if(new_val) {
+    resetModal();
+  }
+});
+
+watch(activeTabTaskModal, (new_val) => {
+  resetModal();
+});
+
+const resetModal = () => {
+  uploadHasStarted.value = false;
+  new_annotators.value.splice(0);
+  activeTabTaskModal.value = 0;
+  new_task.name = "";
+  new_task.desc = "";
+  new_task.ann_guidelines = "";
+  new_task.labelset_id = undefined;
+};  
 
 const loadExportTaskFile = async (event: Event) => {
   const file: File = (event.target as HTMLInputElement).files?.item(0)!;
@@ -365,30 +303,30 @@ const loadExportTaskFile = async (event: Event) => {
   import_json.value = JSON.parse(await file.text());
 
   if (import_json.value.counts?.annotators) {
-    annotators_amount.value = import_json.value.counts?.annotators ?? 0;
-
-    const modalOptions: ModalOptions = {
-      placement: "center",
-      backdrop: "dynamic",
-      backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
-      closable: true,
+    const new_annotators_number = import_json.value.counts?.annotators ?? 0;
+    new_annotators.value.splice(0);
+    for (let i = 0; i < new_annotators_number; i++) {
+      new_annotators.value.push("");
     };
-
-    import_modal = new Modal(document.getElementById("importFormModal"), modalOptions);
-
-    import_modal?.show();
+    uploadHasStarted.value = true;
   } else {
     importTask();
   }
 };
 
-const new_emails_selected = async (new_emails: string[]) => {
-  import_modal?.hide();
-  importTask(new_emails);
-};
-
-const importTask = async (new_emails: string[] | null = null) => {
+const importTask = async () => {
   import_progress.value.loading = true;
+
+  for (let i = 0; i < new_annotators.value.length; i++) {
+    const new_email = new_annotators.value[i];
+    if(new_email.length && !/^\S+@\S+\.\S+$/.test(new_email)) {
+      $toast.error(`Invalid email: ${new_email}`);
+      return;
+    }
+  };
+
+  uploadHasStarted.value = false;
+  showCreateTaskModal.value = false;
 
   try {
     // creating labelset
@@ -432,12 +370,12 @@ const importTask = async (new_emails: string[] | null = null) => {
       );
       documentTable.value?.refresh();
 
-      if (import_json.value.counts?.annotators && new_emails) {
+      if (import_json.value.counts?.annotators && new_annotators.value) {
         // creating annotators
         import_progress.value.message = "Creating Annotators";
 
         const usersPromises: Promise<User['id'] | null>[] = [];
-        new_emails.map((email) => {
+        new_annotators.value.map((email) => {
           if (!email || !email.length) {
             usersPromises.push(Promise.resolve(null));
           } else {
@@ -468,7 +406,7 @@ const importTask = async (new_emails: string[] | null = null) => {
               status: "pending",
               annotator_number: ass.annotator,
             };
-            
+
             if (ann_id) {
               new_ass.annotator_id = ann_id;
             }
@@ -535,12 +473,12 @@ const importTask = async (new_emails: string[] | null = null) => {
         }
       }
     }
-
-    import_progress.value.loading = false;
     $toast.success("Task successfully imported!");
   } catch (error) {
-    import_progress.value.loading = false;
     $toast.error(`Error importing the Task! ${error}`);
+  } finally {
+    import_progress.value.loading = false;
+    resetModal();
   }
 };
 
