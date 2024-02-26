@@ -11,150 +11,175 @@
   ]" />
 
   <div v-if="project">
-    <p class="mt-1 mb-3 text-sm text-gray-700">{{ project.desc }}</p>
-
-    <div class="tabs-holder">
-      <ul class="flex flex-wrap -mb-px">
-        <li :class="tab_active == 'tasks' ? 'tab-active' : 'tab'">
-          <button @click="tab_active = 'tasks'" data-test="tasks-tab">Tasks</button>
-        </li>
-        <li :class="tab_active == 'documents' ? 'tab-active' : 'tab'">
-          <button @click="tab_active = 'documents'" data-test="documents-tab">
-            Documents
-          </button>
-        </li>
-      </ul>
-    </div>
-
-    <div v-show="tab_active == 'documents'">
-      <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
-        :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
-        <template #row="{ item }: { item: Document }">
-          <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-            {{ item.id }}
-          </td>
-          <td class="px-6 py-2">
-            {{ item.name }}
-          </td>
-          <td class="px-6 py-2">
-            <NuxtLink class="base" :to="`/projects/${route.params.project_id}/documents/${item.id}`">
-              <Button label="View" size="small" />
-            </NuxtLink>
-          </td>
-        </template>
-      </Table>
-
-      <div class="my-3 dimmer-wrapper">
-        <Dimmer v-model="loading_docs" />
-        <div class="dimmer-content">
-          <span class="mr-3">Add documents</span>
-          <input class="base" type="file" name="data-set" id="doc_input" accept=".txt" webkitdirectory directory multiple
-            @change="change_file($event)" data-test="upload-documents" />
-        </div>
-      </div>
-    </div>
-
-    <div class="dimmer-wrapper pt-2">
-      <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
-      <div class="dimmer-content">
-        <div v-show="tab_active == 'tasks'" data-test="tasks-table">
-          <div class="flex justify-end">
-            <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right" />
-          </div>
-          <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
-            :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
-            <template #row="{ item }: { item: Task }">
-              <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-                {{ item.id }}
-              </td>
-              <td class="px-6 py-2">
-                {{ item.name }}
-              </td>
-              <td class="px-6 py-2">
-                {{ item.desc }}
-              </td>
-              <td class="px-6 py-2">
-                <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`">
-                  <Button label="View" size="small" data-test="view-task-button" />
-                </NuxtLink>
-                <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`" data-test="edit-task-link">
-                  <Button label="Edit" size="small" link />
-                </NuxtLink>
-              </td>
-            </template>
-          </Table>
-          <Dialog v-model:visible="showCreateTaskModal" modal header="Create task">
-            <TabView v-model:active-index="activeTabTaskModal" class="min-h-[465px]">
-              <TabPanel header="New">
-                  <div class="flex justify-center mb-4">
-                    <span class="relative w-full">
-                      <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
-                        class="peer w-full" placeholder="" />
-                      <label for="task_name"
-                        class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
-                    </span>
-                  </div>
-                  <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
-                    placeholder="Description" class="w-full mb-4" />
-                  <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
-                    cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
-                  <div class="flex justify-between items-center pb-4">
-                    <Dropdown data-test="select-labelset" v-model="new_task.labelset_id" :options="labelsets.data.value"
-                      filter optionLabel="name" option-value="id" placeholder="Select Labelset"
-                      class="w-full md:w-[20rem]" />
-                    <NuxtLink :to="`/labelsets/new`">
-                      <Button label="Create new labelset" size="small" link />
+    <TabView>
+      <TabPanel header="Tasks" data-test="tasks-tab">
+        <div class="dimmer-wrapper pt-2">
+          <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
+          <div class="dimmer-content">
+            <div data-test="tasks-table">
+              <div class="flex justify-end">
+                <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right" />
+              </div>
+              <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
+                :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
+                <template #row="{ item }: { item: Task }">
+                  <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
+                    {{ item.id }}
+                  </td>
+                  <td class="px-6 py-2">
+                    {{ item.name }}
+                  </td>
+                  <td class="px-6 py-2">
+                    {{ item.desc }}
+                  </td>
+                  <td class="px-6 py-2">
+                    <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`">
+                      <Button label="View" size="small" data-test="view-task-button" />
                     </NuxtLink>
-                  </div>
-                  <div class="flex justify-center mt-4">
-                    <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
-                      @click="showCreateTaskModal = false;" />
-                    <Button data-test="create-tasks" label="Create" size="small" icon="pi pi-check" iconPos="right"
-                      @click="createTask" />
-                  </div>
-              </TabPanel>
-              <TabPanel header="Upload">
-                <div v-if="!uploadHasStarted" class="pt-6 mt-6">
-                  <label for="dropzone-file"
-                    class="flex flex-col items-center justify-center w-full border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                    <div class="flex flex-col h-64 items-center justify-center">
-                      <i class="pi pi-upload mb-2" size="small" />
-                      <p class="mb-2 text-sm text-gray-500">
-                        <span class="font-semibold">Click to upload</span> or drag and drop
-                      </p>
-                      <p class="text-xs text-gray-500">.json</p>
+                    <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
+                      data-test="edit-task-link">
+                      <Button label="Edit" size="small" link />
+                    </NuxtLink>
+                  </td>
+                </template>
+              </Table>
+              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task">
+                <TabView v-model:active-index="activeTabTaskModal" class="min-h-[465px]">
+                  <TabPanel header="New">
+                    <div class="flex justify-center mb-4">
+                      <span class="relative w-full">
+                        <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
+                          class="peer w-full" placeholder="" />
+                        <label for="task_name"
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
+                      </span>
                     </div>
-                    <input id="dropzone-file" type="file" class="hidden" @change="loadExportTaskFile" accept=".json" />
-                  </label>
-                </div>
-                <div v-else>
-                  <div class="text-center">
-                    <h4 class="mb-2 font-semibold text-gray-900 dark:text-white">
-                      The uploaded Task has {{ new_annotators.length }} annotators.
-                    </h4>
-                    <p class="mb-4">Please, provide the new ones:</p>
-                  </div>
-                  <div v-for="(new_ann, index) in new_annotators" class="flex justify-center mb-4">
-                    <span class="relative w-full">
-                      <InputText v-model="new_annotators[index]" autocomplete="off"
-                        class="peer w-full" placeholder="" :id="`annotator_${index}`"/>
-                      <label :for="`annotator_${index}`"
-                        class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{ `annotator ${index + 1}` }}</label>
-                    </span>
-                  </div>
-                  <div class="flex justify-center mt-4 pt-4">
-                    <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
-                      @click="showCreateTaskModal = false;" />
-                    <Button label="Create" size="small" icon="pi pi-check" iconPos="right"
-                      @click="importTask" />
-                  </div>
-                </div>
-              </TabPanel>
-            </TabView>
-          </Dialog>
+                    <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
+                      placeholder="Description" class="w-full mb-4" />
+                    <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
+                      cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
+                    <div class="flex justify-between items-center pb-4">
+                      <Dropdown data-test="select-labelset" v-model="new_task.labelset_id" :options="labelsets.data.value"
+                        filter optionLabel="name" option-value="id" placeholder="Select Labelset"
+                        class="w-full md:w-[20rem]" />
+                      <NuxtLink :to="`/labelsets/new`">
+                        <Button label="Create new labelset" size="small" link />
+                      </NuxtLink>
+                    </div>
+                    <div class="flex justify-center mt-4">
+                      <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
+                        @click="showCreateTaskModal = false;" />
+                      <Button data-test="create-tasks" label="Create" size="small" icon="pi pi-check" iconPos="right"
+                        @click="createTask" />
+                    </div>
+                  </TabPanel>
+                  <TabPanel header="Upload">
+                    <div v-if="!uploadHasStarted" class="">
+                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
+                        :pt="{
+                          chooseButton: {
+                            'data-test': 'choose-task'
+                          },
+                          uploadbutton: {
+                            root: {
+                              'data-test': 'upload-task'
+                            }
+                          },
+                          thumbnail: {
+                            class: 'hidden'
+                          }
+                        }">
+                        <template #empty>
+                          <div class="flex items-center justify-center flex-col">
+                            <i
+                              class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
+                            <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
+                            <p class="text-gray-400 text-xs">.json files exported from Lawnotation</p>
+                          </div>
+                        </template>
+                      </FileUpload>
+                    </div>
+                    <div v-else>
+                      <div class="text-center">
+                        <h4 class="mb-2 font-semibold text-gray-900 dark:text-white">
+                          The uploaded Task has {{ new_annotators.length }} annotators.
+                        </h4>
+                        <p class="mb-4">Please, provide the new ones:</p>
+                      </div>
+                      <div v-for="( new_ann, index ) in  new_annotators " class="flex justify-center mb-4">
+                        <span class="relative w-full">
+                          <InputText v-model="new_annotators[index]" autocomplete="off" class="peer w-full" placeholder=""
+                            :id="`annotator_${index}`" />
+                          <label :for="`annotator_${index}`"
+                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
+                              `annotator ${index + 1} ` }}</label>
+                        </span>
+                      </div>
+                      <div class="flex justify-center mt-4 pt-4">
+                        <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
+                          @click="showCreateTaskModal = false;" />
+                        <Button label="Create" size="small" icon="pi pi-check" iconPos="right" @click="importTask" />
+                      </div>
+                    </div>
+                  </TabPanel>
+                </TabView>
+              </Dialog>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </TabPanel>
+      <TabPanel header="Documents" data-test="documents-tab">
+        <div class="flex justify-end pt-2">
+          <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
+            icon-pos="right" />
+        </div>
+        <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
+          :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
+          <template #row="{ item }: { item: Document }">
+            <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
+              {{ item.id }}
+            </td>
+            <td class="px-6 py-2">
+              {{ item.name }}
+            </td>
+            <td class="px-6 py-2">
+              <NuxtLink class="base" :to="`/projects/${route.params.project_id}/documents/${item.id}`">
+                <Button label="View" size="small" />
+              </NuxtLink>
+            </td>
+          </template>
+        </Table>
+        <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
+          <!-- input: {
+              webkitdirectory: true,
+              directory: true
+            }, -->
+          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt" :pt="{
+            chooseButton: {
+              'data-test': 'choose-documents'
+            },
+            uploadbutton: {
+              root: {
+                'data-test': 'upload-documents'
+              }
+            },
+            thumbnail: {
+              class: 'hidden'
+            }
+          }
+            ">
+            <template #empty>
+              <div class="flex items-center justify-center flex-col">
+                <i
+                  class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
+                <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
+                <p class="text-gray-400 text-xs">.txt files or a folder containing .txt files</p>
+              </div>
+            </template>
+          </FileUpload>
+        </Dialog>
+      </TabPanel>
+    </TabView>
   </div>
 </template>
 <script setup lang="ts">
@@ -184,12 +209,12 @@ const config = useRuntimeConfig();
 
 const loading_docs = ref(false);
 
-const tab_active = ref<"tasks" | "documents">("tasks");
-
 const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
 const activeTabTaskModal = ref<number>(0);
+
+const showUploadDocumentsModal = ref<boolean>(false);
 
 const labelsets = await $trpc.labelset.find.useQuery({});
 
@@ -219,12 +244,14 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id">>({
   project_id: undefined,
 });
 
-const change_file = async (event: Event) => {
+const uploadDocuments = async (event: { files: FileList }) => {
+
   var text_promises: Promise<string>[] = [];
   var new_docs: Omit<Document, "id">[] = [];
   loading_docs.value = true;
+  showUploadDocumentsModal.value = false;
 
-  Array.from((event.target as HTMLInputElement).files ?? []).forEach((file: File) => {
+  Array.from(event.files ?? []).forEach((file: File) => {
     text_promises.push(file.text());
     new_docs.push({
       name: file.name,
@@ -242,12 +269,16 @@ const change_file = async (event: Event) => {
 
   // TODO: progress bar instead of instantly adding to list, and after all are added reload documents table (keep loading = true while adding?)
   // documents.push(...(await documentApi.createDocuments(new_docs)));
-  await $trpc.document.createMany.mutate(new_docs);
-  documentTable.value?.refresh();
 
-  (event.target as HTMLInputElement).value = "";
-  $toast.success(`${new_docs.length} documents uploaded!`);
-  loading_docs.value = false;
+  try {
+    await $trpc.document.createMany.mutate(new_docs);
+    documentTable.value?.refresh();
+    $toast.success(`${new_docs.length} documents uploaded!`);
+  } catch (error) {
+    $toast.success(`Error uploading documents: ${error}`);
+  } finally {
+    loading_docs.value = false;
+  }
 };
 
 const createTask = () => {
@@ -278,7 +309,7 @@ const createTask = () => {
 };
 
 watch(showCreateTaskModal, (new_val) => {
-  if(new_val) {
+  if (new_val) {
     resetModal();
   }
 });
@@ -295,11 +326,10 @@ const resetModal = () => {
   new_task.desc = "";
   new_task.ann_guidelines = "";
   new_task.labelset_id = undefined;
-};  
+};
 
-const loadExportTaskFile = async (event: Event) => {
-  const file: File = (event.target as HTMLInputElement).files?.item(0)!;
-  (event.target as any).value = null;
+const loadExportTaskFile = async (event: { files: FileList }) => {
+  const file = event.files[0];
   import_json.value = JSON.parse(await file.text());
 
   if (import_json.value.counts?.annotators) {
@@ -319,7 +349,7 @@ const importTask = async () => {
 
   for (let i = 0; i < new_annotators.value.length; i++) {
     const new_email = new_annotators.value[i];
-    if(new_email.length && !/^\S+@\S+\.\S+$/.test(new_email)) {
+    if (new_email.length && !/^\S+@\S+\.\S+$/.test(new_email)) {
       $toast.error(`Invalid email: ${new_email}`);
       return;
     }
