@@ -21,3 +21,11 @@ insert into public.labelsets
   (name, "desc", labels, editor_id)
 values
   ('Seeded labelset', 'Seeded labelset description', '[{"name":"Label1","color":"#54a486"}]', '24a9b347-2170-41d4-a0e8-6078a9a0bef2');
+
+
+-- additional indexes to prevent (timeout) delays when removing entities with a lot of relations
+
+create index if not exists assignments_task_id on public.assignments using btree (task_id) tablespace pg_default;
+create index if not exists annotations_assignment_id on public.annotations using btree (assignment_id) tablespace pg_default;
+create index if not exists annotation_relations_from_id on public.annotation_relations using btree (from_id) tablespace pg_default;
+create index if not exists annotation_relations_to_id on public.annotation_relations using btree (to_id) tablespace pg_default;
