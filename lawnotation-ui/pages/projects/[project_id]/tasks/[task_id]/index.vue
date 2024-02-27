@@ -56,8 +56,8 @@
                   <span>{{ item.difficulty_rating }}</span>
                 </td>
                 <td class="px-6 py-2">
-                  <NuxtLink class="base" :to="`/assignments/${item.id}`">
-                    <button class="base btn-primary">View</button>
+                  <NuxtLink :to="`/assignments/${item.id}`"> 
+                    <Button label="View" size="small" />
                   </NuxtLink>
                 </td>
               </template>
@@ -70,25 +70,22 @@
             <h3 class="mt-3 text-sm font-semibold">
               Annotators: {{ annotators_email.length }}
             </h3>
-            <ul class="list-disc list-inside">
-              <li v-for="ann_email in annotators_email" :key="ann_email">
-                <span>{{ ann_email }}</span>
-              </li>
-            </ul>
-            <input class="base" id="annotator_email" type="email" name="email" v-model="email"
-              @keydown.enter="addAnnotator()" />
-            <button class="base btn-primary" @click="addAnnotator">Add</button>
-            <label for="amount_of_docs">Amount of Documents (total)</label>
+            <Chips v-model="annotators_email" separator=","  :pt="{
+              input: {
+                'data-test': 'annotator-emails'
+              }
+            }"/>
+            <label for="amount_of_docs">Number of Documents (total)</label>
             <input class="base" id="amount_of_docs" type="number" name="" v-model="amount_of_docs" :max="total_docs"
               min="1" />
             <label for="fixed_docs">
-              Amount of Fixed Documents (to share among annotators)
+              Number of Fixed Documents (to share among annotators)
             </label>
             <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
               min="0" />
-            <button class="base btn-primary" @click="createAssignments">
+            <Button  @click="createAssignments" data-test="create-assignments">
               Create Assignments
-            </button>
+            </Button>
           </div>
         </div>
         <ExportTaskModal v-model="formValues"  @export="exportTask"
@@ -170,19 +167,18 @@ const formValues = ref<{
 let export_modal: Modal | null = null;
 
 const amount_of_fixed_docs = ref<number>(0);
-const annotators_email = reactive<string[]>([]);
+const annotators_email = ref<string[]>([]);
 
 const loading = ref(false);
 
-const email = ref("");
-
 const assignmentTable = ref<InstanceType<typeof Table>>();
 
-const addAnnotator = () => {
-  if (email.value == "") throw new Error("Email field is required");
-  annotators_email.push(email.value);
-  email.value = "";
-};
+watch(annotators_email, (new_val) => {
+  if(new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
+    new_val.pop();
+    $toast.error('Invalid email!')
+  }
+});
 
 const createAssignments = async () => {
   try {
@@ -199,7 +195,7 @@ const createAssignments = async () => {
 
     // Create shared assignments (only with docs info)
     for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
-      for (let j = 0; j < annotators_email.length; ++j) {
+      for (let j = 0; j < annotators_email.value.length; ++j) {
         const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
           task_id: task.id,
           document_id: docs[i],
@@ -219,9 +215,9 @@ const createAssignments = async () => {
 
     // Get Users
     const usersPromises: Promise<User['id']>[] = [];
-    for (let i = 0; i < annotators_email.length; ++i) {
+    for (let i = 0; i < annotators_email.value.length; ++i) {
       usersPromises.push(
-        $trpc.assignment.assignUserToTask.query({ email: annotators_email[i], task_id: task.id })
+        $trpc.assignment.assignUserToTask.query({ email: annotators_email.value[i], task_id: task.id })
       );
     }
 

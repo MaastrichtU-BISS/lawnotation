@@ -1,9 +1,5 @@
 lockfileVersion: '6.0'
 
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false
-
 dependencies:
   '@heartexlabs/label-studio':
     specifier: '1.4'
@@ -41,6 +37,12 @@ dependencies:
   jszip:
     specifier: ^3.10.1
     version: 3.10.1
+  primeicons:
+    specifier: ^6.0.1
+    version: 6.0.1
+  primevue:
+    specifier: ^3.48.1
+    version: 3.48.1(vue@3.4.19)
   sweetalert2:
     specifier: ^11.7.27
     version: 11.7.32
@@ -82,6 +84,9 @@ devDependencies:
   nuxt:
     specifier: ^3.7.1
     version: 3.10.2(sass@1.69.4)(typescript@5.3.3)(vite@5.1.1)
+  nuxt-primevue:
+    specifier: ^0.3.0
+    version: 0.3.0(vue@3.4.19)
   open-cli:
     specifier: ^7.2.0
     version: 7.2.0
@@ -7769,6 +7774,17 @@ packages:
       fsevents: 2.3.3
     dev: true
 
+  /nuxt-primevue@0.3.0(vue@3.4.19):
+    resolution: {integrity: sha512-sx5JZjqQ7H96FH5nWsL4Ypk4amkUz5nHsoxAiyc7oI3sSP54wfXPo5rjB4GKI50Ky7HPdE2CIWs137jRl6RkMw==}
+    dependencies:
+      '@nuxt/kit': 3.10.2
+      primevue: 3.48.1(vue@3.4.19)
+    transitivePeerDependencies:
+      - rollup
+      - supports-color
+      - vue
+    dev: true
+
   /nuxt@3.10.2(sass@1.69.4)(typescript@5.3.3)(vite@5.1.1):
     resolution: {integrity: sha512-EYRPNPEHRoOzL5ZusOMoBvv1/yifGwdv7BLJPD/jaEDeEZvdXjLXLSRh2NukmdB1SdNmfL3wEnt5xtRpQO1niQ==}
     engines: {node: ^14.18.0 || >=16.10.0}
@@ -8698,6 +8714,17 @@ packages:
     resolution: {integrity: sha512-mQUvGU6aUFQ+rNvTIAcZuWGRT9a6f6Yrg9bHs4ImKF+HZCEK+plBvnAZYSIQztknZF2qnzNtr6F8s0+IuptdlQ==}
     engines: {node: ^14.13.1 || >=16.0.0}
     dev: true
+
+  /primeicons@6.0.1:
+    resolution: {integrity: sha512-KDeO94CbWI4pKsPnYpA1FPjo79EsY9I+M8ywoPBSf9XMXoe/0crjbUK7jcQEDHuc0ZMRIZsxH3TYLv4TUtHmAA==}
+    dev: false
+
+  /primevue@3.48.1(vue@3.4.19):
+    resolution: {integrity: sha512-lyJ+E0ZCv2pR9jIpdPLBysU8zB2hOKrN7q78orloWelPx05zSYoMVKAWaqKTHNpunD52xffjaqovt1y6B/9XoQ==}
+    peerDependencies:
+      vue: ^3.0.0
+    dependencies:
+      vue: 3.4.19(typescript@5.3.3)
 
   /proc-log@3.0.0:
     resolution: {integrity: sha512-++Vn7NS4Xf9NacaU9Xq3URUuqZETPsf8L4j5/ckhaRYsfPeRyzGw+iDjFhV/Jr3uNmTvvddEJFWh5R1gRgUH8A==}
@@ -10990,3 +11017,7 @@ packages:
     engines: {node: '>=0.8'}
     hasBin: true
     dev: false
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false

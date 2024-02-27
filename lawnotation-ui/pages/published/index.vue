@@ -37,7 +37,10 @@
                 </td>
                 <td class="px-6 py-2">
                     <NuxtLink class="base mr-2" :to="`/published/${item.id}`">
-                        <button class="base btn-primary text-xs">View</button>
+                        <Button label="View" size="small" />
+                    </NuxtLink>
+                    <NuxtLink v-if="item.editor_id == user?.id" class="mr-2" :to="`/published/${item.id}/edit`">
+                        <Button label="Edit" size="small" link />
                     </NuxtLink>
                     <NuxtLink v-if="item.editor_id == user?.id" class="base" :to="`/published/${item.id}/edit`">Edit</NuxtLink>
                 </td>

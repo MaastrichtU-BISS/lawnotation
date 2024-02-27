@@ -26,16 +26,19 @@ Cypress.Commands.add('resetDatabase', () => {
 });
 
 Cypress.Commands.add('addProject', (projectname) => {
+  cy.get('button[data-test="open-projects-modal"]').click();
   cy.get('input[data-test="project-name"]').clear().type(projectname)
   cy.get('textarea[data-test="project-description"]').clear().type('Testing project functionality')
   cy.get('button[data-test="add-project"]').click()
 });
 
 Cypress.Commands.add('addTask', (taskname) => {
+  cy.get('button[data-test="open-tasks-modal"]').click();
   cy.get('input[data-test="task-name"]').clear().type(taskname)
   cy.get('textarea[data-test="task-description"]').clear().type('test task')
   cy.get('textarea[data-test="annotation-guidelines"]').clear().type('1.{enter}2.{enter}3.{enter}')
-  cy.get('select[data-test="select-labelset"]').select(1)
+  cy.get('div[data-test="select-labelset"]').click()
+  cy.get('li[aria-label="Seeded labelset"]').click();
   cy.get('button[data-test="create-tasks"]').click()
 })
 
