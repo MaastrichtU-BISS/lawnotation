@@ -418,7 +418,6 @@ const importTask = async (new_emails: string[] | null = null) => {
     };
 
     const task = await $trpc.task.create.mutate(_new_task);
-    taskTable.value?.refresh();
 
     // creating documents
     if (import_json.value.documents) {
@@ -539,6 +538,8 @@ const importTask = async (new_emails: string[] | null = null) => {
         }
       }
     }
+    
+    taskTable.value?.refresh();
 
     import_progress.value.loading = false;
     $toast.success("Task successfully imported!");
