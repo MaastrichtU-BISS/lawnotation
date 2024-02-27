@@ -257,6 +257,7 @@ import ImportTaskModal from "~/components/ImportTaskModal.vue";
 // import { initFlowbite } from "flowbite";
 import { Modal } from "flowbite";
 import type { ModalOptions } from "flowbite";
+import { TRPCClientError } from "@trpc/client";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -354,6 +355,8 @@ const createTask = () => {
       // tasks.push(task);
       taskTable.value?.refresh();
       $toast.success("Task created");
+    }).catch((error) => {
+      trpcErrorHandler(error, "creating task")
     });
   } catch (error) {
     if (error instanceof Error) $toast.error(`Error creating task: ${error.message}`);
