@@ -300,6 +300,8 @@ const createTask = () => {
     $trpc.task.create.mutate(new_task as Omit<Task, "id">).then(() => {
       taskTable.value?.refresh();
       $toast.success("Task created");
+    }).catch((error) => {
+      trpcErrorHandler(error, "creating task")
     });
   } catch (error) {
     if (error instanceof Error) $toast.error(`Error creating task: ${error.message}`);
@@ -382,7 +384,6 @@ const importTask = async () => {
     };
 
     const task = await $trpc.task.create.mutate(_new_task);
-    taskTable.value?.refresh();
 
     // creating documents
     if (import_json.value.documents) {
