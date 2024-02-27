@@ -2,7 +2,7 @@
   <div class="max-w-screen-lg mx-auto my-4">
     <div class="flex justify-between">
       <h3 class="mb-2 text-lg font-semibold">Projects</h3>
-      <Button label="Add" icon="pi pi-plus" @click="showCreateModal = true" icon-pos="right" />
+      <Button label="Add" icon="pi pi-plus" @click="showCreateModal = true" icon-pos="right" data-test="open-projects-modal"/>
     </div>
     <Table endpoint="projects" ref="projectTable" :sort="true" :search="true" :selectable="true"
       @remove-rows="removeProjects" @remove-all-rows="removeAllProjects">
@@ -14,7 +14,7 @@
           {{ item.name }}
         </td>
         <td class="px-6 py-2">
-          <NuxtLink data-test="edit-project-link" class="mr-2" :to="`/projects/${item.id}`">
+          <NuxtLink data-test="view-project-link" class="mr-2" :to="`/projects/${item.id}`">
             <Button label="View" size="small" />
           </NuxtLink>
           <NuxtLink :to="`/projects/${item.id}/edit`" data-test="edit-project-link">

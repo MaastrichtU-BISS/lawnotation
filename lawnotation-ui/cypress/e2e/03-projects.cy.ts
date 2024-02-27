@@ -14,7 +14,7 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.addProject('Project3')
         cy.addProject('Project4')
 
-        cy.get('a[data-test="edit-project-link"]').first().click()
+        cy.get('a[data-test="view-project-link"]').first().click()
         cy.addTask('Task1')
         cy.addTask('Task2')
         cy.addTask('Task3')
@@ -24,30 +24,30 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('input[data-test="checkbox"]').eq(2).check()
         cy.get('[data-test="tasks-table"]').find('button[data-test="remove-selected-rows"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('button[data-test="view-task-button"]').should("have.length", 2)
+        cy.get('a[data-test="view-task-link"]').should("have.length", 2)
 
         cy.get('[data-test="tasks-table"]').find('button[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('button[data-test="view-task-button"]').should("have.length", 0)
+        cy.get('a[data-test="view-task-link"]').should("have.length", 0)
 
         cy.get('a[data-test="projects-link"]').click()
         cy.get('[data-test="checkbox"]').eq(0).check()
         cy.get('[data-test="checkbox"]').eq(2).check()
         cy.get('button[data-test="remove-selected-rows"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="edit-project-link"]').should("have.length", 2)
+        cy.get('a[data-test="view-project-link"]').should("have.length", 2)
 
         cy.get('button[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="edit-project-link"]').should("have.length", 0)
+        cy.get('a[data-test="view-project-link"]').should("have.length", 0)
     })
 
-    it('Edit a task', () => {
+    it('View a task', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
-        cy.addProject('Edit test')
+        cy.addProject('View test')
 
-        cy.get('a[data-test="edit-project-link"]').eq(0).click()
+        cy.get('a[data-test="view-project-link"]').eq(0).click()
         cy.addTask('Task1')
         cy.addTask('Task2')
 
@@ -63,6 +63,6 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('a[data-test="projects-link"]').click()
         cy.get('button[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="edit-project-link"]').should("have.length", 0)
+        cy.get('a[data-test="view-project-link"]').should("have.length", 0)
     })
 })

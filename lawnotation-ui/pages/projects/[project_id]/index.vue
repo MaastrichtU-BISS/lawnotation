@@ -12,13 +12,15 @@
 
   <div v-if="project">
     <TabView>
-      <TabPanel header="Tasks" data-test="tasks-tab">
+      <TabPanel header="Tasks" :pt="{
+        headeraction: { 'data-test': 'tasks-tab' }
+        }">
         <div class="dimmer-wrapper pt-2">
           <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
           <div class="dimmer-content">
             <div data-test="tasks-table">
               <div class="flex justify-end">
-                <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right" />
+                <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right" data-test="open-tasks-modal" />
               </div>
               <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
                 :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
@@ -33,8 +35,8 @@
                     {{ item.desc }}
                   </td>
                   <td class="px-6 py-2">
-                    <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`">
-                      <Button label="View" size="small" data-test="view-task-button" />
+                    <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`" data-test="view-task-link">
+                      <Button label="View" size="small" />
                     </NuxtLink>
                     <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                       data-test="edit-task-link">
@@ -128,10 +130,12 @@
           </div>
         </div>
       </TabPanel>
-      <TabPanel header="Documents" data-test="documents-tab">
+      <TabPanel header="Documents" :pt="{
+        headeraction: { 'data-test': 'documents-tab' }
+        }">
         <div class="flex justify-end pt-2">
           <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
-            icon-pos="right" />
+            icon-pos="right" data-test="open-documents-modal"/>
         </div>
         <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
           :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
@@ -150,12 +154,8 @@
           </template>
         </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <!-- input: {
-              webkitdirectory: true,
-              directory: true
-            }, -->
           <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt" :pt="{
-            chooseButton: {
+            input: {
               'data-test': 'choose-documents'
             },
             uploadbutton: {
@@ -173,7 +173,7 @@
                 <i
                   class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
                 <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                <p class="text-gray-400 text-xs">.txt files or a folder containing .txt files</p>
+                <p class="text-gray-400 text-xs">.txt file(s)</p>
               </div>
             </template>
           </FileUpload>

@@ -10,7 +10,7 @@ describe('Login as annotator and test assignment', () => {
     cy.get('button[data-test="start-annotating-button"]').should('not.exist')
 
     cy.get('[data-test="assigned-tasks-menu-item"]').click()
-    cy.get('[data-test="view-task-button"]').click()
+    cy.get('[data-test="view-task-link"]').click()
     cy.get('span[data-test="progress"').contains("0 / 1").should('exist')
     cy.get('button[data-test="annotate-next-assignment-button"]').click()
 

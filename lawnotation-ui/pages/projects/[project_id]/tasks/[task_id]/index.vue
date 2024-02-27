@@ -70,7 +70,11 @@
             <h3 class="mt-3 text-sm font-semibold">
               Annotators: {{ annotators_email.length }}
             </h3>
-            <Chips v-model="annotators_email" separator=","  />
+            <Chips v-model="annotators_email" separator=","  :pt="{
+              input: {
+                'data-test': 'annotator-emails'
+              }
+            }"/>
             <label for="amount_of_docs">Number of Documents (total)</label>
             <input class="base" id="amount_of_docs" type="number" name="" v-model="amount_of_docs" :max="total_docs"
               min="1" />
@@ -79,9 +83,9 @@
             </label>
             <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
               min="0" />
-            <button class="base btn-primary" @click="createAssignments">
+            <Button  @click="createAssignments" data-test="create-assignments">
               Create Assignments
-            </button>
+            </Button>
           </div>
         </div>
         <ExportTaskModal v-model="formValues"  @export="exportTask"
