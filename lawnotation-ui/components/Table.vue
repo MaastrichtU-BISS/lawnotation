@@ -332,10 +332,10 @@ import { tableColumns } from "~/constants/tableColumns";
 
 const { $trpc, $toast } = useNuxtApp();
 
-// const emit = de  fineEmits(["removeRows", "removeAllRows"]);
+// const emit = defineEmits(["removeRows", "removeAllRows"]);
 const emit = defineEmits<{
-  (e: "removeRows", ids: string[]): void;
-  (e: "removeAllRows"): void;
+  (e: "removeRows", ids: string[], callback: (promises: (Promise<Boolean>[])) => void): void;
+  (e: "removeAllRows", callback: (promise: (Promise<Boolean>)) => void): void;
 }>();
 const checkedIds = ref<string[]>([]);
 
@@ -508,7 +508,11 @@ const removeSelected = async (ids: string[]) => {
     "warning"
   ).then((result) => {
     if (result.isConfirmed) {
-      emit("removeRows", ids);
+      emit("removeRows", ids, async (promises) => {
+        await Promise.all(promises);
+        await refresh();
+        $toast.success(`Item${promises.length > 0 ? 's' : ''} succesfully removed`)
+      }); 
     }
   });
 };
@@ -520,7 +524,11 @@ const removeAll = () => {
     "warning"
   ).then((result) => {
     if (result.isConfirmed) {
-      emit("removeAllRows");
+      emit("removeAllRows", async (promise) => {
+        await promise;
+        await refresh();
+        $toast.success("All items succesfully removed")
+      });
     }
   });
 };

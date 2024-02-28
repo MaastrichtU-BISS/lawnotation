@@ -513,31 +513,18 @@ const importTask = async () => {
   }
 };
 
-const removeDocuments = async (ids: string[]) => {
-  const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.document.delete.mutate(+id)));
-  await Promise.all(promises);
-  await documentTable.value?.refresh();
-  $toast.success("Documents successfully deleted!");
+const removeDocuments = (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+  finish(ids.map((id) => $trpc.document.delete.mutate(+id)));
 };
-const removeAllDocuments = async () => {
-  if (!project) throw new Error("Invalid Project!");
-  await $trpc.document.deleteAllFromProject.mutate(+project.id);
-  await documentTable.value?.refresh();
-  $toast.success("Documents successfully deleted!");
+const removeAllDocuments = (finish: (promises: (Promise<Boolean>)) => void) => {
+  finish($trpc.document.deleteAllFromProject.mutate(+project.id));
 };
-const removeTasks = async (ids: string[]) => {
-  const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.task.delete.mutate(+id)));
-  await Promise.all(promises);
-  await taskTable.value?.refresh();
-  $toast.success("Tasks successfully deleted!");
+
+const removeTasks = (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+  finish(ids.map((id) => $trpc.task.delete.mutate(+id)));
 };
-const removeAllTasks = async () => {
-  if (!project) throw new Error("Invalid Project!");
-  await $trpc.task.deleteAllFromProject.mutate(project.id);
-  await taskTable.value?.refresh();
-  $toast.success("Tasks successfully deleted!");
+const removeAllTasks = (finish: (promises: (Promise<Boolean>)) => void) => {
+  finish($trpc.task.deleteAllFromProject.mutate(project.id));
 };
 
 onMounted(() => {
