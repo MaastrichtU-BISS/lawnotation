@@ -5,4 +5,5 @@ export type Task = {
   project_id: number;
   labelset_id: number;
   ann_guidelines: string;
+  annotation_level: 'word' | 'document' | undefined;
 };

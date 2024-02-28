@@ -65,6 +65,9 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
       field: "desc",
       searchable: true,
     },
+    Level: {
+      field: 'annotation_level'
+    },
     Action: null,
   },
 
@@ -124,6 +127,13 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
       field: 'name',
       sortable: true,
       searchable: true,
+    },     
+    Description: {
+      field: "desc",
+      searchable: true,
+    },
+    Level: {
+      field: 'annotation_level'
     },
     Action: null
   },

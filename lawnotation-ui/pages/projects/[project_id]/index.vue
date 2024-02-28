@@ -14,17 +14,18 @@
     <TabView>
       <TabPanel header="Tasks" :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
-        }">
+      }">
         <div class="dimmer-wrapper pt-2">
           <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
           <div class="dimmer-content">
             <div data-test="tasks-table">
               <div class="flex justify-end">
-                <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right" data-test="open-tasks-modal" />
+                <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
+                  data-test="open-tasks-modal" />
               </div>
               <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
                 :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
-                <template #row="{ item }: { item: Task & {assignments: [{count: number}]}}">
+                <template #row="{ item }: { item: Task & { assignments: [{ count: number }] } }">
                   <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
                     {{ item.id }}
                   </td>
@@ -35,7 +36,11 @@
                     {{ item.desc }}
                   </td>
                   <td class="px-6 py-2">
-                    <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`" data-test="view-task-link">
+                    {{ item.annotation_level == undefined || item.annotation_level == 'word' ? 'Word' : 'Document' }}
+                  </td>
+                  <td class="px-6 py-2">
+                    <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
+                      data-test="view-task-link">
                       <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
                     </NuxtLink>
                     <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
@@ -45,8 +50,15 @@
                   </td>
                 </template>
               </Table>
-              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task">
-                <TabView v-model:active-index="activeTabTaskModal" class="min-h-[465px]">
+              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :pt="{
+                header: {
+                  style: 'padding-bottom: 0px'
+                }, 
+                content: {
+                  style: 'padding-bottom: 0px'
+                }
+              }">
+                <TabView v-model:active-index="activeTabTaskModal" class="min-h-[540px]">
                   <TabPanel header="New">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
@@ -68,7 +80,10 @@
                         <Button label="Create new labelset" size="small" link />
                       </NuxtLink>
                     </div>
-                    <div class="flex justify-center mt-4">
+                    <Dropdown data-test="select-annotation-level" v-model="new_task.annotation_level" optionLabel="name"
+                      option-value="type" placeholder="Select an annotation level" class="w-full"
+                      :options="[{ name: 'Word', type: 'word' }, { name: 'Document', type: 'document' }]" />
+                    <div class="flex justify-center mt-6">
                       <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
                         @click="showCreateTaskModal = false;" />
                       <Button data-test="create-tasks" label="Create" size="small" icon="pi pi-check" iconPos="right"
@@ -76,7 +91,7 @@
                     </div>
                   </TabPanel>
                   <TabPanel header="Upload">
-                    <div v-if="!uploadHasStarted" class="">
+                    <div v-if="!uploadHasStarted" class="pt-6">
                       <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
                         :pt="{
                           chooseButton: {
@@ -132,10 +147,10 @@
       </TabPanel>
       <TabPanel header="Documents" :pt="{
         headeraction: { 'data-test': 'documents-tab' }
-        }">
+      }">
         <div class="flex justify-end pt-2">
           <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
-            icon-pos="right" data-test="open-documents-modal"/>
+            icon-pos="right" data-test="open-documents-modal" />
         </div>
         <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
           :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
@@ -236,12 +251,13 @@ type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 const documentTable = ref<InstanceType<typeof Table>>();
 const taskTable = ref<InstanceType<typeof Table>>();
 
-const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id">>({
+const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "annotation_level">>({
   name: "",
   desc: "",
   ann_guidelines: "",
   labelset_id: undefined,
   project_id: undefined,
+  annotation_level: undefined,
 });
 
 const uploadDocuments = async (event: { files: FileList }) => {
@@ -282,20 +298,32 @@ const uploadDocuments = async (event: { files: FileList }) => {
 };
 
 const createTask = () => {
-  try {
-    if (!new_task.project_id === undefined) {
-      throw new Error("Task must be part of project");
-    }
-    if (!new_task.labelset_id === undefined) {
-      throw new Error("Task must have a labelset");
-    }
-    if (new_task.name == "") {
-      throw new Error("Task name is required");
-    }
-    if (new_task.desc == "") {
-      throw new Error("Task description is required");
-    }
+  if (!new_task.project_id) {
+    $toast.error("Task must be part of project");
+    return;
+  }
+  if (!new_task.name) {
+    $toast.error("Task name is required");
+    return;
+  }
+  if (!new_task.desc) {
+    $toast.error("Task description is required");
+    return;
+  }
+  if (!new_task.ann_guidelines) {
+    $toast.error("Task guidelines are required");
+    return;
+  }
+  if (!new_task.labelset_id) {
+    $toast.error("Task must have a labelset");
+    return;
+  }
+  if (!new_task.annotation_level) {
+    $toast.error("Task must have an annotation level");
+    return;
+  }
 
+  try {
     // For some reason casting as Omit<Task, "id"> is necessary here.
     $trpc.task.create.mutate(new_task as Omit<Task, "id">).then(() => {
       taskTable.value?.refresh();
@@ -328,6 +356,7 @@ const resetModal = () => {
   new_task.desc = "";
   new_task.ann_guidelines = "";
   new_task.labelset_id = undefined;
+  new_task.annotation_level = undefined;
 };
 
 const loadExportTaskFile = async (event: { files: FileList }) => {
@@ -381,6 +410,7 @@ const importTask = async () => {
       desc: import_json.value.desc ?? "Blank",
       ann_guidelines: import_json.value.ann_guidelines ?? "Blank",
       labelset_id: new_labelset_id,
+      annotation_level: import_json.value.annotation_level ?? 'word'
     };
 
     const task = await $trpc.task.create.mutate(_new_task);
@@ -509,6 +539,7 @@ const importTask = async () => {
     $toast.error(`Error importing the Task! ${error}`);
   } finally {
     import_progress.value.loading = false;
+    taskTable.value?.refresh();
     resetModal();
   }
 };
