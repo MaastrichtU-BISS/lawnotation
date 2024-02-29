@@ -38,7 +38,7 @@
                   <td class="px-6 py-2">
                     {{ isWordLevel(item) ? 'Word' : 'Document' }}
                   </td>
-                  <td class="px-6 py-2">
+                  <td class="px-6 py-2 flex">
                     <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
                       data-test="view-task-link">
                       <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
@@ -161,7 +161,7 @@
             <td class="px-6 py-2">
               {{ item.name }}
             </td>
-            <td class="px-6 py-2">
+            <td class="px-6 py-2 flex">
               <NuxtLink class="base" :to="`/projects/${route.params.project_id}/documents/${item.id}`">
                 <Button label="View" size="small" />
               </NuxtLink>

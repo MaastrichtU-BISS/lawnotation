@@ -56,7 +56,7 @@
                 <td class="px-6 py-2">
                   <span>{{ item.difficulty_rating }}</span>
                 </td>
-                <td class="px-6 py-2">
+                <td class="px-6 py-2 flex">
                   <NuxtLink :to="`/assignments/${item.id}`"> 
                     <Button label="View" size="small" />
                   </NuxtLink>
@@ -355,6 +355,9 @@ const exportTask = async () => {
 
 
     if (formValues.value.export_options.annotations && formValues.value.export_options.labelset) {
+
+      // export annotation level (only needed if exporting annotations)
+      json.annotation_level = task.annotation_level;
 
       // Annotations
       const annotations = await $trpc.annotation.findAnnotationsByTask.query(

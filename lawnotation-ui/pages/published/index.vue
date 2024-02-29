@@ -35,14 +35,13 @@
                 <td class="px-6 py-2">
                     <a v-if="item.guidelines_url" class="base" target="_blank" :href="`${item.file_url}`"> source </a>
                 </td>
-                <td class="px-6 py-2">
+                <td class="px-6 py-2 flex">
                     <NuxtLink class="base mr-2" :to="`/published/${item.id}`">
                         <Button label="View" size="small" />
                     </NuxtLink>
                     <NuxtLink v-if="item.editor_id == user?.id" class="mr-2" :to="`/published/${item.id}/edit`">
                         <Button label="Edit" size="small" link />
                     </NuxtLink>
-                    <NuxtLink v-if="item.editor_id == user?.id" class="base" :to="`/published/${item.id}/edit`">Edit</NuxtLink>
                 </td>
             </template>
         </Table>

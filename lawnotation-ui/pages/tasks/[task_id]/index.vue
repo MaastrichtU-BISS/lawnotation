@@ -46,7 +46,7 @@
         <td class="px-6 py-2">
           <span>{{ item.difficulty_rating }}</span>
         </td>
-        <td class="px-6 py-2">
+        <td class="px-6 py-2 flex">
           <NuxtLink :to="`/annotate/${task.id}?seq=${item.seq_pos}`">
             <Button label="View" size="small" />
           </NuxtLink>

@@ -16,7 +16,7 @@
         <td class="px-6 py-2">
           {{ item.desc }}
         </td>
-        <td class="px-6 py-2">
+        <td class="px-6 py-2 flex">
           <NuxtLink data-test="view-project-link" class="mr-2" :to="`/projects/${item.id}`">
             <Button label="View" size="small" />
           </NuxtLink>
