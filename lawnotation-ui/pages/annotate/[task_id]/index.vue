@@ -20,25 +20,25 @@
       <div class="max-w-screen-md w-full" v-if="loadedData && seq_pos && assignmentCounts">
         <div class="flex justify-between mb-1">
           <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
-          <span class="text-sm font-medium text-blue-700" data-test="progress">{{ seq_pos }} / {{ assignmentCounts.total }}</span>
+          <span class="text-sm font-medium text-blue-700" data-test="progress">{{ seq_pos }} / {{ assignmentCounts.total
+          }}</span>
         </div>
         <div class="w-full bg-gray-200 rounded-full h-2.5">
           <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
             :style="{ width: `${(seq_pos / assignmentCounts.total) * 100}%` }"></div>
         </div>
       </div>
-
-      <span>status:
-        <span :class="assignmentStatusClass(assignment.status)">{{
-          assignment.status
-        }}</span></span>
+      <span class="capitalize" :class="assignmentStatusClass(assignment.status)">{{
+        assignment.status
+      }}</span>
     </div>
     <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />
       <div class="dimmer-content h-full">
         <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
           :annotations="ls_annotations" :relations="ls_relations" :labels="labels" :guidelines="task?.ann_guidelines"
-          :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious"></LabelStudio>
+          :isWordLevel="isWordLevel(task)" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
+        </LabelStudio>
       </div>
     </div>
   </template>
@@ -55,6 +55,7 @@ import type {
   LSSerializedRelation,
 } from "~/types";
 import Breadcrumb from "~/components/Breadcrumb.vue";
+import { isWordLevel } from "~/types/task";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const user = useSupabaseUser();
@@ -140,6 +141,7 @@ const loadData = async () => {
 
     if (!assignment.value.task_id) throw Error("Document not found");
     task.value = await $trpc.task.findById.query(assignment.value.task_id);
+    if (!task.value) throw Error("Task not found");
 
     const _labelset: Labelset = await $trpc.labelset.findById.query(
       task.value.labelset_id
@@ -154,7 +156,7 @@ const loadData = async () => {
 
     ls_annotations.splice(0);
     if (_annotations.length) {
-      const db2ls_anns = convert_annotation_db2ls(_annotations, assignment.value.id);
+      const db2ls_anns = convert_annotation_db2ls(_annotations, assignment.value.id, isWordLevel(task.value));
       ls_annotations.push(...db2ls_anns);
     }
 

@@ -32,6 +32,7 @@ export type LSSerializedAnnotation = {
     end: number;
     text: string;
     labels: string[];
+    choices: string[];
   };
 };
 

@@ -13,7 +13,7 @@ const ZTaskFields = z.object({
   project_id: z.number().int(),
   labelset_id: z.number().int(),
   ann_guidelines: z.string(),
-  annotation_level: z.union([z.literal("word"), z.literal("document"), z.undefined()])
+  annotation_level: z.union([z.literal("word"), z.literal("document")])
 });
 
 const taskAuthorizer = async (

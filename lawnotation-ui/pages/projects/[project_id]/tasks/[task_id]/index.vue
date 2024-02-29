@@ -22,6 +22,7 @@
           <div class="text-center my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
               <button
+                v-if="isWordLevel(task)"
                 class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
                 Analyze Agreement Metrics
               </button>
@@ -50,7 +51,7 @@
                   {{ item.document.name }}
                 </td>
                 <td class="px-6 py-2">
-                  <span :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{ item.status }}</span>
+                  <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{ item.status }}</span>
                 </td>
                 <td class="px-6 py-2">
                   <span>{{ item.difficulty_rating }}</span>
@@ -103,7 +104,7 @@ import type {
   Project,
   Publication,
 } from "~/types";
-import { PublicationStatus } from "~/types"
+import { PublicationStatus, isWordLevel } from "~/types"
 import Table from "~/components/Table.vue";
 import { Modal } from "flowbite";
 import { shuffle, clone } from "lodash";

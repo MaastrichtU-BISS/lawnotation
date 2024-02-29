@@ -13,7 +13,7 @@
           {{ item.desc }}
         </td>
         <td class="px-6 py-2">
-          {{ item.annotation_level }}
+          {{ isWordLevel(item) ? 'Word' : 'Document' }}
         </td>
         <td class="px-6 py-2">
           <NuxtLink :to="`/tasks/${item.id}`" data-test="view-task-link">
@@ -26,6 +26,7 @@
 </template>
 <script setup lang="ts">
 import type { Task } from "~/types";
+import { isWordLevel } from "~/types/task"
 
 const user = useSupabaseUser();
 

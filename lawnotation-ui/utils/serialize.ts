@@ -5,33 +5,35 @@ import type {
   AnnotationRelation
 } from "~/types";
 
-export const convert_annotation_ls2db = (anns: LSSerializedAnnotations, assignment_id: number): Omit<Annotation, "id">[] => {
+export const convert_annotation_ls2db = (anns: LSSerializedAnnotations, assignment_id: number, isWordLevel: boolean): Omit<Annotation, "id">[] => {
   return anns.map((ann) => {
     return {
       ls_id: ann.id,
       origin: ann.origin,
-      start_index: ann.value.start,
-      end_index: ann.value.end,
-      text: ann.value.text,
-      label: ann.value.labels[0],
+      start_index: isWordLevel ? ann.value.start : 0,
+      end_index: isWordLevel ? ann.value.end : 0,
+      text: isWordLevel ? ann.value.text : '',
+      label: isWordLevel ? ann.value.labels[0] : ann.value.choices.join(","),
       assignment_id: assignment_id,
     };
   });
 };
 
-export const convert_annotation_db2ls = (anns: Annotation[], assignment_id: number): LSSerializedAnnotations => {
+export const convert_annotation_db2ls = (anns: Annotation[], assignment_id: number, isWordLevel: boolean): LSSerializedAnnotations => {
   const arr = anns.map((a) => {
     return {
       id: a.ls_id,
       origin: "manual",
       from_name: "label",
       to_name: "text",
-      type: "labels",
+      type: isWordLevel ? "labels" : "choices",
       value: {
         start: a.start_index,
         end: a.end_index,
         text: a.text,
-        labels: [a.label],
+        labels: isWordLevel ? [a.label] : undefined,
+        // TODO: extend this check to support multiple levels
+        choices: !isWordLevel ? a.label.split(',') : undefined,
       },
     };
   });

@@ -35,6 +35,11 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
       sortable: true,
       searchable: true,
     },
+    Description: {
+      field: "desc",
+      sortable: true,
+      searchable: true,
+    },
     Action: null,
   },
 
@@ -110,7 +115,7 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
       field: "status",
       sortable: true,
     },
-    Difficulty: {
+    Confidence: {
       field: "difficulty_rating",
       sortable: true,
     },
@@ -152,7 +157,7 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
       field: 'status',
       sortable: true,
     },
-    Difficulty: {
+    Confidence: {
       field: 'difficulty_rating',
       sortable: true,
     },

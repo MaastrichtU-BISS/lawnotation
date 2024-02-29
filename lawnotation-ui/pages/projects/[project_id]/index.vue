@@ -36,7 +36,7 @@
                     {{ item.desc }}
                   </td>
                   <td class="px-6 py-2">
-                    {{ item.annotation_level == undefined || item.annotation_level == 'word' ? 'Word' : 'Document' }}
+                    {{ isWordLevel(item) ? 'Word' : 'Document' }}
                   </td>
                   <td class="px-6 py-2">
                     <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
@@ -211,6 +211,7 @@ import type {
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import { authorizeClient } from "~/utils/authorize.client";
+import { isWordLevel } from "~/types/task"
 
 const { $toast, $trpc } = useNuxtApp();
 
