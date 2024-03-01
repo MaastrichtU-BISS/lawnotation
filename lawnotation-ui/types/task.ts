@@ -7,11 +7,3 @@ export type Task = {
   ann_guidelines: string;
   annotation_level: 'word' | 'document';
 };
-
-export function isWordLevel(task: Task) {
-  return task.annotation_level == "word" || task.annotation_level == undefined;
-}
-
-export function isDocumentLevel(task: Task) {
-  return task.annotation_level == "document";
-}

@@ -55,7 +55,7 @@ import type {
   LSSerializedRelation,
 } from "~/types";
 import Breadcrumb from "~/components/Breadcrumb.vue";
-import { isWordLevel } from "~/types/task";
+import { isWordLevel } from "~/utils/levels";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const user = useSupabaseUser();

@@ -211,7 +211,7 @@ import type {
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel } from "~/types/task"
+import { isWordLevel } from "~/utils/levels";
 
 const { $toast, $trpc } = useNuxtApp();
 

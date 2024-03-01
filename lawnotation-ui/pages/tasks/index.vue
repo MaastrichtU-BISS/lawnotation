@@ -26,7 +26,7 @@
 </template>
 <script setup lang="ts">
 import type { Task } from "~/types";
-import { isWordLevel } from "~/types/task"
+import { isWordLevel } from "~/utils/levels";
 
 const user = useSupabaseUser();
 

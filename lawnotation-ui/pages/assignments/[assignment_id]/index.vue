@@ -42,7 +42,7 @@ import type {
   LSSerializedRelation,
 } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel } from "~/types/task";
+import { isWordLevel } from "~/utils/levels";
 
 const user = useSupabaseUser();
 
