@@ -267,12 +267,14 @@ onMounted(() => {
   waitForElement('.lsf-button[aria-label="submit"]').then(
     (el) => (el.innerHTML = "Next")
   );
-  waitForElement('.ls-menu').then(
-    (el) => {
-      if(!props.isWordLevel)
-        el.className = 'hidden';
-    }
-  );
+  if(!props.isWordLevel) {
+    waitForElement('.ls-common').then(
+      (el) => {
+        el.firstChild!.parentElement!.style.gridTemplateColumns = 'auto';
+      }
+    );
+  }
+
   waitForElement(".ant-rate").then((el) => {
     if (props.assignment?.difficulty_rating! < 1) return;
     (document
