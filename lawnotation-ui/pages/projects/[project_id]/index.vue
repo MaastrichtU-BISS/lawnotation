@@ -76,7 +76,7 @@
                       <Dropdown data-test="select-labelset" v-model="new_task.labelset_id" :options="labelsets.data.value"
                         filter optionLabel="name" option-value="id" placeholder="Select Labelset"
                         class="w-full md:w-[20rem]" />
-                      <NuxtLink :to="`/labelsets/new`">
+                      <NuxtLink :to="`/labelset/new`">
                         <Button label="Create new labelset" size="small" link />
                       </NuxtLink>
                     </div>
