@@ -62,7 +62,7 @@ export const convert_annotation_db2ls = (anns: Annotation[], assignment_id: numb
   }
   else {
     // Document level
-    return [{
+    return anns && anns.length ? [{
       id: anns[0].ls_id,
       origin: "manual",
       from_name: "label",
@@ -71,7 +71,7 @@ export const convert_annotation_db2ls = (anns: Annotation[], assignment_id: numb
       value: {
         choices: anns.map(ann => ann.label)
       }
-    }]
+    }] : [];
   }
 };
 
