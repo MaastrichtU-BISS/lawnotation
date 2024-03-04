@@ -5,38 +5,74 @@ import type {
   AnnotationRelation
 } from "~/types";
 
-export const convert_annotation_ls2db = (anns: LSSerializedAnnotations, assignment_id: number): Omit<Annotation, "id">[] => {
-  return anns.map((ann) => {
-    return {
-      ls_id: ann.id,
-      origin: ann.origin,
-      start_index: ann.value.start,
-      end_index: ann.value.end,
-      text: ann.value.text,
-      label: ann.value.labels[0],
-      assignment_id: assignment_id,
-    };
+export const convert_annotation_ls2db = (anns: LSSerializedAnnotations, assignment_id: number, isWordLevel: boolean): Omit<Annotation, "id">[] => {
+  let response: Omit<Annotation, "id">[] = [];
+  anns.map(ann => {
+
+    if(isWordLevel) {
+      // value.labels, start_index, end_index, text all exist
+      response.push(...ann.value?.labels!.map(label => {
+        return {
+          ls_id: ann.id,
+          origin: ann.origin,
+          start_index: ann.value?.start!,
+          end_index: ann.value?.end!,
+          text: ann.value?.text!,
+          label: label,
+          assignment_id: assignment_id
+        };
+      }));
+    } else {
+      // value.choices exist
+      response.push(...ann.value?.choices!.map(label => {
+        return {
+          ls_id: ann.id,
+          origin: ann.origin,
+          start_index: 0,
+          end_index: 0,
+          text: '',
+          label: label,
+          assignment_id: assignment_id
+        };
+      }));
+    }
   });
+
+  return response;
 };
 
-export const convert_annotation_db2ls = (anns: Annotation[], assignment_id: number): LSSerializedAnnotations => {
-  const arr = anns.map((a) => {
-    return {
-      id: a.ls_id,
+export const convert_annotation_db2ls = (anns: Annotation[], assignment_id: number, isWordLevel: boolean): LSSerializedAnnotations => {
+  
+  if(isWordLevel) {
+    return anns.map((a) => {
+      return {
+        id: a.ls_id,
+        origin: "manual",
+        from_name: "label",
+        to_name: "text",
+        type: "labels",
+        value: {
+          start: a.start_index,
+          end: a.end_index,
+          text: a.text,
+          labels: [a.label],
+        },
+      };
+    });
+  }
+  else {
+    // Document level
+    return [{
+      id: anns[0].ls_id,
       origin: "manual",
       from_name: "label",
       to_name: "text",
-      type: "labels",
+      type: "choices",
       value: {
-        start: a.start_index,
-        end: a.end_index,
-        text: a.text,
-        labels: [a.label],
-      },
-    };
-  });
-
-  return arr;
+        choices: anns.map(ann => ann.label)
+      }
+    }]
+  }
 };
 
 export const convert_relation_ls2db = (rel: LSSerializedRelation, from_id: number, to_id: number): Omit<AnnotationRelation, "id"> => {
