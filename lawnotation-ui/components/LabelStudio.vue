@@ -208,6 +208,7 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
   // create annotations
   const ls_anns = serializedAnnotations.filter((x) => x.type == "labels" || x.type == "choices");
   const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id, props.isWordLevel);
+
   const created_anns = await $trpc.annotation.updateAssignmentAnnotations.mutate({
     assignment_id: props.assignment?.id,
     annotations: db_anns,

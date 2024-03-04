@@ -28,11 +28,11 @@ export type LSSerializedAnnotation = {
   origin: string;
   type: string;
   value: {
-    start: number;
-    end: number;
-    text: string;
-    labels: string[];
-    choices: string[];
+    start?: number;
+    end?: number;
+    text?: string;
+    labels?: string[];
+    choices?: string[];
   };
 };
 
