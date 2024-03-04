@@ -104,7 +104,8 @@ import type {
   Project,
   Publication,
 } from "~/types";
-import { PublicationStatus, isWordLevel } from "~/types"
+import { PublicationStatus } from "~/types"
+import { isWordLevel } from "~/utils/levels";
 import Table from "~/components/Table.vue";
 import { Modal } from "flowbite";
 import { shuffle, clone } from "lodash";
