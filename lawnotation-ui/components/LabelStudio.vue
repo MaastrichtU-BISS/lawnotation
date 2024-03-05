@@ -27,6 +27,7 @@ const props = defineProps<{
   labels: LsLabels | undefined;
   isEditor: boolean | undefined;
   guidelines: string | undefined;
+  isWordLevel: boolean;
   // mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
 
@@ -85,15 +86,17 @@ const initLS = async () => {
     config: `
                 <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
                   <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto;">
-                    <Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
-                    <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
-                      ${props.labels
-                        ?.map(
-                          (l) =>
-                            `<Label value="${l.name}" background="${l.color}" style="display: inline-table; user-select: none;"/>`
-                        )
-                        .join("\n")}
-                    </Labels>
+                      ${ (props.isWordLevel) 
+                      ? 
+                        `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
+                        <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
+                          ${props.labels?.map((l) =>  (`<Label value="${l.name}" background="${l.color}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
+                        </Labels>`
+                      : 
+                        `<Choices name="label" toName="text" choice="multiple">
+                          ${props.labels?.map((l) => (`<Choice value="${l.name}"/>`)).join("\n")}
+                        </Choices>`
+                      }
                   </View>
                   <View style="width: 100%; overflow-y: auto;">
                     <View style="height: auto; padding: 0 1.7em 1em;">
@@ -131,14 +134,14 @@ const initLS = async () => {
       "topbar:prevnext",
       props.isEditor ? "review" : "",
       "instruction",
-      "side-column",
+      props.isWordLevel ? "side-column" : "",
       // "ground-truth",
       // "annotations:history",
       // "annotations:tabs",
       // "annotations:menu",
-      "annotations:current",
-      "annotations:add-new",
-      "annotations:delete",
+      // "annotations:current",
+      // "annotations:add-new",
+      // "annotations:delete",
       // "annotations:view-all",
       // "predictions:tabs",
       // "predictions:menu",
@@ -171,7 +174,7 @@ const initLS = async () => {
         LS.annotationStore.selectAnnotation(c.id);
       }
     },
-    onRejectAnnotation() {},
+    onRejectAnnotation() { },
 
     // 'back'
     onSkipTask() {
@@ -203,8 +206,9 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
   if (!props.assignment) return;
 
   // create annotations
-  const ls_anns = serializedAnnotations.filter((x) => x.type == "labels");
-  const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id);
+  const ls_anns = serializedAnnotations.filter((x) => x.type == "labels" || x.type == "choices");
+  const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id, props.isWordLevel);
+
   const created_anns = await $trpc.annotation.updateAssignmentAnnotations.mutate({
     assignment_id: props.assignment?.id,
     annotations: db_anns,
@@ -264,6 +268,14 @@ onMounted(() => {
   waitForElement('.lsf-button[aria-label="submit"]').then(
     (el) => (el.innerHTML = "Next")
   );
+  if(!props.isWordLevel) {
+    waitForElement('.ls-common').then(
+      (el) => {
+        el.firstChild!.parentElement!.style.gridTemplateColumns = 'auto';
+      }
+    );
+  }
+
   waitForElement(".ant-rate").then((el) => {
     if (props.assignment?.difficulty_rating! < 1) return;
     (document

@@ -413,9 +413,21 @@ watch(() => props.filter, () => {
   args.filter = props.filter
 })
 
-const { data, refresh, status, pending, error } = $trpc.table[props.endpoint].useQuery(
+const { data, refresh: query_refresh, status, pending, error } = $trpc.table[props.endpoint].useQuery(
   args
 );
+
+const refresh = async () => {
+  await query_refresh();
+  
+  checkedIds.value = checkedIds.value.filter(
+    (checked_id) =>
+      rows.value.find(
+        (row_x: {id: string}) =>
+          checked_id == row_x.id
+      )
+  )
+}
 
 watch(error, (error) => {
   if (error) $toast.error(`Error loading table: ${error}`);

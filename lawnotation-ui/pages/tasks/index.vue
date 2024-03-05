@@ -10,7 +10,15 @@
           {{ item.name }}
         </td>
         <td class="px-6 py-2">
-          <NuxtLink class="base" :to="`/tasks/${item.id}`" data-test="view-task-button">View</NuxtLink>
+          {{ item.desc }}
+        </td>
+        <td class="px-6 py-2">
+          {{ isWordLevel(item) ? 'Word' : 'Document' }}
+        </td>
+        <td class="px-6 py-2 flex">
+          <NuxtLink :to="`/tasks/${item.id}`" data-test="view-task-link">
+            <Button label="View" size="small" />
+          </NuxtLink>
         </td>
       </template>
     </Table>
@@ -18,6 +26,7 @@
 </template>
 <script setup lang="ts">
 import type { Task } from "~/types";
+import { isWordLevel } from "~/utils/levels";
 
 const user = useSupabaseUser();
 

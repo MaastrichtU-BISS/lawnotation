@@ -1,6 +1,11 @@
 <template>
   <div>
-    <h3 class="text-lg font-semibold mb-2">Labelsets</h3>
+    <div class="flex justify-between pt-2">
+      <h3 class="mb-2 text-lg font-semibold">Labelsets</h3>
+      <NuxtLink :to="'/labelset/new'">
+        <Button label="Add" icon="pi pi-plus"  data-test="create-new-labelset" icon-pos="right" />
+      </NuxtLink>
+    </div>
     <Table
       ref="labelsetTable"
       endpoint="labelsets"
@@ -19,16 +24,13 @@
         <td class="px-6 py-2">
           {{ item.desc }}
         </td>
-        <td class="px-6 py-2">
-          <NuxtLink class="base" data-test="edit-labelset" :to="`/labelset/${item.id}`"> View </NuxtLink>
+        <td class="px-6 py-2 flex">
+          <NuxtLink class="base" data-test="edit-labelset" :to="`/labelset/${item.id}`">
+            <Button label="View" size="small" />
+          </NuxtLink>
         </td>
       </template>
     </Table>
-    <div class="my-4">
-      <button class="base btn-primary" data-test="create-new-labelset" @click="navigateTo('/labelset/new')">
-        Create new labelset
-      </button>
-    </div>
   </div>
 </template>
 <script setup lang="ts">

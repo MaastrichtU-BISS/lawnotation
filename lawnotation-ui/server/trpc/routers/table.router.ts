@@ -154,6 +154,7 @@ export const tableRouter = router({
   'tasks': createTableProcedure({
     type: 'supabase_table',
     from: 'tasks',
+    select: '*, assignments:assignments(count)'
     // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
   }),
 
@@ -167,14 +168,14 @@ export const tableRouter = router({
   'assignments': createTableProcedure({
     type: 'supabase_table',
     from: 'assignments',
-    select: 'id, task_id, status, difficulty_rating, seq_pos, annotator_number, annotator:users!inner(id, email), document:documents!inner(id, name, source)'
+    select: 'id, task_id, status, difficulty_rating, seq_pos, annotator_number, annotator:users(id, email), document:documents!inner(id, name, source)'
     // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
   }),
 
   'assignedTasks': createTableProcedure({
     type: 'supabase_table',
     from: 'tasks',
-    select: 'id, name, assignment:assignments!inner(id)',
+    select: 'id, name, desc, annotation_level, assignment:assignments!inner(id)',
     filter: ({ctx}) => ({'assignment.annotator_id': ctx.user!.id}),
   }),
 

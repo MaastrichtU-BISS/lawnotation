@@ -35,12 +35,12 @@
                 <td class="px-6 py-2">
                     <a v-if="item.guidelines_url" class="base" target="_blank" :href="`${item.file_url}`"> source </a>
                 </td>
-                <td class="px-6 py-2">
+                <td class="px-6 py-2 flex">
                     <NuxtLink class="base mr-2" :to="`/published/${item.id}`">
-                        <button class="base btn-primary text-xs">Details</button>
+                        <Button label="View" size="small" />
                     </NuxtLink>
-                    <NuxtLink v-if="item.editor_id == user?.id" class="base mr-2" :to="`/published/${item.id}/edit`">
-                        <button class="base btn-secondary">Edit</button>
+                    <NuxtLink v-if="item.editor_id == user?.id" class="mr-2" :to="`/published/${item.id}/edit`">
+                        <Button label="Edit" size="small" link />
                     </NuxtLink>
                 </td>
             </template>
@@ -48,7 +48,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import { Publication, PublicationStatus } from "~/types";
+import { type Publication, PublicationStatus } from "~/types";
 import Table from "@/components/Table.vue";
 
 const user = useSupabaseUser();
