@@ -21,3 +21,34 @@ insert into public.labelsets
   (name, "desc", labels, editor_id)
 values
   ('Seeded labelset', 'Seeded labelset description', '[{"name":"Label1","color":"#54a486"}]', '24a9b347-2170-41d4-a0e8-6078a9a0bef2');
+
+
+insert into public.projects
+  (name, "desc", editor_id)
+values
+  ('Seeded project 1', 'Seeded project 1 ' , '24a9b347-2170-41d4-a0e8-6078a9a0bef2'),
+  ('Seeded project 2', 'Seeded project 2 ' , '24a9b347-2170-41d4-a0e8-6078a9a0bef2'),
+  ('Seeded project 3', 'Seeded project 3 ' , '24a9b347-2170-41d4-a0e8-6078a9a0bef1');
+
+insert into public.documents
+  (project_id, name, source, full_text)
+values
+  (2, 'Seeded document 1', 'local_upload', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed pulvinar orci a sapien tempus, eget euismod dolor tempor. Nullam lacus mi, lobortis non massa eget, pulvinar pretium quam. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. In mi odio, maximus id tellus a, eleifend iaculis leo. Vestibulum feugiat nisi quam, non pharetra ligula sollicitudin non. Cras facilisis, nulla sed consequat porta, lectus ipsum malesuada enim, non imperdiet augue leo in felis. Aenean at placerat risus, vitae luctus nunc. Donec congue mi dictum dignissim mattis. Praesent id nunc eget purus malesuada malesuada. Quisque ac ipsum in est maximus fringilla.'),
+  (3, 'Seeded document 2', 'local_upload', 'Lorem ipsum dolor sit amet, nascetur ridiculus mus. In mi odio, maximus id tellus a, eleifend iaculis leo. Vestibulum feugiat nisi quam, non pharetra ligula sollicitudin non. Cras facilisis, nulla sed consequat porta, lectus ipsum malesuada enim, non imperdiet augue leo in felis. Aenean at placerat risus, vitae luctus nunc. Donec congue mi dictum dignissim mattis. Praesent id nunc eget purus malesuada malesuada. Quisque ac ipsum in est maximus fringilla.');
+
+insert into public.tasks
+  (project_id, name, "desc", labelset_id, ann_guidelines)
+values
+  (2, 'seeded task', 'test', 1,'testing');
+
+insert into public.assignments
+  (annotator_id, task_id, document_id)
+values
+  ('24a9b347-2170-41d4-a0e8-6078a9a0bef2', 1, 1);
+
+-- insert into public.annotations
+--   (label, assignment_id, start_index, end_index, text, origin)
+-- values
+--   ('label1', 1, 0, 118,'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed pulvinar orci a sapien tempus, eget euismod dolor tempor.', 'manual'),
+--   ('label1', 1, 356, '392','non pharetra ligula sollicitudin non','manual'),
+--   ('label1', 1, 500, '544','Aenean at placerat risus, vitae luctus nunc.','manual');
