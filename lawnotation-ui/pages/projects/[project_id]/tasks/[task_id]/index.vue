@@ -71,7 +71,7 @@
             <h3 class="mt-3 text-sm font-semibold">
               Annotators: {{ annotators_email.length }}
             </h3>
-            <Chips v-model="annotators_email" separator=","  :pt="{
+            <Chips v-model="annotators_email" separator="," addOnBlur :pt="{
               input: {
                 'data-test': 'annotator-emails'
               }
@@ -84,7 +84,7 @@
             </label>
             <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
               min="0" />
-            <Button  @click="createAssignments" data-test="create-assignments">
+            <Button :disabled="annotators_email.length == 0" @click="createAssignments" data-test="create-assignments">
               Create Assignments
             </Button>
           </div>
