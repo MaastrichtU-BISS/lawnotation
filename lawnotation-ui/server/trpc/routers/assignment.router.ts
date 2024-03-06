@@ -4,6 +4,7 @@ import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Assignment, User } from "~/types";
 import type { Context } from "../context";
 import { zValidEmail } from "~/utils/validators";
+import { MailtrapClient } from "mailtrap"
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string().nullable(),
@@ -53,7 +54,7 @@ export const assignmentRouter = router({
     .query(async ({ctx, input}) => {
       const serviceClient = ctx.getSupabaseServiceRoleClient();
 
-      const email_found = (await serviceClient.from('users').select('id').eq('email', input.email).maybeSingle());
+      const email_found = (await serviceClient.from('users').select('*').eq('email', input.email).maybeSingle());
       let user_id: User['id'] | null = null;
       if (!email_found.data) {
         // email is a new user
@@ -66,11 +67,30 @@ export const assignmentRouter = router({
       } else {
         // email is already an user
         user_id = email_found.data.id as string;
+        const user_email = email_found.data.email as string;
 
         await serviceClient.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
-      
-        // ...
-        console.log(`Hypothetically sending notification to user ${user_id} that it is assigned to new task`)
+
+        const config = useRuntimeConfig();
+        // send email to existing user
+        if (!config.mailtrapToken)
+          throw Error("Mailtrap API token not set")
+
+        const mailClient = new MailtrapClient({ token: config.mailtrapToken });
+
+        const body = `Hello ${user_email},<br />
+        You have been assigned to a new task. <a href="http://localhost:3000/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
+
+        const mail = await mailClient.send({
+          from: {email: 'no-reply@login.lawnotation.org', name: 'Lawnotation'},
+          to: [{email: user_email}],
+          subject: 'Assigned to new task',
+          html: body
+        })
+  
+        if (!mail.success)
+          throw new TRPCError({message: 'There was an error sending an email to the invited user.', code: 'INTERNAL_SERVER_ERROR'})
+        
       }
 
       if (!user_id)

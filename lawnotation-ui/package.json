@@ -39,6 +39,7 @@
     "file-saver": "^2.0.5",
     "flowbite": "^1.8.1",
     "jszip": "^3.10.1",
+    "mailtrap": "^3.3.0",
     "primeicons": "^6.0.1",
     "primevue": "^3.48.1",
     "sweetalert2": "^11.7.27",
