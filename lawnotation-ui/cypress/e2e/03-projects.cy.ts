@@ -8,6 +8,7 @@ describe('Testing projects and tasks with the editor account', () => {
     it('Add, edit and remove projects and tasks', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
+        cy.wait(1000)
 
         cy.addProject('Project1')
         cy.addProject('Project2')

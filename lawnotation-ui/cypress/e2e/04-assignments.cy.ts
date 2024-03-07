@@ -12,6 +12,7 @@ describe('Assign a project to the annotator account as the editor', () => {
     it('Create project, add task and document, and assign to the annotator account', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
+        cy.wait(1000)
         cy.addProject('Assignments test')
 
         cy.get('a[data-test="view-project-link"]').first().click()
