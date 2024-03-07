@@ -1,6 +1,13 @@
 <h2>You have been invited</h2>
 <p>You have been invited to create an account on {{ .SiteURL }}.</p>
-<p>
-  To accept this invite, go to <a href="{{ .SiteURL }}/auth/accept-invite#{{.Email}}">{{ .SiteURL }}/auth/accept-invite#{{.Email}}</a>,
-  and enter the following 6-digit code: {{ .Token }}
+<p style="margin-bottom: 0;">
+  To accept this invite:
 </p>
+<ul style="margin-top: 0rem;">
+  <li>Go to <a href="{{ .SiteURL }}/auth/accept-invite#{{.Email}}">{{ .SiteURL }}/auth/accept-invite#{{.Email}}</a>,
+  </li>
+  <li>and enter the following 6-digit code: <p
+      style="margin-top: 0; background-color: #c3c3c3; width: fit-content; padding: 1rem;"><span id="login-code"
+        style="font-size: 1.3em; color: #333">{{ .Token }}</span></p>
+  </li>
+</ul>

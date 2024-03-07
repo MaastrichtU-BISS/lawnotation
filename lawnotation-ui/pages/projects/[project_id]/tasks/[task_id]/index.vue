@@ -22,6 +22,7 @@
           <div class="text-center my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
               <button
+                v-if="isWordLevel(task)"
                 class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
                 Analyze Agreement Metrics
               </button>
@@ -50,12 +51,12 @@
                   {{ item.document.name }}
                 </td>
                 <td class="px-6 py-2">
-                  <span :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{ item.status }}</span>
+                  <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{ item.status }}</span>
                 </td>
                 <td class="px-6 py-2">
                   <span>{{ item.difficulty_rating }}</span>
                 </td>
-                <td class="px-6 py-2">
+                <td class="px-6 py-2 flex">
                   <NuxtLink :to="`/assignments/${item.id}`"> 
                     <Button label="View" size="small" />
                   </NuxtLink>
@@ -70,7 +71,7 @@
             <h3 class="mt-3 text-sm font-semibold">
               Annotators: {{ annotators_email.length }}
             </h3>
-            <Chips v-model="annotators_email" separator=","  :pt="{
+            <Chips v-model="annotators_email" separator="," addOnBlur :pt="{
               input: {
                 'data-test': 'annotator-emails'
               }
@@ -83,7 +84,7 @@
             </label>
             <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
               min="0" />
-            <Button  @click="createAssignments" data-test="create-assignments">
+            <Button :disabled="annotators_email.length == 0" @click="createAssignments" data-test="create-assignments">
               Create Assignments
             </Button>
           </div>
@@ -104,6 +105,7 @@ import type {
   Publication,
 } from "~/types";
 import { PublicationStatus } from "~/types"
+import { isWordLevel } from "~/utils/levels";
 import Table from "~/components/Table.vue";
 import { Modal } from "flowbite";
 import { shuffle, clone } from "lodash";
@@ -347,6 +349,9 @@ const exportTask = async () => {
 
 
     if (formValues.value.export_options.annotations && formValues.value.export_options.labelset) {
+
+      // export annotation level (only needed if exporting annotations)
+      json.annotation_level = task.annotation_level;
 
       // Annotations
       const annotations = await $trpc.annotation.findAnnotationsByTask.query(

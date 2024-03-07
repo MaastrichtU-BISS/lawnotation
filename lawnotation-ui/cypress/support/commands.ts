@@ -32,13 +32,15 @@ Cypress.Commands.add('addProject', (projectname) => {
   cy.get('button[data-test="add-project"]').click()
 });
 
-Cypress.Commands.add('addTask', (taskname) => {
+Cypress.Commands.add('addTask', (taskname, annotation_level = 'Word') => {
   cy.get('button[data-test="open-tasks-modal"]').click();
   cy.get('input[data-test="task-name"]').clear().type(taskname)
   cy.get('textarea[data-test="task-description"]').clear().type('test task')
   cy.get('textarea[data-test="annotation-guidelines"]').clear().type('1.{enter}2.{enter}3.{enter}')
   cy.get('div[data-test="select-labelset"]').click()
   cy.get('li[aria-label="Seeded labelset"]').click();
+  cy.get('div[data-test="select-annotation-level"]').click()
+  cy.get(`li[aria-label="${annotation_level}"]`).click();
   cy.get('button[data-test="create-tasks"]').click()
 })
 

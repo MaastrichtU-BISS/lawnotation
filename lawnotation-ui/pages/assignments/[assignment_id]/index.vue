@@ -17,15 +17,16 @@
       link: `/assignments/${assignment.id}`,
     },
   ]" />
-
-  <div class="dimmer-wrapper min-h-0">
-    <Dimmer v-model="loading" />
-    <div class="dimmer-content h-full">
-      <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
-        :annotations="ls_annotations" :relations="ls_relations" :guidelines="task?.ann_guidelines" :labels="labels">
-      </LabelStudio>
+  <template v-if="task">
+    <div class="dimmer-wrapper min-h-0">
+      <Dimmer v-model="loading" />
+      <div class="dimmer-content h-full">
+        <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
+          :annotations="ls_annotations" :relations="ls_relations" :guidelines="task?.ann_guidelines" :labels="labels" :isWordLevel="isWordLevel(task)">
+        </LabelStudio>
+      </div>
     </div>
-  </div>
+  </template>
 </template>
 <script setup lang="ts">
 import type {
@@ -41,6 +42,7 @@ import type {
   LSSerializedRelation,
 } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
+import { isWordLevel } from "~/utils/levels";
 
 const user = useSupabaseUser();
 
@@ -75,6 +77,7 @@ const loadData = async () => {
 
     if (!assignment.value.task_id) throw Error("Task not found");
     task.value = await $trpc.task.findById.query(+assignment.value.task_id);
+    if (!task.value) throw Error("Task not found");
 
     project.value = await $trpc.project.findById.query(+task.value.project_id);
 
@@ -94,7 +97,7 @@ const loadData = async () => {
         ...(await $trpc.annotation.findByAssignment.query(+assignment.value.id))
       );
 
-    const db2ls_anns = convert_annotation_db2ls(annotations, assignment.value.id);
+    const db2ls_anns = convert_annotation_db2ls(annotations, assignment.value.id, isWordLevel(task.value));
     if (annotations.length) {
       ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
     }
