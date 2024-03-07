@@ -1,10 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Annotation, Task, User, Annotator } from "~/types";
+import type { Task, Annotator } from "~/types";
 import type { Context } from "../context";
 import { appRouter } from ".";
-import type { Database } from "~/types/supabase";
 import { zValidEmail } from "~/utils/validators";
 
 const ZTaskFields = z.object({
