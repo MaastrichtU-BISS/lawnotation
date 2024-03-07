@@ -54,7 +54,7 @@ export const assignmentRouter = router({
     .query(async ({ctx, input}) => {
       const serviceClient = ctx.getSupabaseServiceRoleClient();
 
-      const email_found = (await serviceClient.from('users').select('*').eq('email', input.email).maybeSingle());
+      const email_found = (await serviceClient.from('users').select().eq('email', input.email).maybeSingle());
       let user_id: User['id'] | null = null;
       if (!email_found.data) {
         // email is a new user
