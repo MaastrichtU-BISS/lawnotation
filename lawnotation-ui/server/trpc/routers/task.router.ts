@@ -281,13 +281,7 @@ export const taskRouter = router({
 
       const task = await caller.task.findById(task_id);
 
-      const new_task = await caller.task.create({
-        name: task.name,
-        desc: task.desc,
-        project_id: task.project_id,
-        ann_guidelines: task.ann_guidelines,
-        labelset_id: task.labelset_id,
-      });
+      const new_task = await caller.task.create(task);
 
       const assignments = await caller.assignment.findAssignmentsByTask(
         task_id
