@@ -40,13 +40,10 @@ import type { Labelset } from "~/types";
 const { $trpc, $toast } = useNuxtApp();
 const labelsetTable = ref<InstanceType<typeof Table>>();
 
-const removeLabelsets = async (ids: string[]) => {
-  const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.labelset.delete.mutate(+id)));
-  await Promise.all(promises);
-  await labelsetTable.value?.refresh();
-  $toast.success("Tasks successfully deleted!");
+const removeLabelsets = async (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+  finish([...ids.map((id) => $trpc.labelset.delete.mutate(+id))]);
 };
+
 // const removeAllLabelsets = async () => {
 //   await $trpc.labelset.deleteAllFr.mutate(project.id);
 //   await labelsetTable.value?.refresh();

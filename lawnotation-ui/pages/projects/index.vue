@@ -78,18 +78,12 @@ const createNewProject = async () => {
   }
 };
 
-const removeProjects = async (ids: string[]) => {
-  const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.project.delete.mutate(+id)));
-  await Promise.all(promises);
-  await projectTable.value?.refresh();
-  $toast.success("Projects successfully deleted!");
+const removeProjects = (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+  finish(ids.map((id) => $trpc.project.delete.mutate(+id)));
 };
-const removeAllProjects = async () => {
-  if (!user.value) throw new Error("Invalid User!");
-  await $trpc.project.deleteAllFromEditor.mutate();
-  await projectTable.value?.refresh();
-  $toast.success("Projects successfully deleted!");
+
+const removeAllProjects = (finish: (promises: (Promise<Boolean>)) => void) => {
+  finish($trpc.project.deleteAllFromEditor.mutate())
 };
 
 definePageMeta({

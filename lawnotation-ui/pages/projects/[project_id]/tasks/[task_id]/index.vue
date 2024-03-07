@@ -265,20 +265,13 @@ const createAssignments = async () => {
   }
 };
 
-const removeAssignments = async (ids: string[]) => {
-  const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.assignment.delete.mutate(+id)));
-  await Promise.all(promises);
-  await assignmentTable.value?.refresh();
+const removeAssignments = async (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+  finish(ids.map((id) => $trpc.assignment.delete.mutate(+id)));
   await totalAssignments.refresh();
-  $toast.success("Assignments successfully deleted!");
 };
-const removeAllAssignments = async () => {
+const removeAllAssignments = (finish: (promises: (Promise<Boolean>)) => void) => {
   if (!task) throw new Error("Invalid Task!");
-  await $trpc.assignment.deleteAllFromTask.mutate(task.id);
-  await assignmentTable.value?.refresh();
-  await totalAssignments.refresh();
-  $toast.success("Assignments successfully deleted!");
+  finish($trpc.assignment.deleteAllFromTask.mutate(task.id));
 };
 
 const replicateTask = async () => {
