@@ -32,7 +32,7 @@ Cypress.Commands.add('addProject', (projectname) => {
   cy.get('button[data-test="add-project"]').click()
 });
 
-Cypress.Commands.add('addTask', (taskname, annotation_level='Word') => {
+Cypress.Commands.add('addTask', (taskname, annotation_level = 'Word') => {
   cy.get('button[data-test="open-tasks-modal"]').click();
   cy.get('input[data-test="task-name"]').clear().type(taskname)
   cy.get('textarea[data-test="task-description"]').clear().type('test task')
