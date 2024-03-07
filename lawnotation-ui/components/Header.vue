@@ -1,6 +1,93 @@
 <template>
   <!-- <div class="flex items-center justify-between px-4 py-4 bg-neutral-100"> -->
+  <div class="">
+    <Menubar class="p-3 justify-between" :pt="{end: {class: ''}}" :model="[
+      {
+        label: 'Projects',
+        icon: 'pi pi-list',
+        route: '/projects'
+      },
+      {
+        label: 'Published Tasks',
+        icon: 'pi pi-search',
+        route: '/published'
+      },
+      {
+          is_separator: true
+      },
+      {
+        label: 'Assigned Tasks',
+        icon: 'pi pi-list',
+        route: '/tasks'
+      }
+    ]">
+      <template #start>
+        <div class="flex flex-row">
+          <div class="w-40">
+            <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
+          </div>
+          <div class="ml-4">
+            <Button text type="button" icon="pi pi-link" @click="(e) => linksMenu?.toggle(e)" aria-haspopup="true" aria-controls="overlay_menu" />
+            <Menu ref="linksMenu" id="overlay_menu" :model="[
+              {
+                label: 'External',
+                items: [
+                  {
+                    label: 'Homepage',
+                    url: 'https://www.lawnotation.org'
+                  },
+                  {
+                    label: 'GitHub',
+                    url: 'https://www.github.com/MaastrichtU-BISS/lawnotation'
+                  },
+                ],
+              },
+              {
+                label: 'Legal',
+                items: [
+                  {
+                    label: 'Terms of Service',
+                    url: '/terms-of-service'
+                  },
+                  {
+                    label: 'Privacy Policy',
+                    url: '/privacy-policy'
+                  },
+                ]
+              }
+            ]" :popup="true" />
+          </div>
+        </div>
+      </template>
+      <template #item="{ item, props, hasSubmenu }">
+        <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
+            <a v-ripple :href="href" v-bind="props.action" @click="navigate">
+                <span :class="item.icon" />
+                <span class="ml-2">{{ item.label }}</span>
+            </a>
+        </router-link>
+        <span v-else-if="item.is_separator" class="border-gray-400 border-r mx-2"></span>
+        <a v-else v-ripple :href="item.url" :target="item.target" v-bind="props.action">
+            <span :class="item.icon" />
+            <span class="ml-2">{{ item.label }}</span>
+            <span v-if="hasSubmenu" class="pi pi-fw pi-angle-down ml-2" />
+        </a>
+      </template>
+      <template #end>
+        <div class="flex align-items-center gap-2">
+          <span class="text-slate-800" v-if="user?.email">{{
+            user.email?.split("@")[0]
+          }}</span>
+          <span class="mx-3 text-gray-400 select-none">|</span>
+          <button class="header-link" @click="signOut()">Sign Out</button>
+        </div>
+      </template>
+    </Menubar>
+  </div>
+
+
   <div
+    v-if="false"
     class="flex items-center justify-between px-4 py-4 border-b bg-neutral-50 border-neutral-200"
   >
     <div class="w-40">
@@ -53,12 +140,16 @@
   </div>
 </template>
 <script setup lang="ts">
+import type Menu from 'primevue/menu';
+
 const supabase = useSupabaseClient()
 const user = useSupabaseUser();
 
 const { $trpc } = useNuxtApp();
 
 const route = useRoute();
+
+const linksMenu = ref<Menu>();
 
 const routeIsActive = computed(() => {
   return (match: string) => {
