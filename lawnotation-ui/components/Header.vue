@@ -75,11 +75,54 @@
       </template>
       <template #end>
         <div class="flex align-items-center gap-2">
-          <span class="text-slate-800" v-if="user?.email">{{
-            user.email?.split("@")[0]
-          }}</span>
-          <span class="mx-3 text-gray-400 select-none">|</span>
-          <button class="header-link" @click="signOut()">Sign Out</button>
+          <div v-if="user">
+            <Button
+              text plain
+              :label="user.email?.split('@')[0]"
+              type="button"
+              icon="pi pi-user"
+              @click="(e) => userMenu?.toggle(e)"
+              aria-haspopup="true"
+              aria-controls="overlay_menu"
+            />
+            <TieredMenu ref="userMenu" id="overlay_menu" :model="[
+              {
+                label: 'Settings',
+                icon: 'pi pi-cog',
+                url: '/settings'
+              },
+              {
+                label: 'Sign out',
+                icon: 'pi pi-sign-out',
+                command: signOut,
+              },
+              {
+                label: 'External links',
+                icon: 'pi pi-link',
+                items: [
+                  {
+                    label: 'Homepage',
+                    url: 'https://www.lawnotation.org'
+                  },
+                  {
+                    label: 'GitHub',
+                    url: 'https://www.github.com/MaastrichtU-BISS/lawnotation'
+                  },
+                  {
+                    separator: true
+                  },
+                  {
+                    label: 'Terms of Service',
+                    url: '/terms-of-service'
+                  },
+                  {
+                    label: 'Privacy Policy',
+                    url: '/privacy-policy'
+                  },
+                ],
+              },
+            ]" :popup="true" />
+          </div>
         </div>
       </template>
     </Menubar>
@@ -150,6 +193,7 @@ const { $trpc } = useNuxtApp();
 const route = useRoute();
 
 const linksMenu = ref<Menu>();
+const userMenu = ref<TieredMenu>();
 
 const routeIsActive = computed(() => {
   return (match: string) => {
