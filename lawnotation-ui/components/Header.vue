@@ -34,11 +34,13 @@
                 items: [
                   {
                     label: 'Homepage',
-                    url: 'https://www.lawnotation.org'
+                    url: 'https://www.lawnotation.org',
+                    target: '_blank'
                   },
                   {
                     label: 'GitHub',
-                    url: 'https://www.github.com/MaastrichtU-BISS/lawnotation'
+                    url: 'https://www.github.com/MaastrichtU-BISS/lawnotation',
+                    target: '_blank'
                   },
                 ],
               },
@@ -47,11 +49,13 @@
                 items: [
                   {
                     label: 'Terms of Service',
-                    url: '/terms-of-service'
+                    url: '/terms-of-service',
+                    target: '_blank'
                   },
                   {
                     label: 'Privacy Policy',
-                    url: '/privacy-policy'
+                    url: '/privacy-policy',
+                    target: '_blank'
                   },
                 ]
               }
@@ -95,32 +99,7 @@
                 label: 'Sign out',
                 icon: 'pi pi-sign-out',
                 command: signOut,
-              },
-              {
-                label: 'External links',
-                icon: 'pi pi-link',
-                items: [
-                  {
-                    label: 'Homepage',
-                    url: 'https://www.lawnotation.org'
-                  },
-                  {
-                    label: 'GitHub',
-                    url: 'https://www.github.com/MaastrichtU-BISS/lawnotation'
-                  },
-                  {
-                    separator: true
-                  },
-                  {
-                    label: 'Terms of Service',
-                    url: '/terms-of-service'
-                  },
-                  {
-                    label: 'Privacy Policy',
-                    url: '/privacy-policy'
-                  },
-                ],
-              },
+              }
             ]" :popup="true" />
           </div>
         </div>
