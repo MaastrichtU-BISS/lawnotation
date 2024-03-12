@@ -8,7 +8,7 @@ declare global {
       login(role: Role): void;
       resetDatabase(): void;
       addProject(projectName: string): void;
-      addTask(taskName: string): void;
+      addTask(taskName: string, annotation_level?: string): void;
       selectText(text: string): void;
     }
   }

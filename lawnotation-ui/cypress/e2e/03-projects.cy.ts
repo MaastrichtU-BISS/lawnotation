@@ -17,8 +17,8 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('a[data-test="view-project-link"]').first().click()
         cy.addTask('Task1')
         cy.addTask('Task2')
-        cy.addTask('Task3')
-        cy.addTask('Task4')
+        cy.addTask('Task3', 'Document')
+        cy.addTask('Task4', 'Document') 
 
         cy.get('input[data-test="checkbox"]').eq(0).check()
         cy.get('input[data-test="checkbox"]').eq(2).check()
