@@ -119,7 +119,7 @@ function get_label_default() {
 
 const validate_new_label = () => {
   if (!/^\#[a-zA-Z0-9]{6}$/.test(new_label.color)) throw new Error("Invalid label color");
-  if (!/^[a-zA-Z0-9 ]+$/.test(new_label.name)) throw new Error("Invalid label name");
+  // if (!/^[a-zA-Z0-9 ]+$/.test(new_label.name)) throw new Error("Invalid label name");
   if (
     new_labelset.value.labels.some(
       (x) => x.name.toLocaleLowerCase() === new_label.name.toLocaleLowerCase()
