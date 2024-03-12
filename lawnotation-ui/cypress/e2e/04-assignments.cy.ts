@@ -15,8 +15,10 @@ describe('Assign a project to the annotator account as the editor', () => {
         cy.addProject('Assignments test')
 
         cy.get('a[data-test="view-project-link"]').first().click()
-        cy.addTask('Task')
+        cy.addTask('Task 1')
+        cy.addTask('Task 2', 'Document')
 
+        
         cy.get('a[data-test="documents-tab"]').click()
         cy.get('button[data-test="open-documents-modal"]').click()
         cy.get('input[data-test="choose-documents"]').selectFile('./cypress/support/Test.txt', { force: true })
@@ -24,7 +26,16 @@ describe('Assign a project to the annotator account as the editor', () => {
         cy.get('td').contains('Test.txt').should('exist')
 
         cy.get('a[data-test="tasks-tab"]').click()
-        cy.get('a[data-test="view-task-link"]').click()
+        cy.get('a[data-test="view-task-link"]').eq(1).click()
+        cy.contains('Create assignments').should('exist')
+        cy.get('input[data-test="annotator-emails"]').type('annotator@example.com,')
+        cy.get('input[data-test="annotator-emails"]').type('annotator1@example.com,')
+        cy.get('button[data-test="create-assignments"]').click()
+
+        cy.get('a[data-test="projects-link"]').click()
+        cy.get('a[data-test="view-project-link"]').first().click()  
+        cy.get('a[data-test="tasks-tab"]').click()
+        cy.get('a[data-test="view-task-link"]').eq(0).click()
         cy.contains('Create assignments').should('exist')
         cy.get('input[data-test="annotator-emails"]').type('annotator@example.com,')
         cy.get('input[data-test="annotator-emails"]').type('annotator1@example.com,')
@@ -34,7 +45,7 @@ describe('Assign a project to the annotator account as the editor', () => {
         cy.get('span[data-pc-section="label"]').contains('annotator1@example.com').should('not.exist')
         cy.get('td').contains('Test.txt').should('exist')
         cy.get('#breadcrumb-holder').find('li').eq(1).click()
-        cy.get('a[data-test="view-task-link"]').click()
+        cy.get('a[data-test="view-task-link"]').eq(0).click()
         cy.get('td').contains('annotator@example.com').should('exist')
         cy.get('td').contains('annotator1@example.com').should('not.exist')
         cy.get('td').contains('Test.txt').should('exist')
@@ -42,5 +53,22 @@ describe('Assign a project to the annotator account as the editor', () => {
         cy.get('a').contains('View').first().click()
         cy.get('span').contains('Label1').should('exist')
         cy.get('div').contains('Lorem').should('exist')
+        cy.get('.lsf-sidebar-tabs__content').should('not.exist')
+
+
+        cy.get('a[data-test="projects-link"]').click()
+        cy.get('a[data-test="view-project-link"]').first().click()  
+        cy.get('a[data-test="tasks-tab"]').click()
+        cy.get('a[data-test="view-task-link"]').eq(1).click()
+        cy.get('td').contains('Test.txt').should('exist')
+        cy.get('#breadcrumb-holder').find('li').eq(1).click()
+        cy.get('td').contains('annotator@example.com').should('exist')
+        cy.get('td').contains('annotator1@example.com').should('not.exist')
+        cy.get('td').contains('Test.txt').should('exist')
+
+        cy.get('a').contains('View').first().click()
+        cy.get('span').contains('Label1').should('exist')
+        cy.get('div').contains('Lorem').should('exist')
+        cy.get('.lsf-sidebar-tabs__content').should('exist')
     })
 })
