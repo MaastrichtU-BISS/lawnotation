@@ -58,7 +58,7 @@
                   style: 'padding-bottom: 0px'
                 }
               }">
-                <TabView :active-index="activeTabTaskModal" class="min-h-[540px]">
+                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[540px]">
                   <TabPanel header="New">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
