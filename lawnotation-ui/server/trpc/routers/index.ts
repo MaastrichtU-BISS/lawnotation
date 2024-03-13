@@ -9,6 +9,7 @@ import { labelsetRouter } from './labelset.router';
 import { projectRouter } from './project.router';
 import { taskRouter } from './task.router';
 import { publicationRouter } from './publication.router';
+import { mlModelRouter } from './ml_model.router';
 import { userRouter } from './user.router';
 import { metricsRouter } from './metrics.router';
 import { tableRouter } from './table.router';
@@ -22,6 +23,7 @@ export const appRouter = router({
   project: projectRouter,
   task: taskRouter,
   publication: publicationRouter,
+  mlModel: mlModelRouter,
   user: userRouter,
 
   table: tableRouter,
