@@ -80,9 +80,16 @@
                         <Button label="Create new labelset" size="small" link />
                       </NuxtLink>
                     </div>
-                    <Dropdown data-test="select-annotation-level" v-model="new_task.annotation_level" optionLabel="name"
-                      option-value="type" placeholder="Select an annotation level" class="w-full"
-                      :options="[{ name: 'Word', type: 'word' }, { name: 'Document', type: 'document' }]" />
+                    <div>
+                      <p class="font-bold">Annotation level</p>
+                      <SelectButton v-model="new_task.annotation_level" :options="['word', 'document']" 
+                        class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level"
+                        :pt="{
+                          label: {
+                            class: 'font-normal'
+                          }
+                        }" />
+                    </div>
                     <div class="flex justify-center mt-6">
                       <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
                         @click="showCreateTaskModal = false;" />
