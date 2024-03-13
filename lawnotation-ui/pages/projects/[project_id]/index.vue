@@ -72,10 +72,10 @@
                       placeholder="Description" class="w-full mb-4" />
                     <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
                       cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
-                    <div class="flex justify-between items-center pb-4">
+                    <div class="flex items-center pb-4">
                       <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value"
                         filter optionLabel="name" option-value="id" placeholder="Select Labelset"
-                        class="w-full md:w-[20rem]" data-test="select-labelset" />
+                        class="w-full md:w-1/2" data-test="select-labelset" />
                       <NuxtLink :to="`/labelset/new`">
                         <Button label="Create new labelset" size="small" link />
                       </NuxtLink>
