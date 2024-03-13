@@ -145,6 +145,13 @@
                     </div>
                   </TabPanel>
                   <TabPanel header="Labelsets">
+                    <template v-if="labelsetStage === 'overview'">
+                      <Labelsets @add-labelset="labelsetStage = 'new'" />
+                    </template>
+                    <template v-else-if="labelsetStage === 'new'">
+                      <Button label="back" size="small" icon="pi pi-arrow-left" link @click="labelsetStage = 'overview'" />
+                      <CreateLabelset />
+                    </template>
                   </TabPanel>
                 </TabView>
               </Dialog>
@@ -217,6 +224,8 @@ import type {
 } from "~/types";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
+import Labelsets from "~/components/Labelsets.vue";
+import CreateLabelset from "~/components/CreateLabelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { isWordLevel } from "~/utils/levels";
 
@@ -236,6 +245,7 @@ const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
 const activeTabTaskModal = ref<number>(0);
+const labelsetStage = ref<'overview' | 'new' | 'edit'>('overview');
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
@@ -586,4 +596,4 @@ div.tabs-holder {
     @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
 }
-</style>
+</style>~/components/Labelsets.vue
