@@ -352,13 +352,10 @@ watch(showCreateTaskModal, (new_val) => {
   }
 });
 
-watch(activeTabTaskModal, (new_val) => {
-  resetModal();
-});
-
 const resetModal = () => {
   uploadHasStarted.value = false;
   new_annotators.value.splice(0);
+  activeTabTaskModal.value = 0;
   new_task.name = "";
   new_task.desc = "";
   new_task.ann_guidelines = "";
