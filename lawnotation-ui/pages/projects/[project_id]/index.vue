@@ -53,7 +53,7 @@
               <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :pt="{
                 header: {
                   style: 'padding-bottom: 0px'
-                }, 
+                },
                 content: {
                   style: 'padding-bottom: 0px'
                 }
@@ -73,16 +73,18 @@
                     <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
                       cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
                     <div class="flex justify-between items-center pb-4">
-                      <Dropdown data-test="select-labelset" v-model="new_task.labelset_id" :options="labelsets.data.value"
+                      <Dropdown data-test="select-labelset" v-model="new_task.labelset_id" :options="labelsets"
                         filter optionLabel="name" option-value="id" placeholder="Select Labelset"
-                        class="w-full md:w-[20rem]" />
+                        class="w-full" @update:model-value="labelSelected($event)" />
                       <NuxtLink :to="`/labelset/new`">
                         <Button label="Create new labelset" size="small" link />
                       </NuxtLink>
                     </div>
-                    <Dropdown data-test="select-annotation-level" v-model="new_task.annotation_level" optionLabel="name"
-                      option-value="type" placeholder="Select an annotation level" class="w-full"
+                    <Dropdown data-test="select-annotation-level" v-model="new_task.annotation_level" optionLabel="name" @update:model-value="annotationLevelSelected($event)"
+                      option-value="type" placeholder="Select an annotation level" class="w-full mb-4"
                       :options="[{ name: 'Word', type: 'word' }, { name: 'Document', type: 'document' }]" />
+                    <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
+                      optionLabel="name" option-value="id" placeholder="Select Model (Optional)" class="w-full" @update:model-value="modelSelected($event)" :show-clear="true"/>
                     <div class="flex justify-center mt-6">
                       <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
                         @click="showCreateTaskModal = false;" />
@@ -207,6 +209,7 @@ import type {
   Annotation,
   User,
   AnnotationRelation,
+  MlModel
 } from "~/types";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
@@ -216,6 +219,8 @@ import { isWordLevel } from "~/utils/levels";
 const { $toast, $trpc } = useNuxtApp();
 
 const { project } = usePage<{ project: Project }>().value;
+
+const models = ref<MlModel[]>(await $trpc.mlModel.findAll.query());
 
 const user = useSupabaseUser();
 
@@ -232,7 +237,7 @@ const activeTabTaskModal = ref<number>(0);
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
-const labelsets = await $trpc.labelset.find.useQuery({});
+const labelsets = ref<Labelset[]>(await $trpc.labelset.find.query({}));
 
 const import_json = ref<any>(null);
 const import_progress = ref<{
@@ -259,7 +264,53 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   labelset_id: undefined,
   project_id: undefined,
   annotation_level: undefined,
+  ml_model_id: undefined
 });
+
+const modelSelected = async (id: number) => {
+
+  // remove added labelsets
+  const labelToRemoveIndex = labelsets.value.findIndex(l => !l.editor_id);
+  if(labelToRemoveIndex > 0 && new_task.labelset_id == labelsets.value[labelToRemoveIndex].id) {
+    new_task.labelset_id = undefined;
+    labelsets.value.splice(labelToRemoveIndex, 1);
+  }
+
+  const model = models.value.find(m => m.id == id);
+
+  if(new_task.annotation_level != model?.annotation_level) {
+    new_task.annotation_level = model?.annotation_level;
+  }
+
+  if(model?.labelset_id) {
+    const modelLabelset = await $trpc.labelset.findById.query(model?.labelset_id);
+    labelsets.value.push(modelLabelset);
+    new_task.labelset_id = modelLabelset.id;
+  }
+};
+
+const labelSelected = async (id: number) => {
+  if(new_task.ml_model_id) {
+    const model = await $trpc.mlModel.findById.query(new_task?.ml_model_id);
+    if(model.labelset_id) {
+      new_task.ml_model_id = undefined;
+      labelsets.value = labelsets.value.filter(l => l.editor_id);
+    }
+  }
+};
+
+const annotationLevelSelected = async (value: string) => {
+  if(new_task.ml_model_id) {
+    const model = await $trpc.mlModel.findById.query(new_task?.ml_model_id);
+    if(model.annotation_level != value) {
+      new_task.ml_model_id = undefined;
+      labelsets.value = labelsets.value.filter(l => l.editor_id);
+    } 
+    if(model.labelset_id) {
+      new_task.labelset_id = undefined;
+    }
+  }
+};
 
 const uploadDocuments = async (event: { files: FileList }) => {
 
@@ -358,6 +409,7 @@ const resetModal = () => {
   new_task.ann_guidelines = "";
   new_task.labelset_id = undefined;
   new_task.annotation_level = undefined;
+  new_task.ml_model_id = undefined;
 };
 
 const loadExportTaskFile = async (event: { files: FileList }) => {
@@ -393,7 +445,7 @@ const importTask = async () => {
   try {
     // creating labelset
     import_progress.value.message = "Creating Labelset";
-    let new_labelset_id = labelsets.data.value![0]?.id ?? 0;
+    let new_labelset_id = labelsets.value![0]?.id ?? 0;
     if (import_json.value.labelset) {
       new_labelset_id = (
         await $trpc.labelset.create.mutate({
@@ -411,7 +463,8 @@ const importTask = async () => {
       desc: import_json.value.desc ?? "Blank",
       ann_guidelines: import_json.value.ann_guidelines ?? "Blank",
       labelset_id: new_labelset_id,
-      annotation_level: import_json.value.annotation_level ?? 'word'
+      annotation_level: import_json.value.annotation_level ?? 'word',
+      ml_model_id: import_json.value.ml_model_id ?? undefined
     };
 
     const task = await $trpc.task.create.mutate(_new_task);
@@ -572,7 +625,7 @@ const removeAllTasks = async () => {
   $toast.success("Tasks successfully deleted!");
 };
 
-onMounted(() => {
+onMounted(async () => {
   new_task.project_id = project.id;
 });
 

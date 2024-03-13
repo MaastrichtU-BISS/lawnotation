@@ -6,4 +6,5 @@ export type Task = {
   labelset_id: number;
   ann_guidelines: string;
   annotation_level: 'word' | 'document';
+  ml_model_id?: number;
 };
