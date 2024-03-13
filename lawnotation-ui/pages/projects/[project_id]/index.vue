@@ -146,6 +146,8 @@
                       </div>
                     </div>
                   </TabPanel>
+                  <TabPanel header="Labelsets">
+                  </TabPanel>
                 </TabView>
               </Dialog>
             </div>
