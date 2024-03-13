@@ -76,9 +76,7 @@
                       <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value"
                         filter optionLabel="name" option-value="id" placeholder="Select Labelset"
                         class="w-full md:w-1/2" data-test="select-labelset" />
-                      <NuxtLink :to="`/labelset/new`">
-                        <Button label="Create new labelset" size="small" link />
-                      </NuxtLink>
+                      <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link />
                     </div>
                     <div>
                       <p class="font-bold">Annotation level</p>
@@ -361,7 +359,6 @@ watch(activeTabTaskModal, (new_val) => {
 const resetModal = () => {
   uploadHasStarted.value = false;
   new_annotators.value.splice(0);
-  activeTabTaskModal.value = 0;
   new_task.name = "";
   new_task.desc = "";
   new_task.ann_guidelines = "";
