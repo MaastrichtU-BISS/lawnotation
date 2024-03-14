@@ -132,30 +132,3 @@ grant trigger on table "public"."publications" to "service_role";
 grant truncate on table "public"."publications" to "service_role";
 
 grant update on table "public"."publications" to "service_role";
-
-create policy "Enable insert for everyone"
-on "public"."publications"
-as permissive
-for insert
-to public
-with check (true);
-
-
-create policy "Enable read access for all users"
-on "public"."publications"
-as permissive
-for select
-to public
-using (true);
-
-
-create policy "Enable update for users based on email"
-on "public"."tasks"
-as permissive
-for update
-to public
-using (true)
-with check (true);
-
-
-
