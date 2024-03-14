@@ -51,13 +51,11 @@ export const assignmentRouter = router({
       })
     )
     .query(async ({ctx, input}) => {
-      const serviceClient = ctx.getSupabaseServiceRoleClient();
-
-      const email_found = (await serviceClient.from('users').select('id').eq('email', input.email).maybeSingle());
+      const email_found = (await ctx.supabase.from('users').select('id').eq('email', input.email).maybeSingle());
       let user_id: User['id'] | null = null;
       if (!email_found.data) {
         // email is a new user
-        const invite = await serviceClient.auth.admin.inviteUserByEmail(input.email, {data: {assigned_task_id: input.task_id}})
+        const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, {data: {assigned_task_id: input.task_id}})
 
         if (invite.error)
           throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error inviting: ${invite.error.message}`});
@@ -67,7 +65,7 @@ export const assignmentRouter = router({
         // email is already an user
         user_id = email_found.data.id as string;
 
-        await serviceClient.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
+        await ctx.supabase.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
       
         // ...
         console.log(`Hypothetically sending notification to user ${user_id} that it is assigned to new task`)
@@ -87,8 +85,7 @@ export const assignmentRouter = router({
       })
     )
     .query(async ({ctx, input}) => {
-      const serviceClient = ctx.getSupabaseServiceRoleClient();
-      const invite = await serviceClient.auth.admin.inviteUserByEmail(input.email, {data: {invited_task_id: input.task_id}})
+      const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, {data: {invited_task_id: input.task_id}})
 
       if (invite.error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error inviting: ${invite.error.message}`});
