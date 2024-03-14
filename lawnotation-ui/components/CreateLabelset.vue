@@ -8,7 +8,7 @@
       label="Create"
       @click="createNewLabelset"
       :outlined="!newLabelset.labels.length"
-      :disabled="!newLabelset.labels.length"
+      :disabled="!newLabelset.labels.length || !newLabelset.name || !newLabelset.desc"
       data-test="create-labelset"
     />
   </div>
