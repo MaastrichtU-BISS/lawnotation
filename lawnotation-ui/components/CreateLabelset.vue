@@ -6,7 +6,7 @@
     <Button
       type="button"
       label="Create"
-      @click="create_new_labelset"
+      @click="createNewLabelset"
       :outlined="!new_labelset.labels.length"
       :disabled="!new_labelset.labels.length"
       data-test="create-labelset"
@@ -38,13 +38,13 @@
         v-model="new_label.name"
         placeholder="Label name"
         type="text"
-        @keydown.enter="add_label()"
+        @keydown.enter="addLabel()"
         data-test="label-name"
       />
       <Button
         type="button"
         label="Add"
-        @click="add_label()"
+        @click="addLabel()"
         :outlined="!!new_labelset.labels.length"
         data-test="add-label"
       />
@@ -89,7 +89,7 @@ const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
 
-const new_label = reactive(get_label_default());
+const new_label = reactive(getDefaultLabel());
 
 const new_labelset = ref<Omit<Labelset, "id" | "editor_id">>({
   name: "",
@@ -97,7 +97,7 @@ const new_labelset = ref<Omit<Labelset, "id" | "editor_id">>({
   labels: [],
 });
 
-function get_label_default() {
+function getDefaultLabel() {
   const r = Math.floor(Math.random() * 180 + 50);
   const b = Math.floor(Math.random() * 180 + 50);
   const g = Math.floor(Math.random() * 180 + 50);
@@ -110,20 +110,20 @@ function get_label_default() {
   };
 }
 
-const add_label = () => {
+const addLabel = () => {
   try {
-    validate_new_label();
+    validateNewLabel();
     new_labelset.value.labels.push({
       name: new_label.name,
       color: new_label.color,
     });
-    Object.assign(new_label, get_label_default());
+    Object.assign(new_label, getDefaultLabel());
   } catch (error) {
     if (error instanceof Error) $toast.error(`Error adding label: ${error.message}`);
   }
 };
 
-const validate_new_label = () => {
+const validateNewLabel = () => {
   if (!/^\#[a-zA-Z0-9]{6}$/.test(new_label.color)) throw new Error("Invalid label color");
   if (!/^[a-zA-Z0-9 ]+$/.test(new_label.name)) throw new Error("Invalid label name");
   if (
@@ -134,7 +134,7 @@ const validate_new_label = () => {
     throw new Error("A label with this name already exists");
 };
 
-const create_new_labelset = async () => {
+const createNewLabelset = async () => {
   try {
     if (!user.value) throw new Error("Invalid user");
     if (new_labelset.value.name.trim().length === 0)
