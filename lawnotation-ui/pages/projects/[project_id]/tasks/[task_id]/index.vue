@@ -13,7 +13,6 @@
       link: `/projects/${project.id}/tasks/${task.id}`,
     },
   ]" />
-
   <div class="my-3 dimmer-wrapper">
     <Dimmer v-model="loading" />
     <div class="dimmer-content">
@@ -21,8 +20,7 @@
         <div v-if="totalAssignments.data.value?.total">
           <div class="text-center my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
-              <button
-                v-if="isWordLevel(task)"
+              <button v-if="isWordLevel(task)"
                 class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
                 Analyze Agreement Metrics
               </button>
@@ -45,19 +43,20 @@
                   {{ item.id }}
                 </td>
                 <td class="px-6 py-2">
-                  {{ item.annotator?.email ?? `annotator ${item.annotator_number}` }}
+                  {{ item.annotator?.email ?? (item.origin != "model" ? `annotator ${item.annotator_number}` : "Model") }}
                 </td>
                 <td class="px-6 py-2">
                   {{ item.document.name }}
                 </td>
                 <td class="px-6 py-2">
-                  <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{ item.status }}</span>
+                  <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{
+                    item.status }}</span>
                 </td>
                 <td class="px-6 py-2">
                   <span>{{ item.difficulty_rating }}</span>
                 </td>
                 <td class="px-6 py-2 flex">
-                  <NuxtLink :to="`/assignments/${item.id}`"> 
+                  <NuxtLink :to="`/assignments/${item.id}`">
                     <Button label="View" size="small" />
                   </NuxtLink>
                 </td>
@@ -71,11 +70,11 @@
             <h3 class="mt-3 text-sm font-semibold">
               Annotators: {{ annotators_email.length }}
             </h3>
-            <Chips v-model="annotators_email" separator=","  :pt="{
+            <Chips v-model="annotators_email" separator="," :pt="{
               input: {
                 'data-test': 'annotator-emails'
               }
-            }"/>
+            }" />
             <label for="amount_of_docs">Number of Documents (total)</label>
             <input class="base" id="amount_of_docs" type="number" name="" v-model="amount_of_docs" :max="total_docs"
               min="1" />
@@ -84,13 +83,13 @@
             </label>
             <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
               min="0" />
-            <Button  @click="createAssignments" data-test="create-assignments">
+            <Button @click="createAssignments" data-test="create-assignments">
               Create Assignments
             </Button>
           </div>
         </div>
-        <ExportTaskModal v-model="formValues"  @export="exportTask"
-          @close="export_modal?.hide()" @resetForm="resetForm"></ExportTaskModal>
+        <ExportTaskModal v-model="formValues" @export="exportTask" @close="export_modal?.hide()" @resetForm="resetForm">
+        </ExportTaskModal>
       </div>
     </div>
   </div>
@@ -103,6 +102,9 @@ import type {
   User,
   Project,
   Publication,
+  Annotation,
+  MlModel,
+  Labelset
 } from "~/types";
 import { PublicationStatus } from "~/types"
 import { isWordLevel } from "~/utils/levels";
@@ -117,7 +119,6 @@ import type { ModalOptions } from "flowbite";
 const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
-const config = useRuntimeConfig();
 
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
@@ -140,7 +141,7 @@ const defaultFormValues = {
     annotations: false,
     loaded: false,
     loading: false
-  }, 
+  },
   publication: {
     editor_id: user.value?.id!,
     status: PublicationStatus.PUBLISHED,
@@ -176,7 +177,7 @@ const loading = ref(false);
 const assignmentTable = ref<InstanceType<typeof Table>>();
 
 watch(annotators_email, (new_val) => {
-  if(new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
+  if (new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
     new_val.pop();
     $toast.error('Invalid email!')
   }
@@ -198,9 +199,11 @@ const createAssignments = async () => {
     // Create shared assignments (only with docs info)
     for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
       for (let j = 0; j < annotators_email.value.length; ++j) {
-        const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
+        const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
           task_id: task.id,
           document_id: docs[i],
+          status: "pending",
+          origin: "manual"
         };
         new_assignments.push(new_assignment);
       }
@@ -208,9 +211,11 @@ const createAssignments = async () => {
 
     // Create unique assignments (only with docs info)
     for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
-      const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
+      const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
         task_id: task.id,
         document_id: docs[i],
+        status: "pending",
+        origin: "manual"
       };
       new_assignments.push(new_assignment);
     }
@@ -248,9 +253,73 @@ const createAssignments = async () => {
         (permutations[i % annotators_id.length].pop() ?? Math.floor(i / annotators_id.length)) + 1;
     }
 
+    //create MlModel assignments
+    if (task.ml_model_id) {
+      docs.map(doc => {
+        const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "annotator_number" | "status"> = {
+          task_id: task.id,
+          document_id: doc,
+          annotator_number: annotators_id.length + 1,
+          origin: "model",
+          status: "done"
+        };
+        new_assignments.push(new_assignment);
+      });
+    }
+
     const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
       new_assignments
     );
+
+    // create MlModel annotations
+    if (task.ml_model_id) {
+      const new_annotations: Omit<Annotation, "id">[] = [];
+      const model: MlModel = await $trpc.mlModel.findById.query(task.ml_model_id);
+      for (let i = 0; i < created_assignments.length; i++) {
+        const ass = created_assignments[i];
+        if (ass.origin == "model") {
+          const doc_text = (await $trpc.document.findById.query(ass.document_id)).full_text;
+          const mlQueryBody = {
+            model_name: model.name,
+            task_type: model.type,
+            text: doc_text,
+          };
+          const result = await $trpc.mlModel.predict.query(
+            model.labelset_id ?
+              mlQueryBody :
+              {
+                ...mlQueryBody, labels: labels.labels.map(l => l.name)
+              });
+          if (task.annotation_level == "word") {
+            result.map((ann: any) => {
+              new_annotations.push({
+                assignment_id: ass.id,
+                start_index: ann.start,
+                end_index: ann.end,
+                label: ann.label,
+                text: doc_text.substring(ann.start, ann.end),
+                origin: "model",
+                ls_id: ""
+              });
+            });
+          } else if (task.annotation_level == "document") {
+            result.map((ann: any) => {
+              new_annotations.push({
+                assignment_id: ass.id,
+                start_index: 0,
+                end_index: 0,
+                label: ann.label,
+                text: "",
+                origin: "model",
+                ls_id: ""
+              });
+            });
+          }
+        }
+      }
+
+      const created_annotations = await $trpc.annotation.createMany.mutate(new_annotations);
+    }
 
     assignmentTable.value?.refresh();
     totalAssignments.refresh();
