@@ -3,6 +3,10 @@ import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { MlModel } from "~/types";
 import type { Context } from "../context";
+import type { PostgrestError } from "@supabase/supabase-js";
+
+
+const config = useRuntimeConfig();
 
 const ZMlModelFields = z.object({
   name: z.string().min(3),
@@ -62,6 +66,33 @@ export const mlModelRouter = router({
         message: `Error in ml_models.findAll: ${error.message}`,
       });
     return data as MlModel[];
+  }),
+
+  predict: protectedProcedure
+  .input(
+    z.object({
+      model_name: z.string().min(3),
+      task_type: z.string(),
+      text: z.string(),
+      labels: z.array(z.string()).optional()
+    })
+  )
+  .query(async ({ input }) => {
+    
+    try {
+      const response = await fetch(`${config.public.mlBackendURL}/predict`, {
+        method: "POST",
+        body: JSON.stringify(input)
+      });
+    
+      const data = await response.json();
+      return data;
+    } catch(error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Error in ml_models.predict: ${(error as PostgrestError).message}`,
+      });
+    }
   }),
 });
 
