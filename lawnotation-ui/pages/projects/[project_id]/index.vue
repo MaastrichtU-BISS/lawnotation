@@ -520,6 +520,7 @@ const importTask = async () => {
               seq_pos: ass.order,
               status: "pending",
               annotator_number: ass.annotator,
+              origin: "imported"
             };
 
             if (ann_id) {
@@ -554,8 +555,8 @@ const importTask = async () => {
               ass_index++;
             });
           });
-
-          const annotations = await $trpc.annotation.createMany.mutate(new_annotations);
+          
+          const annotations = await $trpc.annotation.createMany.mutate(new_annotations)
 
           // create relations
           import_progress.value.message = "Creating Relations";
