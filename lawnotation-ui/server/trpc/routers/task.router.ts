@@ -289,6 +289,8 @@ export const taskRouter = router({
         project_id: task.project_id,
         ann_guidelines: task.ann_guidelines,
         labelset_id: task.labelset_id,
+        annotation_level: task.annotation_level,
+        ml_model_id: task.ml_model_id
       });
 
       const assignments = await caller.assignment.findAssignmentsByTask(
@@ -299,10 +301,12 @@ export const taskRouter = router({
           return {
             task_id: new_task.id,
             annotator_id: a.annotator_id,
+            annotator_number: a.annotator_number,
             document_id: a.document_id,
             seq_pos: a.seq_pos,
             status: a.status,
             difficulty_rating: a.difficulty_rating,
+            origin: a.origin
           };
         })
       );
@@ -329,7 +333,7 @@ export const taskRouter = router({
             end_index: a.end_index!,
             text: a.text!,
             ls_id: a.ls_id!,
-            origin: a.origin!,
+            origin: a.origin,
           };
         })
       );
