@@ -43,7 +43,7 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('a[data-test="view-project-link"]').should("have.length", 0)
     })
 
-    it('View a task', () => {
+    it('Edit a task', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
         cy.wait(1000)
