@@ -53,7 +53,7 @@
                   <span>{{ item.difficulty_rating }}</span>
                 </td>
                 <td class="px-6 py-2 flex">
-                  <NuxtLink :to="`/assignments/${item.id}`"> 
+                  <NuxtLink :to="`/assignments/${item.id}`" data-test="view-assignment-link"> 
                     <Button label="View" size="small" />
                   </NuxtLink>
                 </td>
