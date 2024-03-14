@@ -31,24 +31,22 @@
       ></textarea>
     </div>
     <hr class="my-3" />
-    <div class="flex space-x-4">
+    <form @submit.prevent="addLabel" class="flex space-x-4">
       <input v-model="newLabel.color" type="color" class="self-center base" />
       <input
         class="base grow"
         v-model="newLabel.name"
         placeholder="Label name"
         type="text"
-        @keydown.enter="addLabel()"
         data-test="label-name"
       />
       <Button
-        type="button"
+        type="submit"
         label="Add"
-        @click="addLabel()"
         :outlined="!!newLabelset.labels.length"
         data-test="add-label"
       />
-    </div>
+    </form>
     <hr class="my-3" />
     <div class="col">
       <div
