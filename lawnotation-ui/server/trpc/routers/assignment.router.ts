@@ -12,7 +12,8 @@ const ZAssignmentFields = z.object({
   status: z.union([z.literal("pending"), z.literal("done")]),
   seq_pos: z.number().int(),
   difficulty_rating: z.number().int(),
-  annotator_number: z.number().int()
+  annotator_number: z.number().int(),
+  origin: z.union([z.literal("manual"), z.literal("imported"), z.literal("model")])
 });
 
 const assignmentAuthorizer = async (
@@ -93,8 +94,6 @@ export const assignmentRouter = router({
       if (invite.error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error inviting: ${invite.error.message}`});
       
-      
-      
       return ;
     }),
 
@@ -119,6 +118,7 @@ export const assignmentRouter = router({
     .input(
       z.array(
         // object is equal to ZAssignmentFields, but with optional's, since partial didn't work. check later
+        // ZAssignmentFields.optional()
         z.object({
           annotator_id: z.string().optional(),
           task_id: z.number().int(),
@@ -126,7 +126,8 @@ export const assignmentRouter = router({
           status: z.union([z.literal("pending"), z.literal("done")]).optional(),
           seq_pos: z.number().int().optional(),
           difficulty_rating: z.number().int().optional(),
-          annotator_number: z.number().int().optional()
+          annotator_number: z.number().int().optional(),
+          origin: z.union([z.literal("manual"), z.literal("imported"), z.literal("model")]).optional()
         })
       )
     )

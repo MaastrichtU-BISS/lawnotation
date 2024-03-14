@@ -7,6 +7,7 @@ export type Assignment = {
   seq_pos: number;
   difficulty_rating: number;
   annotator_number: number;
+  origin: "manual" | "imported" | "model";
 };
 
 export type AssignmentTableData = {
@@ -26,4 +27,5 @@ export type AssignmentTableData = {
   seq_pos: number;
   difficulty_rating: number;
   annotator_number: number;
+  origin: "manual" | "imported" | "model";
 };
