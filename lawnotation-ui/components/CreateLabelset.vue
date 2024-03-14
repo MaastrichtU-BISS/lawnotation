@@ -3,13 +3,14 @@
     <h2 class="text-2xl">
       {{ new_labelset.name ? `New labelset: ${new_labelset.name}` : "New labelset" }}
     </h2>
-    <button
-      class="base btn-primary"
+    <Button
+      type="button"
+      label="Create"
       @click="create_new_labelset"
+      :outlined="!new_labelset.labels.length"
+      :disabled="!new_labelset.labels.length"
       data-test="create-labelset"
-    >
-      Create
-    </button>
+    />
   </div>
   <hr class="pb-4 mt-2" />
   <div class="row">
@@ -40,14 +41,12 @@
         @keydown.enter="add_label()"
         data-test="label-name"
       />
-      <button @click="add_label()" class="base btn-primary" data-test="add-label">
-        Add
-      </button>
-      <input
-        class="hidden"
-        type="file"
-        @change="import_labels_file_changed"
-        id="import_file_holder"
+      <Button
+        type="button"
+        label="Add"
+        @click="add_label()"
+        :outlined="!!new_labelset.labels.length"
+        data-test="add-label"
       />
     </div>
     <hr class="my-3" />
