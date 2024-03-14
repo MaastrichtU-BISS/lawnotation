@@ -111,17 +111,6 @@ function get_label_default() {
   };
 }
 
-const validate_new_label = () => {
-  if (!/^\#[a-zA-Z0-9]{6}$/.test(new_label.color)) throw new Error("Invalid label color");
-  if (!/^[a-zA-Z0-9 ]+$/.test(new_label.name)) throw new Error("Invalid label name");
-  if (
-    new_labelset.value.labels.some(
-      (x) => x.name.toLocaleLowerCase() === new_label.name.toLocaleLowerCase()
-    )
-  )
-    throw new Error("A label with this name already exists");
-};
-
 const add_label = () => {
   try {
     validate_new_label();
@@ -133,6 +122,17 @@ const add_label = () => {
   } catch (error) {
     if (error instanceof Error) $toast.error(`Error adding label: ${error.message}`);
   }
+};
+
+const validate_new_label = () => {
+  if (!/^\#[a-zA-Z0-9]{6}$/.test(new_label.color)) throw new Error("Invalid label color");
+  if (!/^[a-zA-Z0-9 ]+$/.test(new_label.name)) throw new Error("Invalid label name");
+  if (
+    new_labelset.value.labels.some(
+      (x) => x.name.toLocaleLowerCase() === new_label.name.toLocaleLowerCase()
+    )
+  )
+    throw new Error("A label with this name already exists");
 };
 
 const create_new_labelset = async () => {
