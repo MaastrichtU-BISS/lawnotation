@@ -1,14 +1,14 @@
 <template>
   <div class="flex flex-row justify-between">
     <h2 class="text-2xl">
-      {{ new_labelset.name ? `New labelset: ${new_labelset.name}` : "New labelset" }}
+      {{ newLabelset.name ? `New labelset: ${newLabelset.name}` : "New labelset" }}
     </h2>
     <Button
       type="button"
       label="Create"
       @click="createNewLabelset"
-      :outlined="!new_labelset.labels.length"
-      :disabled="!new_labelset.labels.length"
+      :outlined="!newLabelset.labels.length"
+      :disabled="!newLabelset.labels.length"
       data-test="create-labelset"
     />
   </div>
@@ -18,24 +18,24 @@
       <input
         class="base"
         type="text"
-        v-model="new_labelset.name"
+        v-model="newLabelset.name"
         placeholder="Labelset name"
         data-test="labelset-name"
       />
       <textarea
         class="base"
-        :value="new_labelset.desc"
-        @input="new_labelset.desc = ($event.target as HTMLTextAreaElement)?.value"
+        :value="newLabelset.desc"
+        @input="newLabelset.desc = ($event.target as HTMLTextAreaElement)?.value"
         placeholder="Labelset description"
         data-test="labelset-description"
       ></textarea>
     </div>
     <hr class="my-3" />
     <div class="flex space-x-4">
-      <input v-model="new_label.color" type="color" class="self-center base" />
+      <input v-model="newLabel.color" type="color" class="self-center base" />
       <input
         class="base grow"
-        v-model="new_label.name"
+        v-model="newLabel.name"
         placeholder="Label name"
         type="text"
         @keydown.enter="addLabel()"
@@ -45,7 +45,7 @@
         type="button"
         label="Add"
         @click="addLabel()"
-        :outlined="!!new_labelset.labels.length"
+        :outlined="!!newLabelset.labels.length"
         data-test="add-label"
       />
     </div>
@@ -53,10 +53,10 @@
     <div class="col">
       <div
         class="flex items-center gap-3 mb-2 label-holder"
-        v-for="(label, i) of new_labelset.labels"
+        v-for="(label, i) of newLabelset.labels"
         :key="label.name"
       >
-        <button class="base btn-secondary" @click="new_labelset.labels.splice(i, 1)">
+        <button class="base btn-secondary" @click="newLabelset.labels.splice(i, 1)">
           <svg
             style="width: 1rem"
             xmlns="http://www.w3.org/2000/svg"
@@ -89,9 +89,9 @@ const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
 
-const new_label = reactive(getDefaultLabel());
+const newLabel = reactive(getDefaultLabel());
 
-const new_labelset = ref<Omit<Labelset, "id" | "editor_id">>({
+const newLabelset = ref<Omit<Labelset, "id" | "editor_id">>({
   name: "",
   desc: "",
   labels: [],
@@ -100,22 +100,22 @@ const new_labelset = ref<Omit<Labelset, "id" | "editor_id">>({
 const addLabel = () => {
   try {
     validateNewLabel();
-    new_labelset.value.labels.push({
-      name: new_label.name,
-      color: new_label.color,
+    newLabelset.value.labels.push({
+      name: newLabel.name,
+      color: newLabel.color,
     });
-    Object.assign(new_label, getDefaultLabel());
+    Object.assign(newLabel, getDefaultLabel());
   } catch (error) {
     if (error instanceof Error) $toast.error(`Error adding label: ${error.message}`);
   }
 };
 
 const validateNewLabel = () => {
-  if (!/^\#[a-zA-Z0-9]{6}$/.test(new_label.color)) throw new Error("Invalid label color");
-  if (!/^[a-zA-Z0-9 ]+$/.test(new_label.name)) throw new Error("Invalid label name");
+  if (!/^\#[a-zA-Z0-9]{6}$/.test(newLabel.color)) throw new Error("Invalid label color");
+  if (!/^[a-zA-Z0-9 ]+$/.test(newLabel.name)) throw new Error("Invalid label name");
   if (
-    new_labelset.value.labels.some(
-      (x) => x.name.toLocaleLowerCase() === new_label.name.toLocaleLowerCase()
+    newLabelset.value.labels.some(
+      (x) => x.name.toLocaleLowerCase() === newLabel.name.toLocaleLowerCase()
     )
   )
     throw new Error("A label with this name already exists");
@@ -137,18 +137,18 @@ function getDefaultLabel() {
 const createNewLabelset = async () => {
   try {
     if (!user.value) throw new Error("Invalid user");
-    if (new_labelset.value.name.trim().length === 0)
+    if (newLabelset.value.name.trim().length === 0)
       throw new Error("Name of labelset can not be empty");
-    if (new_labelset.value.desc.trim().length === 0)
+    if (newLabelset.value.desc.trim().length === 0)
       throw new Error("Description of labelset can not be empty");
-    if (new_labelset.value.labels.length === 0)
+    if (newLabelset.value.labels.length === 0)
       throw new Error("Labelset should contain atleast one label");
 
     const create = await $trpc.labelset.create.mutate({
-      ...new_labelset.value,
+      ...newLabelset.value,
       editor_id: user.value.id,
     });
-    $toast.success(`Labelset "${new_labelset.value.name}" created`);
+    $toast.success(`Labelset "${newLabelset.value.name}" created`);
     navigateTo(`/labelset`);
   } catch (error) {
     if (error instanceof Error)
