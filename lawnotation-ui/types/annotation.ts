@@ -4,7 +4,7 @@ export type Annotation = {
   start_index: number;
   end_index: number;
   text: string;
-  origin: string;
+  origin: "manual" | "imported" | "model";
   ls_id: string;
   label: string;
 };
@@ -25,7 +25,7 @@ export type LSSerializedAnnotation = {
   id: string;
   from_name: string;
   to_name: string;
-  origin: string;
+  origin: "manual" | "imported" | "model";
   type: string;
   value: {
     start?: number;

@@ -9,7 +9,7 @@ const ZAnnotationFields = z.object({
   start_index: z.number().int(),
   end_index: z.number().int(),
   text: z.string(),
-  origin: z.string(),
+  origin: z.union([z.literal("manual"), z.literal("imported"), z.literal("model")]),
   ls_id: z.string(),
 });
 
@@ -190,7 +190,7 @@ export const annotationRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`});
-      return data;
+      return data as Annotation[];
     }),
   
   'updateAssignmentAnnotations': protectedProcedure
