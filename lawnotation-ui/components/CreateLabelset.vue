@@ -97,19 +97,6 @@ const new_labelset = ref<Omit<Labelset, "id" | "editor_id">>({
   labels: [],
 });
 
-function getDefaultLabel() {
-  const r = Math.floor(Math.random() * 180 + 50);
-  const b = Math.floor(Math.random() * 180 + 50);
-  const g = Math.floor(Math.random() * 180 + 50);
-  return {
-    name: "",
-    color: `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`,
-    meta: {
-      editing: false,
-    },
-  };
-}
-
 const addLabel = () => {
   try {
     validateNewLabel();
@@ -133,6 +120,19 @@ const validateNewLabel = () => {
   )
     throw new Error("A label with this name already exists");
 };
+
+function getDefaultLabel() {
+  const r = Math.floor(Math.random() * 180 + 50);
+  const b = Math.floor(Math.random() * 180 + 50);
+  const g = Math.floor(Math.random() * 180 + 50);
+  return {
+    name: "",
+    color: `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`,
+    meta: {
+      editing: false,
+    },
+  };
+}
 
 const createNewLabelset = async () => {
   try {
