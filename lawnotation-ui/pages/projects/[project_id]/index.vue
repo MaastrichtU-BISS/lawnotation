@@ -150,7 +150,7 @@
                     </template>
                     <template v-else-if="labelsetStage === 'new'">
                       <Button label="back" size="small" icon="pi pi-arrow-left" link @click="labelsetStage = 'overview'" />
-                      <CreateLabelset />
+                      <CreateLabelset @labelset-created="labelsetStage = 'overview'"/>
                     </template>
                   </TabPanel>
                 </TabView>

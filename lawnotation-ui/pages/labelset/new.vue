@@ -12,7 +12,7 @@
     ]"
   />
 
-  <CreateLabelset />
+  <CreateLabelset @labelset-created="navigateTo(`/labelset`)" />
 </template>
 
 <script setup lang="ts">

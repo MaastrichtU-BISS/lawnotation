@@ -84,10 +84,10 @@
 import type { Labelset } from "~/types";
 
 const { $toast, $trpc } = useNuxtApp();
-
 const user = useSupabaseUser();
-
 const newLabel = reactive(getDefaultLabel());
+
+const emit = defineEmits(['labelsetCreated']);
 
 const newLabelset = ref<Omit<Labelset, "id" | "editor_id">>({
   name: "",
@@ -147,7 +147,7 @@ const createNewLabelset = async () => {
       editor_id: user.value.id,
     });
     $toast.success(`Labelset "${newLabelset.value.name}" created`);
-    navigateTo(`/labelset`);
+    emit('labelsetCreated');
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Error creating new labelset: ${error.message}`);
