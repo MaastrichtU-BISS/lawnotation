@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
   runtimeConfig: {
     public: {
+      mlBackendURL: process.env.MLBACKEND_URL,
       baseURL:
         process.env.NODE_ENV === "production"
           ? "https://app.lawnotation.org"
