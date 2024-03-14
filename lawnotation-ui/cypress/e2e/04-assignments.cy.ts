@@ -27,8 +27,7 @@ describe('Assign a project to the annotator account as the editor', () => {
         cy.get('a[data-test="tasks-tab"]').click()
         cy.get('a[data-test="view-task-link"]').click()
         cy.contains('Create assignments').should('exist')
-        cy.get('input[data-test="annotator-emails"]').type('annotator@example.com,')
-        cy.get('input[data-test="annotator-emails"]').type('annotator1@example.com,')
+        cy.get('input[data-test="annotator-emails"]').type('annotator@example.com,annotator1@example.com')
         cy.get('button[data-test="create-assignments"]').click()
 
         cy.get('span[data-pc-section="label"]').contains('annotator@example.com').should('exist')
