@@ -12,8 +12,6 @@ alter table "public"."users" alter column "role" set default 'annotator'::user_r
 
 drop type "public"."user_roles__old_version_to_be_dropped";
 
-alter table "public"."projects" disable row level security;
-
 alter table "public"."users" alter column "role" set default 'editor'::user_roles;
 
 alter table "public"."users" add constraint "users_id_fkey" FOREIGN KEY (id) REFERENCES auth.users(id) not valid;
