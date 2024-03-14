@@ -19,22 +19,18 @@
     <div class="dimmer-content">
       <div v-if="task">
         <div v-if="totalAssignments.data.value?.total">
-          <div class="text-center my-3">
+          <div class="flex justify-center gap-6 my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
-              <button
-                v-if="isWordLevel(task)"
-                class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
-                Analyze Agreement Metrics
-              </button>
+              <Button type="button" v-if="isWordLevel(task)" label="Analyze Agreement Metrics" data-test="metrics-button" />
             </NuxtLink>
-            <button type="button" @click="replicateTask"
-              class="mx-3 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
-              Duplicate Task
-            </button>
-            <button type="button" @click="export_modal?.show()"
-              class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
-              Export / Publish
-            </button>
+            <Button type="button" label="Export / Publish" outlined @click="export_modal?.show()" data-test="export-publish-button" />
+            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => overlayMenu.toggle(event)" aria-haspopup="true" aria-controls="overlay_menu" data-test="kebab-button" />
+            <Menu ref="overlayMenu" id="overlay_menu" :model="[{label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask}]" :popup="true"
+              :pt="{
+                content: {
+                  'data-test': 'duplicate-task'
+                }
+              }"/>
           </div>
           <h3 class="my-3 text-lg font-semibold">Assignments</h3>
           <div v-if="task">
@@ -127,6 +123,7 @@ const totalAssignments = await $trpc.table.assignments.useQuery({ filter: { task
 const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
 const total_docs = totalAmountOfDocs ?? 0;
 const amount_of_docs = ref<number>(total_docs);
+const overlayMenu = ref()
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
 
