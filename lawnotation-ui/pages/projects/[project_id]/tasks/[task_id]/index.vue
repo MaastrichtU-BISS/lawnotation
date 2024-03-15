@@ -108,7 +108,7 @@ import { PublicationStatus } from "~/types"
 import { isWordLevel } from "~/utils/levels";
 import Table from "~/components/Table.vue";
 import { Modal } from "flowbite";
-import { shuffle, clone } from "lodash";
+import _ from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
@@ -235,7 +235,7 @@ const createAssignments = async () => {
 
     const permutations = [];
     for (let i = 0; i < annotators_id.length; ++i) {
-      permutations.push(shuffle(clone(unshuffled)));
+      permutations.push(_.shuffle(_.clone(unshuffled)));
     }
 
     for (let i = 0; i < new_assignments.length; ++i) {
