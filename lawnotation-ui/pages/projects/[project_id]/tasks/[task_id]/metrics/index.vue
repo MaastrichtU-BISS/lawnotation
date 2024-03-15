@@ -227,7 +227,7 @@ import type {
 } from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
 
-import { clone } from "lodash";
+import _ from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
 import { saveAs } from "file-saver";
@@ -945,7 +945,7 @@ const isNewDoc = (index: number): Boolean => {
 
 const emitSeparate = (ann_index: number, split_pos: number) => {
   loading_annotations.value = true;
-  const current = clone(annotations[ann_index]);
+  const current = _.clone(annotations[ann_index]);
 
   annotations[ann_index].end = current.start + split_pos;
   annotations[ann_index].text = current.text.substring(0, split_pos);
@@ -977,8 +977,8 @@ const modeToggle = (value: boolean) => {
 
 const emitMergeUp = (ann_index: number): void => {
   loading_annotations.value = true;
-  const current = clone(annotations[ann_index]);
-  const previous = clone(annotations[ann_index - 1]);
+  const current = _.clone(annotations[ann_index]);
+  const previous = _.clone(annotations[ann_index - 1]);
 
   annotations[ann_index - 1].end = current.end;
   annotations[ann_index - 1].text = documentsData.value[
@@ -992,8 +992,8 @@ const emitMergeUp = (ann_index: number): void => {
 
 const emitMergeDown = (ann_index: number): void => {
   loading_annotations.value = true;
-  const current = clone(annotations[ann_index]);
-  const next = clone(annotations[ann_index + 1]);
+  const current = _.clone(annotations[ann_index]);
+  const next = _.clone(annotations[ann_index + 1]);
 
   annotations[ann_index + 1].start = current.start;
   annotations[ann_index + 1].text = documentsData.value[
