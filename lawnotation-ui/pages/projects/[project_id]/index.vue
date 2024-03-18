@@ -50,7 +50,7 @@
                   </td>
                 </template>
               </Table>
-              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :pt="{
+              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :autoZIndex="false" :pt="{
                 header: {
                   style: 'padding-bottom: 0px'
                 }, 
@@ -146,11 +146,14 @@
                   </TabPanel>
                   <TabPanel header="Labelsets">
                     <template v-if="labelsetStage === 'overview'">
-                      <Labelsets @add-labelset="labelsetStage = 'new'" />
+                      <Labelsets @add-labelset="labelsetStage = 'new'" @edit-labelset="labelsetStage = 'edit'"/>
                     </template>
                     <template v-else-if="labelsetStage === 'new'">
                       <Button label="back" size="small" icon="pi pi-arrow-left" link @click="labelsetStage = 'overview'" />
                       <CreateLabelset @labelset-created="labelsetStage = 'overview'"/>
+                    </template>
+                    <template v-else-if="labelsetStage === 'edit'">
+                      <Button label="back" size="small" icon="pi pi-arrow-left" link @click="labelsetStage = 'overview'" />
                     </template>
                   </TabPanel>
                 </TabView>
