@@ -30,33 +30,46 @@
                 class="my-5 items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
                   <div class="flex items-center pl-3">
-                    <input id="name-checkbox" type="checkbox" v-model="modelValue.export_options.name"
-                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
+                    <Checkbox
+                      v-model="modelValue.export_options.name"
+                      inputId="name-checkbox"
+                      :binary="true"
+                    />
                     <label for="name-checkbox"
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Name</label>
                   </div>
                 </li>
                 <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
                   <div class="flex items-center pl-3">
-                    <input id="desc-checkbox" type="checkbox" v-model="modelValue.export_options.desc"
-                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
+                    <Checkbox
+                      v-model="modelValue.export_options.desc"
+                      inputId="desc-checkbox"
+                      :binary="true"
+                    />
                     <label for="desc-checkbox"
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Description</label>
                   </div>
                 </li>
                 <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
                   <div class="flex items-center pl-3">
-                    <input id="ann_guidelines-checkbox" :disabled="!modelValue.export_options.labelset" type="checkbox"
+                    <Checkbox
                       v-model="modelValue.export_options.ann_guidelines"
-                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
+                      inputId="ann_guidelines-checkbox"
+                      :binary="true"
+                      :disabled="!modelValue.export_options.labelset"
+                    />
                     <label for="ann_guidelines-checkbox"
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Guidelines</label>
                   </div>
                 </li>
                 <li class="w-full dark:border-gray-600">
                   <div class="flex items-center pl-3">
-                    <input id="labelset-checkbox" type="checkbox" @change="click_labelset" v-model="modelValue.export_options.labelset"
-                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
+                    <Checkbox
+                      v-model="modelValue.export_options.labelset"
+                      @change="checkLabels" 
+                      inputId="labelset-checkbox"
+                      :binary="true"
+                    />
                     <label for="labelset-checkbox"
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Labels</label>
                   </div>
@@ -66,18 +79,29 @@
                 class="my-5 items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
                   <div class="flex items-center pl-3">
-                    <input id="documments-checkbox" @change="click_documents" type="checkbox"
+                    <Checkbox
                       v-model="modelValue.export_options.documents"
-                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
+                      @change="checkDocuments" 
+                      inputId="documments-checkbox"
+                      :binary="true"
+                    />
                     <label for="documments-checkbox"
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Documents</label>
                   </div>
                 </li>
                 <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
                   <div class="flex items-center pl-3">
-                    <input id="annotations-checkbox" :disabled="!(modelValue.export_options.documents && modelValue.export_options.labelset)"
-                      type="checkbox" v-model="modelValue.export_options.annotations"
-                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" />
+                    <Checkbox
+                      v-model="modelValue.export_options.annotations"
+                      inputId="annotations-checkbox"
+                      :binary="true"
+                      :disabled="
+                        !(
+                          modelValue.export_options.documents &&
+                          modelValue.export_options.labelset
+                        )
+                      "
+                    />
                     <label for="annotations-checkbox"
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Annotations</label>
                   </div>
