@@ -136,7 +136,7 @@
                 />
               </div>
             </div>
-            <div v-if="page == 2" id="export-step-2">
+            <form v-if="page == 2" id="export-step-2" @submit.prevent="publish">
               <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
                 Include metadata to make your results be discoverable within the platform.
               </h3>
@@ -217,12 +217,11 @@
                   outlined
                 />
                 <Button
-                  type="button"
-                  @click="publish"
+                  type="submit"
                   label="Publish"
                 />
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
