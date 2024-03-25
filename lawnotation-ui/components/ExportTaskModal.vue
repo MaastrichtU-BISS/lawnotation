@@ -238,7 +238,7 @@
 <script setup lang="ts">
 import type { ExportTaskOptions } from "~/utils/io";
 import type { Publication } from "~/types"
-const props = defineProps<{
+const { modelValue } = defineProps<{
   modelValue: {
     export_options: ExportTaskOptions;
     publication: Omit<Publication, "id">
@@ -252,15 +252,15 @@ const page = ref<number>(1);
 const emit = defineEmits(["export", "close", "resetForm"]);
 
 const checkLabels = () => {
-  if (!props.modelValue.export_options.labelset) {
-    props.modelValue.export_options.ann_guidelines = false;
-    props.modelValue.export_options.annotations = false;
+  if (!modelValue.export_options.labelset) {
+    modelValue.export_options.ann_guidelines = false;
+    modelValue.export_options.annotations = false;
   }
 };
 
 const checkDocuments = () => {
-  if (!props.modelValue.export_options.documents) {
-    props.modelValue.export_options.annotations = false;
+  if (!modelValue.export_options.documents) {
+    modelValue.export_options.annotations = false;
   }
 };
 
@@ -275,34 +275,34 @@ const emitClose = () => {
 };
 
 const export_task = () => {
-  if(!props.modelValue.export_options.loading) {
+  if(!modelValue.export_options.loading) {
     emit("export");
   }
 };
 
 const publish = async () => {
 
-  if (!props.modelValue.publication.file_url) {
+  if (!modelValue.publication.file_url) {
     $toast.error("File url is required");
     return;
   }
 
   try {
-    const url = new URL(props.modelValue.publication.file_url);
+    const url = new URL(modelValue.publication.file_url);
   } catch (_) {
     $toast.error("Invalid File url");
     return;
   }
 
-  if (props.modelValue.export_options.ann_guidelines) {
+  if (modelValue.export_options.ann_guidelines) {
 
-    if(!props.modelValue.publication.guidelines_url) {
+    if (!modelValue.publication.guidelines_url) {
       $toast.error("Guidelines url is required");
       return;
     }
 
     try {
-      const url = new URL(props.modelValue.publication.guidelines_url);
+      const url = new URL(modelValue.publication.guidelines_url);
     } catch (_) {
       $toast.error("Invalid Guidelines url");
       return;
@@ -311,12 +311,12 @@ const publish = async () => {
 
 
 
-  if (!props.modelValue.publication.author) {
+  if (!modelValue.publication.author) {
     $toast.error("Author is required");
     return;
   }
 
-  await $trpc.publication.create.mutate(props.modelValue.publication);
+  await $trpc.publication.create.mutate(modelValue.publication);
   document.getElementById("exportFormModalClick")?.click();
   $toast.success("Task successfully published");
 };
