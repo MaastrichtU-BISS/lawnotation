@@ -85,8 +85,8 @@
             </Button>
           </div>
         </div>
-        <ExportTaskModal v-model="formValues"  @export="exportTask"
-          @close="export_modal?.hide()" @resetForm="resetForm"></ExportTaskModal>
+        <ExportTaskModal v-model="formValues" @export="exportTask"
+          @close="export_modal?.hide()" />
       </div>
     </div>
   </div>
@@ -395,10 +395,6 @@ const exportTask = async () => {
   formValues.value.export_options.loading = false;
   $toast.success(`Task has been exported!`);
 };
-
-const resetForm = () => {
-  Object.assign(formValues.value, JSON.parse(JSON.stringify(defaultFormValues)));
-}
 
 onMounted(async () => {
   const modalOptions: ModalOptions = {
