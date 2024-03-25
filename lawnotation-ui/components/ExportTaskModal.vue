@@ -327,7 +327,4 @@ const publish = async () => {
   document.getElementById("exportFormModalClick")?.click();
   $toast.success("Task successfully published");
 };
-
-onMounted(() => {
-});
 </script>
