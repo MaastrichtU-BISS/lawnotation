@@ -135,9 +135,11 @@ const defaultFormValues = {
     labelset: true,
     documents: false,
     annotations: false,
+  },
+  modalOperations: {
     loaded: false,
-    loading: false
-  }, 
+    loading: false,
+  },
   publication: {
     editor_id: user.value?.id!,
     status: PublicationStatus.PUBLISHED,
@@ -159,6 +161,7 @@ const defaultFormValues = {
 
 const formValues = ref<{
   export_options: ExportTaskOptions;
+  modalOperations: { loading: boolean, loaded: boolean };
   publication: Omit<Publication, "id">;
 }>(JSON.parse(JSON.stringify(defaultFormValues)));
 
@@ -279,7 +282,7 @@ const replicateTask = async () => {
 };
 
 const exportTask = async () => {
-  formValues.value.export_options.loading = true;
+  formValues.value.modalOperations.loading = true;
   let json: any = {};
 
   if (formValues.value.export_options.name) {
@@ -391,8 +394,8 @@ const exportTask = async () => {
   }
 
   downloadAs(json, `${json.name}.json`);
-  formValues.value.export_options.loaded = true;
-  formValues.value.export_options.loading = false;
+  formValues.value.modalOperations.loaded = true;
+  formValues.value.modalOperations.loading = false;
   $toast.success(`Task has been exported!`);
 };
 

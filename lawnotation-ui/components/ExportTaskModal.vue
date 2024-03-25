@@ -109,7 +109,7 @@
                 <Button
                   type="button"
                   @click="export_task"
-                  :label="modelValue.export_options.loading ? 'Downloading...' : 'Export'"
+                  :label="modelValue.modalOperations.loading ? 'Downloading...' : 'Export'"
                   icon="pi pi-download"
                   iconPos="right"
                   :disabled="
@@ -122,7 +122,7 @@
                       modelValue.export_options.annotations
                     )
                   "
-                  :outlined="modelValue.export_options.loaded"
+                  :outlined="modelValue.modalOperations.loaded"
                   data-test="export-button"
                 />
                 <Button
@@ -131,7 +131,7 @@
                   label="Start publishing"
                   icon="pi pi-arrow-right"
                   iconPos="right"
-                  :disabled="!modelValue.export_options.loaded"
+                  :disabled="!modelValue.modalOperations.loaded"
                   data-test="start-publishing-button"
                 />
               </div>
@@ -232,12 +232,11 @@
 <script setup lang="ts">
 import type { ExportTaskOptions } from "~/utils/io";
 import type { Publication } from "~/types"
-const { modelValue } = defineProps<{
-  modelValue: {
-    export_options: ExportTaskOptions;
-    publication: Omit<Publication, "id">
-  }
-}>();
+const modelValue = defineModel<{
+  export_options: ExportTaskOptions;
+  modalOperations: { loading: boolean, loaded: boolean };
+  publication: Omit<Publication, "id">;
+}>({ required: true });
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -245,29 +244,33 @@ const page = ref<number>(1);
 
 const emit = defineEmits(["export", "close", "resetForm"]);
 
+watch(modelValue.value.export_options, () => {
+  modelValue.value.modalOperations.loaded = false;
+})
+
 const checkLabels = () => {
-  if (!modelValue.export_options.labelset) {
-    modelValue.export_options.ann_guidelines = false;
-    modelValue.export_options.annotations = false;
+  if (!modelValue.value.export_options.labelset) {
+    modelValue.value.export_options.ann_guidelines = false;
+    modelValue.value.export_options.annotations = false;
   }
 };
 
 const checkDocuments = () => {
-  if (!modelValue.export_options.documents) {
-    modelValue.export_options.annotations = false;
+  if (!modelValue.value.export_options.documents) {
+    modelValue.value.export_options.annotations = false;
   }
 };
 
 const checkGuidelines = () => {
-  if (modelValue.export_options.ann_guidelines) {
-    modelValue.export_options.labelset = true
+  if (modelValue.value.export_options.ann_guidelines) {
+    modelValue.value.export_options.labelset = true
   }
 }
 
 const checkAnnotations = () => {
-  if (modelValue.export_options.annotations) {
-    modelValue.export_options.labelset = true;
-    modelValue.export_options.documents = true;
+  if (modelValue.value.export_options.annotations) {
+    modelValue.value.export_options.labelset = true;
+    modelValue.value.export_options.documents = true;
   }
 }
 
@@ -282,34 +285,34 @@ const emitClose = () => {
 };
 
 const export_task = () => {
-  if(!modelValue.export_options.loading) {
+  if(!modelValue.value.modalOperations.loading) {
     emit("export");
   }
 };
 
 const publish = async () => {
 
-  if (!modelValue.publication.file_url) {
+  if (!modelValue.value.publication.file_url) {
     $toast.error("File url is required");
     return;
   }
 
   try {
-    const url = new URL(modelValue.publication.file_url);
+    const url = new URL(modelValue.value.publication.file_url);
   } catch (_) {
     $toast.error("Invalid File url");
     return;
   }
 
-  if (modelValue.export_options.ann_guidelines) {
+  if (modelValue.value.export_options.ann_guidelines) {
 
-    if (!modelValue.publication.guidelines_url) {
+    if (!modelValue.value.publication.guidelines_url) {
       $toast.error("Guidelines url is required");
       return;
     }
 
     try {
-      const url = new URL(modelValue.publication.guidelines_url);
+      const url = new URL(modelValue.value.publication.guidelines_url);
     } catch (_) {
       $toast.error("Invalid Guidelines url");
       return;
@@ -318,12 +321,12 @@ const publish = async () => {
 
 
 
-  if (!modelValue.publication.author) {
+  if (!modelValue.value.publication.author) {
     $toast.error("Author is required");
     return;
   }
 
-  await $trpc.publication.create.mutate(modelValue.publication);
+  await $trpc.publication.create.mutate(modelValue.value.publication);
   document.getElementById("exportFormModalClick")?.click();
   $toast.success("Task successfully published");
 };
