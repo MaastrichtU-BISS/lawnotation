@@ -54,9 +54,9 @@
                   <div class="flex items-center pl-3">
                     <Checkbox
                       v-model="modelValue.export_options.ann_guidelines"
+                      @change="checkGuidelines"
                       inputId="ann_guidelines-checkbox"
                       :binary="true"
-                      :disabled="!modelValue.export_options.labelset"
                     />
                     <label for="ann_guidelines-checkbox"
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Guidelines</label>
@@ -93,14 +93,9 @@
                   <div class="flex items-center pl-3">
                     <Checkbox
                       v-model="modelValue.export_options.annotations"
+                      @change="checkAnnotations"
                       inputId="annotations-checkbox"
                       :binary="true"
-                      :disabled="
-                        !(
-                          modelValue.export_options.documents &&
-                          modelValue.export_options.labelset
-                        )
-                      "
                     />
                     <label for="annotations-checkbox"
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Annotations</label>
@@ -263,6 +258,19 @@ const checkDocuments = () => {
     modelValue.export_options.annotations = false;
   }
 };
+
+const checkGuidelines = () => {
+  if (modelValue.export_options.ann_guidelines) {
+    modelValue.export_options.labelset = true
+  }
+}
+
+const checkAnnotations = () => {
+  if (modelValue.export_options.annotations) {
+    modelValue.export_options.labelset = true;
+    modelValue.export_options.documents = true;
+  }
+}
 
 const goBack = () => {
   emit("resetForm")
