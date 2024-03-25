@@ -227,14 +227,14 @@ const page = ref<number>(1);
 
 const emit = defineEmits(["export", "close", "resetForm"]);
 
-const click_labelset = () => {
+const checkLabels = () => {
   if (!props.modelValue.export_options.labelset) {
     props.modelValue.export_options.ann_guidelines = false;
     props.modelValue.export_options.annotations = false;
   }
 };
 
-const click_documents = () => {
+const checkDocuments = () => {
   if (!props.modelValue.export_options.documents) {
     props.modelValue.export_options.annotations = false;
   }
