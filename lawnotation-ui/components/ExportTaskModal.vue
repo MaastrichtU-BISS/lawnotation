@@ -209,19 +209,18 @@
                 </div>
               </div>
               <div class="flex justify-between my-5">
-                <button @click="goBack" type="button"
-                  class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                  <svg class="rtl:rotate-180 w-3.5 h-3.5 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
-                    fill="none" viewBox="0 0 14 10">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M13 5H1m0 0 4 4M1 5l4-4"></path>
-                  </svg>
-                  Back
-                </button>
-                <button @click="publish" type="button"
-                  class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                  Publish
-                </button>
+                <Button
+                  type="button"
+                  @click="goBack"
+                  label="Back"
+                  icon="pi pi-arrow-left"
+                  outlined
+                />
+                <Button
+                  type="button"
+                  @click="publish"
+                  label="Publish"
+                />
               </div>
             </div>
           </div>
