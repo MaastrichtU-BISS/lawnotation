@@ -219,6 +219,16 @@
                 <Button
                   type="submit"
                   label="Publish"
+                  :disabled="
+                    !modelValue.publication.file_url ||
+                    !modelValue.publication.guidelines_url ||
+                    !modelValue.publication.task_name ||
+                    !modelValue.publication.task_description ||
+                    !modelValue.publication.labels_name ||
+                    !modelValue.publication.labels_description ||
+                    !modelValue.publication.author ||
+                    !modelValue.publication.contact
+                  "
                 />
               </div>
             </form>
