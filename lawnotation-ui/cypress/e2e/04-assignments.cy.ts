@@ -47,6 +47,7 @@ describe('Assign a project to annotators as the editor', () => {
         cy.get('a[data-test="view-project-link"]').first().click()
         cy.get('a[data-test="view-task-link"]').first().click()
         cy.get('a[data-test="view-assignment-link"]').first().click()
+        cy.wait(3000)
         cy.get('span').contains('Label1').should('exist')
         cy.get('div').contains('Lorem').should('exist')
     })
