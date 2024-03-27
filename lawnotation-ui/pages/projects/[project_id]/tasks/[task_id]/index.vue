@@ -23,7 +23,7 @@
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
               <Button type="button" v-if="isWordLevel(task)" label="Analyze Agreement Metrics" data-test="metrics-button" />
             </NuxtLink>
-            <Button type="button" label="Export / Publish" outlined @click="export_modal?.show()" data-test="export-publish-button" />
+            <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true" data-test="export-publish-button" />
             <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => overlayMenu.toggle(event)" aria-haspopup="true" aria-controls="overlay_menu" data-test="kebab-button" />
             <Menu ref="overlayMenu" id="overlay_menu" :model="[{label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask}]" :popup="true"
               :pt="{
@@ -85,8 +85,7 @@
             </Button>
           </div>
         </div>
-        <ExportTaskModal v-model="formValues" @export="exportTask"
-          @close="export_modal?.hide()" />
+        <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible" @export="exportTask" />
       </div>
     </div>
   </div>
@@ -165,8 +164,7 @@ const formValues = ref<{
   publication: Omit<Publication, "id">;
 }>(JSON.parse(JSON.stringify(defaultFormValues)));
 
-
-let export_modal: Modal | null = null;
+const exportModalVisible = ref(false);
 
 const amount_of_fixed_docs = ref<number>(0);
 const annotators_email = ref<string[]>([]);
@@ -406,9 +404,6 @@ onMounted(async () => {
     backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
     closable: true,
   };
-
-  export_modal = new Modal(document.getElementById("exportFormModal"), modalOptions);
-
 });
 
 definePageMeta({
