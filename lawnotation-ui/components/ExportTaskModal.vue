@@ -31,27 +31,12 @@
                 <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
                   <div class="flex items-center pl-3">
                     <Checkbox
-                      v-model="modelValue.export_options.labelset"
-                      @change="checkLabels" 
-                      inputId="labelset-checkbox"
-                      :binary="true"
-                      :pt="{
-                        input: {
-                          'data-test': 'labelset-checkbox'
-                        }
-                      }"
-                    />
-                    <label for="labelset-checkbox"
-                      class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Labels</label>
-                  </div>
-                </li>
-                <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
-                  <div class="flex items-center pl-3">
-                    <Checkbox
                       v-model="modelValue.export_options.ann_guidelines"
                       @change="checkGuidelines"
                       inputId="ann_guidelines-checkbox"
                       :binary="true"
+                      disabled
+                      title="Your annotation guidelines will always be included for export"
                       :pt="{
                         input: {
                           'data-test': 'ann_guidelines-checkbox'
@@ -60,6 +45,25 @@
                     />
                     <label for="ann_guidelines-checkbox"
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Guidelines</label>
+                  </div>
+                </li>
+                <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
+                  <div class="flex items-center pl-3">
+                    <Checkbox
+                      v-model="modelValue.export_options.labelset"
+                      @change="checkLabels" 
+                      inputId="labelset-checkbox"
+                      :binary="true"
+                      disabled
+                      title="Your labels will always be included for export"
+                      :pt="{
+                        input: {
+                          'data-test': 'labelset-checkbox'
+                        }
+                      }"
+                    />
+                    <label for="labelset-checkbox"
+                      class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Labels</label>
                   </div>
                 </li>
                 <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
