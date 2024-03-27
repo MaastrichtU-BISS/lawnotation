@@ -131,8 +131,8 @@ const defaultFormValues = {
   export_options: {
     name: true,
     desc: true,
-    ann_guidelines: true,
-    labelset: true,
+    ann_guidelines: false,
+    labelset: false,
     documents: false,
     annotations: false,
   },
