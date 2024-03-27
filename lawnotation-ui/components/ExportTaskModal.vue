@@ -24,40 +24,25 @@
           <div class="items-center justify-center">
             <div v-if="page == 1" id="export-step-1">
               <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
-                Select what you want to include in the exported file.
+                Select what you want to include in your export:
               </h3>
               <ul
                 class="my-5 items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
-                  <div class="flex items-center pl-3">
-                    <Checkbox
-                      v-model="modelValue.export_options.name"
-                      inputId="name-checkbox"
-                      :binary="true"
-                      :pt="{
-                        input: {
-                          'data-test': 'name-checkbox'
-                        }
-                      }"
-                    />
-                    <label for="name-checkbox"
-                      class="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Name</label>
-                  </div>
-                </li>
                 <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
                   <div class="flex items-center pl-3">
                     <Checkbox
-                      v-model="modelValue.export_options.desc"
-                      inputId="desc-checkbox"
+                      v-model="modelValue.export_options.labelset"
+                      @change="checkLabels" 
+                      inputId="labelset-checkbox"
                       :binary="true"
                       :pt="{
                         input: {
-                          'data-test': 'desc-checkbox'
+                          'data-test': 'labelset-checkbox'
                         }
                       }"
                     />
-                    <label for="desc-checkbox"
-                      class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Description</label>
+                    <label for="labelset-checkbox"
+                      class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Labels</label>
                   </div>
                 </li>
                 <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
@@ -77,27 +62,7 @@
                       class="w-full py-3 ml-2 text-sm font-medium text-gray-900">Guidelines</label>
                   </div>
                 </li>
-                <li class="w-full dark:border-gray-600">
-                  <div class="flex items-center pl-3">
-                    <Checkbox
-                      v-model="modelValue.export_options.labelset"
-                      @change="checkLabels" 
-                      inputId="labelset-checkbox"
-                      :binary="true"
-                      :pt="{
-                        input: {
-                          'data-test': 'labelset-checkbox'
-                        }
-                      }"
-                    />
-                    <label for="labelset-checkbox"
-                      class="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Labels</label>
-                  </div>
-                </li>
-              </ul>
-              <ul
-                class="my-5 items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r">
                   <div class="flex items-center pl-3">
                     <Checkbox
                       v-model="modelValue.export_options.documents"
@@ -133,7 +98,7 @@
                 </li>
               </ul>
               <p class="text-xs font-normal text-gray-500 dark:text-gray-300">
-                Annotations will be exported without the annotator email
+                Don't worry, annotations will not include e-mail addresses from your annotators in the export file
               </p>
               <div class="flex justify-between my-5">
                 <Button
