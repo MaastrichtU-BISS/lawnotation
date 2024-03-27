@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
-import { protectedProcedure, router } from '~/server/trpc'
+import { protectedProcedure, publicProcedure, router } from '~/server/trpc'
 import type { Annotation } from '~/types';
 
 const ZAnnotationFields = z.object({
@@ -68,7 +68,7 @@ export const annotationRouter = router({
       return data as Annotation;
     }),
 
-  'createMany': protectedProcedure
+  'createMany': publicProcedure
     .input(
       z.array(ZAnnotationFields)
     )

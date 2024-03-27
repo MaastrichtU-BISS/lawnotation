@@ -14,7 +14,7 @@ const ZTaskFields = z.object({
   labelset_id: z.number().int(),
   ann_guidelines: z.string(),
   annotation_level: z.union([z.literal("word"), z.literal("document")]),
-  ml_model_id: z.number().int().optional()
+  ml_model_id: z.number().int().optional(),
 });
 
 const taskAuthorizer = async (
@@ -74,7 +74,7 @@ export const taskRouter = router({
     .input(
       z.object({
         task_id: z.number(),
-        new_emails: z.array(z.union([zValidEmail, z.literal("")]))
+        new_emails: z.array(z.union([zValidEmail, z.literal("")])),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -82,50 +82,76 @@ export const taskRouter = router({
 
       const stats = {
         success: 0,
-        failed: 0
+        failed: 0,
       };
-      
-      const annotators = await caller.task.getAllAnnotatorsFromTask(input.task_id)
+
+      const annotators = await caller.task.getAllAnnotatorsFromTask(
+        input.task_id
+      );
 
       for (let i = 0; i < input.new_emails.length; i++) {
         if (input.new_emails[i] != annotators[i].email) {
-          const assignments = await caller.assignment.findAssignmentsByTaskAndUser({
+          const assignments =
+            await caller.assignment.findAssignmentsByTaskAndUser({
               annotator_number: annotators[i].annotator_number,
-              task_id: input.task_id
-          });
+              task_id: input.task_id,
+            });
 
           let new_user = null;
           if (input.new_emails[i] && input.new_emails.length) {
-              new_user = await caller.assignment.assignUserToTask({ email: input.new_emails[i], task_id: input.task_id });
+            new_user = await caller.assignment.assignUserToTask({
+              email: input.new_emails[i],
+              task_id: input.task_id,
+            });
           }
 
           for (let j = 0; j < assignments.length; j++) {
-              const ass = assignments[j];
-              try {
-                  await caller.assignment.update({ id: ass.id, updates: { annotator_id: new_user } });
-                  stats.success++;
-              } catch {
-                  stats.failed++;
-              }
+            const ass = assignments[j];
+            try {
+              await caller.assignment.update({
+                id: ass.id,
+                updates: { annotator_id: new_user },
+              });
+              stats.success++;
+            } catch {
+              stats.failed++;
+            }
           }
 
           annotators[i].email = input.new_emails[i];
         }
       }
-      
-      const flat_annotators: Annotator[] = JSON.parse(JSON.stringify(annotators))
+
+      const flat_annotators: Annotator[] = JSON.parse(
+        JSON.stringify(annotators)
+      );
 
       if (stats.success && !stats.failed) {
-        return {message: "All the assignments have been reassigned", annotators: flat_annotators} 
+        return {
+          message: "All the assignments have been reassigned",
+          annotators: flat_annotators,
+        };
       } else if (!stats.success && !stats.failed) {
-        return {message: "No changes have been made", annotators: flat_annotators}
+        return {
+          message: "No changes have been made",
+          annotators: flat_annotators,
+        };
       } else if (stats.success && stats.failed) {
-        throw new TRPCError({message: "Some assignment updates failed", code: "INTERNAL_SERVER_ERROR"})
+        throw new TRPCError({
+          message: "Some assignment updates failed",
+          code: "INTERNAL_SERVER_ERROR",
+        });
       } else if (!stats.success && stats.failed) {
-        throw new TRPCError({message: "All assignment updates failed", code: "INTERNAL_SERVER_ERROR"})
+        throw new TRPCError({
+          message: "All assignment updates failed",
+          code: "INTERNAL_SERVER_ERROR",
+        });
       }
-      
-      throw new TRPCError({message: "Undefined case", code: "INTERNAL_SERVER_ERROR"})
+
+      throw new TRPCError({
+        message: "Undefined case",
+        code: "INTERNAL_SERVER_ERROR",
+      });
     }),
 
   findById: protectedProcedure
@@ -290,14 +316,14 @@ export const taskRouter = router({
         ann_guidelines: task.ann_guidelines,
         labelset_id: task.labelset_id,
         annotation_level: task.annotation_level,
-        ml_model_id: task.ml_model_id
+        ml_model_id: task.ml_model_id,
       });
 
       const assignments = await caller.assignment.findAssignmentsByTask(
         task_id
       );
-      const new_assignments = await caller.assignment.createMany(
-        assignments.map((a) => {
+      const new_assignments = await caller.assignment.createMany({
+        assignments: assignments.map((a) => {
           return {
             task_id: new_task.id,
             annotator_id: a.annotator_id,
@@ -306,10 +332,10 @@ export const taskRouter = router({
             seq_pos: a.seq_pos,
             status: a.status,
             difficulty_rating: a.difficulty_rating,
-            origin: a.origin
+            origin: a.origin,
           };
-        })
-      );
+        }),
+      });
 
       let dicAssignments: any = {};
       new_assignments.map((na, index) => {

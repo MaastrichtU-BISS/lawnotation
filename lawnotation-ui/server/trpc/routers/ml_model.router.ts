@@ -72,6 +72,7 @@ export const mlModelRouter = router({
   .input(
     z.object({
       model_name: z.string().min(3),
+      assignments_id: z.array(z.number().int()).optional(),
       task_type: z.string(),
       text: z.string(),
       labels: z.array(z.string()).optional()
@@ -80,13 +81,12 @@ export const mlModelRouter = router({
   .query(async ({ input }) => {
     
     try {
-      const response = await fetch(`${config.public.mlBackendURL}/predict`, {
+      const response = fetch(`${config.public.mlBackendURL}/predict`, {
         method: "POST",
         body: JSON.stringify(input)
       });
-    
-      const data = await response.json();
-      return data;
+
+      return response;
     } catch(error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

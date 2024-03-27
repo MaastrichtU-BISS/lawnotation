@@ -531,7 +531,7 @@ const importTask = async () => {
           });
         });
 
-        const assignments = await $trpc.assignment.createMany.mutate(new_assignments);
+        const assignments = await $trpc.assignment.createMany.mutate({assignments: new_assignments});
 
         if (import_json.value.counts?.annotations) {
           // Creating annotations

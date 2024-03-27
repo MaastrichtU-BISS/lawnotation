@@ -1,9 +1,12 @@
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
+import { number, z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Assignment, User } from "~/types";
+import type { Assignment, User, Document, MlModel, Annotation } from "~/types";
 import type { Context } from "../context";
 import { zValidEmail } from "~/utils/validators";
+import { appRouter } from ".";
+
+const config = useRuntimeConfig();
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string().nullable(),
@@ -116,26 +119,80 @@ export const assignmentRouter = router({
 
   createMany: protectedProcedure
     .input(
-      z.array(
-        // object is equal to ZAssignmentFields, but with optional's, since partial didn't work. check later
-        // ZAssignmentFields.optional()
-        z.object({
-          annotator_id: z.string().optional(),
-          task_id: z.number().int(),
-          document_id: z.number().int(),
-          status: z.union([z.literal("pending"), z.literal("done")]).optional(),
-          seq_pos: z.number().int().optional(),
-          difficulty_rating: z.number().int().optional(),
-          annotator_number: z.number().int().optional(),
-          origin: z.union([z.literal("manual"), z.literal("imported"), z.literal("model")]).optional()
-        })
-      )
+      z.object({
+        assignments:  z.array(
+          // object is equal to ZAssignmentFields, but with optional's, since partial didn't work. check later
+          // ZAssignmentFields.optional()
+          z.object({
+            annotator_id: z.string().optional(),
+            task_id: z.number().int(),
+            document_id: z.number().int(),
+            status: z.union([z.literal("pending"), z.literal("done")]).optional(),
+            seq_pos: z.number().int().optional(),
+            difficulty_rating: z.number().int().optional(),
+            annotator_number: z.number().int().optional(),
+            origin: z.union([z.literal("manual"), z.literal("imported"), z.literal("model")]).optional()
+          }),
+        ),
+        pre_annotations: z.object({
+          ml_model_id: z.number().int(),
+          reveal: z.boolean()
+        }).optional()
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
-        .insert(input)
+        .insert(input.assignments)
         .select();
+
+      if(input.pre_annotations) {
+        const caller = appRouter.createCaller(ctx);
+
+        // get model
+        const model: MlModel = await caller.mlModel.findById(input.pre_annotations.ml_model_id);
+        console.log("Model obtained");
+
+        // get labels (If they exist)
+        let labels = undefined;
+        if(model.labelset_id) {
+          labels = (await caller.labelset.findById(model.labelset_id)).labels.map(l => l.name);
+        }
+        console.log("Labels obtained");
+
+        // get all documents
+        const documentPromises: Promise<Document>[] = [];
+        const doc2ass: any = {};
+        data?.map((ass: Assignment) => {
+          if(!(ass.document_id in doc2ass)) {
+            documentPromises.push(caller.document.findById(ass.document_id));
+            doc2ass[ass.document_id] = [ass.id];
+          } else {
+            doc2ass[ass.document_id].push(ass.id);
+          } 
+        });
+
+        const documents = await Promise.all(documentPromises);
+        console.log("Documents obtained", documents.length);
+
+        // get annotations from model
+        const predictionPromises: Promise<any>[] = [];
+        documents?.map((doc: Document) => {
+          const response = caller.mlModel.predict({
+            text: doc.full_text,
+            assignments_id: doc2ass[doc.id],
+            model_name: model.name,
+            task_type: model.type,
+            labels: labels
+          });
+          predictionPromises.push(response);
+        });
+
+        const predictions = await Promise.all(predictionPromises);
+
+        console.log("Predictions were sent", predictions.length);
+
+      }
 
       if (error)
         throw new TRPCError({

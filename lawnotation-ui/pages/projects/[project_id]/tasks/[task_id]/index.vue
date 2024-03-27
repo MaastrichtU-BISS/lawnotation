@@ -254,72 +254,80 @@ const createAssignments = async () => {
     }
 
     //create MlModel assignments
-    if (task.ml_model_id) {
-      docs.map(doc => {
-        const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "annotator_number" | "status"> = {
-          task_id: task.id,
-          document_id: doc,
-          annotator_number: annotators_id.length + 1,
-          origin: "model",
-          status: "done"
-        };
-        new_assignments.push(new_assignment);
-      });
-    }
+    // if (task.ml_model_id) {
+    //   docs.map(doc => {
+    //     const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "annotator_number" | "status"> = {
+    //       task_id: task.id,
+    //       document_id: doc,
+    //       annotator_number: annotators_id.length + 1,
+    //       origin: "model",
+    //       status: "done"
+    //     };
+    //     new_assignments.push(new_assignment);
+    //   });
+    // }
 
     const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
-      new_assignments
+      { 
+        assignments: new_assignments, 
+        pre_annotations: task.ml_model_id ? 
+        { 
+          ml_model_id: task.ml_model_id, reveal: true } : 
+          undefined 
+        }
     );
 
-    // create MlModel annotations
-    if (task.ml_model_id) {
-      const new_annotations: Omit<Annotation, "id">[] = [];
-      const model: MlModel = await $trpc.mlModel.findById.query(task.ml_model_id);
-      for (let i = 0; i < created_assignments.length; i++) {
-        const ass = created_assignments[i];
-        if (ass.origin == "model") {
-          const doc_text = (await $trpc.document.findById.query(ass.document_id)).full_text;
-          const mlQueryBody = {
-            model_name: model.name,
-            task_type: model.type,
-            text: doc_text,
-          };
-          const result = await $trpc.mlModel.predict.query(
-            model.labelset_id ?
-              mlQueryBody :
-              {
-                ...mlQueryBody, labels: labels.labels.map(l => l.name)
-              });
-          if (task.annotation_level == "word") {
-            result.map((ann: any) => {
-              new_annotations.push({
-                assignment_id: ass.id,
-                start_index: ann.start,
-                end_index: ann.end,
-                label: ann.label,
-                text: doc_text.substring(ann.start, ann.end),
-                origin: "model",
-                ls_id: ""
-              });
-            });
-          } else if (task.annotation_level == "document") {
-            result.map((ann: any) => {
-              new_annotations.push({
-                assignment_id: ass.id,
-                start_index: 0,
-                end_index: 0,
-                label: ann.label,
-                text: "",
-                origin: "model",
-                ls_id: ""
-              });
-            });
-          }
-        }
-      }
+    console.log(created_assignments)
 
-      const created_annotations = await $trpc.annotation.createMany.mutate(new_annotations);
-    }
+    // create MlModel annotations
+    // if (task.ml_model_id) {
+    //   const new_annotations: Omit<Annotation, "id">[] = [];
+    //   const model: MlModel = await $trpc.mlModel.findById.query(task.ml_model_id);
+    //   for (let i = 0; i < created_assignments.length; i++) {
+    //     const ass = created_assignments[i];
+    //     if (ass.origin == "model") {
+    //       const doc_text = (await $trpc.document.findById.query(ass.document_id)).full_text;
+    //       const mlQueryBody = {
+    //         model_name: model.name,
+    //         task_type: model.type,
+    //         text: doc_text,
+    //       };
+    //       const result = await $trpc.mlModel.predict.query(
+    //         model.labelset_id ?
+    //           mlQueryBody :
+    //           {
+    //             ...mlQueryBody, labels: labels.labels.map(l => l.name)
+    //           });
+    //       if (task.annotation_level == "word") {
+    //         result.map((ann: any) => {
+    //           new_annotations.push({
+    //             assignment_id: ass.id,
+    //             start_index: ann.start,
+    //             end_index: ann.end,
+    //             label: ann.label,
+    //             text: doc_text.substring(ann.start, ann.end),
+    //             origin: "model",
+    //             ls_id: ""
+    //           });
+    //         });
+    //       } else if (task.annotation_level == "document") {
+    //         result.map((ann: any) => {
+    //           new_annotations.push({
+    //             assignment_id: ass.id,
+    //             start_index: 0,
+    //             end_index: 0,
+    //             label: ann.label,
+    //             text: "",
+    //             origin: "model",
+    //             ls_id: ""
+    //           });
+    //         });
+    //       }
+    //     }
+    //   }
+
+    //   const created_annotations = await $trpc.annotation.createMany.mutate(new_annotations);
+    // }
 
     assignmentTable.value?.refresh();
     totalAssignments.refresh();
