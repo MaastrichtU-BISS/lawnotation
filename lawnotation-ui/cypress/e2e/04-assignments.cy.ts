@@ -59,7 +59,7 @@ describe('Assign a project to annotators as the editor', () => {
         cy.get('a[data-test="view-task-link"]').first().click()
         cy.wait(3000)
         cy.get('button[data-test="export-publish-button"').click()
-        cy.get('span').contains('Export options').should('exist')
+
         cy.get('button[data-test="export-button"').should('exist')
         cy.get('button[data-test="start-publishing-button"').should('be.disabled')
 
@@ -74,8 +74,10 @@ describe('Assign a project to annotators as the editor', () => {
 
         cy.get('button[data-test="export-button"').click()
         cy.get('button[data-test="start-publishing-button"').should('not.be.disabled').click()
+        cy.get('button[data-test="continue-button"').click()
 
         cy.get('button[data-test="publish-button"').should('be.disabled')
+        cy.get('button[data-test="back-button"').click()
         cy.get('button[data-test="back-button"').click()
 
         cy.get('input[data-test="ann_guidelines-checkbox"').should('be.checked')
@@ -91,6 +93,7 @@ describe('Assign a project to annotators as the editor', () => {
 
         cy.get('button[data-test="export-button"').click()
         cy.get('button[data-test="start-publishing-button"').should('not.be.disabled').click()
+        cy.get('button[data-test="continue-button"').click()
         cy.get('input[data-test="file-url-input"').type('test')
         cy.get('input[data-test="author-input"').type('test')
         cy.get('button[data-test="publish-button"').should('not.be.disabled')
