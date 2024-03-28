@@ -1,7 +1,7 @@
 <template>
-  <Dialog v-model:visible="exportModalVisible" modal header="Export options">
+  <Dialog v-model:visible="exportModalVisible" modal :header="modalHeader()">
     <div class="items-center justify-center">
-      <div v-if="page == 1" id="export-step-1">
+      <div v-if="page === 'export'" id="export-step-1">
         <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
           Select what you want to include in your export:
         </h3>
@@ -119,7 +119,7 @@
           />
           <Button
             type="button"
-            @click="page++"
+            @click="page = 'publish'"
             label="Start publishing"
             icon="pi pi-arrow-right"
             iconPos="right"
@@ -128,7 +128,7 @@
           />
         </div>
       </div>
-      <form v-if="page == 2" id="export-step-2" @submit.prevent="publish">
+      <form v-if="page === 'publish'" id="export-step-2" @submit.prevent="publish">
         <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
           Include metadata to make your results be discoverable within the platform.
         </h3>
@@ -312,7 +312,12 @@ const exportModalVisible = defineModel<boolean>(
 
 const { $toast, $trpc } = useNuxtApp();
 
-const page = ref<number>(1);
+const page = ref<'export' | 'instructions' | 'publish'>('export');
+const modalHeader = () => {
+  if (page.value === 'instructions') return 'Publishing instructions';
+  else if (page.value === 'publish') return 'Publishing options';
+  return 'Export options'
+}
 
 const emit = defineEmits(["export", "close", "resetForm"]);
 
@@ -348,7 +353,7 @@ const checkAnnotations = () => {
 
 const goBack = () => {
   emit("resetForm");
-  page.value = 1;
+  page.value = 'export';
 };
 
 const emitClose = () => {
