@@ -1,7 +1,28 @@
 <template>
-  <Dialog v-model:visible="exportModalVisible" modal :header="modalHeader()">
+  <Dialog
+    v-model:visible="exportModalVisible"
+    modal
+    :draggable="false"
+    :pt="{
+      root: '!w-[80vw] xl:!w-[50vw]',
+      header: '!items-start gap-3',
+    }"
+    :ptOptions="{ mergeProps: true }"
+  >
+    <template #header>
+      <Stepper
+        v-model:activeStep="active"
+        linear
+        :pt="{ panelContainer: '' }"
+        :ptOptions="{ mergeProps: false }"
+      >
+        <StepperPanel header="Exporting your task" />
+        <StepperPanel header="Instructions" />
+        <StepperPanel header="Publishing your task" />
+      </Stepper>
+    </template>
     <div class="items-center justify-center">
-      <div v-if="page === 'export'" id="export-step-1">
+      <div v-if="active === 0" id="export-step-1">
         <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
           Select what you want to include in your export:
         </h3>
@@ -119,16 +140,52 @@
           />
           <Button
             type="button"
-            @click="page = 'publish'"
+            @click="active++"
             label="Start publishing"
             icon="pi pi-arrow-right"
             iconPos="right"
             :disabled="!formValues.modalOperations.loaded"
+            :title="!formValues.modalOperations.loaded ? 'You first need to export your data' : ''"
             data-test="start-publishing-button"
           />
         </div>
       </div>
-      <form v-if="page === 'publish'" id="export-step-2" @submit.prevent="publish">
+      <div v-else-if="active === 1">
+        <h3 class="mb-0">Storing your data</h3>
+        <p>
+          Lawnotation does not store data for publishing, you will need to do this
+          yourself. You can upload your data to storage made available by your institution
+          (make sure your data is publicly accessible) or you can use a commercial option
+          (think Dropbox or Google Drive).
+        </p>
+        <h3 class="mb-0">What do you need to upload?</h3>
+        <ul class="list-disc ps-4">
+          <li>
+            The .json file you just downloaded in the previous step (Exporting your task)
+          </li>
+          <li>Your annotation guidelines (if you haven't already)</li>
+          <li>(Optional) The documents you have used</li>
+        </ul>
+        <div class="flex justify-between my-5">
+          <Button
+            type="button"
+            @click="active--"
+            label="Back"
+            icon="pi pi-arrow-left"
+            outlined
+            data-test="back-button"
+          />
+          <Button
+            type="button"
+            @click="active++"
+            label="Continue publishing"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            data-test="continue-button"
+          />
+        </div>
+      </div>
+      <form v-else-if="active === 2" id="export-step-2" @submit.prevent="publish">
         <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
           Include metadata to make your results be discoverable within the platform.
         </h3>
@@ -270,7 +327,7 @@
         <div class="flex justify-between my-5">
           <Button
             type="button"
-            @click="goBack"
+            @click="active--"
             label="Back"
             icon="pi pi-arrow-left"
             outlined
@@ -305,21 +362,13 @@ const formValues = defineModel<{
   publication: Omit<Publication, "id">;
 }>("formValues", { required: true });
 
-const exportModalVisible = defineModel<boolean>(
-  "exportModalVisible",
-  { required: true }
-);
+const exportModalVisible = defineModel<boolean>("exportModalVisible", { required: true });
 
 const { $toast, $trpc } = useNuxtApp();
 
-const page = ref<'export' | 'instructions' | 'publish'>('export');
-const modalHeader = () => {
-  if (page.value === 'instructions') return 'Publishing instructions';
-  else if (page.value === 'publish') return 'Publishing options';
-  return 'Export options'
-}
+const active = ref<number>(0);
 
-const emit = defineEmits(["export", "close", "resetForm"]);
+const emit = defineEmits(["export", "close"]);
 
 watch(formValues.value.export_options, () => {
   formValues.value.modalOperations.loaded = false;
@@ -351,13 +400,7 @@ const checkAnnotations = () => {
   }
 };
 
-const goBack = () => {
-  emit("resetForm");
-  page.value = 'export';
-};
-
 const emitClose = () => {
-  goBack();
   emit("close");
 };
 
