@@ -92,8 +92,8 @@ devDependencies:
     specifier: ^1.66.1
     version: 1.69.4
   supabase:
-    specifier: ^1.142.1
-    version: 1.142.1
+    specifier: ^1.145.4
+    version: 1.145.4
   typescript:
     specifier: ^5.3.3
     version: 5.3.3
@@ -9648,8 +9648,8 @@ packages:
       ts-interface-checker: 0.1.13
     dev: true
 
-  /supabase@1.142.1:
-    resolution: {integrity: sha512-bBq2bHgpkRdAWYUPM9RoToWDw8CrkjxYQYLmo9+MvdrOFeXwZ5XGWvy9RDqNDRy31q9gJki84idy0yOnqDebWA==}
+  /supabase@1.145.4:
+    resolution: {integrity: sha512-j6OvAQjTNcJ8SBlqZpUTFJ7C3iXliZ8VjcleFvUBAlFLqot1EhXT8tqSLZiOP1B91Ks2DPOxT8D94cAIWYWvLQ==}
     engines: {npm: '>=8'}
     hasBin: true
     requiresBuild: true
