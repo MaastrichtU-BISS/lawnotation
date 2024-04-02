@@ -92,7 +92,7 @@ devDependencies:
     specifier: ^1.66.1
     version: 1.69.4
   supabase:
-    specifier: ^1.145.4
+    specifier: ^1.142.1
     version: 1.145.4
   typescript:
     specifier: ^5.3.3
