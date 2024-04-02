@@ -1,8 +1,29 @@
 import { TRPCError } from '@trpc/server';
-import { z } from 'zod'
-import { protectedProcedure, router } from '~/server/trpc'
+import { z } from 'zod';
+import {  authorizer, protectedProcedure, router } from '~/server/trpc';
 import type { AnnotationRelation } from '~/types';
 import { convert_relation_ls2db } from '~/utils/serialize';
+import type { Context } from '../context';
+
+const relationAuthorizer = async (
+  relation_id: number,
+  user_id: string,
+  ctx: Context
+) => {
+  const query = await ctx.supabase
+    .from("annotation_relations")
+    .select("annotations!inner(assignments!inner(annotator_id))", {
+      count: "exact",
+      head: true,
+    })
+    .eq("id", relation_id)
+    .eq("annotations.assignments.annotator_id", user_id);
+
+
+  console.log("relationAuthorizer: ", query); 
+  return query.count === 1; // will not work with bool as a data type, why?
+  // return true;
+};
 
 const ZRelationDirection = z.enum(["bi", "left", "right"])
 const ZRelationLabel = z.enum([
@@ -55,7 +76,7 @@ export const relationRouter = router({
   'createMany': protectedProcedure
     .input(
       z.array(ZRelationFields)
-    )
+    ) 
     .mutation(async ({ ctx, input }) => {
       // const converted_input = convert_relation_ls2db(input.fields, input.from_id, input.to_id)
       const { data, error } = await ctx.supabase.from("annotation_relations").insert(input).select();
@@ -66,9 +87,12 @@ export const relationRouter = router({
     }),
 
   'findById': protectedProcedure
-    .input(
-      z.number().int()
+    .input(z.number().int())
+    .use((opts) =>
+    authorizer(opts, () =>
+    relationAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
     )
+  )
     .query(async ({ctx, input}) => {
       const { data, error } = await ctx.supabase.from("annotation_relations").select().eq("id", input).single();
 
