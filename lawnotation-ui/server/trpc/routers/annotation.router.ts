@@ -27,9 +27,6 @@ const annotationEditorAuthorizer = async (
     })
     .eq("id", assignment_id)
     .eq("assignments.tasks.projects.editor_id", user_id);
-    
-    console.log("annotationEditorAuthorizer: ", query)
-
   return query.count === 1;
 };
 
@@ -46,8 +43,7 @@ const annotationAnnotatorAuthorizer = async (
     })
     .eq("id", assignment_id)
     .eq("assignments.annotator_id", user_id);
-
-    console.log("annotationAnnotatorAuthorizer: ", query);
+    // console.log("annotationAnnotatorAuthorizer: ", query);
   return query.count === 1;
 };
 
@@ -130,6 +126,7 @@ export const annotationRouter = router({
         updates: ZAnnotationFields.partial()
       })
     )
+    
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase.from("annotations").update(input.updates).eq('id', input.id).select().single();
 
