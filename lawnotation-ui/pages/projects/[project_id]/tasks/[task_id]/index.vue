@@ -21,16 +21,19 @@
         <div v-if="totalAssignments.data.value?.total">
           <div class="flex justify-center gap-6 my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
-              <Button type="button" v-if="isWordLevel(task)" label="Analyze Agreement Metrics" data-test="metrics-button" />
+              <Button type="button" v-if="isWordLevel(task)" label="Analyze Agreement Metrics"
+                data-test="metrics-button" />
             </NuxtLink>
-            <Button type="button" label="Export / Publish" outlined @click="export_modal?.show()" data-test="export-publish-button" />
-            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => overlayMenu.toggle(event)" aria-haspopup="true" aria-controls="overlay_menu" data-test="kebab-button" />
-            <Menu ref="overlayMenu" id="overlay_menu" :model="[{label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask}]" :popup="true"
-              :pt="{
+            <Button type="button" label="Export / Publish" outlined @click="export_modal?.show()"
+              data-test="export-publish-button" />
+            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => overlayMenu.toggle(event)"
+              aria-haspopup="true" aria-controls="overlay_menu" data-test="kebab-button" />
+            <Menu ref="overlayMenu" id="overlay_menu"
+              :model="[{ label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask }]" :popup="true" :pt="{
                 content: {
                   'data-test': 'duplicate-task'
                 }
-              }"/>
+              }" />
           </div>
           <h3 class="my-3 text-lg font-semibold">Assignments</h3>
           <div v-if="task">
@@ -47,13 +50,14 @@
                   {{ item.document.name }}
                 </td>
                 <td class="px-6 py-2">
-                  <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{ item.status }}</span>
+                  <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{
+                    item.status }}</span>
                 </td>
                 <td class="px-6 py-2">
                   <span>{{ item.difficulty_rating }}</span>
                 </td>
                 <td class="px-6 py-2 flex">
-                  <NuxtLink :to="`/assignments/${item.id}`" data-test="view-assignment-link"> 
+                  <NuxtLink :to="`/assignments/${item.id}`" data-test="view-assignment-link">
                     <Button label="View" size="small" />
                   </NuxtLink>
                 </td>
@@ -71,22 +75,44 @@
               input: {
                 'data-test': 'annotator-emails'
               }
-            }"/>
-            <label for="amount_of_docs">Number of Documents (total)</label>
-            <input class="base" id="amount_of_docs" type="number" name="" v-model="amount_of_docs" :max="total_docs"
-              min="1" />
-            <label for="fixed_docs">
-              Number of Fixed Documents (to share among annotators)
-            </label>
-            <input class="base" id="fixed_docs" type="number" name="" v-model="amount_of_fixed_docs" :max="total_docs"
-              min="0" />
+            }" />
+            <Accordion>
+              <AccordionTab header="Advanced Settings">
+                <div class="text-center">
+                  <h5 class="pb-4 text-xl text-bold">
+                    Documents
+                  </h5>
+                  <div>
+                    <label for="number_of_docs">Total</label>
+                  </div>
+                  <div>
+                    <InputNumber class="my-2" v-model="number_of_docs" inputId="number_of_docs" showButtons
+                      buttonLayout="horizontal" :step="1" :min="1" :max="total_docs"
+                      decrementButtonClass="p-button-danger" incrementButtonClass="p-button-success"
+                      incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus"/>
+                  </div>
+                  <div class="py-4">
+                    <div> 
+                      <label for="fixed_docs">Shared</label>
+                    </div>
+                    <div>
+                      <InputNumber class="my-2" v-model="number_of_fixed_docs" inputId="number_of_fixed_docs" showButtons
+                        buttonLayout="horizontal" :step="1" :min="0" :max="total_docs"
+                        decrementButtonClass="p-button-danger" incrementButtonClass="p-button-success"
+                        incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" />
+                    </div>
+                  </div>
+                  </div>
+              </AccordionTab>
+            </Accordion>
+
             <Button :disabled="annotators_email.length == 0" @click="createAssignments" data-test="create-assignments">
               Create Assignments
             </Button>
           </div>
         </div>
-        <ExportTaskModal v-model="formValues"  @export="exportTask"
-          @close="export_modal?.hide()" @resetForm="resetForm"></ExportTaskModal>
+        <ExportTaskModal v-model="formValues" @export="exportTask" @close="export_modal?.hide()" @resetForm="resetForm">
+        </ExportTaskModal>
       </div>
     </div>
   </div>
@@ -122,7 +148,8 @@ const totalAssignments = await $trpc.table.assignments.useQuery({ filter: { task
 
 const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
 const total_docs = totalAmountOfDocs ?? 0;
-const amount_of_docs = ref<number>(total_docs);
+const number_of_docs = ref<number>(total_docs);
+const number_of_fixed_docs = ref<number>(total_docs);
 const overlayMenu = ref()
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
@@ -137,7 +164,7 @@ const defaultFormValues = {
     annotations: false,
     loaded: false,
     loading: false
-  }, 
+  },
   publication: {
     editor_id: user.value?.id!,
     status: PublicationStatus.PUBLISHED,
@@ -165,7 +192,6 @@ const formValues = ref<{
 
 let export_modal: Modal | null = null;
 
-const amount_of_fixed_docs = ref<number>(0);
 const annotators_email = ref<string[]>([]);
 
 const loading = ref(false);
@@ -173,7 +199,7 @@ const loading = ref(false);
 const assignmentTable = ref<InstanceType<typeof Table>>();
 
 watch(annotators_email, (new_val) => {
-  if(new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
+  if (new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
     new_val.pop();
     $toast.error('Invalid email!')
   }
@@ -187,13 +213,13 @@ const createAssignments = async () => {
     // Get the documents
     const docs = await $trpc.document.takeUpToNRandomDocuments.query({
       project_id: task.project_id,
-      n: amount_of_docs.value,
+      n: number_of_docs.value,
     });
 
     const new_assignments: Pick<Assignment, "task_id" | "document_id">[] = [];
 
     // Create shared assignments (only with docs info)
-    for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
+    for (let i = 0; i < number_of_fixed_docs.value; ++i) {
       for (let j = 0; j < annotators_email.value.length; ++j) {
         const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
           task_id: task.id,
@@ -204,7 +230,7 @@ const createAssignments = async () => {
     }
 
     // Create unique assignments (only with docs info)
-    for (let i = amount_of_fixed_docs.value; i < amount_of_docs.value; ++i) {
+    for (let i = number_of_fixed_docs.value; i < number_of_docs.value; ++i) {
       const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
         task_id: task.id,
         document_id: docs[i],
@@ -225,8 +251,8 @@ const createAssignments = async () => {
     // Assign users and order to assignments
     const unshuffled: number[] = [
       ...Array(
-        amount_of_fixed_docs.value +
-        Math.floor((amount_of_docs.value - amount_of_fixed_docs.value) / annotators_id.length)
+        number_of_fixed_docs.value +
+        Math.floor((number_of_docs.value - number_of_fixed_docs.value) / annotators_id.length)
       ).keys(),
     ];
 
