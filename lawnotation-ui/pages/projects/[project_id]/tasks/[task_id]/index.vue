@@ -56,10 +56,17 @@
                 <td class="px-6 py-2">
                   <span>{{ item.difficulty_rating }}</span>
                 </td>
-                <td class="px-6 py-2 flex">
-                  <NuxtLink :to="`/assignments/${item.id}`" data-test="view-assignment-link">
-                    <Button label="View" size="small" />
-                  </NuxtLink>
+                <td class="px-6 py-2 flex justify-start">
+                  <template v-if="item.annotator.id == user?.id">
+                    <NuxtLink :to="`/tasks/${task.id}`" data-test="annotate-assignment-link">
+                      <Button label="Annotate" size="small" />
+                    </NuxtLink>
+                  </template>
+                  <template v-else>
+                    <NuxtLink :to="`/assignments/${item.id}`" data-test="view-assignment-link">
+                      <Button label="View" size="small" />
+                    </NuxtLink>
+                  </template>
                 </td>
               </template>
             </Table>
@@ -153,7 +160,6 @@ const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
 const project = await $trpc.project.findById.query(+route.params.project_id);
 const totalAssignments = await $trpc.table.assignments.useQuery({ filter: { task_id: task.id } });
-
 const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
 const total_docs = totalAmountOfDocs ?? 0;
 const number_of_docs = ref<number>(total_docs);
