@@ -66,16 +66,23 @@
           </div>
         </div>
         <div v-else class="flex justify-center">
-          <div class="flex flex-col w-1/2 space-y-2 border-neutral-300">
-            <h3 class="mt-3 text-lg font-semibold text-center">Create assignments</h3>
+          <div class="w-1/2 space-y-2 border-neutral-300">
+            <h3 class="mt-3 text-lg font-semibold text-center">Assign annotators</h3>
             <h3 class="mt-3 text-sm font-semibold">
-              Annotators: {{ annotators_email.length }}
+              Emails added: {{ annotators_email.length }}
             </h3>
             <Chips v-model="annotators_email" separator="," addOnBlur :pt="{
               input: {
                 'data-test': 'annotator-emails'
               }
             }" />
+            <div class="text-right pb-6">
+              <Button label="Add myself" :disabled="isMyselfAdded" link @click="addMyself" :pt="{
+                root: {
+                  class: 'p-0 text-xs text-primary-600 disabled:text-gray-400 underline cursor-pointer disabled:no-underline disabled:pointer-events-none'
+                }
+              }"/>
+            </div>
             <Accordion>
               <AccordionTab header="Advanced Settings">
                 <div class="text-center">
@@ -89,10 +96,10 @@
                     <InputNumber class="my-2" v-model="number_of_docs" inputId="number_of_docs" showButtons
                       buttonLayout="horizontal" :step="1" :min="1" :max="total_docs"
                       decrementButtonClass="p-button-danger" incrementButtonClass="p-button-success"
-                      incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus"/>
+                      incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" />
                   </div>
                   <div class="py-4">
-                    <div> 
+                    <div>
                       <label for="fixed_docs">Shared</label>
                     </div>
                     <div>
@@ -102,13 +109,14 @@
                         incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" />
                     </div>
                   </div>
-                  </div>
+                </div>
               </AccordionTab>
             </Accordion>
-
-            <Button :disabled="annotators_email.length == 0" @click="createAssignments" data-test="create-assignments">
-              Create Assignments
-            </Button>
+            <div class="text-center pt-6">
+              <Button :disabled="annotators_email.length == 0" @click="createAssignments" data-test="create-assignments">
+                Create Assignments
+              </Button>
+            </div>
           </div>
         </div>
         <ExportTaskModal v-model="formValues" @export="exportTask" @close="export_modal?.hide()" @resetForm="resetForm">
@@ -204,6 +212,18 @@ watch(annotators_email, (new_val) => {
     $toast.error('Invalid email!')
   }
 });
+
+const addMyself = () => {
+  if(!isMyselfAdded.value) {
+    annotators_email.value.push(user.value?.email!);
+  } else {
+    $toast.error("You have been already added!")
+  }
+};
+
+const isMyselfAdded = computed(() => {
+  return annotators_email.value.includes(user.value?.email!);
+})
 
 const createAssignments = async () => {
   try {
