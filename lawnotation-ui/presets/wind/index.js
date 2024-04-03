@@ -20,6 +20,7 @@ import contextmenu from './contextmenu';
 import datatable from './datatable';
 import dataview from './dataview';
 import dataviewlayoutoptions from './dataviewlayoutoptions';
+import deferred from './deferred';
 import dialog from './dialog';
 import divider from './divider';
 import dock from './dock';
@@ -37,6 +38,7 @@ import inputgroup from './inputgroup';
 import inputgroupaddon from './inputgroupaddon';
 import inputmask from './inputmask';
 import inputnumber from './inputnumber';
+import inputotp from './inputotp';
 import inputswitch from './inputswitch';
 import inputtext from './inputtext';
 import knob from './knob';
@@ -70,6 +72,7 @@ import speeddial from './speeddial';
 import splitbutton from './splitbutton';
 import splitter from './splitter';
 import splitterpanel from './splitterpanel';
+import stepper from './stepper';
 import steps from './steps';
 import tabmenu from './tabmenu';
 import tabview from './tabview';
@@ -123,6 +126,7 @@ export default {
     password,
     iconfield,
     floatlabel,
+    inputotp,
 
     //buttons
     button,
@@ -152,6 +156,8 @@ export default {
     scrollpanel,
     splitter,
     splitterpanel,
+    stepper,
+    deferred,
 
     //file
     fileupload,
