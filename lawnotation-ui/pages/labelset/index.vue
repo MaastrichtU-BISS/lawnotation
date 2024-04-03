@@ -1,5 +1,8 @@
 <template>
-  <Labelsets @add-labelset="navigateTo('/labelset/new')" @edit-labelset="(itemId) => navigateTo(`/labelset/${itemId}`)" />
+  <Labelsets
+    @add-labelset="navigateTo('/labelset/new')"
+    @edit-labelset="(itemId) => navigateTo(`/labelset/${itemId}`)"
+  />
 </template>
 
 <script setup lang="ts">
