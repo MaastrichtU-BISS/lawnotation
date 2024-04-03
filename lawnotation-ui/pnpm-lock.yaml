@@ -53,6 +53,9 @@ dependencies:
   trpc-nuxt:
     specifier: ^0.10.12
     version: 0.10.12(@trpc/client@10.41.0)(@trpc/server@10.41.0)
+  utility-types:
+    specifier: ^3.11.0
+    version: 3.11.0
   vue-countup-v3:
     specifier: ^1.3.0
     version: 1.4.0(vue@3.4.19)
@@ -10443,6 +10446,11 @@ packages:
 
   /util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+
+  /utility-types@3.11.0:
+    resolution: {integrity: sha512-6Z7Ma2aVEWisaL6TvBCy7P8rm2LQoPv6dJ7ecIaIixHcwfbJ0x7mWdbcwlIM5IGQxPZSFYeqRCqlOOeKoJYMkw==}
+    engines: {node: '>= 4'}
+    dev: false
 
   /utility@1.6.0:
     resolution: {integrity: sha512-/NNDHF3i9grlAankmmL/f3TBVVCcWoEYE+g6Ugi+H8sC9ClhjEFRD/VO0G7Ti+kimlBCV7E9rTBjVnKiY6o9IA==}
