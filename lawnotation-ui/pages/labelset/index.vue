@@ -9,4 +9,3 @@ definePageMeta({
   middleware: ["auth"],
 });
 </script>
-~/components/Labelsets.vue
