@@ -227,7 +227,7 @@ import type {
 } from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
 
-import _, { zip } from "lodash";
+import _ from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
 import { saveAs } from "file-saver";
