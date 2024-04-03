@@ -24,12 +24,10 @@
               <Button type="button" v-if="isWordLevel(task)" label="Analyze Agreement Metrics"
                 data-test="metrics-button" />
             </NuxtLink>
-            <Button type="button" label="Export / Publish" outlined @click="export_modal?.show()"
-              data-test="export-publish-button" />
-            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => overlayMenu.toggle(event)"
-              aria-haspopup="true" aria-controls="overlay_menu" data-test="kebab-button" />
-            <Menu ref="overlayMenu" id="overlay_menu"
-              :model="[{ label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask }]" :popup="true" :pt="{
+            <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true" data-test="export-publish-button" />
+            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => overlayMenu.toggle(event)" aria-haspopup="true" aria-controls="overlay_menu" data-test="kebab-button" />
+            <Menu ref="overlayMenu" id="overlay_menu" :model="[{label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask}]" :popup="true"
+              :pt="{
                 content: {
                   'data-test': 'duplicate-task'
                 }
@@ -126,8 +124,7 @@
             </div>
           </div>
         </div>
-        <ExportTaskModal v-model="formValues" @export="exportTask" @close="export_modal?.hide()" @resetForm="resetForm">
-        </ExportTaskModal>
+        <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible" @export="exportTask" />
       </div>
     </div>
   </div>
@@ -176,6 +173,8 @@ const defaultFormValues = {
     labelset: true,
     documents: false,
     annotations: false,
+  },
+  modalOperations: {
     loaded: false,
     loading: false
   },
@@ -200,11 +199,11 @@ const defaultFormValues = {
 
 const formValues = ref<{
   export_options: ExportTaskOptions;
+  modalOperations: { loading: boolean, loaded: boolean };
   publication: Omit<Publication, "id">;
 }>(JSON.parse(JSON.stringify(defaultFormValues)));
 
-
-let export_modal: Modal | null = null;
+const exportModalVisible = ref(false);
 
 const annotators_email = ref<string[]>([]);
 
@@ -331,7 +330,7 @@ const replicateTask = async () => {
 };
 
 const exportTask = async () => {
-  formValues.value.export_options.loading = true;
+  formValues.value.modalOperations.loading = true;
   let json: any = {};
 
   if (formValues.value.export_options.name) {
@@ -443,14 +442,10 @@ const exportTask = async () => {
   }
 
   downloadAs(json, `${json.name}.json`);
-  formValues.value.export_options.loaded = true;
-  formValues.value.export_options.loading = false;
+  formValues.value.modalOperations.loaded = true;
+  formValues.value.modalOperations.loading = false;
   $toast.success(`Task has been exported!`);
 };
-
-const resetForm = () => {
-  Object.assign(formValues.value, JSON.parse(JSON.stringify(defaultFormValues)));
-}
 
 onMounted(async () => {
   const modalOptions: ModalOptions = {
@@ -459,9 +454,6 @@ onMounted(async () => {
     backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
     closable: true,
   };
-
-  export_modal = new Modal(document.getElementById("exportFormModal"), modalOptions);
-
 });
 
 definePageMeta({
