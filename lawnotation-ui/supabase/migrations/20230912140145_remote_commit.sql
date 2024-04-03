@@ -439,60 +439,6 @@ ALTER TABLE ONLY "public"."tasks"
 ALTER TABLE ONLY "public"."users"
     ADD CONSTRAINT "users_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
-CREATE POLICY "Allow Post to everyone" ON "public"."annotations" FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow update to everyone" ON "public"."annotations" FOR UPDATE USING (true) WITH CHECK (true);
-
-CREATE POLICY "Enable delete for users based on user_id" ON "public"."annotation_relations" FOR DELETE USING (true);
-
-CREATE POLICY "Enable delete for users based on user_id" ON "public"."assignments" FOR DELETE USING (true);
-
-CREATE POLICY "Enable delete for users based on user_id" ON "public"."documents" FOR DELETE USING (true);
-
-CREATE POLICY "Enable delete for users based on user_id" ON "public"."labelsets" FOR DELETE USING (("auth"."uid"() = "editor_id"));
-
-CREATE POLICY "Enable delete for users based on user_id" ON "public"."projects" FOR DELETE USING (true);
-
-CREATE POLICY "Enable delete for users based on user_id" ON "public"."tasks" FOR DELETE USING (true);
-
-CREATE POLICY "Enable delete for users for everone (TODO)" ON "public"."annotations" FOR DELETE USING (true);
-
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."annotation_relations" FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."assignments" FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."documents" FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."labelsets" FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."tasks" FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Enable read access for all users" ON "public"."annotation_relations" FOR SELECT USING (true);
-
-CREATE POLICY "Enable read access for all users" ON "public"."annotations" FOR SELECT USING (true);
-
-CREATE POLICY "Enable read access for all users" ON "public"."assignments" FOR SELECT USING (true);
-
-CREATE POLICY "Enable read access for all users" ON "public"."documents" FOR SELECT USING (true);
-
-CREATE POLICY "Enable read access for all users" ON "public"."labelsets" FOR SELECT USING (true);
-
-CREATE POLICY "Enable read access for all users" ON "public"."projects" FOR SELECT USING (true);
-
-CREATE POLICY "Enable read access for all users" ON "public"."tasks" FOR SELECT USING (true);
-
-CREATE POLICY "Enable read access for all users" ON "public"."users" FOR SELECT USING (true);
-
-CREATE POLICY "Enable update for users based on email" ON "public"."annotation_relations" FOR UPDATE USING (true) WITH CHECK (true);
-
-CREATE POLICY "Enable update for users based on email" ON "public"."assignments" FOR UPDATE USING (true) WITH CHECK (true);
-
-CREATE POLICY "Enable update for users based on email" ON "public"."labelsets" FOR UPDATE USING (("auth"."uid"() = "editor_id")) WITH CHECK (("auth"."uid"() = "editor_id"));
-
-CREATE POLICY "Users can update own profile." ON "public"."users" FOR UPDATE USING (true);
-
-CREATE POLICY "allow everyone to create project " ON "public"."projects" FOR INSERT WITH CHECK (true);
-
 ALTER TABLE "public"."annotation_relations" ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE "public"."annotations" ENABLE ROW LEVEL SECURITY;
