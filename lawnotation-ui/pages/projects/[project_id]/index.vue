@@ -50,7 +50,7 @@
                   </td>
                 </template>
               </Table>
-              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :style="{ width: '60vw' }" :autoZIndex="false" :pt="{
+              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :style="{ width: '60vw' }" :autoZIndex="false" :draggable="false" :pt="{
                 header: {
                   style: 'padding-bottom: 0px'
                 }, 
