@@ -12,11 +12,17 @@
     ]"
   />
 
-  <CreateLabelset @labelset-created="navigateTo(`/labelset`)" />
+  <Labelset v-model="labelset" @labelset-created="navigateTo('/labelset')" />
 </template>
 
 <script setup lang="ts">
-import CreateLabelset from "~/components/CreateLabelset.vue";
+import Labelset from "~/components/Labelset.vue";
+
+const labelset = ref({
+  name: "",
+  desc: "",
+  labels: [],
+});
 
 definePageMeta({
   middleware: ["auth"],

@@ -146,14 +146,11 @@
                   </TabPanel>
                   <TabPanel header="Labelsets">
                     <template v-if="labelsetStage === 'overview'">
-                      <Labelsets @add-labelset="labelsetStage = 'new'" @edit-labelset="labelsetStage = 'edit'"/>
+                      <Labelsets @add-labelset="loadLabelset" @edit-labelset="(labelsetId: number) => loadLabelset(labelsetId)"/>
                     </template>
-                    <template v-else-if="labelsetStage === 'new'">
+                    <template v-else-if="labelsetStage === 'labelset'">
                       <Button label="back" size="small" icon="pi pi-arrow-left" link @click="labelsetStage = 'overview'" />
-                      <CreateLabelset @labelset-created="labelsetStage = 'overview'"/>
-                    </template>
-                    <template v-else-if="labelsetStage === 'edit'">
-                      <Button label="back" size="small" icon="pi pi-arrow-left" link @click="labelsetStage = 'overview'" />
+                      <Labelset v-model="labelset" @labelset-created="labelsetStage = 'overview'"/>
                     </template>
                   </TabPanel>
                 </TabView>
@@ -219,7 +216,7 @@ import type {
   Project,
   Document,
   Task,
-  Labelset,
+  Labelset as LabelsetType,
   Assignment,
   Annotation,
   User,
@@ -228,7 +225,7 @@ import type {
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Labelsets from "~/components/Labelsets.vue";
-import CreateLabelset from "~/components/CreateLabelset.vue";
+import Labelset from "~/components/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { isWordLevel } from "~/utils/levels";
 
@@ -248,7 +245,14 @@ const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
 const activeTabTaskModal = ref<number>(0);
-const labelsetStage = ref<'overview' | 'new' | 'edit'>('overview');
+const labelsetStage = ref<'overview' | 'labelset'>('overview');
+const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
+  id: undefined,
+  editor_id: undefined,
+  name: "",
+  desc: "",
+  labels: [],
+});
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
@@ -280,6 +284,21 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   project_id: undefined,
   annotation_level: undefined,
 });
+
+const loadLabelset = async (id?: number) => {
+  if (id) {
+    labelset.value = await $trpc.labelset.findById.query(id);
+  } else {
+    labelset.value = {
+      id: undefined,
+      editor_id: undefined,
+      name: "",
+      desc: "",
+      labels: [],
+    };
+  }
+  labelsetStage.value = 'labelset';
+}
 
 const uploadDocuments = async (event: { files: FileList }) => {
 
