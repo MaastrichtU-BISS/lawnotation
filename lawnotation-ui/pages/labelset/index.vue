@@ -1,7 +1,6 @@
 <template>
   <Labelsets
-    @add-labelset="navigateTo('/labelset/new')"
-    @edit-labelset="(itemId) => navigateTo(`/labelset/${itemId}`)"
+    base-route="/labelset"
   />
 </template>
 

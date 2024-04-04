@@ -2,7 +2,16 @@
   <div>
     <div class="flex justify-between pt-2">
       <h3 class="mb-2 text-lg font-semibold">Labelsets</h3>
+      <NuxtLink v-if="baseRoute" :to="`${baseRoute}/new`">
+        <Button
+          label="Add"
+          icon="pi pi-plus"
+          icon-pos="right"
+          data-test="create-new-labelset"
+        />
+      </NuxtLink>
       <Button
+        v-else
         label="Add"
         icon="pi pi-plus"
         icon-pos="right"
@@ -29,7 +38,16 @@
           {{ item.desc }}
         </td>
         <td class="px-6 py-2 flex">
-          <Button label="View" size="small" @click="$emit('editLabelset', item.id)" data-test="edit-labelset" />
+          <NuxtLink v-if="baseRoute" :to="`${baseRoute}/${item.id}`">
+            <Button label="View" size="small" data-test="edit-labelset"
+          /></NuxtLink>
+          <Button
+            v-else
+            label="View"
+            size="small"
+            @click="$emit('editLabelset', item.id)"
+            data-test="edit-labelset"
+          />
         </td>
       </template>
     </Table>
@@ -42,6 +60,8 @@ import type { Labelset } from "~/types";
 
 const { $trpc } = useNuxtApp();
 const labelsetTable = ref<InstanceType<typeof Table>>();
+
+const { baseRoute } = defineProps<{ baseRoute?: string }>();
 
 const removeLabelsets = async (
   ids: string[],
