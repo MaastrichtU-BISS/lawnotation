@@ -72,7 +72,7 @@
         </button>
         <span
           class="px-3 py-1 rounded label"
-          :style="{ backgroundColor: `${label.color}` }"
+          :style="{ backgroundColor: `${label.color}26`, borderLeft: `4px solid ${label.color}` }"
           >{{ label.name }}</span
         >
       </div>
