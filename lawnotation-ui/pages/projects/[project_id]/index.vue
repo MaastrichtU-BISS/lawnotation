@@ -149,8 +149,19 @@
                       <Labelsets @add-labelset="loadLabelset" @edit-labelset="(labelsetId: number) => loadLabelset(labelsetId)"/>
                     </template>
                     <template v-else-if="labelsetStage === 'labelset'">
-                      <Button label="back" size="small" icon="pi pi-arrow-left" link @click="labelsetStage = 'overview'" />
-                      <Labelset v-model="labelset" @labelset-created="labelsetStage = 'overview'"/>
+                      <Button 
+                        label="back"
+                        size="small"
+                        icon="pi pi-arrow-left"
+                        link
+                        @click="labelsetStage = 'overview'"
+                        :pt="{root: 'ps-0'}"
+                        :ptOptions="{ mergeProps: true }"
+                      />
+                      <Labelset 
+                        v-model="labelset" 
+                        @labelset-created="labelsetStage = 'overview'"
+                      />
                     </template>
                   </TabPanel>
                 </TabView>
