@@ -67,4 +67,42 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-project-link"]').should("have.length", 0)
     })
+
+    it('Add a labelset when creating a new task', () => {
+        cy.wait(3000)
+        cy.get('a[data-test="projects-link"]').click()
+        cy.wait(1000)
+        cy.addProject('Labelset test')
+
+        cy.get('a[data-test="view-project-link"]').eq(0).click()
+        cy.get('button[data-test="open-tasks-modal"]').click();
+        cy.get('input[data-test="task-name"]').type("Task with new labelset")
+        cy.get('textarea[data-test="task-description"]').type('test task')
+        cy.get('textarea[data-test="annotation-guidelines"]').clear().type('1.{enter}2.{enter}3.{enter}')
+        cy.get('button[data-test="create-new-labelset"]').first().click()
+        cy.get('button[data-test="create-new-labelset"]').last().click()
+
+        cy.get('input[data-test="labelset-name"]').type('Labelset for task')
+        cy.get('textarea[data-test="labelset-description"]').type('test1')
+        cy.get('input[data-test="label-name"]').type('test1')
+        cy.get('button[data-test="add-label"]').click()
+        cy.get('button[data-test="save-labelset"]').click()
+
+        cy.get('a[data-test="new-tab"').click()
+        cy.get('div[data-test="select-labelset"]').click()
+        cy.get('li[aria-label="Labelset for task"]').first().click()
+        cy.get('div[data-test="select-annotation-level"]').find('div[aria-label="document"]').click()
+        cy.get('button[data-test="create-tasks"]').click()
+
+        cy.wait(3000)
+        cy.get('a[data-test="projects-link"]').click()
+        cy.get('button[data-test="remove-all"]').click()
+        cy.get('button').contains('Confirm').click()
+        cy.get('a[data-test="view-project-link"]').should("have.length", 0)
+
+        cy.get('a[data-test="labelsets-link"]').click()
+        cy.get('[data-test="checkbox"]').eq(0).check()
+        cy.get('button[data-test="remove-selected-rows"]').click()
+        cy.get('button').contains('Confirm').click()
+    })
 })

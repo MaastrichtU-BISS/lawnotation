@@ -59,7 +59,7 @@
                 }
               }">
                 <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[540px]">
-                  <TabPanel header="New">
+                  <TabPanel header="New" :pt="{ headerAction: {'data-test': 'new-tab'} }">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
                         <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
@@ -76,7 +76,13 @@
                       <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value"
                         filter optionLabel="name" option-value="id" placeholder="Select Labelset"
                         class="w-full md:w-1/2" data-test="select-labelset" />
-                      <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link />
+                      <Button 
+                        label="Create new labelset" 
+                        size="small" 
+                        @click="activeTabTaskModal = 2" 
+                        link 
+                        data-test='create-new-labelset'
+                      />
                     </div>
                     <div>
                       <p class="font-bold">Annotation level</p>
