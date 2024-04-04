@@ -160,7 +160,7 @@
                       />
                       <Labelset 
                         v-model="labelset" 
-                        @labelset-persisted="labelsetStage = 'overview'"
+                        @labelset-persisted="refreshLabelsets"
                       />
                     </template>
                   </TabPanel>
@@ -267,7 +267,7 @@ const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
-const labelsets = await $trpc.labelset.find.useQuery({});
+let labelsets = await $trpc.labelset.find.useQuery({});
 
 const import_json = ref<any>(null);
 const import_progress = ref<{
@@ -309,6 +309,11 @@ const loadLabelset = async (id?: number) => {
     };
   }
   labelsetStage.value = 'labelset';
+}
+
+const refreshLabelsets = async () => {
+  labelsetStage.value = 'overview';
+  labelsets = await $trpc.labelset.find.useQuery({});
 }
 
 const uploadDocuments = async (event: { files: FileList }) => {
