@@ -9,7 +9,7 @@
       @click="persistLabelset"
       :outlined="!labelset.labels.length"
       :disabled="!labelset.labels.length || !labelset.name || !labelset.desc"
-      data-test="create-labelset"
+      data-test="save-labelset"
     />
   </div>
   <hr class="pb-4 mt-2" />
@@ -54,7 +54,7 @@
         v-for="(label, i) of labelset.labels"
         :key="label.name"
       >
-        <button class="base btn-secondary" @click="labelset.labels.splice(i, 1)">
+        <button class="base btn-secondary" @click="labelset.labels.splice(i, 1)" data-test="delete-label">
           <svg
             style="width: 1rem"
             xmlns="http://www.w3.org/2000/svg"
@@ -73,6 +73,7 @@
         <span
           class="px-3 py-1 rounded label"
           :style="{ backgroundColor: `${label.color}26`, borderLeft: `4px solid ${label.color}` }"
+          data-test="label"
           >{{ label.name }}</span
         >
       </div>
