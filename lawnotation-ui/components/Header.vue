@@ -19,7 +19,7 @@
         to="/labelset"
         class="header-link"
         :class="{ active: routeIsActive('/labelset') }"
-        data-test="labelset-link"
+        data-test="labelsets-link"
         >Labelsets</NuxtLink
       >
       <span class="text-gray-400 select-none">|</span>
