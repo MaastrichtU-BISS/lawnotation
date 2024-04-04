@@ -50,14 +50,23 @@
                   </td>
                 </template>
               </Table>
-              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :style="{ width: '60vw' }" :autoZIndex="false" :draggable="false" :pt="{
-                header: {
-                  style: 'padding-bottom: 0px'
-                }, 
-                content: {
-                  style: 'padding-bottom: 0px'
-                }
-              }">
+              <Dialog 
+                v-model:visible="showCreateTaskModal" 
+                modal 
+                header="Create task" 
+                :autoZIndex="false" 
+                :draggable="false" 
+                :pt="{
+                  root: '!w-[80vw] xl:!w-[50vw]',
+                  header: {
+                    style: 'padding-bottom: 0px'
+                  }, 
+                  content: {
+                    style: 'padding-bottom: 0px'
+                  }
+                }"
+                :ptOptions="{ mergeProps: true }"
+              >
                 <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[540px]">
                   <TabPanel header="New" :pt="{ headerAction: {'data-test': 'new-tab'} }">
                     <div class="flex justify-center mb-4">
