@@ -28,7 +28,7 @@
             :style="{ width: `${(seq_pos / assignmentCounts.total) * 100}%` }"></div>
         </div>
       </div>
-      <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'" class="capitalize px-2"></Badge>
+      <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
     </div>
     <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />

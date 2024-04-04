@@ -22,7 +22,7 @@
       <div class="my-4 px-8 flex justify-between items-center">
         <span class="font-bold text-gray-500 mx-2">{{ doc?.name }}</span>
         <span class="font-bold text-gray-500 mx-2">{{ annotator_email }}</span>
-        <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'" class="capitalize px-2"></Badge>
+        <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
       </div>
     </template>
     <div class="dimmer-wrapper min-h-0">
