@@ -90,7 +90,7 @@ const initLS = async () => {
                       ? 
                         `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
                         <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
-                          ${props.labels?.map((l) =>  (`<Label value="${l.name}" background="${l.color}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
+                          ${props.labels?.map((l,index) =>  (`<Label value="${l.name}" background="${l.color}" selected="${!props.isEditor && index==0}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
                         </Labels>`
                       : 
                         `<Choices name="label" toName="text" choice="multiple">
