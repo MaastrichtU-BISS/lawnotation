@@ -15,8 +15,8 @@
   ]" />
 
   <template v-if="assignment && task">
-    <div class="my-4 px-8 flex justify-between">
-      <span>&nbsp;</span>
+    <div class="my-4 px-8 flex justify-between items-center">
+      <span class="font-bold text-gray-500">{{ doc?.name }}</span>
       <div class="max-w-screen-md w-full" v-if="loadedData && seq_pos && assignmentCounts">
         <div class="flex justify-between mb-1">
           <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
@@ -28,9 +28,7 @@
             :style="{ width: `${(seq_pos / assignmentCounts.total) * 100}%` }"></div>
         </div>
       </div>
-      <span class="capitalize" :class="assignmentStatusClass(assignment.status)">{{
-        assignment.status
-      }}</span>
+      <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'" class="capitalize px-2"></Badge>
     </div>
     <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />
@@ -78,10 +76,6 @@ const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
 const assignmentCounts = ref<{ next: number; total: number }>();
-
-const assignmentStatusClass = (status: Assignment["status"]) => {
-  return status === "done" ? "text-green-600" : "text-red-500";
-};
 
 const loading = ref(false);
 const key = ref("ls-default");

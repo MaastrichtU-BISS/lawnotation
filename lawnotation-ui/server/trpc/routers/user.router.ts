@@ -18,7 +18,7 @@ export const userRouter = router({
 
   'findById': protectedProcedure
     .input(
-      z.number().int()
+      z.string()
     )
     .query(async ({ ctx, input: id }) => {
       const { data, error } = await ctx.supabase.from("users").select().eq('id', id).single();
