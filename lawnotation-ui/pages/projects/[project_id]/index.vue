@@ -160,7 +160,7 @@
                       />
                       <Labelset 
                         v-model="labelset" 
-                        @labelset-created="labelsetStage = 'overview'"
+                        @labelset-persisted="labelsetStage = 'overview'"
                       />
                     </template>
                   </TabPanel>

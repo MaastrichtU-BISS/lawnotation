@@ -12,7 +12,7 @@
     ]"
   />
 
-  <Labelset v-model="labelset" @labelset-created="navigateTo('/labelset')" />
+  <Labelset v-model="labelset" @labelset-persisted="navigateTo('/labelset')" />
 </template>
 
 <script setup lang="ts">

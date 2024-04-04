@@ -147,16 +147,15 @@ const persistLabelset = async () => {
         },
       });
       $toast.success(`Labelset "${labelset.value.name}" saved`);
-      emit("labelsetPersisted");
-      return;
+    } else {
+      const create = await $trpc.labelset.create.mutate({
+        ...labelset.value,
+        editor_id: user.value.id,
+      });
+      $toast.success(`Labelset "${labelset.value.name}" created`);
     }
 
-    const create = await $trpc.labelset.create.mutate({
-      ...labelset.value,
-      editor_id: user.value.id,
-    });
-    $toast.success(`Labelset "${labelset.value.name}" created`);
-    emit("labelsetCreated");
+    emit("labelsetPersisted");
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Error creating new labelset: ${error.message}`);
