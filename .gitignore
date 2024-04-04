@@ -1,3 +1,4 @@
 .vercel
 .DS_Store
 .vscode
+**/cypress/downloads
