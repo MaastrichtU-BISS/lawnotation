@@ -27,17 +27,17 @@ describe('Assign a project to annotators as the editor', () => {
 
         cy.get('a[data-test="tasks-tab"]').click()
         cy.get('a[data-test="view-task-link"]').click()
-        cy.contains('Create assignments').should('exist')
+        cy.contains('Create Assignments').should('exist')
         cy.get('input[data-test="annotator-emails"]').type('annotator@example.com,annotator1@example.com')
         cy.get('button[data-test="create-assignments"]').click()
 
         cy.get('span[data-pc-section="label"]').contains('annotator@example.com').should('exist')
-        cy.get('span[data-pc-section="label"]').contains('annotator1@example.com').should('not.exist')
+        cy.get('span[data-pc-section="label"]').contains('annotator1@example.com').should('exist')
         cy.get('td').contains('Test.txt').should('exist')
         cy.get('#breadcrumb-holder').find('li').eq(1).click()
         cy.get('a[data-test="view-task-link"]').click()
         cy.get('td').contains('annotator@example.com').should('exist')
-        cy.get('td').contains('annotator1@example.com').should('not.exist')
+        cy.get('td').contains('annotator1@example.com').should('exist')
         cy.get('td').contains('Test.txt').should('exist')
     })
 

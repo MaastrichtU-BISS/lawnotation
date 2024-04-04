@@ -18,6 +18,13 @@
     },
   ]" />
   <template v-if="task">
+    <template v-if="assignment">
+      <div class="my-4 px-8 flex justify-between items-center">
+        <span class="font-bold text-gray-500 mx-2">{{ doc?.name }}</span>
+        <span class="font-bold text-gray-500 mx-2">{{ annotator_email }}</span>
+        <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
+      </div>
+    </template>
     <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />
       <div class="dimmer-content h-full">
@@ -55,6 +62,7 @@ const assignment = ref<Assignment>();
 const task = ref<Task>();
 const project = ref<Project>();
 const doc = ref<Document>();
+const annotator_email = ref<string>();
 const loadedData = ref(false);
 const loading = ref(false);
 
@@ -71,6 +79,8 @@ const loadData = async () => {
     assignment.value = await $trpc.assignment.findById.query(+route.params.assignment_id);
 
     if (!assignment.value) throw Error("Assignment not found");
+
+    annotator_email.value = (await $trpc.user.findById.query(assignment.value.annotator_id)).email;
 
     doc.value = await $trpc.document.findById.query(+assignment.value.document_id);
     if (!doc.value) throw Error("Document not found");
