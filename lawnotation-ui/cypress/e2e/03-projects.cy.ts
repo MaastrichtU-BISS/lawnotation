@@ -27,7 +27,8 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-task-link"]').should("have.length", 2)
 
-        cy.get('[data-test="tasks-table"]').find('button[data-test="remove-all"]').click()
+        cy.get('[data-test="tasks-table"]').find('button[data-test="remove-all-menu-button"]').click()
+        cy.get('div[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-task-link"]').should("have.length", 0)
 
@@ -38,7 +39,8 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-project-link"]').should("have.length", 2)
 
-        cy.get('button[data-test="remove-all"]').click()
+        cy.get('button[data-test="remove-all-menu-button"]').click()
+        cy.get('div[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-project-link"]').should("have.length", 0)
     })
@@ -63,7 +65,8 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('td').contains('Task3').should('exist')
 
         cy.get('a[data-test="projects-link"]').click()
-        cy.get('button[data-test="remove-all"]').click()
+        cy.get('button[data-test="remove-all-menu-button"]').click()
+        cy.get('div[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-project-link"]').should("have.length", 0)
     })
