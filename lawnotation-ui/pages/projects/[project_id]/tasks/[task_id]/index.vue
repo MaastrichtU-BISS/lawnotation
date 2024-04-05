@@ -25,7 +25,7 @@
                 data-test="metrics-button" />
             </NuxtLink>
             <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true" data-test="export-publish-button" />
-            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => optionsMenu.toggle(event)" aria-haspopup="true" aria-controls="options-menu" data-test="kebab-button" />
+            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => optionsMenu.toggle(event)" aria-haspopup="true" aria-controls="options-menu" data-test="options-menu-button" />
             <Menu ref="optionsMenu" id="options-menu" :model="[{label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask}]" :popup="true"
               :pt="{
                 content: {
