@@ -47,16 +47,17 @@
             }"
             :ptOptions="{ mergeProps: true }"
           />
-          <button
+          <Button 
             v-show="checkedIds.length"
-            @click="removeSelected(checkedIds)"
             type="button"
-            style="outline: none"
-            class="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-2.5 text-center"
-            data-test="remove-selected-rows"
-          >
-            Remove selected rows ({{ checkedIds.length }})
-          </button>
+            :label="`Remove selected rows (${ checkedIds.length })`"
+            severity="danger"
+            outlined
+            @click="removeSelected(checkedIds)"
+            :pt="{ label: 'text-xs' }"
+            :ptOptions="{ mergeProps: true }"
+            data-test="remove-selected-rows" 
+          />
         </span>
         <span
           class="flex"
