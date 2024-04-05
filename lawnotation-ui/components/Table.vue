@@ -40,7 +40,7 @@
               command: removeAll
             }]"
             :pt="{
-              label: 'text-red-700',
+              label: 'text-[#f05252]',
               content: {
                 'data-test': 'remove-all'
               }
