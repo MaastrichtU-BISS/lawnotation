@@ -12,7 +12,7 @@ const ZAssignmentFields = z.object({
   annotator_id: z.string().nullable(),
   task_id: z.number().int(),
   document_id: z.number().int(),
-  status: z.union([z.literal("pending"), z.literal("done")]),
+  status: z.union([z.literal("pending"), z.literal("done"), z.literal("predicting"), z.literal("pre-annotated")]),
   seq_pos: z.number().int(),
   difficulty_rating: z.number().int(),
   annotator_number: z.number().int(),
@@ -158,7 +158,6 @@ export const assignmentRouter = router({
         if(model.labelset_id) {
           labels = (await caller.labelset.findById(model.labelset_id)).labels.map(l => l.name);
         }
-        console.log("Labels obtained");
 
         // get all documents
         const documentPromises: Promise<Document>[] = [];
@@ -173,10 +172,8 @@ export const assignmentRouter = router({
         });
 
         const documents = await Promise.all(documentPromises);
-        console.log("Documents obtained", documents.length);
 
-        // get annotations from model
-        const predictionPromises: Promise<any>[] = [];
+        // call the model to create and save the anotations
         documents?.map((doc: Document) => {
           const response = caller.mlModel.predict({
             text: doc.full_text,
@@ -185,13 +182,7 @@ export const assignmentRouter = router({
             task_type: model.type,
             labels: labels
           });
-          predictionPromises.push(response);
         });
-
-        const predictions = await Promise.all(predictionPromises);
-
-        console.log("Predictions were sent", predictions.length);
-
       }
 
       if (error)

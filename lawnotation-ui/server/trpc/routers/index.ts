@@ -13,6 +13,7 @@ import { mlModelRouter } from './ml_model.router';
 import { userRouter } from './user.router';
 import { metricsRouter } from './metrics.router';
 import { tableRouter } from './table.router';
+import { hookRouter } from './hook.router';
 
 export const appRouter = router({
   relation: relationRouter,
@@ -24,10 +25,9 @@ export const appRouter = router({
   task: taskRouter,
   publication: publicationRouter,
   mlModel: mlModelRouter,
+  hook: hookRouter,
   user: userRouter,
-
   table: tableRouter,
-
   // metrics: metricsRouter,
 })
 

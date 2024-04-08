@@ -28,11 +28,17 @@ export async function createContext(event: H3Event) {
       // throw createError({message: `Authenticated user not found: ${ getUser.error.message }`})
       user = getUser.data.user;
   }
+
+  // hooksKey = null;
+  // if (it haskey in header) { 
+  //   hooksKey = from header
+  // }
   
   return {
     user,
     supabase,
-    getSupabaseServiceRoleClient
+    getSupabaseServiceRoleClient,
+    // hooksKey
   }
 }
 

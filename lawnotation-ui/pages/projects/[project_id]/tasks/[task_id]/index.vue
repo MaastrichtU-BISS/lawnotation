@@ -18,6 +18,9 @@
     <div class="dimmer-content">
       <div v-if="task">
         <div v-if="totalAssignments.data.value?.total">
+        <div v-if="preAnnotated != undefined && preAnnotated >= 0">
+          <ProgressBar :value="(preAnnotated / totalAssignments.data.value?.total) * 100">{{ preAnnotated }}/{{ totalAssignments.data.value?.total }}</ProgressBar>
+        </div>
           <div class="text-center my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
               <button v-if="isWordLevel(task)"
@@ -49,7 +52,7 @@
                   {{ item.document.name }}
                 </td>
                 <td class="px-6 py-2">
-                  <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{
+                  <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : (item.status == 'predicting' ? 'text-yellow-300' : ( item.status == 'pre-annotated' ? 'text-blue-700' : 'text-red-600'))">{{
                     item.status }}</span>
                 </td>
                 <td class="px-6 py-2">
@@ -183,6 +186,10 @@ watch(annotators_email, (new_val) => {
   }
 });
 
+const preAnnotated = computed(() => {
+  return task.ml_model_id ? totalAssignments.data.value?.rows.filter((ass: Assignment) => ass.status == 'pre-annotated').length : -1;
+});
+
 const createAssignments = async () => {
   try {
     loading.value = true;
@@ -214,7 +221,7 @@ const createAssignments = async () => {
       const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
         task_id: task.id,
         document_id: docs[i],
-        status: "pending",
+        status: task.ml_model_id ? "predicting" : "pending",
         origin: "manual"
       };
       new_assignments.push(new_assignment);
@@ -276,8 +283,6 @@ const createAssignments = async () => {
           undefined 
         }
     );
-
-    console.log(created_assignments)
 
     // create MlModel annotations
     // if (task.ml_model_id) {

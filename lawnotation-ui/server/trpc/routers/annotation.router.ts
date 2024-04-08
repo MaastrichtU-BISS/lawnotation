@@ -68,7 +68,7 @@ export const annotationRouter = router({
       return data as Annotation;
     }),
 
-  'createMany': publicProcedure
+  'createMany': protectedProcedure
     .input(
       z.array(ZAnnotationFields)
     )

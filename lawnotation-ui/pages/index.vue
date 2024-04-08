@@ -1,5 +1,6 @@
 <template>
   <div>
+  
     <EditorDashboard />
     <!-- <AnnotatorDashboard /> -->
   </div>

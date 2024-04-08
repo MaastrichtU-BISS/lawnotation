@@ -3,7 +3,7 @@ export type Assignment = {
   annotator_id: string;
   task_id: number;
   document_id: number;
-  status: "pending" | "done";
+  status: "pending" | "done" | "predicting" | "pre-annotated";
   seq_pos: number;
   difficulty_rating: number;
   annotator_number: number;
