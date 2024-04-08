@@ -1,11 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: false },
-  nitro: {
-    experimental: {
-      websockets: true,
-    }
-  }
   runtimeConfig: {
     public: {
       mlBackendURL: process.env.MLBACKEND_URL,
