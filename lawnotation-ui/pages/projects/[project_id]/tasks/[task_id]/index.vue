@@ -13,14 +13,21 @@
       link: `/projects/${project.id}/tasks/${task.id}`,
     },
   ]" />
-  <div class="my-3 dimmer-wrapper">
+  <div class="dimmer-wrapper">
     <Dimmer v-model="loading" />
     <div class="dimmer-content">
       <div v-if="task">
-        <div v-if="totalAssignments.data.value?.total">
-        <div v-if="preAnnotated != undefined && preAnnotated >= 0">
-          <ProgressBar :value="(preAnnotated / totalAssignments.data.value?.total) * 100">{{ preAnnotated }}/{{ totalAssignments.data.value?.total }}</ProgressBar>
-        </div>
+        <div v-if="totalAssignments.data?.value?.total">
+          <div class="pb-4" v-if="showPredictionProgressBar">
+            <div class="flex justify-center items-center">
+              <h3 class="my-3 text-lg text-center font-semibold">Generating pre-annotations:</h3>
+              <span class="mx-2">{{ mlProccessed }}/{{
+                totalAssignments.data?.value?.total }}</span>
+              <ProgressSpinner style="width: 20px; height: 20px; margin: 0" strokeWidth="8" animationDuration=".5s"
+                aria-label="Loading" />
+            </div>
+            <ProgressBar :value="Math.floor((mlProccessed / totalAssignments.data?.value?.total) * 100)"></ProgressBar>
+          </div>
           <div class="text-center my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
               <button v-if="isWordLevel(task)"
@@ -52,8 +59,9 @@
                   {{ item.document.name }}
                 </td>
                 <td class="px-6 py-2">
-                  <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : (item.status == 'predicting' ? 'text-yellow-300' : ( item.status == 'pre-annotated' ? 'text-blue-700' : 'text-red-600'))">{{
-                    item.status }}</span>
+                  <span class="capitalize"
+                    :class="item.status == 'done' ? 'text-green-600' : (item.status == 'predicting' ? 'text-yellow-300' : (item.status == 'pre-annotated' ? 'text-blue-700' : 'text-red-600'))">{{
+                      item.status }}</span>
                 </td>
                 <td class="px-6 py-2">
                   <span>{{ item.difficulty_rating }}</span>
@@ -126,6 +134,7 @@ const user = useSupabaseUser();
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
 const project = await $trpc.project.findById.query(+route.params.project_id);
+
 const totalAssignments = await $trpc.table.assignments.useQuery({ filter: { task_id: task.id } });
 
 const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
@@ -133,6 +142,51 @@ const total_docs = totalAmountOfDocs ?? 0;
 const amount_of_docs = ref<number>(total_docs);
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
+
+//#region  ml variables
+const mlIntervalId = ref();
+const preAnnotated = ref<number>(-1);
+const failedPrediction = ref<number>(-1);
+
+const showPredictionProgressBar = computed(() => {
+  return task.ml_model_id && mlProccessed.value >= 0 && mlProccessed.value < totalAssignments.data?.value?.total!;
+});
+
+const mlProccessed = computed(() => {
+  return preAnnotated.value + failedPrediction.value;
+});
+
+const updateMLStatus = async () => {
+  const response = await $trpc.assignment.countMLStatus.query(task.id);
+  preAnnotated.value = response.preAnnotatedCount;
+  failedPrediction.value = response.failedCount;
+}
+
+const startQueryingMlBackend = (interval: number = 7000) => {
+  mlIntervalId.value = setInterval(async () => {
+    totalAssignments.refresh();
+    assignmentTable.value?.refresh();
+    updateMLStatus();
+  }, interval)
+};
+
+const stopQueryingMlBackend = () => {
+  clearInterval(mlIntervalId.value);
+  mlIntervalId.value = null;
+};
+
+watch(showPredictionProgressBar, (new_value) => {
+  if (new_value) {
+    if (!mlIntervalId.value) {
+      startQueryingMlBackend();
+    }
+  } else {
+    stopQueryingMlBackend();
+    preAnnotated.value = -1;
+    failedPrediction.value = -1;
+  }
+})
+//#endregion
 
 const defaultFormValues = {
   export_options: {
@@ -169,7 +223,6 @@ const formValues = ref<{
   publication: Omit<Publication, "id">;
 }>(JSON.parse(JSON.stringify(defaultFormValues)));
 
-
 let export_modal: Modal | null = null;
 
 const amount_of_fixed_docs = ref<number>(0);
@@ -186,9 +239,6 @@ watch(annotators_email, (new_val) => {
   }
 });
 
-const preAnnotated = computed(() => {
-  return task.ml_model_id ? totalAssignments.data.value?.rows.filter((ass: Assignment) => ass.status == 'pre-annotated').length : -1;
-});
 
 const createAssignments = async () => {
   try {
@@ -201,7 +251,7 @@ const createAssignments = async () => {
       n: amount_of_docs.value,
     });
 
-    const new_assignments: Pick<Assignment, "task_id" | "document_id">[] = [];
+    const new_assignments: Pick<Assignment, "task_id" | "document_id" | "origin" | "status">[] = [];
 
     // Create shared assignments (only with docs info)
     for (let i = 0; i < amount_of_fixed_docs.value; ++i) {
@@ -209,7 +259,7 @@ const createAssignments = async () => {
         const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
           task_id: task.id,
           document_id: docs[i],
-          status: "pending",
+          status: task.ml_model_id ? "predicting" : "pending",
           origin: "manual"
         };
         new_assignments.push(new_assignment);
@@ -275,67 +325,21 @@ const createAssignments = async () => {
     // }
 
     const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
-      { 
-        assignments: new_assignments, 
-        pre_annotations: task.ml_model_id ? 
-        { 
-          ml_model_id: task.ml_model_id, reveal: true } : 
-          undefined 
-        }
+      {
+        assignments: new_assignments,
+        pre_annotations: task.ml_model_id ?
+          {
+            ml_model_id: task.ml_model_id, reveal: true
+          } :
+          undefined
+      }
     );
-
-    // create MlModel annotations
-    // if (task.ml_model_id) {
-    //   const new_annotations: Omit<Annotation, "id">[] = [];
-    //   const model: MlModel = await $trpc.mlModel.findById.query(task.ml_model_id);
-    //   for (let i = 0; i < created_assignments.length; i++) {
-    //     const ass = created_assignments[i];
-    //     if (ass.origin == "model") {
-    //       const doc_text = (await $trpc.document.findById.query(ass.document_id)).full_text;
-    //       const mlQueryBody = {
-    //         model_name: model.name,
-    //         task_type: model.type,
-    //         text: doc_text,
-    //       };
-    //       const result = await $trpc.mlModel.predict.query(
-    //         model.labelset_id ?
-    //           mlQueryBody :
-    //           {
-    //             ...mlQueryBody, labels: labels.labels.map(l => l.name)
-    //           });
-    //       if (task.annotation_level == "word") {
-    //         result.map((ann: any) => {
-    //           new_annotations.push({
-    //             assignment_id: ass.id,
-    //             start_index: ann.start,
-    //             end_index: ann.end,
-    //             label: ann.label,
-    //             text: doc_text.substring(ann.start, ann.end),
-    //             origin: "model",
-    //             ls_id: ""
-    //           });
-    //         });
-    //       } else if (task.annotation_level == "document") {
-    //         result.map((ann: any) => {
-    //           new_annotations.push({
-    //             assignment_id: ass.id,
-    //             start_index: 0,
-    //             end_index: 0,
-    //             label: ann.label,
-    //             text: "",
-    //             origin: "model",
-    //             ls_id: ""
-    //           });
-    //         });
-    //       }
-    //     }
-    //   }
-
-    //   const created_annotations = await $trpc.annotation.createMany.mutate(new_annotations);
-    // }
 
     assignmentTable.value?.refresh();
     totalAssignments.refresh();
+    if(task.ml_model_id) {
+      updateMLStatus();
+    }
     loading.value = false;
     $toast.success("Assignments successfully created");
   } catch (error) {
@@ -355,6 +359,7 @@ const removeAssignments = async (ids: string[]) => {
   await totalAssignments.refresh();
   $toast.success("Assignments successfully deleted!");
 };
+
 const removeAllAssignments = async () => {
   if (!task) throw new Error("Invalid Task!");
   await $trpc.assignment.deleteAllFromTask.mutate(task.id);
@@ -501,6 +506,14 @@ onMounted(async () => {
   };
 
   export_modal = new Modal(document.getElementById("exportFormModal"), modalOptions);
+
+  if(task.ml_model_id) {
+    updateMLStatus();
+  }
+
+  if(showPredictionProgressBar.value && !mlIntervalId.value) {
+    startQueryingMlBackend();
+  }
 
 });
 
