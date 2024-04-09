@@ -17,15 +17,14 @@ describe('Assign a project to annotators as the editor', () => {
         cy.addProject('Assignments test')
 
         cy.get('a[data-test="view-project-link"]').first().click()
-        cy.addTask('Task')
 
-        cy.get('a[data-test="documents-tab"]').click()
         cy.get('button[data-test="open-documents-modal"]').click()
         cy.get('input[data-test="choose-documents"]').selectFile('./cypress/support/Test.txt', { force: true })
         cy.get('button[data-test="upload-documents"]').click()
         cy.get('td').contains('Test.txt').should('exist')
 
         cy.get('a[data-test="tasks-tab"]').click()
+        cy.addTask('Task')
         cy.get('a[data-test="view-task-link"]').click()
         cy.contains('Create Assignments').should('exist')
         cy.get('input[data-test="annotator-emails"]').type('annotator@example.com,annotator1@example.com')
