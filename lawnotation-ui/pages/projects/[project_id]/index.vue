@@ -582,6 +582,10 @@ onMounted(() => {
   if (!documentTable?.value?.total) activeTab.value = 1;
 });
 
+watch(() => documentTable?.value?.total, (newTotal) => {
+  if (newTotal) activeTab.value = 0;
+})
+
 definePageMeta({
   middleware: [
     "auth",
