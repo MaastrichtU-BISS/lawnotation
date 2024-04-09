@@ -34,8 +34,7 @@ export const hookRouter = router({
             ]),
             ls_id: z.string(),
           })
-        ),
-        assignment_ids: z.array(z.number().int()),
+        )
       })
     )
     // .use(hookAuthorizer)
@@ -45,10 +44,21 @@ export const hookRouter = router({
         .insert(input.annotations)
         .select();
 
-      input.assignment_ids.map(async (id: number) => {
+      return true;
+    }),
+  afterMLStatusChanged: publicProcedure
+    .input(
+      z.object({
+        assignment_ids: z.array(z.number().int()),
+        status: z.union([z.literal("pre-annotated"), z.literal("failed")]),
+      })
+    )
+    // .use(hookAuthorizer)
+    .mutation(async ({ ctx, input }) => {
+      input.assignment_ids.forEach(async (id: number) => {
         const assignment = await ctx.supabase
           .from("assignments")
-          .update({ status: "pre-annotated" })
+          .update({ status: input.status })
           .eq("id", id)
           .select()
           .single();

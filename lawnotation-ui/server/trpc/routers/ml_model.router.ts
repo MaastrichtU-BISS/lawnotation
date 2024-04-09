@@ -72,7 +72,7 @@ export const mlModelRouter = router({
   .input(
     z.object({
       model_name: z.string().min(3),
-      assignments_id: z.array(z.number().int()).optional(),
+      assignment_ids: z.array(z.number().int()).optional(),
       task_type: z.string(),
       text: z.string(),
       labels: z.array(z.string()).optional()
@@ -91,6 +91,33 @@ export const mlModelRouter = router({
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: `Error in ml_models.predict: ${(error as PostgrestError).message}`,
+      });
+    }
+  }),
+
+  checkMLTaskStatus: protectedProcedure
+  .input(
+   z.array(z.number().int())
+  )
+  // .use(hookAuthorizer)
+  .query(async ({ ctx, input }) => {
+    
+    try {
+
+      const promises: Promise<any>[] = [];
+      input.map((task_id: number) => {
+        const response = fetch(`${config.public.mlBackendURL}/task_status`, {
+          method: "GET",
+          body: JSON.stringify(task_id)
+        });
+        promises.push(response);
+      });
+
+      return await Promise.all(promises);
+    } catch(error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Error in ml_models.checkMLTaskStatus: ${(error as PostgrestError).message}`,
       });
     }
   }),

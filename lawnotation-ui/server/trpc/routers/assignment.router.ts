@@ -12,11 +12,21 @@ const ZAssignmentFields = z.object({
   annotator_id: z.string().nullable(),
   task_id: z.number().int(),
   document_id: z.number().int(),
-  status: z.union([z.literal("pending"), z.literal("done"), z.literal("predicting"), z.literal("pre-annotated")]),
+  status: z.union([
+    z.literal("pending"),
+    z.literal("done"),
+    z.literal("predicting"),
+    z.literal("pre-annotated"),
+    z.literal("predicting")
+  ]),
   seq_pos: z.number().int(),
   difficulty_rating: z.number().int(),
   annotator_number: z.number().int(),
-  origin: z.union([z.literal("manual"), z.literal("imported"), z.literal("model")])
+  origin: z.union([
+    z.literal("manual"),
+    z.literal("imported"),
+    z.literal("model"),
+  ]),
 });
 
 const assignmentAuthorizer = async (
@@ -42,7 +52,7 @@ const assignmentAuthorizer = async (
 
 export const assignmentRouter = router({
   /**
-   * This method creates inivites an email to create an account if it doesn't 
+   * This method creates inivites an email to create an account if it doesn't
    * already have one. Next, it will assign the provided task_id to the metadata
    * of the user account, so that a flash message appears when they log-in.
    * Note that this method doesn't actually create the assignments.
@@ -51,34 +61,51 @@ export const assignmentRouter = router({
     .input(
       z.object({
         email: zValidEmail,
-        task_id: z.number()
+        task_id: z.number(),
       })
     )
-    .query(async ({ctx, input}) => {
+    .query(async ({ ctx, input }) => {
       const serviceClient = ctx.getSupabaseServiceRoleClient();
 
-      const email_found = (await serviceClient.from('users').select('id').eq('email', input.email).maybeSingle());
-      let user_id: User['id'] | null = null;
+      const email_found = await serviceClient
+        .from("users")
+        .select("id")
+        .eq("email", input.email)
+        .maybeSingle();
+      let user_id: User["id"] | null = null;
       if (!email_found.data) {
         // email is a new user
-        const invite = await serviceClient.auth.admin.inviteUserByEmail(input.email, {data: {assigned_task_id: input.task_id}})
+        const invite = await serviceClient.auth.admin.inviteUserByEmail(
+          input.email,
+          { data: { assigned_task_id: input.task_id } }
+        );
 
         if (invite.error)
-          throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error inviting: ${invite.error.message}`});
-        
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Error inviting: ${invite.error.message}`,
+          });
+
         user_id = invite.data.user.id as string;
       } else {
         // email is already an user
         user_id = email_found.data.id as string;
 
-        await serviceClient.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
-      
+        await serviceClient.auth.admin.updateUserById(user_id, {
+          user_metadata: { assigned_task_id: input.task_id },
+        });
+
         // ...
-        console.log(`Hypothetically sending notification to user ${user_id} that it is assigned to new task`)
+        console.log(
+          `Hypothetically sending notification to user ${user_id} that it is assigned to new task`
+        );
       }
 
       if (!user_id)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error retrieving or inviting the specified user`});
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error retrieving or inviting the specified user`,
+        });
 
       return user_id;
     }),
@@ -87,17 +114,23 @@ export const assignmentRouter = router({
     .input(
       z.object({
         email: zValidEmail,
-        task_id: z.number()
+        task_id: z.number(),
       })
     )
-    .query(async ({ctx, input}) => {
+    .query(async ({ ctx, input }) => {
       const serviceClient = ctx.getSupabaseServiceRoleClient();
-      const invite = await serviceClient.auth.admin.inviteUserByEmail(input.email, {data: {invited_task_id: input.task_id}})
+      const invite = await serviceClient.auth.admin.inviteUserByEmail(
+        input.email,
+        { data: { invited_task_id: input.task_id } }
+      );
 
       if (invite.error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error inviting: ${invite.error.message}`});
-      
-      return ;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error inviting: ${invite.error.message}`,
+        });
+
+      return;
     }),
 
   create: protectedProcedure
@@ -120,24 +153,40 @@ export const assignmentRouter = router({
   createMany: protectedProcedure
     .input(
       z.object({
-        assignments:  z.array(
+        assignments: z.array(
           // object is equal to ZAssignmentFields, but with optional's, since partial didn't work. check later
           // ZAssignmentFields.optional()
           z.object({
             annotator_id: z.string().optional(),
             task_id: z.number().int(),
             document_id: z.number().int(),
-            status: z.union([z.literal("pending"), z.literal("done")]).optional(),
+            status: z
+              .union([
+                z.literal("pending"),
+                z.literal("done"),
+                z.literal("predicting"),
+                z.literal("pre-annotated"),
+                z.literal("failed")
+              ])
+              .optional(),
             seq_pos: z.number().int().optional(),
             difficulty_rating: z.number().int().optional(),
             annotator_number: z.number().int().optional(),
-            origin: z.union([z.literal("manual"), z.literal("imported"), z.literal("model")]).optional()
-          }),
+            origin: z
+              .union([
+                z.literal("manual"),
+                z.literal("imported"),
+                z.literal("model"),
+              ])
+              .optional(),
+          })
         ),
-        pre_annotations: z.object({
-          ml_model_id: z.number().int(),
-          reveal: z.boolean()
-        }).optional()
+        pre_annotations: z
+          .object({
+            ml_model_id: z.number().int(),
+            reveal: z.boolean(),
+          })
+          .optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -146,29 +195,33 @@ export const assignmentRouter = router({
         .insert(input.assignments)
         .select();
 
-      if(input.pre_annotations) {
+      if (input.pre_annotations) {
         const caller = appRouter.createCaller(ctx);
 
         // get model
-        const model: MlModel = await caller.mlModel.findById(input.pre_annotations.ml_model_id);
+        const model: MlModel = await caller.mlModel.findById(
+          input.pre_annotations.ml_model_id
+        );
         console.log("Model obtained");
 
         // get labels (If they exist)
         let labels = undefined;
-        if(model.labelset_id) {
-          labels = (await caller.labelset.findById(model.labelset_id)).labels.map(l => l.name);
+        if (model.labelset_id) {
+          labels = (
+            await caller.labelset.findById(model.labelset_id)
+          ).labels.map((l) => l.name);
         }
 
         // get all documents
         const documentPromises: Promise<Document>[] = [];
         const doc2ass: any = {};
         data?.map((ass: Assignment) => {
-          if(!(ass.document_id in doc2ass)) {
+          if (!(ass.document_id in doc2ass)) {
             documentPromises.push(caller.document.findById(ass.document_id));
             doc2ass[ass.document_id] = [ass.id];
           } else {
             doc2ass[ass.document_id].push(ass.id);
-          } 
+          }
         });
 
         const documents = await Promise.all(documentPromises);
@@ -177,10 +230,10 @@ export const assignmentRouter = router({
         documents?.map((doc: Document) => {
           const response = caller.mlModel.predict({
             text: doc.full_text,
-            assignments_id: doc2ass[doc.id],
+            assignment_ids: doc2ass[doc.id],
             model_name: model.name,
             task_type: model.type,
-            labels: labels
+            labels: labels,
           });
         });
       }
@@ -341,24 +394,25 @@ export const assignmentRouter = router({
       return data as Assignment[];
     }),
 
-    findAssignmentsByTaskAndUser: protectedProcedure
-    .input(z.object({
-      annotator_id: z.string().optional(),
-      annotator_number: z.number().int().optional(),
-      task_id: z.number().int()
-    }))
+  findAssignmentsByTaskAndUser: protectedProcedure
+    .input(
+      z.object({
+        annotator_id: z.string().optional(),
+        annotator_number: z.number().int().optional(),
+        task_id: z.number().int(),
+      })
+    )
     .query(async ({ ctx, input }) => {
-      
       let query = ctx.supabase
-      .from("assignments")
-      .select()
-      .eq("task_id", input.task_id);
+        .from("assignments")
+        .select()
+        .eq("task_id", input.task_id);
 
-      if(input.annotator_id) {
+      if (input.annotator_id) {
         query = query.eq("annotator_id", input.annotator_id);
       }
 
-      if(input.annotator_number) {
+      if (input.annotator_number) {
         query = query.eq("annotator_number", input.annotator_number);
       }
 
@@ -493,10 +547,10 @@ export const assignmentRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in 2 countAssignmentsByUserAndTask: ${error_total.message}`,
         });
-      // return {
-      //   next: next?.seq_pos ?? total?.count! + 1, // TODO: need to check if this actually works
-      //   total: total?.count ?? 0,
-      // };
+        // return {
+        //   next: next?.seq_pos ?? total?.count! + 1, // TODO: need to check if this actually works
+        //   total: total?.count ?? 0,
+        // };
       } else {
         return {
           next: next?.seq_pos ?? count! + 1, // TODO: need to check if this actually works
@@ -519,6 +573,33 @@ export const assignmentRouter = router({
           message: `Error in deleteAllAssignmentsFromTask: ${error.message}`,
         });
       return true;
+    }),
+
+  countMLStatus: protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: task_id }) => {
+      const pre = await ctx.supabase
+        .from("assignments")
+        .select("*", { count: "exact", head: true })
+        .eq("task_id", task_id)
+        .eq("status", "pre-annotated");
+
+      const failed = await ctx.supabase
+        .from("assignments")
+        .select("*", { count: "exact", head: true })
+        .eq("task_id", task_id)
+        .eq("status", "failed");
+
+        
+      if (pre.error || failed.error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in countMLStatus`,
+        });
+      return {
+        preAnnotatedCount: pre.count ?? 0,
+        failedCount: failed.count ?? 0
+      };
     }),
 });
 
