@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { number, z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Assignment, User, Document, MlModel, Annotation } from "~/types";
+import type { Assignment, User, Document, MlModel, Annotation, Labelset } from "~/types";
 import type { Context } from "../context";
 import { zValidEmail } from "~/utils/validators";
 import { appRouter } from ".";
@@ -17,7 +17,7 @@ const ZAssignmentFields = z.object({
     z.literal("done"),
     z.literal("predicting"),
     z.literal("pre-annotated"),
-    z.literal("predicting")
+    z.literal("predicting"),
   ]),
   seq_pos: z.number().int(),
   difficulty_rating: z.number().int(),
@@ -166,7 +166,7 @@ export const assignmentRouter = router({
                 z.literal("done"),
                 z.literal("predicting"),
                 z.literal("pre-annotated"),
-                z.literal("failed")
+                z.literal("failed"),
               ])
               .optional(),
             seq_pos: z.number().int().optional(),
@@ -184,6 +184,7 @@ export const assignmentRouter = router({
         pre_annotations: z
           .object({
             ml_model_id: z.number().int(),
+            labelset_id: z.number().int().optional(),
             reveal: z.boolean(),
           })
           .optional(),
@@ -202,14 +203,21 @@ export const assignmentRouter = router({
         const model: MlModel = await caller.mlModel.findById(
           input.pre_annotations.ml_model_id
         );
-        console.log("Model obtained");
 
         // get labels (If they exist)
-        let labels = undefined;
-        if (model.labelset_id) {
-          labels = (
-            await caller.labelset.findById(model.labelset_id)
-          ).labels.map((l) => l.name);
+        let labels: string[] = [];
+        if (input.pre_annotations?.labelset_id) {
+          labels.push(
+            ...(
+              await caller.labelset.findById(input.pre_annotations?.labelset_id)
+            ).labels.map((l: any) => l.name)
+          );
+        } else if (model.labelset_id) {
+          labels.push(
+            ...(await caller.labelset.findById(model.labelset_id)).labels.map(
+              (l: any) => l.name
+            )
+          );
         }
 
         // get all documents
@@ -590,7 +598,6 @@ export const assignmentRouter = router({
         .eq("task_id", task_id)
         .eq("status", "failed");
 
-        
       if (pre.error || failed.error)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -598,7 +605,7 @@ export const assignmentRouter = router({
         });
       return {
         preAnnotatedCount: pre.count ?? 0,
-        failedCount: failed.count ?? 0
+        failedCount: failed.count ?? 0,
       };
     }),
 });

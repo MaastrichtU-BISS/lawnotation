@@ -329,7 +329,9 @@ const createAssignments = async () => {
         assignments: new_assignments,
         pre_annotations: task.ml_model_id ?
           {
-            ml_model_id: task.ml_model_id, reveal: true
+            ml_model_id: task.ml_model_id, 
+            labelset_id: task.labelset_id,
+            reveal: true
           } :
           undefined
       }
