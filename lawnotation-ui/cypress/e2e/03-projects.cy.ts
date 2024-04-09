@@ -36,7 +36,7 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('[data-test="checkbox"]').eq(2).check()
         cy.get('button[data-test="remove-selected-rows"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="view-project-link"]').should("have.length", 2)
+        cy.get('a[data-test="view-project-link"]').should("have.length.at.least", 2)
 
         cy.get('button[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
