@@ -10,7 +10,7 @@ describe('Login as annotator and see there are no assignments yet', () => {
   });
 
   it('Go to homepage and assigned tasks', () => {
-    cy.wait(3000)
+    cy.visit('/')
     cy.get('button[data-test="start-annotating-button"]').should('not.exist')
     cy.get('a[data-test="assigned-tasks-menu-item"]').click()
     cy.get('td').should('not.exist')

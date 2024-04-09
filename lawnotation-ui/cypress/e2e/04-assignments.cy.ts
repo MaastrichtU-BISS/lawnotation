@@ -11,7 +11,7 @@ describe('Assign a project to annotators as the editor', () => {
 
     // annotator1@example.com does not exist in the db yet, so manually check inbucket whether an invite was sent
     it('Create project, add task and document, and assign to annotator accounts', () => {
-        cy.wait(3000)
+        cy.visit('/')
         cy.get('a[data-test="projects-link"]').click()
         cy.wait(1000)
         cy.addProject('Assignments test')
@@ -42,7 +42,7 @@ describe('Assign a project to annotators as the editor', () => {
     })
 
     it('Editor can view the task', () => {
-        cy.wait(3000)
+        cy.visit('/')
         cy.get('a[data-test="projects-link"]').click()
         cy.get('a[data-test="view-project-link"]').first().click()
         cy.get('a[data-test="view-task-link"]').first().click()
@@ -53,7 +53,7 @@ describe('Assign a project to annotators as the editor', () => {
     })
 
     it('Editor can use the task buttons', () => {
-        cy.wait(3000)
+        cy.visit('/')
         cy.get('a[data-test="projects-link"]').click()
         cy.get('a[data-test="view-project-link"]').first().click()
         cy.get('a[data-test="view-task-link"]').first().click()
