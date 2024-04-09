@@ -579,9 +579,7 @@ const removeAllTasks = (finish: (promises: (Promise<Boolean>)) => void) => {
 onMounted(() => {
   new_task.project_id = project.id;
 
-  console.log(documentTable?.value?.total)
   if (!documentTable?.value?.total) activeTab.value = 1;
-  console.log(activeTab.value)
 });
 
 definePageMeta({
