@@ -586,26 +586,31 @@ export const assignmentRouter = router({
   countMLStatus: protectedProcedure
     .input(z.number().int())
     .query(async ({ ctx, input: task_id }) => {
-      const pre = await ctx.supabase
+      // const pre = await ctx.supabase
+      //   .from("assignments")
+      //   .select("*", { count: "exact", head: true })
+      //   .eq("task_id", task_id)
+      //   .eq("status", "pre-annotated");
+
+      // const failed = await ctx.supabase
+      //   .from("assignments")
+      //   .select("*", { count: "exact", head: true })
+      //   .eq("task_id", task_id)
+      //   .eq("status", "failed");
+
+      const { count, error } = await ctx.supabase
         .from("assignments")
         .select("*", { count: "exact", head: true })
         .eq("task_id", task_id)
-        .eq("status", "pre-annotated");
+        .eq("status", "predicting");
 
-      const failed = await ctx.supabase
-        .from("assignments")
-        .select("*", { count: "exact", head: true })
-        .eq("task_id", task_id)
-        .eq("status", "failed");
-
-      if (pre.error || failed.error)
+      if (error)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in countMLStatus`,
+          message: `Error in countMLStatus: ${error}`,
         });
       return {
-        preAnnotatedCount: pre.count ?? 0,
-        failedCount: failed.count ?? 0,
+        predicting: count ?? 0
       };
     }),
 });

@@ -145,33 +145,35 @@ const labels = await $trpc.labelset.findById.query(+task.labelset_id);
 
 //#region  ml variables
 const mlIntervalId = ref();
-const preAnnotated = ref<number>(-1);
-const failedPrediction = ref<number>(-1);
+const predicting = ref<number>((await $trpc.assignment.countMLStatus.query(task.id)).predicting);
 
 const showPredictionProgressBar = computed(() => {
-  return task.ml_model_id && mlProccessed.value >= 0 && mlProccessed.value < totalAssignments.data?.value?.total!;
+  return task.ml_model_id && predicting.value;
 });
 
 const mlProccessed = computed(() => {
-  return preAnnotated.value + failedPrediction.value;
+  return totalAssignments.data.value?.total! - predicting.value;
 });
 
 const updateMLStatus = async () => {
-  const response = await $trpc.assignment.countMLStatus.query(task.id);
-  preAnnotated.value = response.preAnnotatedCount;
-  failedPrediction.value = response.failedCount;
-}
-
-const startQueryingMlBackend = (interval: number = 7000) => {
-  mlIntervalId.value = setInterval(async () => {
+  const new_predicting = (await $trpc.assignment.countMLStatus.query(task.id)).predicting;
+  if (predicting.value != new_predicting) {
+    predicting.value = new_predicting;
     totalAssignments.refresh();
     assignmentTable.value?.refresh();
+  }
+}
+
+const startQueryingMlBackend = (interval: number = 1000) => {
+  updateMLStatus();
+  mlIntervalId.value = setInterval(async () => {
     updateMLStatus();
   }, interval)
 };
 
 const stopQueryingMlBackend = () => {
   clearInterval(mlIntervalId.value);
+  predicting.value = 0;
   mlIntervalId.value = null;
 };
 
@@ -182,8 +184,6 @@ watch(showPredictionProgressBar, (new_value) => {
     }
   } else {
     stopQueryingMlBackend();
-    preAnnotated.value = -1;
-    failedPrediction.value = -1;
   }
 })
 //#endregion
@@ -337,10 +337,12 @@ const createAssignments = async () => {
       }
     );
 
-    assignmentTable.value?.refresh();
-    totalAssignments.refresh();
+   
     if(task.ml_model_id) {
-      updateMLStatus();
+      startQueryingMlBackend();
+    } else {
+      assignmentTable.value?.refresh();
+      totalAssignments.refresh();
     }
     loading.value = false;
     $toast.success("Assignments successfully created");
@@ -508,10 +510,6 @@ onMounted(async () => {
   };
 
   export_modal = new Modal(document.getElementById("exportFormModal"), modalOptions);
-
-  if(task.ml_model_id) {
-    updateMLStatus();
-  }
 
   if(showPredictionProgressBar.value && !mlIntervalId.value) {
     startQueryingMlBackend();
