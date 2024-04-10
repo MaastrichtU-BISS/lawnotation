@@ -3,7 +3,7 @@ export type Assignment = {
   annotator_id: string;
   task_id: number;
   document_id: number;
-  status: "pending" | "done" | "predicting" | "pre-annotated";
+  status: "pending" | "done" | "predicting" | "pre-annotated" | "failed";
   seq_pos: number;
   difficulty_rating: number;
   annotator_number: number;
@@ -23,9 +23,13 @@ export type AssignmentTableData = {
     source: string;
     // full_text: string
   };
-  status: string;
+  status: "pending" | "done" | "predicting" | "pre-annotated" | "failed";
   seq_pos: number;
   difficulty_rating: number;
   annotator_number: number;
   origin: "manual" | "imported" | "model";
 };
+
+export function isUnfinishedByAnnotator(assignment: Assignment) {
+  return assignment.status == 'pending' || assignment.status == 'pre-annotated' || assignment.status == 'failed';
+}
