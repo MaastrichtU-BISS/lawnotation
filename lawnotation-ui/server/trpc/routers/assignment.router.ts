@@ -532,7 +532,7 @@ export const assignmentRouter = router({
         .select("seq_pos")
         .eq("annotator_id", input.annotator_id)
         .eq("task_id", input.task_id)
-        .eq("status", "pending")
+        .or("status.eq.pending,status.eq.failed,status.eq.pre-annotated")
         .order("seq_pos", { ascending: true })
         .limit(1)
         .maybeSingle();
