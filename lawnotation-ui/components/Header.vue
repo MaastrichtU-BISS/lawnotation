@@ -5,20 +5,29 @@
       {
         label: 'Projects',
         icon: 'pi pi-list',
-        route: '/projects'
+        route: '/projects',
+        dataTest: 'projects-link'
+      },
+      {
+        label: 'Labelsets',
+        icon: 'pi pi-tags',
+        route: '/labelset',
+        dataTest: 'labelset-link'
       },
       {
         label: 'Published Tasks',
         icon: 'pi pi-search',
-        route: '/published'
+        route: '/published',
+        dataTest: 'published-link'
       },
       {
           is_separator: true
       },
       {
         label: 'Assigned Tasks',
-        icon: 'pi pi-list',
-        route: '/tasks'
+        icon: 'pi pi-pencil',
+        route: '/tasks',
+        dataTest: 'assigned-tasks-menu-item'
       }
     ]">
       <template #start>
@@ -65,16 +74,16 @@
       </template>
       <template #item="{ item, props, hasSubmenu }">
         <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
-            <a v-ripple :href="href" v-bind="props.action" @click="navigate">
-                <span :class="item.icon" />
-                <span class="ml-2">{{ item.label }}</span>
-            </a>
+          <a :data-test="item.dataTest" :class="{ active: routeIsActive(item.route) }" v-ripple :href="href" v-bind="props.action" @click="navigate">
+            <span :class="item.icon" />
+            <span class="ml-2">{{ item.label }}</span>
+          </a>
         </router-link>
         <span v-else-if="item.is_separator" class="border-gray-400 border-r mx-2"></span>
         <a v-else v-ripple :href="item.url" :target="item.target" v-bind="props.action">
-            <span :class="item.icon" />
-            <span class="ml-2">{{ item.label }}</span>
-            <span v-if="hasSubmenu" class="pi pi-fw pi-angle-down ml-2" />
+          <span :class="item.icon" />
+          <span class="ml-2">{{ item.label }}</span>
+          <span v-if="hasSubmenu" class="pi pi-fw pi-angle-down ml-2" />
         </a>
       </template>
       <template #end>
@@ -109,6 +118,7 @@
 </template>
 <script setup lang="ts">
 import type Menu from 'primevue/menu';
+import type TieredMenu from 'primevue/tieredmenu';
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser();
@@ -120,10 +130,8 @@ const route = useRoute();
 const linksMenu = ref<Menu>();
 const userMenu = ref<TieredMenu>();
 
-const routeIsActive = computed(() => {
-  return (match: string) => {
-    return route.path.startsWith(match);
-  };
+const routeIsActive = computed(() => (match: string) => {
+  return route.path.startsWith(match);
 });
 
 const signOut = async () => {
@@ -133,16 +141,10 @@ const signOut = async () => {
 </script>
 
 <style lang="scss">
-.header-link {
-  @apply text-gray-600;
-  transition: color 0.2s;
-
-  &:hover {
-    @apply text-gray-900;
-  }
-
-  &.active {
-    @apply text-gray-900 border-b-2 border-slate-500;
-  }
+// source: https://stackoverflow.com/a/1014958/17864167
+div:has(> a.active) {
+  // @apply bg-surface-200;
+  color: rgb(var(--primary-500));
+  background-color: rgb(var(--primary-200) / 0.2);
 }
 </style>
