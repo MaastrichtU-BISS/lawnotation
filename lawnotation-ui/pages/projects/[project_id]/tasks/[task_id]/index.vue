@@ -54,7 +54,7 @@
                   <span>{{ item.difficulty_rating }}</span>
                 </td>
                 <td class="px-6 py-2 flex justify-start">
-                  <template v-if="item.annotator.id == user?.id">
+                  <template v-if="item.annotator?.id == user?.id">
                     <NuxtLink :to="`/tasks/${task.id}`" data-test="annotate-assignment-link">
                       <Button label="Annotate" size="small" />
                     </NuxtLink>

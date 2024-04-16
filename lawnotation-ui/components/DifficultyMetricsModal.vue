@@ -112,7 +112,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { DifficultyMetricResult } from "~/utils/metrics";
+import type { DifficultyMetricResult } from "~/utils/metrics";
 const props = defineProps<{
   modelValue: DifficultyMetricResult;
 }>();
