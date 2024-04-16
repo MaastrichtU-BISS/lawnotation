@@ -146,5 +146,9 @@ div:has(> a.active) {
   // @apply bg-surface-200;
   color: rgb(var(--primary-500));
   background-color: rgb(var(--primary-200) / 0.2);
+
+  &:hover {
+    background-color: rgb(var(--primary-200) / 0.15);
+  }
 }
 </style>
