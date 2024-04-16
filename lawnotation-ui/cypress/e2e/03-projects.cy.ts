@@ -8,6 +8,7 @@ describe('Testing projects and tasks with the editor account', () => {
     it('Add, edit and remove projects and tasks', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
+        cy.wait(1000)
 
         cy.addProject('Project1')
         cy.addProject('Project2')
@@ -42,9 +43,10 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('a[data-test="view-project-link"]').should("have.length", 0)
     })
 
-    it('View a task', () => {
+    it('Edit a task', () => {
         cy.wait(3000)
         cy.get('a[data-test="projects-link"]').click()
+        cy.wait(1000)
         cy.addProject('View test')
 
         cy.get('a[data-test="view-project-link"]').eq(0).click()

@@ -41,22 +41,3 @@ begin
 end;
 $function$
 ;
-
-create policy "Enable delete for users based on user_id"
-on "public"."publications"
-as permissive
-for delete
-to public
-using (true);
-
-
-create policy "Enable update for users based on email"
-on "public"."publications"
-as permissive
-for update
-to public
-using (true)
-with check (true);
-
-
-
