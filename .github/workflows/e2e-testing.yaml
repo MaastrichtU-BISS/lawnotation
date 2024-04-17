@@ -2,10 +2,6 @@ name: Cypress Tests
 
 on: push
 
-defaults:
-  run:
-    working-directory: lawnotation-ui
-
 jobs:
   cypress-run:
     runs-on: ubuntu-22.04
@@ -19,6 +15,7 @@ jobs:
       - name: Cypress run
         uses: cypress-io/github-action@v6
         with:
+          working-directory: lawnotation-ui
           build: npm run build
           start: npm preview, npx supabase start
           wait-on: 'http://localhost:3000, http://localhost:54323'
