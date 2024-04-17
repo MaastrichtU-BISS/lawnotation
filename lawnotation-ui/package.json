@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
-    "cypress": "pnpm exec cypress open",
+    "cypress": "npx cypress open",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
