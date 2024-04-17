@@ -30,6 +30,6 @@ jobs:
         with:
           working-directory: lawnotation-ui
           build: npm run build
-          start: npm run preview, npx supabase start
+          start: npm dev, npx supabase start
           wait-on: "http://localhost:3000, http://localhost:54323"
           wait-on-timeout: 120
