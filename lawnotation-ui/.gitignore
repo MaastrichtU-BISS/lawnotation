@@ -12,3 +12,6 @@ dist
 .vercel
 
 cypress/downloads
+cypress/screenshots
+cypress/videos
+test-results.xml
