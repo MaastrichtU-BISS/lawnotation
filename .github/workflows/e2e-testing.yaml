@@ -36,4 +36,4 @@ jobs:
           build: npm run build
           start: npm run dev, npx supabase start
           wait-on: "http://localhost:3000, http://localhost:54323"
-          wait-on-timeout: 120
+          wait-on-timeout: 600
