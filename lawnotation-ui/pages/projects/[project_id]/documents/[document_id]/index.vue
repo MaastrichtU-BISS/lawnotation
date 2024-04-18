@@ -15,13 +15,17 @@
   ]" />
 
   <div>
-    <h2 class="text-center text-lg mb-3 font-bold">{{ document?.name }}</h2>
-    <p>{{ document?.full_text }}</p>
+    <template v-if="document">
+      <h2 class="text-center text-lg mb-3 font-bold">{{ document.name }}</h2>
+      <div v-if="getDocFormat(document.name!) == 'html'" class="p-2" v-html="document.full_text"></div>
+      <div v-else class="p-2 whitespace-pre-wrap">{{ document.full_text }}</div>
+    </template>
   </div>
 </template>
 <script setup lang="ts">
 import type { Project, Document } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
+import { getDocFormat } from "~/utils/levels";
 
 const { $trpc } = useNuxtApp();
 
@@ -35,6 +39,7 @@ onMounted(async () => {
   });
 
   project.value = await $trpc.project.findById.query(+route.params.project_id);
+
 });
 
 definePageMeta({
