@@ -29,7 +29,7 @@
       <Dimmer v-model="loading" />
       <div class="dimmer-content h-full">
         <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
-          :annotations="ls_annotations" :relations="ls_relations" :guidelines="task?.ann_guidelines" :labels="labels" :isWordLevel="isWordLevel(task)">
+          :annotations="ls_annotations" :relations="ls_relations" :guidelines="task?.ann_guidelines" :labels="labels" :isWordLevel="isWordLevel(task)"  :isHtml="isHtml">
         </LabelStudio>
       </div>
     </div>
@@ -49,7 +49,7 @@ import type {
   LSSerializedRelation,
 } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel } from "~/utils/levels";
+import { isWordLevel, getDocFormat } from "~/utils/levels";
 
 const user = useSupabaseUser();
 
@@ -72,6 +72,10 @@ const ls_annotations = reactive<LSSerializedAnnotations>([]);
 const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
+
+const isHtml = computed(() => {
+  return getDocFormat(doc?.value?.name!) == 'html';
+});
 
 const loadData = async () => {
   try {
@@ -107,7 +111,7 @@ const loadData = async () => {
         ...(await $trpc.annotation.findByAssignment.query(+assignment.value.id))
       );
 
-    const db2ls_anns = convert_annotation_db2ls(annotations, assignment.value.id, isWordLevel(task.value));
+    const db2ls_anns = convert_annotation_db2ls(annotations, isWordLevel(task.value), isHtml.value);
     if (annotations.length) {
       ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
     }

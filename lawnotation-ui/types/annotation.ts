@@ -7,6 +7,16 @@ export type Annotation = {
   origin: string;
   ls_id: string;
   label: string;
+  html_metadata?: {
+    start: string;
+    end: string;
+    startOffset: number;
+    endOffset: number;
+    globalOffsets: {
+      start: number;
+      end: number;
+    }
+  } 
 };
 
 export type RichAnnotation = {
@@ -26,13 +36,20 @@ export type LSSerializedAnnotation = {
   from_name: string;
   to_name: string;
   origin: string;
-  type: string;
+  type: "labels" | "choices" | "hypertextlabels";
   value: {
-    start?: number;
-    end?: number;
+    start?: number | string;
+    end?: number | string;
     text?: string;
     labels?: string[];
     choices?: string[];
+    hypertextlabels?: string[];
+    startOffset?: number;
+    endOffset?: number;
+    globalOffsets?: {
+      start: number;
+      end: number;
+    }
   };
 };
 
