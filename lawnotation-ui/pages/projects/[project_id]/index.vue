@@ -169,7 +169,7 @@
           </template>
         </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt" :pt="{
+          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html" :pt="{
             input: {
               'data-test': 'choose-documents'
             },
@@ -211,7 +211,7 @@ import type {
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel } from "~/utils/levels";
+import { isWordLevel, getDocFormat } from "~/utils/levels";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -283,9 +283,6 @@ const uploadDocuments = async (event: { files: FileList }) => {
   texts.forEach((t, index) => {
     new_docs[index].full_text = t;
   });
-
-  // TODO: progress bar instead of instantly adding to list, and after all are added reload documents table (keep loading = true while adding?)
-  // documents.push(...(await documentApi.createDocuments(new_docs)));
 
   try {
     await $trpc.document.createMany.mutate(new_docs);

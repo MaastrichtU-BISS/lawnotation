@@ -48,3 +48,6 @@ definePageMeta({
     async (to) => authorizeClient([["project", +to.params.project_id]])],
 });
 </script>
+<style>
+@import url('../../../../../node_modules/@heartexlabs/label-studio/build/static/css/main.css');
+</style>
