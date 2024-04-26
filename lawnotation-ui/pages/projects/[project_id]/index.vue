@@ -188,7 +188,7 @@
                 <i
                   class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
                 <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                <p class="text-gray-400 text-xs">.txt file(s)</p>
+                <p class="text-gray-400 text-xs">.txt .html file(s)</p>
               </div>
             </template>
           </FileUpload>
