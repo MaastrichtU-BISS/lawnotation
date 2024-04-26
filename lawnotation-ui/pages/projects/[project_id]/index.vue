@@ -169,7 +169,7 @@
           </template>
         </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html" :pt="{
+          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html" :maxFileSize="3145728" :pt="{
             input: {
               'data-test': 'choose-documents'
             },
