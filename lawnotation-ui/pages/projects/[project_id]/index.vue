@@ -212,6 +212,7 @@ import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { isWordLevel, getDocFormat } from "~/utils/levels";
+import sanitizeHtml from "sanitize-html";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -281,7 +282,7 @@ const uploadDocuments = async (event: { files: FileList }) => {
   const texts = await Promise.all(text_promises);
 
   texts.forEach((t, index) => {
-    new_docs[index].full_text = t;
+    new_docs[index].full_text = sanitizeHtml(t);
   });
 
   try {

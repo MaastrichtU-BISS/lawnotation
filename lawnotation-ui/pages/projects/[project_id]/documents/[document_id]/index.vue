@@ -17,6 +17,9 @@
   <div>
     <template v-if="document">
       <h2 class="text-center text-lg mb-3 font-bold">{{ document.name }}</h2>
+      <!-- <div v-if="getDocFormat(document.name!) == 'html'" class="p-2">
+        <iframe :srcdoc="document.full_text" sandbox="" class="w-full min-h-[500px]"></iframe>
+      </div> -->
       <div v-if="getDocFormat(document.name!) == 'html'" class="p-2" v-html="document.full_text"></div>
       <div v-else class="p-2 whitespace-pre-wrap">{{ document.full_text }}</div>
     </template>
