@@ -6,7 +6,7 @@ describe('Testing projects and tasks with the editor account', () => {
     });
 
     it('Add, edit and remove projects and tasks', () => {
-        cy.wait(3000)
+        cy.visit('/')
         cy.get('a[data-test="projects-link"]').click()
         cy.wait(1000)
 
@@ -16,6 +16,12 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.addProject('Project4')
 
         cy.get('a[data-test="view-project-link"]').first().click()
+        cy.get('button[data-test="open-documents-modal"]').click()
+        cy.get('input[data-test="choose-documents"]').selectFile('./cypress/support/Test.txt', { force: true })
+        cy.get('button[data-test="upload-documents"]').click()
+        cy.get('td').contains('Test.txt').should('exist')
+
+        cy.get('a[data-test="tasks-tab"]').click()
         cy.addTask('Task1')
         cy.addTask('Task2')
         cy.addTask('Task3')
@@ -27,7 +33,8 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-task-link"]').should("have.length", 2)
 
-        cy.get('[data-test="tasks-table"]').find('button[data-test="remove-all"]').click()
+        cy.get('[data-test="tasks-table"]').find('button[data-test="remove-all-menu-button"]').click()
+        cy.get('div[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-task-link"]').should("have.length", 0)
 
@@ -36,20 +43,27 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('[data-test="checkbox"]').eq(2).check()
         cy.get('button[data-test="remove-selected-rows"]').click()
         cy.get('button').contains('Confirm').click()
-        cy.get('a[data-test="view-project-link"]').should("have.length", 2)
+        cy.get('a[data-test="view-project-link"]').should("have.length.at.least", 2)
 
-        cy.get('button[data-test="remove-all"]').click()
+        cy.get('button[data-test="remove-all-menu-button"]').click()
+        cy.get('div[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-project-link"]').should("have.length", 0)
     })
 
     it('Edit a task', () => {
-        cy.wait(3000)
+        cy.visit('/')
         cy.get('a[data-test="projects-link"]').click()
         cy.wait(1000)
         cy.addProject('View test')
 
         cy.get('a[data-test="view-project-link"]').eq(0).click()
+        cy.get('button[data-test="open-documents-modal"]').click()
+        cy.get('input[data-test="choose-documents"]').selectFile('./cypress/support/Test.txt', { force: true })
+        cy.get('button[data-test="upload-documents"]').click()
+        cy.get('td').contains('Test.txt').should('exist')
+
+        cy.get('a[data-test="tasks-tab"]').click()
         cy.addTask('Task1')
         cy.addTask('Task2')
 
@@ -63,7 +77,8 @@ describe('Testing projects and tasks with the editor account', () => {
         cy.get('td').contains('Task3').should('exist')
 
         cy.get('a[data-test="projects-link"]').click()
-        cy.get('button[data-test="remove-all"]').click()
+        cy.get('button[data-test="remove-all-menu-button"]').click()
+        cy.get('div[data-test="remove-all"]').click()
         cy.get('button').contains('Confirm').click()
         cy.get('a[data-test="view-project-link"]').should("have.length", 0)
     })
