@@ -99,7 +99,7 @@ describe('Assign a project to annotators as the editor', () => {
 
         cy.get('button[data-pc-section="closebutton"').click({ force: true })
 
-        cy.get('button[data-test="kebab-button"').click()
+        cy.get('button[data-test="options-menu-button"').click()
         cy.get('div[data-test="duplicate-task"').click()
         cy.get('button[data-test="metrics-button"').click()
 
