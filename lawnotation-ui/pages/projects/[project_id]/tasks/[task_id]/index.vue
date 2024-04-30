@@ -33,41 +33,73 @@
                 }
               }" />
           </div>
-          <h3 class="my-3 text-lg font-semibold">Assignments</h3>
-          <div v-if="task">
-            <Table ref="assignmentTable" endpoint="assignments" :filter="{ task_id: task?.id }" :sort="true"
-              :search="true" :selectable="true" @remove-rows="removeAssignments" @remove-all-rows="removeAllAssignments">
-              <template #row="{ item }: { item: AssignmentTableData }">
-                <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-                  {{ item.id }}
-                </td>
-                <td class="px-6 py-2">
-                  {{ item.annotator?.email ?? `annotator ${item.annotator_number}` }}
-                </td>
-                <td class="px-6 py-2">
-                  {{ item.document.name }}
-                </td>
-                <td class="px-6 py-2">
-                  <Badge :value="item.status" :severity="item.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
-                </td>
-                <td class="px-6 py-2">
-                  <span>{{ item.difficulty_rating }}</span>
-                </td>
-                <td class="px-6 py-2 flex justify-start">
-                  <template v-if="item.annotator?.id == user?.id">
-                    <NuxtLink :to="`/tasks/${task.id}`" data-test="annotate-assignment-link">
-                      <Button label="Annotate" size="small" />
-                    </NuxtLink>
-                  </template>
-                  <template v-else>
-                    <NuxtLink :to="`/assignments/${item.id}`" data-test="view-assignment-link">
-                      <Button label="View" size="small" />
-                    </NuxtLink>
-                  </template>
-                </td>
+
+          <h3 class="my-10 text-2xl font-semibold">Annotators and their documents</h3>
+          
+          <span
+            v-if="groupByAnnotators.status.value == 'error'"
+            class="block p-3 bg-red-200 border border-red-300"
+          >An error occured when loading the assignments.{{ groupByAnnotators.error.value }}</span>
+          <TreeTable
+            v-else
+            :value="groupByAnnotators.data.value!.data ?? []"
+            :totalRecords="groupByAnnotators.data.value!.total ?? 0"
+            :lazy="true"
+            :paginator="true"
+            :rows="10"
+            :loading="groupByAnnotatorsLoading"
+            @page="groupByAnnotatorsPaginate"
+          >
+            <Column columnKey="name" header="Name" expander style="white-space: nowrap; padding-right: 3rem">
+              <template #filter>
+                <InputText v-model="groupByAnnotatorsArgs.filter.email" type="text" class="p-column-filter" placeholder="Filter by name" />
               </template>
-            </Table>
-          </div>
+              <template #body="{node}">
+                <template v-if="node.type == 'annotator' && node.data.email == user!.email">
+                  <!-- <span class="bg-primary-500/20 inline-block px-2 mr-2 font-bold text-xs leading-[1.5rem] text-center inline-block p-0 px-1 rounded-full"><i class="pi pi-user"></i></span> {{ node.data.email }} -->
+                  <i class="pi pi-user mr-2"></i><span class="px-3 bg-primary-500/20 inline-block px-2 111text-xs leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.email }}</span>
+                </template>
+                <template v-else-if="node.type == 'annotator'">
+                  <i class="pi pi-user mr-2"></i>{{ node.data.email }}
+                </template>
+                <template v-else-if="node.type == 'document'">
+                  <i class="pi pi-file mr-2" /><Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name }}
+                </template>
+              </template>
+            </Column>
+            <Column columnKey="content" style="width: 99%;">
+              <template #body="{node}">
+                <template v-if="node.type == 'annotator'">
+                  <div class="flex items-center">
+                    <ProgressBar class="w-full" :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
+                    ><span class="text-sm">{{ node.data.amount_done }} / {{ node.data.amount_total }}</span></ProgressBar>
+                    <NuxtLink
+                      v-if="node.data.done < node.data.total && node.data.email == user!.email"
+                      class="ml-5"
+                      :to="`/assignments/${node.data.assignment_id}`"
+                    >
+                      <Button label="Annotate" size="small" icon="pi pi-pencil" />
+                    </NuxtLink>
+                  </div>
+                </template>
+                <template v-else-if="node.type == 'document'">
+                  <div class="flex justify-between">
+                    <div class="space-x-3">
+                      <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
+                      <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
+                        <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
+                      </Badge>
+                    </div>
+                    <div class="space-x-3">
+                      <NuxtLink v-if="node.data.status == 'done'" :to="`/assignments/${node.data.assignment_id}`">
+                        <Button label="View" size="small" icon="pi pi-eye" />
+                      </NuxtLink>
+                    </div>
+                  </div>
+                </template>
+              </template>
+            </Column>
+          </TreeTable>
         </div>
         <div v-else class="flex justify-center">
           <div class="w-1/2 space-y-2 border-neutral-300">
@@ -146,11 +178,11 @@ import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
 import type { ModalOptions } from "flowbite";
+import type { TreeNode } from "primevue/treenode";
 
 const { $toast, $trpc } = useNuxtApp();
 
 const user = useSupabaseUser();
-const config = useRuntimeConfig();
 
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
@@ -163,6 +195,26 @@ const number_of_fixed_docs = ref<number>(total_docs);
 const overlayMenu = ref()
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
+
+const groupByAnnotatorsArgs = reactive({task_id: task.id, page: 1, filter: {email: ''}});
+const groupByAnnotators = await $trpc.assignment.getGroupByAnnotators.useQuery(groupByAnnotatorsArgs);
+// groupByAnnotators.execute()
+const groupByAnnotatorsLoading = ref(false);
+const groupByAnnotatorsPaginate = ({page}: {page: number}) => {
+  // if (groupByAnnotatorsArgs.page == page + 1) return;
+  console.log("paginate called")
+  groupByAnnotatorsLoading.value = true;
+  groupByAnnotatorsArgs.page = page + 1;
+  groupByAnnotators.refresh().finally(() => groupByAnnotatorsLoading.value = false)
+}
+
+watch(() => groupByAnnotatorsArgs.filter.email, (val, oldVal) => {
+  // if (val.length > 2 || val.length == 0 || val.length < oldVal.length)
+  {
+    groupByAnnotatorsLoading.value = true;
+    groupByAnnotators.refresh().finally(() => groupByAnnotatorsLoading.value = false)
+  }
+})
 
 const defaultFormValues = {
   export_options: {
