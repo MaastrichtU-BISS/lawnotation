@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Document } from "~/types";
 import type { Context } from "../context";
+import sanitizeHtml from "sanitize-html";
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -90,6 +91,9 @@ export const documentRouter = router({
   create: protectedProcedure
     .input(ZDocumentFields)
     .mutation(async ({ ctx, input }) => {
+
+      sanitizeFullText(input);
+
       const { data, error } = await ctx.supabase
         .from("documents")
         .insert(input)
@@ -107,6 +111,11 @@ export const documentRouter = router({
   createMany: protectedProcedure
     .input(z.array(ZDocumentFields))
     .mutation(async ({ ctx, input }) => {
+
+      input.forEach(doc => {
+        sanitizeFullText(doc);
+      });
+
       const { data, error } = await ctx.supabase
         .from("documents")
         .insert(input)
@@ -306,5 +315,50 @@ export const documentRouter = router({
       return true;
     }),
 });
+
+function sanitizeFullText(doc: { full_text: string }) {
+    doc.full_text = sanitizeHtml(doc.full_text, {
+      allowedAttributes: {
+        "*": [
+          "style",
+          "height",
+          "width",
+          "valign",
+          "border",
+          "cellspacing",
+          "cellpadding",
+        ],
+      },
+      allowedStyles: {
+        "*": {
+          color: [
+            /^#(0x)?[0-9a-f]+$/i,
+            /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
+          ],
+          "background-color": [
+            /^#(0x)?[0-9a-f]+$/i,
+            /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
+          ],
+          background: [
+            /^#(0x)?[0-9a-f]+$/i,
+            /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
+          ],
+          "text-align": [/^left$/, /^right$/, /^center$/],
+          display: [
+            /^inline$/,
+            /^block$/,
+            /^flex$/,
+            /^inline-block$/,
+            /^grid$/,
+          ],
+          "font-size": [/^\d+(?:px|em|%)$/],
+          padding: [/^^\d+(?:px|em|%|)(\s\d+(?:px|em|%|)?)?$/],
+          margin: [/^\d+(?:px|em|%|)(\s\d+(?:px|em|%|)?)?$/],
+          "border-radius": [/^\d+(?:px|em|%|)(\s\d+(?:px|em|%|)?)?$/],
+          float: [/^left$/, /^right$/, /^top$/, /^bottom$/],
+        },
+      },
+    });
+}
 
 export type DocumentRouter = typeof documentRouter;

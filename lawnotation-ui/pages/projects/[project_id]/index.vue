@@ -53,7 +53,7 @@
               <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :pt="{
                 header: {
                   style: 'padding-bottom: 0px'
-                }, 
+                },
                 content: {
                   style: 'padding-bottom: 0px'
                 }
@@ -169,20 +169,21 @@
           </template>
         </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html" :maxFileSize="3145728" :pt="{
-            input: {
-              'data-test': 'choose-documents'
-            },
-            uploadbutton: {
-              root: {
-                'data-test': 'upload-documents'
+          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html"
+            :maxFileSize="3145728" :pt="{
+              input: {
+                'data-test': 'choose-documents'
+              },
+              uploadbutton: {
+                root: {
+                  'data-test': 'upload-documents'
+                }
+              },
+              thumbnail: {
+                class: 'hidden'
               }
-            },
-            thumbnail: {
-              class: 'hidden'
             }
-          }
-            ">
+              ">
             <template #empty>
               <div class="flex items-center justify-center flex-col">
                 <i
@@ -211,8 +212,7 @@ import type {
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel, getDocFormat } from "~/utils/levels";
-import sanitizeHtml from "sanitize-html";
+import { isWordLevel } from "~/utils/levels";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -282,7 +282,7 @@ const uploadDocuments = async (event: { files: FileList }) => {
   const texts = await Promise.all(text_promises);
 
   texts.forEach((t, index) => {
-    new_docs[index].full_text = sanitizeHtml(t);
+    new_docs[index].full_text = t;
   });
 
   try {
