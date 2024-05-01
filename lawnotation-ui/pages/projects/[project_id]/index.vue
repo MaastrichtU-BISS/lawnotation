@@ -92,10 +92,10 @@
                   </TabPanel>
                   <TabPanel header="Upload">
                     <div v-if="!uploadHasStarted" class="pt-6">
-                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
+                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json" chooseLabel="Select"
                         :pt="{
                           chooseButton: {
-                            'data-test': 'choose-task'
+                            'data-test': 'choose-task',
                           },
                           uploadbutton: {
                             root: {
@@ -169,7 +169,7 @@
           </template>
         </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html"
+          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html" chooseLabel="Select"
             :maxFileSize="3145728" :pt="{
               input: {
                 'data-test': 'choose-documents'
