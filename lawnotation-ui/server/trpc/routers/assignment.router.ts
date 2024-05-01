@@ -504,7 +504,7 @@ export const assignmentRouter = router({
         const grouped = data
           .map(ann => ({
             type: 'annotator',
-            key: `ann-${ann.id.substring(0, 8)}`,
+            key: `ann-${ann.id}`,
             data: {
               email: ann.email,
               annotator_number: ann.assignments[0].annotator_number,
@@ -513,7 +513,7 @@ export const assignmentRouter = router({
             },
             children: ann.assignments!.map(ass => ({
               type: 'document',
-              key: `doc-${ann.id.substring(0, 8)}-${ass.id}`,
+              key: `ass-${ass.id}`,
               data: {
                 assignment_id: ass.id,
                 seq_pos: ass.seq_pos,

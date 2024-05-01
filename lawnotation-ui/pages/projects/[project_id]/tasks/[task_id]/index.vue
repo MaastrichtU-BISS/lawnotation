@@ -35,15 +35,19 @@
           </div>
 
           <h3 class="my-10 text-2xl font-semibold">Annotators and their documents</h3>
-          
+
           <span
             v-if="groupByAnnotators.status.value == 'error'"
             class="block p-3 bg-red-200 border border-red-300"
           >An error occured when loading the assignments.{{ groupByAnnotators.error.value }}</span>
           <TreeTable
             v-else
-            :value="groupByAnnotators.data.value!.data ?? []"
-            :totalRecords="groupByAnnotators.data.value!.total ?? 0"
+            :value="groupByAnnotators.data.value!.data"
+            :totalRecords="groupByAnnotators.data.value!.total"
+            :pt:column="'w-2'"
+            v-model:selection-keys="groupByAnnotatorsSelection"
+            selectionMode="checkbox"
+            id="tableGroupByAnnotators"
             :lazy="true"
             :paginator="true"
             :rows="10"
@@ -52,18 +56,18 @@
           >
             <Column columnKey="name" header="Name" expander style="white-space: nowrap; padding-right: 3rem">
               <template #filter>
-                <InputText v-model="groupByAnnotatorsArgs.filter.email" type="text" class="p-column-filter" placeholder="Filter by name" />
+                <InputText v-model="groupByAnnotatorsArgs.filter.email" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by email" />
               </template>
               <template #body="{node}">
                 <template v-if="node.type == 'annotator' && node.data.email == user!.email">
-                  <!-- <span class="bg-primary-500/20 inline-block px-2 mr-2 font-bold text-xs leading-[1.5rem] text-center inline-block p-0 px-1 rounded-full"><i class="pi pi-user"></i></span> {{ node.data.email }} -->
-                  <i class="pi pi-user mr-2"></i><span class="px-3 bg-primary-500/20 inline-block px-2 111text-xs leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.email }}</span>
+                  <i class="pi pi-user mr-3 ml-2"></i>
+                  <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.email }}</span>
                 </template>
                 <template v-else-if="node.type == 'annotator'">
-                  <i class="pi pi-user mr-2"></i>{{ node.data.email }}
+                  <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.email }}
                 </template>
                 <template v-else-if="node.type == 'document'">
-                  <i class="pi pi-file mr-2" /><Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name }}
+                  <i class="pi pi-file mr-3 ml-2" /><Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name }}
                 </template>
               </template>
             </Column>
@@ -71,10 +75,12 @@
               <template #body="{node}">
                 <template v-if="node.type == 'annotator'">
                   <div class="flex items-center">
-                    <ProgressBar class="w-full" :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
+                    <ProgressBar
+                      class="w-full"
+                      :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
                     ><span class="text-sm">{{ node.data.amount_done }} / {{ node.data.amount_total }}</span></ProgressBar>
                     <NuxtLink
-                      v-if="node.data.done < node.data.total && node.data.email == user!.email"
+                      v-if="node.data.amount_done < node.data.amount_total && node.data.email == user!.email"
                       class="ml-5"
                       :to="`/assignments/${node.data.assignment_id}`"
                     >
@@ -172,7 +178,6 @@ import type {
 import { PublicationStatus } from "~/types"
 import { isWordLevel } from "~/utils/levels";
 import Table from "~/components/Table.vue";
-import { Modal } from "flowbite";
 import _ from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
@@ -196,9 +201,9 @@ const overlayMenu = ref()
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
 
+const groupByAnnotatorsSelection = ref();
 const groupByAnnotatorsArgs = reactive({task_id: task.id, page: 1, filter: {email: ''}});
 const groupByAnnotators = await $trpc.assignment.getGroupByAnnotators.useQuery(groupByAnnotatorsArgs);
-// groupByAnnotators.execute()
 const groupByAnnotatorsLoading = ref(false);
 const groupByAnnotatorsPaginate = ({page}: {page: number}) => {
   // if (groupByAnnotatorsArgs.page == page + 1) return;
@@ -208,12 +213,9 @@ const groupByAnnotatorsPaginate = ({page}: {page: number}) => {
   groupByAnnotators.refresh().finally(() => groupByAnnotatorsLoading.value = false)
 }
 
-watch(() => groupByAnnotatorsArgs.filter.email, (val, oldVal) => {
-  // if (val.length > 2 || val.length == 0 || val.length < oldVal.length)
-  {
-    groupByAnnotatorsLoading.value = true;
-    groupByAnnotators.refresh().finally(() => groupByAnnotatorsLoading.value = false)
-  }
+watch(() => groupByAnnotatorsArgs.filter.email, () => {
+  groupByAnnotatorsLoading.value = true;
+  groupByAnnotators.refresh().finally(() => groupByAnnotatorsLoading.value = false)
 })
 
 const defaultFormValues = {
@@ -515,3 +517,15 @@ definePageMeta({
   ],
 });
 </script>
+
+<style lang="scss">
+/* hide the header columns, but not the filter column (https://stackoverflow.com/a/57236693/17864167) */
+#tableGroupByAnnotators table thead {
+  tr {
+    display: none;
+  }
+  tr ~ tr {
+    display: table-row;
+  }
+}
+</style>
