@@ -35,6 +35,28 @@
           </div>
 
           <h3 class="my-10 text-2xl font-semibold">Annotators and their documents</h3>
+          
+          <Button
+            v-if="groupByAnnotators.data.value?.total"
+            @click="removeAllAssignments(refreshGroupByAnnotators)"
+            severity="danger"
+            outlined
+            class="mb-3"
+            data-test="remove-all-rows"
+          >
+            Remove all assignments ({{ groupByAnnotators.data.value?.total }})
+          </Button>
+          
+          <Button
+            v-if="groupByAnnotatorsSelectedAssignmentIds.length"
+            @click="removeAssignments(groupByAnnotatorsSelectedAssignmentIds, refreshGroupByAnnotators)"
+            severity="danger"
+            outlined
+            class="ml-4 mb-3"
+            data-test="remove-selected-rows"
+          >
+            Remove selected assignments ({{ groupByAnnotatorsSelectedAssignmentIds.length }})
+          </Button>
 
           <span
             v-if="groupByAnnotators.status.value == 'error'"
@@ -44,7 +66,14 @@
             v-else
             :value="groupByAnnotators.data.value!.data"
             :totalRecords="groupByAnnotators.data.value!.total"
-            :pt:column="'w-2'"
+            :pt="{
+              table: {
+                class: 'border-collapse w-full'
+              },
+              // column:{
+              //   rowCheckbox:{box:'w-5 h-5'}
+              // }
+            }"
             v-model:selection-keys="groupByAnnotatorsSelection"
             selectionMode="checkbox"
             id="tableGroupByAnnotators"
@@ -183,7 +212,6 @@ import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
 import type { ModalOptions } from "flowbite";
-import type { TreeNode } from "primevue/treenode";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -201,22 +229,63 @@ const overlayMenu = ref()
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
 
-const groupByAnnotatorsSelection = ref();
+// start definitions related to treeview grouped by annotators
+
+const groupByAnnotatorsSelection = ref<Record<string, {checked: boolean, partialChecked: boolean}>>({});
+const groupByAnnotatorsSelectedAssignmentIds = computed(() => {
+  return Object
+    .entries(groupByAnnotatorsSelection.value)
+    .filter(x => x[0].startsWith('ass-') && x[1].checked)
+    .map(x => x[0].replace('ass-', ''))
+})
 const groupByAnnotatorsArgs = reactive({task_id: task.id, page: 1, filter: {email: ''}});
 const groupByAnnotators = await $trpc.assignment.getGroupByAnnotators.useQuery(groupByAnnotatorsArgs);
 const groupByAnnotatorsLoading = ref(false);
-const groupByAnnotatorsPaginate = ({page}: {page: number}) => {
-  // if (groupByAnnotatorsArgs.page == page + 1) return;
-  console.log("paginate called")
+const refreshGroupByAnnotators = () => {
   groupByAnnotatorsLoading.value = true;
-  groupByAnnotatorsArgs.page = page + 1;
   groupByAnnotators.refresh().finally(() => groupByAnnotatorsLoading.value = false)
 }
+const groupByAnnotatorsPaginate = ({page}: {page: number}) => {
+  groupByAnnotatorsArgs.page = page + 1;
+  refreshGroupByAnnotators()
+}
+watch(() => groupByAnnotatorsArgs.filter.email, refreshGroupByAnnotators)
 
-watch(() => groupByAnnotatorsArgs.filter.email, () => {
-  groupByAnnotatorsLoading.value = true;
-  groupByAnnotators.refresh().finally(() => groupByAnnotatorsLoading.value = false)
-})
+// end
+
+// removeAssignments(groupByAnnotatorsSelection.value.filter(x => x.), refreshGroupByAnnotators)
+
+const removeAssignments = async (ids: string[], finish: () => void) => {
+  confirmBox(
+    `Are you sure you want to delete ${ids.length} assignment${ids.length > 1 ? "s" : ""}?`,
+    "You won't be able to revert this!",
+    "warning"
+  ).then((result) => {
+    if (result.isConfirmed) {
+      Promise.all(ids.map((id) => $trpc.assignment.delete.mutate(+id)))
+        .then(() => {
+          finish();
+          $toast.success(`Assignment${ids.length > 0 ? 's' : ''} have been succesfully removed`);
+        });
+    }
+  });
+};
+const removeAllAssignments = async (finish: () => void) => {
+  confirmBox(
+    "Are you sure you want to delete all assignments from this task?",
+    "You won't be able to revert this!",
+    "warning"
+  ).then((result) => {
+    if (result.isConfirmed) {
+      $trpc.assignment.deleteAllFromTask.mutate(task!.id)
+        .then(() => {
+          finish()
+          $toast.success(`All assignments have been succesfully removed`);
+        });
+    }
+  });
+};
+
 
 const defaultFormValues = {
   export_options: {
@@ -364,15 +433,6 @@ const createAssignments = async () => {
       $toast.error(`Error creating assignment: ${error.message}`);
     }
   }
-};
-
-const removeAssignments = async (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
-  finish(ids.map((id) => $trpc.assignment.delete.mutate(+id)));
-  await totalAssignments.refresh();
-};
-const removeAllAssignments = (finish: (promises: (Promise<Boolean>)) => void) => {
-  if (!task) throw new Error("Invalid Task!");
-  finish($trpc.assignment.deleteAllFromTask.mutate(task.id));
 };
 
 const replicateTask = async () => {
