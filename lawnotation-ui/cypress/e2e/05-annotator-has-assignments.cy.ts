@@ -6,7 +6,7 @@ describe('Login as annotator and test assignment', () => {
   });
 
   it('Go to assignment and annotate', () => {
-    cy.wait(3000)
+    cy.visit('/')
     cy.get('button[data-test="start-annotating-button"]').should('not.exist')
 
     cy.get('[data-test="assigned-tasks-menu-item"]').click()
@@ -17,7 +17,6 @@ describe('Login as annotator and test assignment', () => {
     cy.wait(1000)
     cy.get('span[data-test="progress"').contains("1 / 1").should('exist')
     cy.get('span[data-label="Label1"]').should('not.exist')
-    cy.get('span').contains('Label1').click()
     cy.selectText('Lorem')
     cy.contains('Lorem').click(10, 10)
     cy.get('span[data-label="Label1"]').contains('Lorem').should('exist')

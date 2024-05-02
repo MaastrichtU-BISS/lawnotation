@@ -1,10 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Annotation, Task, User, Annotator } from "~/types";
+import type { Task, Annotator } from "~/types";
 import type { Context } from "../context";
 import { appRouter } from ".";
-import type { Database } from "~/types/supabase";
 import { zValidEmail } from "~/utils/validators";
 
 const ZTaskFields = z.object({
@@ -282,13 +281,7 @@ export const taskRouter = router({
 
       const task = await caller.task.findById(task_id);
 
-      const new_task = await caller.task.create({
-        name: task.name,
-        desc: task.desc,
-        project_id: task.project_id,
-        ann_guidelines: task.ann_guidelines,
-        labelset_id: task.labelset_id,
-      });
+      const new_task = await caller.task.create(task);
 
       const assignments = await caller.assignment.findAssignmentsByTask(
         task_id

@@ -11,10 +11,15 @@
   ]" />
 
   <div v-if="project">
-    <TabView>
-      <TabPanel header="Tasks" :pt="{
+    <TabView v-model:activeIndex="activeTab">
+      <TabPanel :disabled="!documentTable?.total" :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
       }">
+      <template #header>
+          <div class="flex gap-3 items-center h-6">
+            <span class="leading-none whitespace-nowrap">Tasks</span>
+          </div>
+        </template>
         <div class="dimmer-wrapper pt-2">
           <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
           <div class="dimmer-content">
@@ -50,16 +55,25 @@
                   </td>
                 </template>
               </Table>
-              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :pt="{
-                header: {
-                  style: 'padding-bottom: 0px'
-                }, 
-                content: {
-                  style: 'padding-bottom: 0px'
-                }
-              }">
-                <TabView v-model:active-index="activeTabTaskModal" class="min-h-[540px]">
-                  <TabPanel header="New">
+              <Dialog 
+                v-model:visible="showCreateTaskModal" 
+                modal 
+                header="Create task" 
+                :autoZIndex="false" 
+                :draggable="false" 
+                :pt="{
+                  root: '!w-[80vw] xl:!w-[50vw]',
+                  header: {
+                    style: 'padding-bottom: 0px'
+                  }, 
+                  content: {
+                    style: 'padding-bottom: 0px'
+                  }
+                }"
+                :ptOptions="{ mergeProps: true }"
+              >
+                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[540px]">
+                  <TabPanel header="New" :pt="{ headerAction: {'data-test': 'new-tab'} }">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
                         <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
@@ -72,17 +86,28 @@
                       placeholder="Description" class="w-full mb-4" />
                     <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
                       cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
-                    <div class="flex justify-between items-center pb-4">
-                      <Dropdown data-test="select-labelset" v-model="new_task.labelset_id" :options="labelsets.data.value"
+                    <div class="flex items-center pb-4">
+                      <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value"
                         filter optionLabel="name" option-value="id" placeholder="Select Labelset"
-                        class="w-full md:w-[20rem]" />
-                      <NuxtLink :to="`/labelset/new`">
-                        <Button label="Create new labelset" size="small" link />
-                      </NuxtLink>
+                        class="w-full md:w-1/2" data-test="select-labelset" />
+                      <Button 
+                        label="Create new labelset" 
+                        size="small" 
+                        @click="activeTabTaskModal = 2" 
+                        link 
+                        data-test='create-new-labelset'
+                      />
                     </div>
-                    <Dropdown data-test="select-annotation-level" v-model="new_task.annotation_level" optionLabel="name"
-                      option-value="type" placeholder="Select an annotation level" class="w-full"
-                      :options="[{ name: 'Word', type: 'word' }, { name: 'Document', type: 'document' }]" />
+                    <div>
+                      <p class="font-bold">Annotation level</p>
+                      <SelectButton v-model="new_task.annotation_level" :options="['word', 'document']" 
+                        class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level"
+                        :pt="{
+                          label: {
+                            class: 'font-normal'
+                          }
+                        }" />
+                    </div>
                     <div class="flex justify-center mt-6">
                       <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
                         @click="showCreateTaskModal = false;" />
@@ -139,15 +164,46 @@
                       </div>
                     </div>
                   </TabPanel>
+                  <TabPanel header="Labelsets">
+                    <template v-if="labelsetStage === 'overview'">
+                      <Labelsets @add-labelset="loadLabelset" @edit-labelset="(labelsetId: number) => loadLabelset(labelsetId)"/>
+                    </template>
+                    <template v-else-if="labelsetStage === 'labelset'">
+                      <Button 
+                        label="back"
+                        size="small"
+                        icon="pi pi-arrow-left"
+                        link
+                        @click="labelsetStage = 'overview'"
+                        :pt="{root: 'ps-0'}"
+                        :ptOptions="{ mergeProps: true }"
+                      />
+                      <Labelset 
+                        v-model="labelset" 
+                        @labelset-persisted="refreshLabelsets"
+                      />
+                    </template>
+                  </TabPanel>
                 </TabView>
               </Dialog>
             </div>
           </div>
         </div>
       </TabPanel>
-      <TabPanel header="Documents" :pt="{
+      <TabPanel :pt="{
         headeraction: { 'data-test': 'documents-tab' }
       }">
+        <template #header>
+          <div class="flex gap-3 items-center h-6">
+            <span class="leading-none whitespace-nowrap">Documents</span>
+            <Badge 
+              v-if="documentTable?.total"
+              :value="documentTable?.total || 0" 
+              :pt="{ root: 'opacity-75' }" 
+              :ptOptions="{ mergeProps: true }"
+            ></Badge>
+          </div>
+        </template>
         <div class="flex justify-end pt-2">
           <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
             icon-pos="right" data-test="open-documents-modal" />
@@ -202,7 +258,7 @@ import type {
   Project,
   Document,
   Task,
-  Labelset,
+  Labelset as LabelsetType,
   Assignment,
   Annotation,
   User,
@@ -210,6 +266,8 @@ import type {
 } from "~/types";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
+import Labelsets from "~/components/Labelsets.vue";
+import Labelset from "~/components/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { isWordLevel } from "~/utils/levels";
 
@@ -225,14 +283,23 @@ const config = useRuntimeConfig();
 
 const loading_docs = ref(false);
 
+const activeTab = ref<number>(0);
 const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
 const activeTabTaskModal = ref<number>(0);
+const labelsetStage = ref<'overview' | 'labelset'>('overview');
+const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
+  id: undefined,
+  editor_id: undefined,
+  name: "",
+  desc: "",
+  labels: [],
+});
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
-const labelsets = await $trpc.labelset.find.useQuery({});
+let labelsets = await $trpc.labelset.find.useQuery({});
 
 const import_json = ref<any>(null);
 const import_progress = ref<{
@@ -260,6 +327,26 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   project_id: undefined,
   annotation_level: undefined,
 });
+
+const loadLabelset = async (id?: number) => {
+  if (id) {
+    labelset.value = await $trpc.labelset.findById.query(id);
+  } else {
+    labelset.value = {
+      id: undefined,
+      editor_id: undefined,
+      name: "",
+      desc: "",
+      labels: [],
+    };
+  }
+  labelsetStage.value = 'labelset';
+}
+
+const refreshLabelsets = async () => {
+  labelsetStage.value = 'overview';
+  labelsets = await $trpc.labelset.find.useQuery({});
+}
 
 const uploadDocuments = async (event: { files: FileList }) => {
 
@@ -343,10 +430,6 @@ watch(showCreateTaskModal, (new_val) => {
   if (new_val) {
     resetModal();
   }
-});
-
-watch(activeTabTaskModal, (new_val) => {
-  resetModal();
 });
 
 const resetModal = () => {
@@ -545,36 +628,29 @@ const importTask = async () => {
   }
 };
 
-const removeDocuments = async (ids: string[]) => {
-  const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.document.delete.mutate(+id)));
-  await Promise.all(promises);
-  await documentTable.value?.refresh();
-  $toast.success("Documents successfully deleted!");
+const removeDocuments = (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+  finish(ids.map((id) => $trpc.document.delete.mutate(+id)));
 };
-const removeAllDocuments = async () => {
-  if (!project) throw new Error("Invalid Project!");
-  await $trpc.document.deleteAllFromProject.mutate(+project.id);
-  await documentTable.value?.refresh();
-  $toast.success("Documents successfully deleted!");
+const removeAllDocuments = (finish: (promises: (Promise<Boolean>)) => void) => {
+  finish($trpc.document.deleteAllFromProject.mutate(+project.id));
 };
-const removeTasks = async (ids: string[]) => {
-  const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.task.delete.mutate(+id)));
-  await Promise.all(promises);
-  await taskTable.value?.refresh();
-  $toast.success("Tasks successfully deleted!");
+
+const removeTasks = (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+  finish(ids.map((id) => $trpc.task.delete.mutate(+id)));
 };
-const removeAllTasks = async () => {
-  if (!project) throw new Error("Invalid Project!");
-  await $trpc.task.deleteAllFromProject.mutate(project.id);
-  await taskTable.value?.refresh();
-  $toast.success("Tasks successfully deleted!");
+const removeAllTasks = (finish: (promises: (Promise<Boolean>)) => void) => {
+  finish($trpc.task.deleteAllFromProject.mutate(project.id));
 };
 
 onMounted(() => {
   new_task.project_id = project.id;
+
+  if (!documentTable?.value?.total) activeTab.value = 1;
 });
+
+watch(() => documentTable?.value?.total, (newTotal) => {
+  if (newTotal) activeTab.value = 0;
+})
 
 definePageMeta({
   middleware: [
@@ -596,4 +672,4 @@ div.tabs-holder {
     @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
 }
-</style>
+</style>~/components/Labelsets.vue
