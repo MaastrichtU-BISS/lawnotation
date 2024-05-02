@@ -10,3 +10,8 @@ node_modules
 dist
 .DS_Store
 .vercel
+
+cypress/downloads
+cypress/screenshots
+cypress/videos
+test-results.xml
