@@ -1,136 +1,42 @@
 <template>
-  <Breadcrumb v-if="labelset" :crumbs="[
-    {
-      name: 'Labelsets',
-      link: '/labelset',
-    },
-    {
-      name: `Labelset ${labelset.name}`,
-      link: `/labelset/${labelset.id}`,
-    },
-  ]" />
+  <Breadcrumb
+    v-if="labelset"
+    :crumbs="[
+      {
+        name: 'Labelsets',
+        link: '/labelset',
+      },
+      {
+        name: `Labelset ${labelset.name}`,
+        link: `/labelset/${labelset.id}`,
+      },
+    ]"
+  />
 
   <div v-if="labelset === undefined">Loading labelset...</div>
   <div v-else>
-    <div class="flex flex-row justify-between">
-      <h2 class="text-2xl">Editing labelset: {{ labelset.name }}</h2>
-      <button class="base btn-primary" data-test="Save-changes" @click="save_labelset">Save changes</button>
-    </div>
-    <hr class="pb-4 mt-2" />
-    <div class="row">
-      <div class="flex flex-col space-y-2">
-        <input class="base" type="text" data-test="edit-labelset-name" v-model="labelset.name" placeholder="Labelset name" />
-        <textarea class="base" data-test="edit-labelset-description" :value="labelset.desc"
-          @input="labelset.desc = ($event.target as HTMLTextAreaElement)?.value"
-          placeholder="Labelset description"></textarea>
-      </div>
-      <hr class="my-3" />
-      <div class="flex space-x-4">
-        <input v-model="new_label.color" type="color" class="self-center base" />
-        <input class="base grow" v-model="new_label.name" data-test="label-name" placeholder="Label name" type="text"
-          @keydown.enter="add_label()" />
-        <button @click="add_label()" data-test="Add-label" class="base btn-primary">Add</button>
-        <!-- <input
-          class="hidden"
-          type="file"
-          @change="import_labels_file_changed"
-          id="import_file_holder"
-        /> -->
-      </div>
-      <hr class="my-3" />
-      <div class="col">
-        <div class="flex items-center gap-3 mb-2 label-holder" v-for="(label, i) of labelset.labels" :key="label.name">
-          <button class="base btn-secondary" @click="labelset.labels.splice(i, 1)" data-test="delete-label">
-            <svg style="width: 1rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-            </svg>
-          </button>
-          <span class="px-3 py-1 rounded label" :style="{ backgroundColor: `${label.color}` }" data-test="label">{{ label.name }}</span>
-        </div>
-      </div>
-    </div>
+    <Labelset v-model="labelset" @labelset-persisted="navigateTo('/labelset')" />
   </div>
 </template>
+
 <script setup lang="ts">
-import type { Labelset } from "~/types";
+import type { Labelset as LabelsetType } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
+import Labelset from "~/components/Labelset.vue";
 
 const route = useRoute();
-const { $toast, $trpc } = useNuxtApp();
+const { $trpc } = useNuxtApp();
 
-const user = useSupabaseUser();
-
-const new_label = reactive(get_label_default());
-
-const labelset = ref<Labelset>();
-
-function get_label_default() {
-  const r = Math.floor(Math.random() * 180 + 50);
-  const b = Math.floor(Math.random() * 180 + 50);
-  const g = Math.floor(Math.random() * 180 + 50);
-  return {
-    name: "",
-    color: `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`,
-    meta: {
-      editing: false,
-    },
-  };
-}
-
-const validate_new_label = () => {
-  if (!labelset.value) throw new Error("No labelset to add label to");
-
-  if (!/^\#[a-zA-Z0-9]{6}$/.test(new_label.color)) throw new Error("Invalid label color");
-  if (!/^[a-zA-Z0-9 ]+$/.test(new_label.name)) throw new Error("Invalid label name");
-  if (
-    labelset.value.labels.some(
-      (x) => x.name.toLocaleLowerCase() === new_label.name.toLocaleLowerCase()
-    )
-  )
-    throw new Error("A label with this name already exists");
-};
-
-const add_label = () => {
-  try {
-    validate_new_label();
-    labelset.value!.labels.push({
-      name: new_label.name,
-      color: new_label.color,
-    });
-    Object.assign(new_label, get_label_default());
-  } catch (error) {
-    if (error instanceof Error) $toast.error(`Error adding label: ${error.message}`);
-  }
-};
-
-const save_labelset = async () => {
-  try {
-    if (!user.value) throw new Error("Invalid user");
-    if (!labelset.value) throw new Error("No labelset to save");
-
-    const create = await $trpc.labelset.update.mutate({
-      id: labelset.value.id,
-      updates: {
-        ...labelset.value,
-        editor_id: user.value.id,
-      },
-    });
-    $toast.success("Saved labelset");
-  } catch (error) {
-    if (error instanceof Error) $toast.error(`Error saving labelset: ${error.message}`);
-  }
-};
+const labelset = ref<LabelsetType>();
 
 onMounted(async () => {
-  const loaded_labelset = await $trpc.labelset.findById.query(+route.params.labelset_id);
-  labelset.value = loaded_labelset;
-  // Object.assign(labelset, loaded_labelset);
+  labelset.value = await $trpc.labelset.findById.query(+route.params.labelset_id);
 });
 
 definePageMeta({
-  middleware: ["auth", async (to) => authorizeClient([["labelset", +to.params.labelset_id]])],
+  middleware: [
+    "auth",
+    async (to) => authorizeClient([["labelset", +to.params.labelset_id]]),
+  ],
 });
 </script>
- 
