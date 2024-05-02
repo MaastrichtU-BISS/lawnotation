@@ -11,10 +11,15 @@
   ]" />
 
   <div v-if="project">
-    <TabView>
-      <TabPanel header="Tasks" :pt="{
+    <TabView v-model:activeIndex="activeTab">
+      <TabPanel :disabled="!documentTable?.total" :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
       }">
+      <template #header>
+          <div class="flex gap-3 items-center h-6">
+            <span class="leading-none whitespace-nowrap">Tasks</span>
+          </div>
+        </template>
         <div class="dimmer-wrapper pt-2">
           <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
           <div class="dimmer-content">
@@ -185,9 +190,20 @@
           </div>
         </div>
       </TabPanel>
-      <TabPanel header="Documents" :pt="{
+      <TabPanel :pt="{
         headeraction: { 'data-test': 'documents-tab' }
       }">
+        <template #header>
+          <div class="flex gap-3 items-center h-6">
+            <span class="leading-none whitespace-nowrap">Documents</span>
+            <Badge 
+              v-if="documentTable?.total"
+              :value="documentTable?.total || 0" 
+              :pt="{ root: 'opacity-75' }" 
+              :ptOptions="{ mergeProps: true }"
+            ></Badge>
+          </div>
+        </template>
         <div class="flex justify-end pt-2">
           <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
             icon-pos="right" data-test="open-documents-modal" />
@@ -267,6 +283,7 @@ const config = useRuntimeConfig();
 
 const loading_docs = ref(false);
 
+const activeTab = ref<number>(0);
 const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
@@ -627,7 +644,13 @@ const removeAllTasks = (finish: (promises: (Promise<Boolean>)) => void) => {
 
 onMounted(() => {
   new_task.project_id = project.id;
+
+  if (!documentTable?.value?.total) activeTab.value = 1;
 });
+
+watch(() => documentTable?.value?.total, (newTotal) => {
+  if (newTotal) activeTab.value = 0;
+})
 
 definePageMeta({
   middleware: [

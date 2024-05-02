@@ -1,24 +1,26 @@
 import Role from './role';
 
 Cypress.Commands.add("login", (role: Role) => {
-  cy.visit('/auth/login')
+  cy.session(role, () => {
+    cy.visit('/auth/login')
 
-  cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
-  cy.get('input[data-test="email-field-to-login"]').type(`${role}@example.com`)
-  cy.get('button[data-test="login-button"]').click()
-  cy.wait(4000)
+    cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
+    cy.get('input[data-test="email-field-to-login"]').type(`${role}@example.com`)
+    cy.get('button[data-test="login-button"]').click()
+    cy.wait(4000)
 
-  cy.request(`http://127.0.0.1:54324/api/v1/mailbox/${role}`).then((response) => {
-    return response.body.pop().id;
-  }).then((mailId) => {
-    return cy.request(`http://127.0.0.1:54324/serve/mailbox/${role}/${mailId}`).then((response) => {
-      return response.body.html
-    })
-  }).then(html => {
-    return Cypress.$(html).find('span').text();
-  }).then(code => cy.get('input[data-test="token-field-to-login"]').type(code))
+    cy.request(`http://127.0.0.1:54324/api/v1/mailbox/${role}`).then((response) => {
+      return response.body.pop().id;
+    }).then((mailId) => {
+      return cy.request(`http://127.0.0.1:54324/serve/mailbox/${role}/${mailId}`).then((response) => {
+        return response.body.html
+      })
+    }).then(html => {
+      return Cypress.$(html).find('span').text();
+    }).then(code => cy.get('input[data-test="token-field-to-login"]').type(code))
 
-  cy.get('button[data-test="login-button"]').click()
+    cy.get('button[data-test="login-button"]').click()
+  })
 });
 
 Cypress.Commands.add('resetDatabase', () => {

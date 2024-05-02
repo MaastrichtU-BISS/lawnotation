@@ -6,8 +6,8 @@ describe('Test label functionality', () => {
   });
 
   it('Enters label studio and tests functionality', () => {
-    cy.wait(3000)
-    cy.get('a[data-test="labelsets-link"]').click()
+    cy.visit('/')
+    cy.get('a[data-test="labelset-link"]').click()
     
     cy.wait(2000)
     cy.get('button[data-test="create-new-labelset"]').click()
