@@ -2,6 +2,7 @@
 export default defineNuxtConfig({
   devtools: { enabled: false },
   runtimeConfig: {
+    mailtrapToken: process.env.MAILTRAP_TOKEN,
     public: {
       baseURL:
         process.env.NODE_ENV === "production"
