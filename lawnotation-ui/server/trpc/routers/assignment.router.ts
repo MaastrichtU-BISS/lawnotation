@@ -52,9 +52,7 @@ export const assignmentRouter = router({
       })
     )
     .query(async ({ctx, input}) => {
-      const serviceClient = ctx.getSupabaseServiceRoleClient();
-
-      const email_found = (await serviceClient.from('users').select().eq('email', input.email).maybeSingle());
+      const email_found = await ctx.supabase.from('users').select().eq('email', input.email).maybeSingle();
       let user_id: User['id'] | null = null;
       if (!email_found.data) {
         // email is a new user
@@ -69,7 +67,7 @@ export const assignmentRouter = router({
         user_id = email_found.data.id as string;
         const user_email = email_found.data.email as string;
 
-        await serviceClient.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
+        await ctx.supabase.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
 
         const config = useRuntimeConfig();
         // send email to existing user
