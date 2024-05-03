@@ -9,7 +9,7 @@
  */
 import { TRPCError, initTRPC } from "@trpc/server";
 import { ZodError } from "zod";
-import { Context } from "~/server/trpc/context";
+import { type Context } from "~/server/trpc/context";
 
 const t = initTRPC.context<Context>().create({
   errorFormatter(opts) {
