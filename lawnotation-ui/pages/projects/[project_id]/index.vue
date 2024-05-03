@@ -117,10 +117,10 @@
                   </TabPanel>
                   <TabPanel header="Upload">
                     <div v-if="!uploadHasStarted" class="pt-6">
-                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
+                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json" chooseLabel="Select"
                         :pt="{
                           chooseButton: {
-                            'data-test': 'choose-task'
+                            'data-test': 'choose-task',
                           },
                           uploadbutton: {
                             root: {
@@ -225,26 +225,27 @@
           </template>
         </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt" :pt="{
-            input: {
-              'data-test': 'choose-documents'
-            },
-            uploadbutton: {
-              root: {
-                'data-test': 'upload-documents'
+          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html" chooseLabel="Select"
+            :maxFileSize="3145728" :pt="{
+              input: {
+                'data-test': 'choose-documents'
+              },
+              uploadbutton: {
+                root: {
+                  'data-test': 'upload-documents'
+                }
+              },
+              thumbnail: {
+                class: 'hidden'
               }
-            },
-            thumbnail: {
-              class: 'hidden'
             }
-          }
-            ">
+              ">
             <template #empty>
               <div class="flex items-center justify-center flex-col">
                 <i
                   class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
                 <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                <p class="text-gray-400 text-xs">.txt file(s)</p>
+                <p class="text-gray-400 text-xs">.txt .html file(s)</p>
               </div>
             </template>
           </FileUpload>
@@ -370,9 +371,6 @@ const uploadDocuments = async (event: { files: FileList }) => {
   texts.forEach((t, index) => {
     new_docs[index].full_text = t;
   });
-
-  // TODO: progress bar instead of instantly adding to list, and after all are added reload documents table (keep loading = true while adding?)
-  // documents.push(...(await documentApi.createDocuments(new_docs)));
 
   try {
     await $trpc.document.createMany.mutate(new_docs);

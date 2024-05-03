@@ -20,8 +20,10 @@ describe('Assign a project to annotators as the editor', () => {
 
         cy.get('button[data-test="open-documents-modal"]').click()
         cy.get('input[data-test="choose-documents"]').selectFile('./cypress/support/Test.txt', { force: true })
+        cy.get('input[data-test="choose-documents"]').selectFile('./cypress/support/xssattack.html', { force: true })
         cy.get('button[data-test="upload-documents"]').click()
         cy.get('td').contains('Test.txt').should('exist')
+        cy.get('td').contains('xssattack.html').should('exist')
 
         cy.get('a[data-test="tasks-tab"]').click()
         cy.addTask('Task')
