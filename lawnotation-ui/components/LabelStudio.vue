@@ -101,7 +101,7 @@ const initLS = async () => {
                   </View>
                   <View style="width: 100%; overflow-y: auto;">
                     <View style="height: auto; padding: 0 1.7em 1em;">
-                      <${props.isHtml ? "HyperText" : "Text"} name="text" value="$text" />
+                      <${props.isHtml ? "HyperText" : "Text"} name="text" value="$text" inline="true"/>
                     </View>
                     <Relations>
                       <Relation value="Is a" />
