@@ -36,7 +36,7 @@
 
           <!-- <h3 class="my-10 text-2xl font-semibold">Annotators and their documents</h3> -->
 
-          <TabView>
+          <TabView @tab-change="tabChangeEvent">
             <TabPanel header="Annotators">
               
               <div class="mb-2 flex items-center">
@@ -358,6 +358,7 @@ import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
 import type { ModalOptions } from "flowbite";
+import type { TabViewChangeEvent } from "primevue/tabview";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -431,6 +432,11 @@ const groupByDocumentsPaginate = ({page}: {page: number}) => {
 watch(() => groupByDocumentsArgs.filter.document, refreshGroupByDocuments)
 
 // end
+
+const tabChangeEvent = ({index}: TabViewChangeEvent) => {
+  if (index === 0) refreshGroupByAnnotators()
+  else if (index === 1) refreshGroupByDocuments()
+}
 
 const removeAssignments = async (ids: string[], finish: () => void) => {
   confirmBox(
