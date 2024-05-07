@@ -34,108 +34,215 @@
               }" />
           </div>
 
-          <h3 class="my-10 text-2xl font-semibold">Annotators and their documents</h3>
-          
-          <Button
-            v-if="groupByAnnotators.data.value?.total"
-            @click="removeAllAssignments(refreshGroupByAnnotators)"
-            severity="danger"
-            outlined
-            class="mb-3"
-            data-test="remove-all-rows"
-          >
-            Remove all assignments ({{ groupByAnnotators.data.value?.total }})
-          </Button>
-          
-          <Button
-            v-if="groupByAnnotatorsSelectedAssignmentIds.length"
-            @click="removeAssignments(groupByAnnotatorsSelectedAssignmentIds, refreshGroupByAnnotators)"
-            severity="danger"
-            outlined
-            class="ml-4 mb-3"
-            data-test="remove-selected-rows"
-          >
-            Remove selected assignments ({{ groupByAnnotatorsSelectedAssignmentIds.length }})
-          </Button>
+          <!-- <h3 class="my-10 text-2xl font-semibold">Annotators and their documents</h3> -->
 
-          <span
-            v-if="groupByAnnotators.status.value == 'error'"
-            class="block p-3 bg-red-200 border border-red-300"
-          >An error occured when loading the assignments.{{ groupByAnnotators.error.value }}</span>
-          <TreeTable
-            v-else
-            :value="groupByAnnotators.data.value!.data"
-            :totalRecords="groupByAnnotators.data.value!.total"
-            :pt="{
-              table: {
-                class: 'border-collapse w-full'
-              },
-              // column:{
-              //   rowCheckbox:{box:'w-5 h-5'}
-              // }
-            }"
-            v-model:selection-keys="groupByAnnotatorsSelection"
-            selectionMode="checkbox"
-            id="tableGroupByAnnotators"
-            :lazy="true"
-            :paginator="true"
-            :rows="10"
-            :loading="groupByAnnotatorsLoading"
-            @page="groupByAnnotatorsPaginate"
-          >
-            <Column columnKey="name" header="Name" expander style="white-space: nowrap; padding-right: 3rem">
-              <template #filter>
-                <InputText v-model="groupByAnnotatorsArgs.filter.email" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by email" />
-              </template>
-              <template #body="{node}">
-                <template v-if="node.type == 'annotator' && node.data.email == user!.email">
-                  <i class="pi pi-user mr-3 ml-2"></i>
-                  <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.email }}</span>
-                </template>
-                <template v-else-if="node.type == 'annotator'">
-                  <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.email }}
-                </template>
-                <template v-else-if="node.type == 'document'">
-                  <i class="pi pi-file mr-3 ml-2" /><Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name }}
-                </template>
-              </template>
-            </Column>
-            <Column columnKey="content" style="width: 99%;">
-              <template #body="{node}">
-                <template v-if="node.type == 'annotator'">
-                  <div class="flex items-center">
-                    <ProgressBar
-                      class="w-full"
-                      :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
-                    ><span class="text-sm">{{ node.data.amount_done }} / {{ node.data.amount_total }}</span></ProgressBar>
-                    <NuxtLink
-                      v-if="node.data.amount_done < node.data.amount_total && node.data.email == user!.email"
-                      class="ml-5"
-                      :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`"
-                    >
-                      <Button label="Annotate" size="small" icon="pi pi-pencil" />
-                    </NuxtLink>
-                  </div>
-                </template>
-                <template v-else-if="node.type == 'document'">
-                  <div class="flex justify-between">
-                    <div class="space-x-3">
-                      <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
-                      <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
-                        <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
-                      </Badge>
-                    </div>
-                    <div class="space-x-3">
-                      <NuxtLink v-if="node.data.status == 'done'" :to="`/assignments/${node.data.assignment_id}`">
-                        <Button label="View" size="small" icon="pi pi-eye" />
-                      </NuxtLink>
-                    </div>
-                  </div>
-                </template>
-              </template>
-            </Column>
-          </TreeTable>
+          <TabView>
+            <TabPanel header="Annotators">
+              <Button
+                v-if="groupByAnnotators.data.value?.total"
+                @click="removeAllAssignments(refreshGroupByAnnotators)"
+                severity="danger"
+                outlined
+                class="mb-3"
+                data-test="remove-all-rows"
+              >
+                Remove all assignments ({{ groupByAnnotators.data.value?.total }})
+              </Button>
+              
+              <Button
+                v-if="groupByAnnotatorsSelectedAssignmentIds.length"
+                @click="removeAssignments(groupByAnnotatorsSelectedAssignmentIds, refreshGroupByAnnotators)"
+                severity="danger"
+                outlined
+                class="ml-4 mb-3"
+                data-test="remove-selected-rows"
+              >
+                Remove selected assignments ({{ groupByAnnotatorsSelectedAssignmentIds.length }})
+              </Button>
+
+              <span
+                v-if="groupByAnnotators.status.value == 'error'"
+                class="block p-3 bg-red-200 border border-red-300"
+              >An error occured when loading the assignments.{{ groupByAnnotators.error.value }}</span>
+              <TreeTable
+                v-else
+                :value="groupByAnnotators.data.value!.data"
+                :totalRecords="groupByAnnotators.data.value!.total"
+                :pt="{
+                  table: {
+                    class: 'border-collapse w-full'
+                  }
+                }"
+                v-model:selection-keys="groupByAnnotatorsSelection"
+                selectionMode="checkbox"
+                id="tableGroupByAnnotators"
+                :lazy="true"
+                :paginator="true"
+                :rows="10"
+                :loading="groupByAnnotatorsLoading"
+                @page="groupByAnnotatorsPaginate"
+              >
+                <Column columnKey="name" header="Name" expander style="white-space: nowrap; padding-right: 3rem">
+                  <template #filter>
+                    <InputText v-model="groupByAnnotatorsArgs.filter.email" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by email" />
+                  </template>
+                  <template #body="{node}">
+                    <template v-if="node.type == 'annotator' && node.data.email == user!.email">
+                      <i class="pi pi-user mr-3 ml-2"></i>
+                      <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.email }}</span>
+                    </template>
+                    <template v-else-if="node.type == 'annotator'">
+                      <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.email }}
+                    </template>
+                    <template v-else-if="node.type == 'document'">
+                      <i class="pi pi-file mr-3 ml-2" /><Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name }}
+                    </template>
+                  </template>
+                </Column>
+                <Column columnKey="progress" header="Progress" style="width: 99%;">
+                  <template #body="{node}">
+                    <template v-if="node.type == 'annotator'">
+                      <div class="flex items-center">
+                        <ProgressBar
+                          class="w-full"
+                          :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
+                        ><span class="text-sm">{{ node.data.amount_done }} / {{ node.data.amount_total }}</span></ProgressBar>
+                        <NuxtLink
+                          v-if="node.data.amount_done < node.data.amount_total && node.data.email == user!.email"
+                          class="ml-5"
+                          :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`"
+                        >
+                          <Button label="Annotate" size="small" icon="pi pi-pencil" />
+                        </NuxtLink>
+                      </div>
+                    </template>
+                    <template v-else-if="node.type == 'document'">
+                      <div class="flex justify-between">
+                        <div class="space-x-3">
+                          <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
+                          <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
+                            <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
+                          </Badge>
+                        </div>
+                        <div class="space-x-3">
+                          <NuxtLink v-if="node.data.status == 'done'" :to="`/assignments/${node.data.assignment_id}`">
+                            <Button label="View" size="small" icon="pi pi-eye" />
+                          </NuxtLink>
+                        </div>
+                      </div>
+                    </template>
+                  </template>
+                </Column>
+              </TreeTable>
+            </TabPanel>
+
+            <TabPanel header="Documents">
+              <Button
+                v-if="groupByDocuments.data.value?.total"
+                @click="removeAllAssignments(refreshGroupByDocuments)"
+                severity="danger"
+                outlined
+                class="mb-3"
+                data-test="remove-all-rows"
+              >
+                Remove all assignments ({{ groupByAnnotators.data.value?.total }})
+              </Button>
+              
+              <Button
+                v-if="groupByDocumentsSelectedAssignmentIds.length"
+                @click="removeAssignments(groupByDocumentsSelectedAssignmentIds, refreshGroupByDocuments)"
+                severity="danger"
+                outlined
+                class="ml-4 mb-3"
+                data-test="remove-selected-rows"
+              >
+                Remove selected assignments ({{ groupByDocumentsSelectedAssignmentIds.length }})
+              </Button>
+              
+              <!-- <pre>{{ groupByDocuments.data.value }}</pre> -->
+              <span
+                v-if="groupByDocuments.status.value == 'error'"
+                class="block p-3 bg-red-200 border border-red-300"
+              >
+                An error occured when loading the assignments.{{ groupByDocuments.error.value }}
+                <Button label="retry" @click="refreshGroupByDocuments" />
+              </span>
+              <TreeTable
+                v-else
+                :value="groupByDocuments.data.value!.data"
+                :totalRecords="groupByDocuments.data.value!.total"
+                :pt="{
+                  table: {
+                    class: 'border-collapse w-full'
+                  }
+                }"
+                v-model:selection-keys="groupByDocumentsSelection"
+                selectionMode="checkbox"
+                id="tableGroupByDocuments"
+                :lazy="true"
+                :paginator="true"
+                :rows="10"
+                :loading="groupByDocumentsLoading"
+                @page="groupByDocumentsPaginate"
+              >
+                <Column columnKey="name" header="Name" sortable expander style="white-space: nowrap; padding-right: 3rem">
+                  <template #filter>
+                    <InputText v-model="groupByDocumentsArgs.filter.document" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by document" />
+                  </template>
+                  <template #body="{node}">
+                    <template v-if="node.type == 'annotator' && node.data.email == user!.email">
+                      <i class="pi pi-user mr-3 ml-2"></i>
+                      <Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />
+                      <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.email }}</span>
+                    </template>
+                    <template v-else-if="node.type == 'annotator'">
+                      <i class="pi pi-user mr-3 ml-2"></i><Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" /> {{ node.data.email }}
+                    </template>
+                    <template v-else-if="node.type == 'document'">
+                      <i class="pi pi-file mr-3 ml-2" />{{ node.data.document_name }}
+                    </template>
+                  </template>
+                </Column>
+                <Column columnKey="progress" header="Progress" sortable style="width: 99%;">
+                  <template #body="{node}">
+                    <template v-if="node.type == 'document'">
+                      <div class="flex items-center">
+                        <ProgressBar
+                          class="w-full"s
+                          :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
+                        ><span class="text-sm">{{ node.data.amount_done }} / {{ node.data.amount_total }}</span></ProgressBar>
+                        <!-- <NuxtLink
+                          v-if="node.data.amount_done > 1"
+                          class="ml-5"
+                          :to="`/compare/X`"
+                        >
+                          <Button label="Compare" size="small" icon="pi pi-pencil" />
+                        </NuxtLink> -->
+                      </div>
+                    </template>
+                    <template v-else-if="node.type == 'annotator'">
+                      <div class="flex justify-between">
+                        <div class="space-x-3">
+                          <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
+                          <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
+                            <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
+                          </Badge>
+                        </div>
+                        <div class="space-x-3">
+                          <NuxtLink v-if="node.data.status == 'done'" :to="`/assignments/${node.data.assignment_id}`">
+                            <Button label="View" size="small" icon="pi pi-eye" />
+                          </NuxtLink>
+                        </div>
+                      </div>
+                    </template>
+                  </template>
+                </Column>
+              </TreeTable>
+            </TabPanel>
+          </TabView>
+
         </div>
+
         <div v-else class="flex justify-center">
           <div class="w-1/2 space-y-2 border-neutral-300">
             <h3 class="mt-3 text-lg font-semibold text-center">Assign annotators</h3>
@@ -242,6 +349,7 @@ const groupByAnnotatorsArgs = reactive({task_id: task.id, page: 1, filter: {emai
 const groupByAnnotators = await $trpc.assignment.getGroupByAnnotators.useQuery(groupByAnnotatorsArgs);
 const groupByAnnotatorsLoading = ref(false);
 const refreshGroupByAnnotators = () => {
+  groupByAnnotatorsSelection.value = {}
   groupByAnnotatorsLoading.value = true;
   groupByAnnotators.refresh().finally(() => groupByAnnotatorsLoading.value = false)
 }
@@ -253,7 +361,33 @@ watch(() => groupByAnnotatorsArgs.filter.email, refreshGroupByAnnotators)
 
 // end
 
-// removeAssignments(groupByAnnotatorsSelection.value.filter(x => x.), refreshGroupByAnnotators)
+// start definitions related to treeview grouped by annotators
+
+const groupByDocumentsSelection = ref<Record<string, {checked: boolean, partialChecked: boolean}>>({});
+const groupByDocumentsSelectedAssignmentIds = computed(() => {
+  return Object
+    .entries(groupByDocumentsSelection.value)
+    .filter(x => x[0].startsWith('ass-') && x[1].checked)
+    .map(x => x[0].replace('ass-', ''))
+})
+const groupByDocumentsArgs = reactive({
+  task_id: task.id,
+  page: 1,
+  filter: {document: ''}
+});
+const groupByDocuments = await $trpc.assignment.getGroupByDocuments.useQuery(groupByDocumentsArgs);
+const groupByDocumentsLoading = ref(false);
+const refreshGroupByDocuments = () => {
+  groupByDocumentsLoading.value = true;
+  groupByDocuments.refresh().finally(() => groupByDocumentsLoading.value = false)
+}
+const groupByDocumentsPaginate = ({page}: {page: number}) => {
+  groupByDocumentsArgs.page = page + 1;
+  refreshGroupByDocuments()
+}
+watch(() => groupByDocumentsArgs.filter.document, refreshGroupByDocuments)
+
+// end
 
 const removeAssignments = async (ids: string[], finish: () => void) => {
   confirmBox(
@@ -264,7 +398,6 @@ const removeAssignments = async (ids: string[], finish: () => void) => {
     if (result.isConfirmed) {
       Promise.all(ids.map((id) => $trpc.assignment.delete.mutate(+id)))
         .then(() => {
-          groupByAnnotatorsSelection.value = {};
           finish();
           $toast.success(`Assignment${ids.length > 0 ? 's' : ''} have been succesfully removed`);
         });
@@ -581,7 +714,7 @@ definePageMeta({
 
 <style lang="scss">
 /* hide the header columns, but not the filter column (https://stackoverflow.com/a/57236693/17864167) */
-#tableGroupByAnnotators table thead {
+#tableGroupByAnnotators table thead, #tableGroupByDocuments table thead {
   tr {
     display: none;
   }
