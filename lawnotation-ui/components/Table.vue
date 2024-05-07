@@ -25,26 +25,39 @@
         <slot name="heading"></slot>
         <span class="flex-grow" v-if="props.selectable">
           
-          <button
-            v-show="total > 0"
-            @click="removeAll"
-            type="button"
-            style="outline: none"
-            class="mr-2 text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-2.5 text-center"
-            data-test="remove-all"
-          >
-            Remove all ({{ total }})
-          </button>
-          <button
+          <Button 
+            v-show="total > 0" 
+            type="button" 
+            icon="pi pi-ellipsis-v" 
+            link 
+            @click="(event) => removeAllMenu.toggle(event)" 
+            aria-haspopup="true" 
+            aria-controls="remove-all-menu" 
+            data-test="remove-all-menu-button" 
+          />
+          <Menu ref="removeAllMenu" id="remove-all-menu" :popup="true" :model="[{
+              label: `Remove all (${ total })`,
+              command: removeAll
+            }]"
+            :pt="{
+              label: 'text-[#f05252]',
+              content: {
+                'data-test': 'remove-all'
+              }
+            }"
+            :ptOptions="{ mergeProps: true }"
+          />
+          <Button 
             v-show="checkedIds.length"
-            @click="removeSelected(checkedIds)"
             type="button"
-            style="outline: none"
-            class="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-2.5 text-center"
-            data-test="remove-selected-rows"
-          >
-            Remove selected rows ({{ checkedIds.length }})
-          </button>
+            :label="`Remove selected rows (${ checkedIds.length })`"
+            severity="danger"
+            outlined
+            @click="removeSelected(checkedIds)"
+            :pt="{ label: 'text-xs' }"
+            :ptOptions="{ mergeProps: true }"
+            data-test="remove-selected-rows" 
+          />
         </span>
         <span
           class="flex"
@@ -358,6 +371,8 @@ const props = withDefaults(
     name: "1",
   }
 );
+
+const removeAllMenu = ref();
 
 const columns = tableColumns[props.endpoint];
 

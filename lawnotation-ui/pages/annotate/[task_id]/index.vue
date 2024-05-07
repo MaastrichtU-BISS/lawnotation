@@ -35,7 +35,7 @@
       <div class="dimmer-content h-full">
         <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
           :annotations="ls_annotations" :relations="ls_relations" :labels="labels" :guidelines="task?.ann_guidelines"
-          :isWordLevel="isWordLevel(task)" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
+          :isWordLevel="isWordLevel(task)" :isHtml="isHtml" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
         </LabelStudio>
       </div>
     </div>
@@ -53,7 +53,7 @@ import type {
   LSSerializedRelation,
 } from "~/types";
 import Breadcrumb from "~/components/Breadcrumb.vue";
-import { isWordLevel } from "~/utils/levels";
+import { isWordLevel, getDocFormat } from "~/utils/levels";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const user = useSupabaseUser();
@@ -79,6 +79,10 @@ const assignmentCounts = ref<{ next: number; total: number }>();
 
 const loading = ref(false);
 const key = ref("ls-default");
+
+const isHtml = computed(() => {
+  return getDocFormat(doc?.value?.name!) == 'html';
+});
 
 // const seq_pos = ref(assignment.value?.seq_pos ?? 1);
 const seq_pos = ref<number>(assignment.value?.seq_pos ?? 0);
@@ -150,7 +154,7 @@ const loadData = async () => {
 
     ls_annotations.splice(0);
     if (_annotations.length) {
-      const db2ls_anns = convert_annotation_db2ls(_annotations, assignment.value.id, isWordLevel(task.value));
+      const db2ls_anns = convert_annotation_db2ls(_annotations, isWordLevel(task.value), isHtml.value);
       ls_annotations.push(...db2ls_anns);
     }
 

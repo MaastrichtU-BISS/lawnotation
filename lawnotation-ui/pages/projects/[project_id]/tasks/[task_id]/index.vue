@@ -25,8 +25,8 @@
                 data-test="metrics-button" />
             </NuxtLink>
             <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true" data-test="export-publish-button" />
-            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => overlayMenu.toggle(event)" aria-haspopup="true" aria-controls="overlay_menu" data-test="kebab-button" />
-            <Menu ref="overlayMenu" id="overlay_menu" :model="[{label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask}]" :popup="true"
+            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => optionsMenu.toggle(event)" aria-haspopup="true" aria-controls="options-menu" data-test="options-menu-button" />
+            <Menu ref="optionsMenu" id="options-menu" :model="[{label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask}]" :popup="true"
               :pt="{
                 content: {
                   'data-test': 'duplicate-task'
@@ -332,7 +332,7 @@ const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.proj
 const total_docs = totalAmountOfDocs ?? 0;
 const number_of_docs = ref<number>(total_docs);
 const number_of_fixed_docs = ref<number>(total_docs);
-const overlayMenu = ref()
+const optionsMenu = ref()
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
 

@@ -28,6 +28,7 @@ const props = defineProps<{
   isEditor: boolean | undefined;
   guidelines: string | undefined;
   isWordLevel: boolean;
+  isHtml: boolean;
   // mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
 
@@ -89,9 +90,9 @@ const initLS = async () => {
                       ${ (props.isWordLevel) 
                       ? 
                         `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
-                        <Labels style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
+                        <${props.isHtml ? "HyperTextLabels" : "Labels"} style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
                           ${props.labels?.map((l,index) =>  (`<Label value="${l.name}" background="${l.color}" selected="${!props.isEditor && index==0}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
-                        </Labels>`
+                        </${props.isHtml ? "HyperTextLabels" : "Labels"}>`
                       : 
                         `<Choices name="label" toName="text" choice="multiple">
                           ${props.labels?.map((l) => (`<Choice value="${l.name}"/>`)).join("\n")}
@@ -100,7 +101,7 @@ const initLS = async () => {
                   </View>
                   <View style="width: 100%; overflow-y: auto;">
                     <View style="height: auto; padding: 0 1.7em 1em;">
-                      <Text name="text" value="$text" />
+                      <${props.isHtml ? "HyperText" : "Text"} name="text" value="$text" inline="true"/>
                     </View>
                     <Relations>
                       <Relation value="Is a" />
@@ -206,8 +207,8 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
   if (!props.assignment) return;
 
   // create annotations
-  const ls_anns = serializedAnnotations.filter((x) => x.type == "labels" || x.type == "choices");
-  const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id, props.isWordLevel);
+  const ls_anns = serializedAnnotations.filter((x) => x.type == "labels" || x.type == "choices" || x.type == "hypertextlabels");
+  const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id);
 
   const created_anns = await $trpc.annotation.updateAssignmentAnnotations.mutate({
     assignment_id: props.assignment?.id,
