@@ -420,6 +420,7 @@ const groupByDocumentsArgs = reactive({
 const groupByDocuments = await $trpc.assignment.getGroupByDocuments.useQuery(groupByDocumentsArgs);
 const groupByDocumentsLoading = ref(false);
 const refreshGroupByDocuments = () => {
+  groupByDocumentsSelection.value = {}
   groupByDocumentsLoading.value = true;
   groupByDocuments.refresh().finally(() => groupByDocumentsLoading.value = false)
 }
