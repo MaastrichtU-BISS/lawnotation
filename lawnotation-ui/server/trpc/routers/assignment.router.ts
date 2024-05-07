@@ -77,7 +77,7 @@ export const assignmentRouter = router({
         const mailClient = new MailtrapClient({ token: config.mailtrapToken });
 
         const body = `Hello ${user_email},<br />
-        You have been assigned to a new task. <a href="http://localhost:3000/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
+        You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
 
         const mail = await mailClient.send({
           from: {email: 'no-reply@login.lawnotation.org', name: 'Lawnotation'},
