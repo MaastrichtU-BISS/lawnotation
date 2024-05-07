@@ -111,7 +111,7 @@
                     <NuxtLink
                       v-if="node.data.amount_done < node.data.amount_total && node.data.email == user!.email"
                       class="ml-5"
-                      :to="`/assignments/${node.data.assignment_id}`"
+                      :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`"
                     >
                       <Button label="Annotate" size="small" icon="pi pi-pencil" />
                     </NuxtLink>
@@ -264,6 +264,7 @@ const removeAssignments = async (ids: string[], finish: () => void) => {
     if (result.isConfirmed) {
       Promise.all(ids.map((id) => $trpc.assignment.delete.mutate(+id)))
         .then(() => {
+          groupByAnnotatorsSelection.value = {};
           finish();
           $toast.success(`Assignment${ids.length > 0 ? 's' : ''} have been succesfully removed`);
         });
@@ -422,7 +423,7 @@ const createAssignments = async () => {
       new_assignments
     );
 
-    assignmentTable.value?.refresh();
+    refreshGroupByAnnotators();
     totalAssignments.refresh();
     loading.value = false;
     $toast.success("Assignments successfully created");
