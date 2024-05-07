@@ -509,7 +509,8 @@ export const assignmentRouter = router({
               email: ann.email,
               annotator_number: ann.assignments[0].annotator_number,
               amount_done: ann.assignments.filter(ass => ass.status == "done").length,
-              amount_total: ann.assignments.length
+              amount_total: ann.assignments.length,
+              next_seq_pos: Math.min(...ann.assignments.filter(ass => ass.status == 'pending').map(ass => ass.seq_pos!))
             },
             children: ann.assignments!.map(ass => ({
               type: 'document',
