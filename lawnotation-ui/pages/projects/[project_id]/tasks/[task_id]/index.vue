@@ -38,27 +38,44 @@
 
           <TabView>
             <TabPanel header="Annotators">
-              <Button
-                v-if="groupByAnnotators.data.value?.total"
-                @click="removeAllAssignments(refreshGroupByAnnotators)"
-                severity="danger"
-                outlined
-                class="mb-3"
-                data-test="remove-all-rows"
-              >
-                Remove all assignments ({{ groupByAnnotators.data.value?.total }})
-              </Button>
               
-              <Button
-                v-if="groupByAnnotatorsSelectedAssignmentIds.length"
-                @click="removeAssignments(groupByAnnotatorsSelectedAssignmentIds, refreshGroupByAnnotators)"
-                severity="danger"
-                outlined
-                class="ml-4 mb-3"
-                data-test="remove-selected-rows"
-              >
-                Remove selected assignments ({{ groupByAnnotatorsSelectedAssignmentIds.length }})
-              </Button>
+              <div class="mb-2 flex items-center">
+                <Button 
+                  v-if="groupByAnnotators.data.value?.total"
+                  type="button" 
+                  icon="pi pi-ellipsis-v" 
+                  text 
+                  @click="(event) => annotatorsSelectionMenu.toggle(event)" 
+                  aria-haspopup="true" 
+                  aria-controls="remove-all-menu" 
+                  data-test="remove-all-menu-button" 
+                />
+                <Menu ref="annotatorsSelectionMenu" id="remove-all-menu" :popup="true" :model="[{
+                    label: `Remove all (${ groupByAnnotators.data.value?.total })`,
+                    command: () => removeAllAssignments(refreshGroupByAnnotators)
+                  }]"
+                  :pt="{
+                    label: 'text-[#f05252]',
+                    content: {
+                      'data-test': 'remove-all'
+                    }
+                  }"
+                  :ptOptions="{ mergeProps: true }"
+                />
+                <Button
+                  v-if="groupByAnnotatorsSelectedAssignmentIds.length"
+                  @click="removeAssignments(groupByAnnotatorsSelectedAssignmentIds, refreshGroupByAnnotators)"
+                  severity="danger"
+                  outlined
+                  :pt="{ label: 'text-xs' }"
+                  :ptOptions="{ mergeProps: true }"
+                  data-test="remove-selected-rows"
+                  class="ml-3"
+                  size="small"
+                >
+                  Remove selected assignments ({{ groupByAnnotatorsSelectedAssignmentIds.length }})
+                </Button>
+              </div>
 
               <span
                 v-if="groupByAnnotators.status.value == 'error'"
@@ -103,10 +120,14 @@
                   <template #body="{node}">
                     <template v-if="node.type == 'annotator'">
                       <div class="flex items-center">
+                        <span class="whitespace-nowrap mr-4">
+                          {{ node.data.amount_done }} / {{ node.data.amount_total }}
+                        </span>
                         <ProgressBar
                           class="w-full"
+                          :showValue="false"
                           :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
-                        ><span class="text-sm">{{ node.data.amount_done }} / {{ node.data.amount_total }}</span></ProgressBar>
+                        />
                         <NuxtLink
                           v-if="node.data.amount_done < node.data.amount_total && node.data.email == user!.email"
                           class="ml-5"
@@ -137,29 +158,44 @@
             </TabPanel>
 
             <TabPanel header="Documents">
-              <Button
-                v-if="groupByDocuments.data.value?.total"
-                @click="removeAllAssignments(refreshGroupByDocuments)"
-                severity="danger"
-                outlined
-                class="mb-3"
-                data-test="remove-all-rows"
-              >
-                Remove all assignments ({{ groupByAnnotators.data.value?.total }})
-              </Button>
+              <div class="mb-2 flex items-center">
+                <Button 
+                  v-if="groupByDocuments.data.value?.total"
+                  type="button" 
+                  icon="pi pi-ellipsis-v" 
+                  text 
+                  @click="(event) => documentsSelectionMenu.toggle(event)" 
+                  aria-haspopup="true" 
+                  aria-controls="remove-all-menu" 
+                  data-test="remove-all-menu-button" 
+                />
+                <Menu ref="documentsSelectionMenu" id="remove-all-menu" :popup="true" :model="[{
+                    label: `Remove all (${ groupByDocuments.data.value?.total })`,
+                    command: () => removeAllAssignments(refreshGroupByDocuments)
+                  }]"
+                  :pt="{
+                    label: 'text-[#f05252]',
+                    content: {
+                      'data-test': 'remove-all'
+                    }
+                  }"
+                  :ptOptions="{ mergeProps: true }"
+                />
+                <Button
+                  v-if="groupByDocumentsSelectedAssignmentIds.length"
+                  @click="removeAssignments(groupByDocumentsSelectedAssignmentIds, refreshGroupByDocuments)"
+                  severity="danger"
+                  outlined
+                  :pt="{ label: 'text-xs' }"
+                  :ptOptions="{ mergeProps: true }"
+                  data-test="remove-selected-rows"
+                  class="ml-3"
+                  size="small"
+                >
+                  Remove selected assignments ({{ groupByDocumentsSelectedAssignmentIds.length }})
+                </Button>
+              </div>
               
-              <Button
-                v-if="groupByDocumentsSelectedAssignmentIds.length"
-                @click="removeAssignments(groupByDocumentsSelectedAssignmentIds, refreshGroupByDocuments)"
-                severity="danger"
-                outlined
-                class="ml-4 mb-3"
-                data-test="remove-selected-rows"
-              >
-                Remove selected assignments ({{ groupByDocumentsSelectedAssignmentIds.length }})
-              </Button>
-              
-              <!-- <pre>{{ groupByDocuments.data.value }}</pre> -->
               <span
                 v-if="groupByDocuments.status.value == 'error'"
                 class="block p-3 bg-red-200 border border-red-300"
@@ -192,11 +228,10 @@
                   <template #body="{node}">
                     <template v-if="node.type == 'annotator' && node.data.email == user!.email">
                       <i class="pi pi-user mr-3 ml-2"></i>
-                      <Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />
                       <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.email }}</span>
                     </template>
                     <template v-else-if="node.type == 'annotator'">
-                      <i class="pi pi-user mr-3 ml-2"></i><Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" /> {{ node.data.email }}
+                      <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.email }}
                     </template>
                     <template v-else-if="node.type == 'document'">
                       <i class="pi pi-file mr-3 ml-2" />{{ node.data.document_name }}
@@ -207,10 +242,14 @@
                   <template #body="{node}">
                     <template v-if="node.type == 'document'">
                       <div class="flex items-center">
+                        <span class="whitespace-nowrap mr-4">
+                          {{ node.data.amount_done }} / {{ node.data.amount_total }}
+                        </span>
                         <ProgressBar
-                          class="w-full"s
+                          class="w-full"
+                          :showValue="false"
                           :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
-                        ><span class="text-sm">{{ node.data.amount_done }} / {{ node.data.amount_total }}</span></ProgressBar>
+                        />
                         <!-- <NuxtLink
                           v-if="node.data.amount_done > 1"
                           class="ml-5"
@@ -338,6 +377,7 @@ const labels = await $trpc.labelset.findById.query(+task.labelset_id);
 
 // start definitions related to treeview grouped by annotators
 
+const annotatorsSelectionMenu = ref();
 const groupByAnnotatorsSelection = ref<Record<string, {checked: boolean, partialChecked: boolean}>>({});
 const groupByAnnotatorsSelectedAssignmentIds = computed(() => {
   return Object
@@ -362,6 +402,8 @@ watch(() => groupByAnnotatorsArgs.filter.email, refreshGroupByAnnotators)
 // end
 
 // start definitions related to treeview grouped by annotators
+
+const documentsSelectionMenu = ref();
 
 const groupByDocumentsSelection = ref<Record<string, {checked: boolean, partialChecked: boolean}>>({});
 const groupByDocumentsSelectedAssignmentIds = computed(() => {

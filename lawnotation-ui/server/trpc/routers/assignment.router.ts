@@ -616,36 +616,12 @@ export const assignmentRouter = router({
               key: `ass-${ass.id}`,
               data: {
                 email: ass.user!.email,
-                annotator_number: ass.annotator_number,
                 seq_pos: ass.seq_pos,
                 difficulty_rating: ass.difficulty_rating,
                 status: ass.status
               }
             }))
           }))
-          // .map(ann => ({
-          //   type: 'annotator',
-          //   key: `ann-${ann.id}`,
-          //   data: {
-          //     email: ann.email,
-          //     annotator_number: ann.assignments[0].annotator_number,
-          //     amount_done: ann.assignments.filter(ass => ass.status == "done").length,
-          //     amount_total: ann.assignments.length,
-          //     next_seq_pos: Math.min(...ann.assignments.filter(ass => ass.status == 'pending').map(ass => ass.seq_pos!))
-          //   },
-          //   children: ann.assignments!.map(ass => ({
-          //     type: 'document',
-          //     key: `ass-${ass.id}`,
-          //     data: {
-          //       assignment_id: ass.id,
-          //       seq_pos: ass.seq_pos,
-          //       document_id: ass.document!.id,
-          //       document_name: ass.document!.name,
-          //       difficulty_rating: ass.difficulty_rating,
-          //       status: ass.status
-          //     }
-          //   }))
-          // }))
         
         return {data: grouped ?? [], total: count ?? 0 };
       })
