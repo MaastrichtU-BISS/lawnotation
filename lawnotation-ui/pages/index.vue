@@ -1,7 +1,6 @@
 <template>
   <div>
-    <EditorDashboard />
-    <!-- <AnnotatorDashboard /> -->
+    
   </div>
 </template>
 <script setup lang="ts">

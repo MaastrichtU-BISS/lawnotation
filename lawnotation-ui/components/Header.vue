@@ -99,11 +99,11 @@
               aria-controls="overlay_menu"
             />
             <TieredMenu ref="userMenu" id="overlay_menu" :model="[
-              // {
-              //   label: 'Settings',
-              //   icon: 'pi pi-cog',
-              //   url: '/settings'
-              // },
+              {
+                label: 'Dashboard',
+                icon: 'pi pi-chart-pie',
+                url: '/dashboard'
+              },
               {
                 label: 'Sign out',
                 icon: 'pi pi-sign-out',

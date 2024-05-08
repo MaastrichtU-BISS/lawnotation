@@ -1,46 +1,35 @@
 <template>
   <div>
-    <div v-if="alert_assigned_task_id" class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400" role="alert">
+    <div v-if="alert_assigned_task_id"
+      class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400" role="alert">
       <span class="font-medium">Assign alert!</span>
-      You have been assigned to a new task. <NuxtLink :to="`/annotate/${alert_assigned_task_id}?seq=1`">Click here</NuxtLink> to start annotating
+      You have been assigned to a new task. <NuxtLink :to="`/annotate/${alert_assigned_task_id}?seq=1`">Click here
+      </NuxtLink> to start annotating
     </div>
 
-    <section
-      class="flex justify-center p-6 py-12 my-5 bg-white border border-gray-200 rounded-lg shadow charts"
-      v-if="nextAssignment"
-    >
+    <section class="flex justify-center p-6 py-12 my-5 bg-white border border-gray-200 rounded-lg shadow charts"
+      v-if="nextAssignment">
       <div class="">
         <h2 class="text-2xl font-bold leading-9 tracking-tight text-center text-gray-700">
           Continue where you left off
         </h2>
-        <NuxtLink
-          :to="`/annotate/${nextAssignment.task_id}?seq=${nextAssignment.seq_pos}`"
-        >
+        <NuxtLink :to="`/annotate/${nextAssignment.task_id}?seq=${nextAssignment.seq_pos}`">
           <button
-            class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-          >
+            class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">
             Start annotating
           </button>
         </NuxtLink>
       </div>
     </section>
-    <section class="countups my-5 pt-5">
+    <h2 class="mt-6 text-3xl font-semibold tracking-tight text-gray-600 text-center">As an editor</h2>
+    <section class="countups my-5">
       <div class="flex justify-center text-center">
-        <div
-          class="p-6 bg-white border border-gray-200 rounded-lg shadow"
-          style="min-height: 162px"
-        >
+        <div class="p-6 bg-white border border-gray-200 rounded-lg shadow" style="min-height: 162px">
           <span class="inline-block mx-5 px-8">
-            <svg
-              class="w-7 h-7 text-gray-500 mb-3 inline"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
+            <svg class="w-7 h-7 text-gray-500 mb-3 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+              fill="currentColor" viewBox="0 0 20 20">
               <path
-                d="M8 1V0v1Zm4 0V0v1Zm2 4v1h1V5h-1ZM6 5H5v1h1V5Zm2-3h4V0H8v2Zm4 0a1 1 0 0 1 .707.293L14.121.879A3 3 0 0 0 12 0v2Zm.707.293A1 1 0 0 1 13 3h2a3 3 0 0 0-.879-2.121l-1.414 1.414ZM13 3v2h2V3h-2Zm1 1H6v2h8V4ZM7 5V3H5v2h2Zm0-2a1 1 0 0 1 .293-.707L5.879.879A3 3 0 0 0 5 3h2Zm.293-.707A1 1 0 0 1 8 2V0a3 3 0 0 0-2.121.879l1.414 1.414ZM2 6h16V4H2v2Zm16 0h2a2 2 0 0 0-2-2v2Zm0 0v12h2V6h-2Zm0 12v2a2 2 0 0 0 2-2h-2Zm0 0H2v2h16v-2ZM2 18H0a2 2 0 0 0 2 2v-2Zm0 0V6H0v12h2ZM2 6V4a2 2 0 0 0-2 2h2Zm16.293 3.293C16.557 11.029 13.366 12 10 12c-3.366 0-6.557-.97-8.293-2.707L.293 10.707C2.557 12.971 6.366 14 10 14c3.634 0 7.444-1.03 9.707-3.293l-1.414-1.414ZM10 9v2a2 2 0 0 0 2-2h-2Zm0 0H8a2 2 0 0 0 2 2V9Zm0 0V7a2 2 0 0 0-2 2h2Zm0 0h2a2 2 0 0 0-2-2v2Z"
-              />
+                d="M8 1V0v1Zm4 0V0v1Zm2 4v1h1V5h-1ZM6 5H5v1h1V5Zm2-3h4V0H8v2Zm4 0a1 1 0 0 1 .707.293L14.121.879A3 3 0 0 0 12 0v2Zm.707.293A1 1 0 0 1 13 3h2a3 3 0 0 0-.879-2.121l-1.414 1.414ZM13 3v2h2V3h-2Zm1 1H6v2h8V4ZM7 5V3H5v2h2Zm0-2a1 1 0 0 1 .293-.707L5.879.879A3 3 0 0 0 5 3h2Zm.293-.707A1 1 0 0 1 8 2V0a3 3 0 0 0-2.121.879l1.414 1.414ZM2 6h16V4H2v2Zm16 0h2a2 2 0 0 0-2-2v2Zm0 0v12h2V6h-2Zm0 12v2a2 2 0 0 0 2-2h-2Zm0 0H2v2h16v-2ZM2 18H0a2 2 0 0 0 2 2v-2Zm0 0V6H0v12h2ZM2 6V4a2 2 0 0 0-2 2h2Zm16.293 3.293C16.557 11.029 13.366 12 10 12c-3.366 0-6.557-.97-8.293-2.707L.293 10.707C2.557 12.971 6.366 14 10 14c3.634 0 7.444-1.03 9.707-3.293l-1.414-1.414ZM10 9v2a2 2 0 0 0 2-2h-2Zm0 0H8a2 2 0 0 0 2 2V9Zm0 0V7a2 2 0 0 0-2 2h2Zm0 0h2a2 2 0 0 0-2-2v2Z" />
             </svg>
             <h5 class="mb-2 text-2xl font-semibold tracking-tight text-gray-600">
               Projects
@@ -48,20 +37,10 @@
             </h5>
           </span>
           <span class="inline-block mx-5 px-8">
-            <svg
-              class="w-7 h-7 text-gray-500 mb-3 inline"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="white"
-              viewBox="0 0 20 20"
-            >
-              <path
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M1 17V2a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a2 2 0 0 0-2 2Zm0 0a2 2 0 0 0 2 2h12M5 15V1m8 18v-4"
-              />
+            <svg class="w-7 h-7 text-gray-500 mb-3 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+              fill="white" viewBox="0 0 20 20">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M1 17V2a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a2 2 0 0 0-2 2Zm0 0a2 2 0 0 0 2 2h12M5 15V1m8 18v-4" />
             </svg>
             <h5 class="mb-2 text-2xl font-semibold tracking-tight text-gray-600">
               Tasks
@@ -69,20 +48,10 @@
             </h5>
           </span>
           <span class="inline-block mx-5 px-8">
-            <svg
-              class="w-7 h-7 text-gray-500 mb-3 inline"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="white"
-              viewBox="0 0 20 20"
-            >
-              <path
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 1v3m5-3v3m5-3v3M1 7h7m1.506 3.429 2.065 2.065M19 7h-2M2 3h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm6 13H6v-2l5.227-5.292a1.46 1.46 0 0 1 2.065 2.065L8 16Z"
-              />
+            <svg class="w-7 h-7 text-gray-500 mb-3 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+              fill="white" viewBox="0 0 20 20">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M5 1v3m5-3v3m5-3v3M1 7h7m1.506 3.429 2.065 2.065M19 7h-2M2 3h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm6 13H6v-2l5.227-5.292a1.46 1.46 0 0 1 2.065 2.065L8 16Z" />
             </svg>
             <h5 class="mb-2 text-2xl font-semibold tracking-tight text-gray-600">
               Assignments
@@ -92,25 +61,26 @@
         </div>
       </div>
     </section>
-    <ClientOnly
-      ><section
-        class="charts my-5 py-12 flex justify-center p-6 bg-white border border-gray-200 rounded-lg shadow"
-      >
-        <span style="width: 400px">
-          <apexchart
-            id="difficulty"
-            :options="chartDifficultyOptions"
-            :series="chartDifficultySeries"
-          ></apexchart>
-        </span>
-        <span style="width: 400px">
-          <apexchart
-            id="completion"
-            :options="chartCompletionOptions"
-            :series="chartCompletionSeries"
-          ></apexchart>
-        </span></section
-    ></ClientOnly>
+    <ClientOnly>
+      <section class="charts my-5 p-6 bg-white border border-gray-200 rounded-lg shadow">
+        <div class="flex justify-center"> 
+          <span style="width: 400px">
+            <apexchart id="difficulty" :options="chartDifficultyOptions" :series="chartDifficultySeries"></apexchart>
+          </span>
+          <span style="width: 400px">
+            <apexchart id="completion" :options="chartCompletionOptions" :series="chartCompletionSeries"></apexchart>
+          </span>
+        </div>
+      </section>
+      <h2 class="mt-12 pt-6 my-b text-3xl font-semibold tracking-tight text-gray-600 text-center">As an annotator</h2>
+      <section class="charts my-5 p-6 bg-white border border-gray-200 rounded-lg shadow">
+        <div class="flex justify-center"> 
+          <span style="width: 400px">
+            <apexchart id="completion" :options="chartCompletionOptions" :series="chartCompletionSeriesAnnotator"></apexchart>
+          </span>
+        </div>
+      </section>
+    </ClientOnly>
   </div>
 </template>
 <script setup lang="ts">
@@ -171,6 +141,7 @@ const chartCompletionOptions = ref({
   colors: ["rgb(0, 227, 150)", "rgb(255, 69, 96)"],
 });
 const chartCompletionSeries = reactive<number[]>([0, 0]);
+const chartCompletionSeriesAnnotator = reactive<number[]>([0, 0]);
 
 const nextAssignment = ref<Assignment | null>(null);
 
@@ -182,7 +153,7 @@ onMounted(async () => {
     await $trpc.user.clearInviteMetadata.mutate();
     supa.auth.refreshSession()
   }
-  
+
   $trpc.project.getCountByUser.query(user.value?.id!).then((result) => {
     if (result)
       projectsCount.value = result;
@@ -211,6 +182,13 @@ onMounted(async () => {
   $trpc.assignment.getCompletionByEditor.query(user.value?.id!).then((result) => {
     for (let i = 0; i < result.length; i++) {
       chartCompletionSeries[i] = result[i].count;
+    }
+  });
+
+  $trpc.assignment.getCompletionByAnnotator.query(user.value?.id!).then((result) => {
+    for (let i = 0; i < result.length; i++) {
+      chartCompletionSeriesAnnotator[i] = result[i].count;
+      assignmentsCount.value += result[i].count;
     }
   });
 
