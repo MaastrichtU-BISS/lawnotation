@@ -17,9 +17,12 @@ Cypress.Commands.add("login", (role: Role) => {
       })
     }).then(html => {
       return Cypress.$(html).find('span').text();
-    }).then(code => cy.get('input[data-test="token-field-to-login"]').type(code))
-
-    cy.get('button[data-test="login-button"]').click()
+    }).then(code => {
+      cy.get('div[data-test="token-field-to-login"]').children().each((el, index) => {
+        cy.wrap(el).type(code[index]);
+      })
+      cy.get('button[data-test="verify-button"]').click()
+    })
   })
 });
 
