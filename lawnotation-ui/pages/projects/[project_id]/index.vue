@@ -11,11 +11,12 @@
   ]" />
 
   <div v-if="project">
+    <GuidancePanel v-if="guidanceTitle != ''" :title="guidanceTitle" :text="guidanceText" />
     <TabView v-model:activeIndex="activeTab">
       <TabPanel :disabled="!documentTable?.total" :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
       }">
-      <template #header>
+        <template #header>
           <div class="flex gap-3 items-center h-6">
             <span class="leading-none whitespace-nowrap">Tasks</span>
           </div>
@@ -25,8 +26,11 @@
           <div class="dimmer-content">
             <div data-test="tasks-table">
               <div class="flex justify-end">
-                <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
-                  data-test="open-tasks-modal" />
+                <div class="relative">
+                  <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
+                    data-test="open-tasks-modal" />
+                  <PulsingRedCircle v-if="guidanceTitle == 'Create a new task'" />
+                </div>
               </div>
               <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
                 :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
@@ -44,10 +48,13 @@
                     {{ isWordLevel(item) ? 'Word' : 'Document' }}
                   </td>
                   <td class="px-6 py-2 flex">
-                    <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-                      data-test="view-task-link">
-                      <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
-                    </NuxtLink>
+                    <div class="relative mr-2">
+                      <NuxtLink class="base" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
+                        data-test="view-task-link">
+                        <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
+                      </NuxtLink>
+                      <PulsingRedCircle v-if="guidanceTitle == 'Assign annotators'" />
+                    </div>
                     <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                       data-test="edit-task-link">
                       <Button label="Edit" size="small" link />
@@ -55,25 +62,18 @@
                   </td>
                 </template>
               </Table>
-              <Dialog 
-                v-model:visible="showCreateTaskModal" 
-                modal 
-                header="Create task" 
-                :autoZIndex="false" 
-                :draggable="false" 
-                :pt="{
+              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :autoZIndex="false"
+                :draggable="false" :pt="{
                   root: '!w-[80vw] xl:!w-[50vw]',
                   header: {
                     style: 'padding-bottom: 0px'
-                  }, 
+                  },
                   content: {
                     style: 'padding-bottom: 0px'
                   }
-                }"
-                :ptOptions="{ mergeProps: true }"
-              >
+                }" :ptOptions="{ mergeProps: true }">
                 <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[540px]">
-                  <TabPanel header="New" :pt="{ headerAction: {'data-test': 'new-tab'} }">
+                  <TabPanel header="New" :pt="{ headerAction: { 'data-test': 'new-tab' } }">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
                         <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
@@ -87,22 +87,16 @@
                     <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
                       cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
                     <div class="flex items-center pb-4">
-                      <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value"
-                        filter optionLabel="name" option-value="id" placeholder="Select Labelset"
-                        class="w-full md:w-1/2" data-test="select-labelset" />
-                      <Button 
-                        label="Create new labelset" 
-                        size="small" 
-                        @click="activeTabTaskModal = 2" 
-                        link 
-                        data-test='create-new-labelset'
-                      />
+                      <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value" filter optionLabel="name"
+                        option-value="id" placeholder="Select Labelset" class="w-full md:w-1/2"
+                        data-test="select-labelset" />
+                      <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
+                        data-test='create-new-labelset' />
                     </div>
                     <div>
                       <p class="font-bold">Annotation level</p>
-                      <SelectButton v-model="new_task.annotation_level" :options="['word', 'document']" 
-                        class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level"
-                        :pt="{
+                      <SelectButton v-model="new_task.annotation_level" :options="['word', 'document']"
+                        class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
                           label: {
                             class: 'font-normal'
                           }
@@ -117,8 +111,8 @@
                   </TabPanel>
                   <TabPanel header="Upload">
                     <div v-if="!uploadHasStarted" class="pt-6">
-                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json" chooseLabel="Select"
-                        :pt="{
+                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
+                        chooseLabel="Select" :pt="{
                           chooseButton: {
                             'data-test': 'choose-task',
                           },
@@ -166,22 +160,13 @@
                   </TabPanel>
                   <TabPanel header="Labelsets">
                     <template v-if="labelsetStage === 'overview'">
-                      <Labelsets @add-labelset="loadLabelset" @edit-labelset="(labelsetId: number) => loadLabelset(labelsetId)"/>
+                      <Labelsets @add-labelset="loadLabelset"
+                        @edit-labelset="(labelsetId: number) => loadLabelset(labelsetId)" />
                     </template>
                     <template v-else-if="labelsetStage === 'labelset'">
-                      <Button 
-                        label="back"
-                        size="small"
-                        icon="pi pi-arrow-left"
-                        link
-                        @click="labelsetStage = 'overview'"
-                        :pt="{root: 'ps-0'}"
-                        :ptOptions="{ mergeProps: true }"
-                      />
-                      <Labelset 
-                        v-model="labelset" 
-                        @labelset-persisted="refreshLabelsets"
-                      />
+                      <Button label="back" size="small" icon="pi pi-arrow-left" link @click="labelsetStage = 'overview'"
+                        :pt="{ root: 'ps-0' }" :ptOptions="{ mergeProps: true }" />
+                      <Labelset v-model="labelset" @labelset-persisted="refreshLabelsets" />
                     </template>
                   </TabPanel>
                 </TabView>
@@ -196,17 +181,16 @@
         <template #header>
           <div class="flex gap-3 items-center h-6">
             <span class="leading-none whitespace-nowrap">Documents</span>
-            <Badge 
-              v-if="documentTable?.total"
-              :value="documentTable?.total || 0" 
-              :pt="{ root: 'opacity-75' }" 
-              :ptOptions="{ mergeProps: true }"
-            ></Badge>
+            <Badge v-if="documentTable?.total" :value="documentTable?.total || 0" :pt="{ root: 'opacity-75' }"
+              :ptOptions="{ mergeProps: true }"></Badge>
           </div>
         </template>
         <div class="flex justify-end pt-2">
-          <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
-            icon-pos="right" data-test="open-documents-modal" />
+          <div class="relative">
+            <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
+              icon-pos="right" data-test="open-documents-modal" />
+              <PulsingRedCircle v-if="guidanceTitle == 'Upload dataset'" />
+          </div>
         </div>
         <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
           :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
@@ -225,8 +209,8 @@
           </template>
         </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html" chooseLabel="Select"
-            :maxFileSize="3145728" :pt="{
+          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html"
+            chooseLabel="Select" :maxFileSize="3145728" :pt="{
               input: {
                 'data-test': 'choose-documents'
               },
@@ -271,6 +255,8 @@ import Labelsets from "~/components/Labelsets.vue";
 import Labelset from "~/components/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { isWordLevel } from "~/utils/levels";
+import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
+import GuidancePanel from "~/components/GuidancePanel.vue";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -327,6 +313,28 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   labelset_id: undefined,
   project_id: undefined,
   annotation_level: undefined,
+});
+
+const guidanceText = computed(() => {
+  if (documentTable.value?.total == 0) {
+    return "Before you can create a task, first you need to upload your dataset. To do so, click on the highlighted button and follow the instructions."
+  } else if (documentTable.value?.total! > 0 && taskTable.value?.total! == 0) {
+    return "Now that you have documents, you can create a task by clicking on the highlighted button."
+  } else if (documentTable.value?.total! > 0 && taskTable.value?.total! > 0) {
+    return "The task is ready, all that remains is to assign annotators to the documents. Click on the highlighted button to go to the last step."
+  }
+  return ''
+});
+
+const guidanceTitle = computed(() => {
+  if (documentTable.value?.total == 0) {
+    return "Upload dataset"
+  } else if (documentTable.value?.total! > 0 && taskTable.value?.total! == 0) {
+    return "Create a new task"
+  } else if (documentTable.value?.total! > 0 && taskTable.value?.total! == 1) {
+    return "Assign annotators"
+  }
+  return ''
 });
 
 const loadLabelset = async (id?: number) => {

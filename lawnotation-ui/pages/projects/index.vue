@@ -1,12 +1,12 @@
 <template>
   <div class="max-w-screen-lg mx-auto my-8">
-    <GuidancePanel v-if="projectTable?.total! <= 1" :title="guidanceTitle" :text="guidanceText"/>
+    <GuidancePanel v-if="guidanceText != ''" :title="guidanceTitle" :text="guidanceText"/>
     <div class="flex justify-between">
       <h3 class="mb-2 text-lg font-semibold">Projects</h3>
       <div class="relative">
         <Button label="Add" icon="pi pi-plus" @click="showCreateModal = true" icon-pos="right"
           data-test="open-projects-modal" />
-          <PulsingRedCircle v-if="projectTable?.total! == 0" />
+          <PulsingRedCircle v-if="guidanceTitle == 'Create your first project'" />
       </div>
 
     </div>
@@ -27,7 +27,7 @@
             <NuxtLink data-test="view-project-link" :to="`/projects/${item.id}`">
               <Button label="View" size="small" />
             </NuxtLink>
-            <PulsingRedCircle v-if="projectTable?.total! == 1" />
+            <PulsingRedCircle v-if="guidanceTitle == 'Go to the newly created project'" />
           </div>
           <NuxtLink :to="`/projects/${item.id}/edit`" data-test="edit-project-link">
             <Button label="Edit" size="small" link />
@@ -80,6 +80,7 @@ const guidanceText = computed(() => {
   } else if (projectTable.value?.total == 1) {
     return "Now that you have a project, click on the highlighted button to continue."
   }
+  return ''
 });
 
 const guidanceTitle = computed(() => {
@@ -88,6 +89,7 @@ const guidanceTitle = computed(() => {
   } else if (projectTable.value?.total == 1) {
     return "Go to the newly created project"
   }
+  return ''
 });
 
 watch(showCreateModal, (new_val) => {
