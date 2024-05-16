@@ -148,15 +148,16 @@ const persistLabelset = async () => {
         },
       });
       $toast.success(`Labelset "${labelset.value.name}" saved`);
+      emit("labelsetPersisted", update.id);
     } else {
       const create = await $trpc.labelset.create.mutate({
         ...labelset.value,
         editor_id: user.value.id,
       });
       $toast.success(`Labelset "${labelset.value.name}" created`);
+      emit("labelsetPersisted", create.id);
     }
 
-    emit("labelsetPersisted");
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Error creating new labelset: ${error.message}`);

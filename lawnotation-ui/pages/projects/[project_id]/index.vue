@@ -164,16 +164,8 @@
                       </div>
                     </div>
                   </TabPanel>
-                  <TabPanel header="Labelsets">
-                    <template v-if="labelsetStage === 'overview'">
-                      <Labelsets @add-labelset="loadLabelset"
-                        @edit-labelset="(labelsetId: number) => loadLabelset(labelsetId)" />
-                    </template>
-                    <template v-else-if="labelsetStage === 'labelset'">
-                      <Button label="back" size="small" icon="pi pi-arrow-left" link @click="labelsetStage = 'overview'"
-                        :pt="{ root: 'ps-0' }" :ptOptions="{ mergeProps: true }" />
+                  <TabPanel header="Labelset">
                       <Labelset v-model="labelset" @labelset-persisted="refreshLabelsets" />
-                    </template>
                   </TabPanel>
                 </TabView>
               </Dialog>
@@ -282,14 +274,6 @@ const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
 const activeTabTaskModal = ref<number>(0);
-const labelsetStage = ref<'overview' | 'labelset'>('overview');
-const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
-  id: undefined,
-  editor_id: undefined,
-  name: "",
-  desc: "",
-  labels: [],
-});
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
@@ -333,24 +317,11 @@ const currentGuidanceStep = computed(() => {
   return GuidanceSteps.NONE;
 });
 
-const loadLabelset = async (id?: number) => {
-  if (id) {
-    labelset.value = await $trpc.labelset.findById.query(id);
-  } else {
-    labelset.value = {
-      id: undefined,
-      editor_id: undefined,
-      name: "",
-      desc: "",
-      labels: [],
-    };
-  }
-  labelsetStage.value = 'labelset';
-}
-
-const refreshLabelsets = async () => {
-  labelsetStage.value = 'overview';
-  labelsets = await $trpc.labelset.find.useQuery({});
+const refreshLabelsets = async (id: number) => {
+  activeTabTaskModal.value = 0;
+  const new_labelset = await $trpc.labelset.findById.query(id);
+  labelsets.data.value?.push(new_labelset);
+  new_task.labelset_id = id;
 }
 
 const uploadDocuments = async (event: { files: FileList }) => {
