@@ -2,9 +2,9 @@
   <div>
     <h2 class="mt-6 text-3xl font-semibold tracking-tight text-gray-600 text-center">As an editor</h2>
     <section class="countups my-5">
-      <div class="flex justify-center text-center">
-        <div class="p-6 bg-white border border-gray-200 rounded-lg shadow" style="min-height: 162px">
-          <span class="inline-block mx-5 px-8">
+      <div class="p-6 bg-white border border-gray-200 rounded-lg shadow" style="min-height: 162px">
+        <div class="grid grid-1 grid-cols-2 md:grid-cols-4 text-center justify-center">
+          <div>
             <svg class="w-7 h-7 text-gray-500 mb-3 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
               fill="currentColor" viewBox="0 0 20 20">
               <path
@@ -14,8 +14,8 @@
               Projects
               <count-up :end-val="projectsCount" :duration="0.7"></count-up>
             </h5>
-          </span>
-          <span class="inline-block mx-5 px-8">
+          </div>
+          <div>
             <svg class="w-7 h-7 text-gray-500 mb-3 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
               fill="white" viewBox="0 0 20 20">
               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -25,8 +25,20 @@
               Tasks
               <count-up :end-val="tasksCount" :duration="0.7"></count-up>
             </h5>
-          </span>
-          <span class="inline-block mx-5 px-8">
+          </div>
+
+          <div>
+            <svg class="w-7 h-7 text-gray-500 mb-3 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+              fill="white" viewBox="0 0 20 20">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M5 10V7.914a1 1 0 0 1 .293-.707l3.914-3.914A1 1 0 0 1 9.914 3H18a1 1 0 0 1 1 1v6M5 19v1a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1M10 3v4a1 1 0 0 1-1 1H5m14 9.006h-.335a1.647 1.647 0 0 1-1.647-1.647v-1.706a1.647 1.647 0 0 1 1.647-1.647L19 12M5 12v5h1.375A1.626 1.626 0 0 0 8 15.375v-1.75A1.626 1.626 0 0 0 6.375 12H5Zm9 1.5v2a1.5 1.5 0 0 1-1.5 1.5v0a1.5 1.5 0 0 1-1.5-1.5v-2a1.5 1.5 0 0 1 1.5-1.5v0a1.5 1.5 0 0 1 1.5 1.5Z" />
+            </svg>
+            <h5 class="mb-2 text-2xl font-semibold tracking-tight text-gray-600">
+              Documents
+              <count-up :end-val="documentsCount" :duration="0.7"></count-up>
+            </h5>
+          </div>
+          <div>
             <svg class="w-7 h-7 text-gray-500 mb-3 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
               fill="white" viewBox="0 0 20 20">
               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -36,13 +48,13 @@
               Assignments
               <count-up :end-val="assignmentsCount" :duration="0.7"></count-up>
             </h5>
-          </span>
+          </div>
         </div>
       </div>
     </section>
     <ClientOnly>
       <section class="charts my-5 p-6 bg-white border border-gray-200 rounded-lg shadow">
-        <div class="flex justify-center"> 
+        <div class="flex justify-center">
           <span style="width: 400px">
             <apexchart id="difficulty" :options="chartDifficultyOptions" :series="chartDifficultySeries"></apexchart>
           </span>
@@ -53,9 +65,10 @@
       </section>
       <h2 class="mt-12 pt-6 my-b text-3xl font-semibold tracking-tight text-gray-600 text-center">As an annotator</h2>
       <section class="charts my-5 p-6 bg-white border border-gray-200 rounded-lg shadow">
-        <div class="flex justify-center"> 
+        <div class="flex justify-center">
           <span style="width: 400px">
-            <apexchart id="completion" :options="chartCompletionOptions" :series="chartCompletionSeriesAnnotator"></apexchart>
+            <apexchart id="completion" :options="chartCompletionOptions" :series="chartCompletionSeriesAnnotator">
+            </apexchart>
           </span>
         </div>
       </section>
@@ -73,6 +86,7 @@ const projectsCount = ref<number>(0);
 const tasksCount = ref<number>(0);
 const assignmentsCount = ref<number>(0);
 const assignmentsRated = ref<number>(0);
+const documentsCount = ref<number>(0);
 
 const chartDifficultyOptions = ref({
   chart: {
@@ -129,6 +143,10 @@ onMounted(async () => {
   $trpc.task.getCountByUser.query(user.value?.id!).then((result) => {
     tasksCount.value = result;
   });
+
+  $trpc.document.getCountByUser.query(user.value?.id!).then((result) => {
+    documentsCount.value = result!;
+  })
 
   $trpc.assignment.getDifficultiesByEditor.query(user.value?.id!).then((result) => {
     result.map((r) => {
