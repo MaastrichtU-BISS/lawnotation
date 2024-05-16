@@ -84,8 +84,14 @@
                     </div>
                     <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
                       placeholder="Description" class="w-full mb-4" />
-                    <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
-                      cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
+                    <div class="flex justify-center mb-4">
+                      <span class="relative w-full">
+                        <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines" id="annotation_guidelines" autocomplete="off"
+                          class="peer w-full" placeholder="" />
+                        <label for="annotation_guidelines"
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines url</label>
+                      </span>
+                    </div>
                     <div class="flex items-center pb-4">
                       <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value" filter optionLabel="name"
                         option-value="id" placeholder="Select Labelset" class="w-full md:w-1/2"
@@ -397,6 +403,14 @@ const createTask = () => {
   if (!new_task.ann_guidelines) {
     $toast.error("Task guidelines are required");
     return;
+  }
+  else {
+    try {
+      const url = new URL(new_task.ann_guidelines);
+    } catch (_) {
+      $toast.error("Invalid Guidelines url");
+      return;
+    }
   }
   if (!new_task.labelset_id) {
     $toast.error("Task must have a labelset");
