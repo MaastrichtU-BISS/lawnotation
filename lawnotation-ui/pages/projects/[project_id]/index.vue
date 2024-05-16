@@ -79,7 +79,7 @@
                         <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
                           class="peer w-full" placeholder="" />
                         <label for="task_name"
-                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
                       </span>
                     </div>
                     <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
@@ -89,7 +89,7 @@
                         <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines" id="annotation_guidelines" autocomplete="off"
                           class="peer w-full" placeholder="" />
                         <label for="annotation_guidelines"
-                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines url</label>
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines url</label>
                       </span>
                     </div>
                     <div class="flex items-center pb-4">
@@ -153,7 +153,7 @@
                           <InputText v-model="new_annotators[index]" autocomplete="off" class="peer w-full" placeholder=""
                             :id="`annotator_${index}`" />
                           <label :for="`annotator_${index}`"
-                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
+                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
                               `annotator ${index + 1} ` }}</label>
                         </span>
                       </div>

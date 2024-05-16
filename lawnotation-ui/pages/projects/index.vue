@@ -41,7 +41,7 @@
           <InputText v-model="new_project.name" data-test="project-name" id="project_name" autocomplete="off" ulk-
             class="peer w-full" placeholder="" />
           <label for="project_name"
-            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
+            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
         </span>
       </div>
       <Textarea v-model="new_project.desc" data-test="project-description" autoResize rows="5" cols="30"
