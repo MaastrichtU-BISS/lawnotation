@@ -16,6 +16,13 @@ export const userRouter = router({
       const update = await ctx.supabase.auth.admin.updateUserById(ctx.user.id, {user_metadata});
     }),
 
+    'hideGuidance': protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const user_metadata = ctx.user.user_metadata;
+      user_metadata.hiddenGuidance = true;
+      const update = await ctx.supabase.auth.admin.updateUserById(ctx.user.id, {user_metadata});
+    }),
+
   'findById': protectedProcedure
     .input(
       z.string()

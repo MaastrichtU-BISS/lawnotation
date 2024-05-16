@@ -11,7 +11,7 @@
   ]" />
 
   <div v-if="project">
-    <GuidancePanel v-if="guidanceTitle != ''" :title="guidanceTitle" :text="guidanceText" />
+    <GuidancePanel :currentStep="currentGuidanceStep" />
     <TabView v-model:activeIndex="activeTab">
       <TabPanel :disabled="!documentTable?.total" :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
@@ -29,7 +29,7 @@
                 <div class="relative">
                   <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
                     data-test="open-tasks-modal" />
-                  <PulsingRedCircle v-if="guidanceTitle == 'Create a new task'" />
+                  <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK" />
                 </div>
               </div>
               <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
@@ -53,7 +53,7 @@
                         data-test="view-task-link">
                         <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
                       </NuxtLink>
-                      <PulsingRedCircle v-if="guidanceTitle == 'Assign annotators'" />
+                      <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
                     </div>
                     <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                       data-test="edit-task-link">
@@ -189,7 +189,7 @@
           <div class="relative">
             <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
               icon-pos="right" data-test="open-documents-modal" />
-              <PulsingRedCircle v-if="guidanceTitle == 'Upload dataset'" />
+              <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
           </div>
         </div>
         <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
@@ -257,6 +257,7 @@ import { authorizeClient } from "~/utils/authorize.client";
 import { isWordLevel } from "~/utils/levels";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
+import { GuidanceSteps } from "~/utils/guidance";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -315,26 +316,15 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   annotation_level: undefined,
 });
 
-const guidanceText = computed(() => {
+const currentGuidanceStep = computed(() => {
   if (documentTable.value?.total == 0) {
-    return "Before you can create a task, first you need to upload your dataset. To do so, click on the highlighted button and follow the instructions."
+    return GuidanceSteps.UPLOAD_DOCUMENTS;
   } else if (documentTable.value?.total! > 0 && taskTable.value?.total! == 0) {
-    return "Now that you have documents, you can create a task by clicking on the highlighted button."
+    return GuidanceSteps.CREATE_TASK;
   } else if (documentTable.value?.total! > 0 && taskTable.value?.total! > 0) {
-    return "The task is ready, all that remains is to assign annotators to the documents. Click on the highlighted button to go to the last step."
+    return GuidanceSteps.ASSIGN_ANNOTATORS;
   }
-  return ''
-});
-
-const guidanceTitle = computed(() => {
-  if (documentTable.value?.total == 0) {
-    return "Upload dataset"
-  } else if (documentTable.value?.total! > 0 && taskTable.value?.total! == 0) {
-    return "Create a new task"
-  } else if (documentTable.value?.total! > 0 && taskTable.value?.total! == 1) {
-    return "Assign annotators"
-  }
-  return ''
+  return GuidanceSteps.NONE;
 });
 
 const loadLabelset = async (id?: number) => {

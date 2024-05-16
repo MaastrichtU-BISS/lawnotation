@@ -1,12 +1,12 @@
 <template>
   <div class="max-w-screen-lg mx-auto my-8">
-    <GuidancePanel v-if="guidanceText != ''" :title="guidanceTitle" :text="guidanceText"/>
+    <GuidancePanel :currentStep="currentGuidanceStep" />
     <div class="flex justify-between">
       <h3 class="mb-2 text-lg font-semibold">Projects</h3>
       <div class="relative">
         <Button label="Add" icon="pi pi-plus" @click="showCreateModal = true" icon-pos="right"
           data-test="open-projects-modal" />
-          <PulsingRedCircle v-if="guidanceTitle == 'Create your first project'" />
+        <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_PROJECT" />
       </div>
 
     </div>
@@ -27,7 +27,7 @@
             <NuxtLink data-test="view-project-link" :to="`/projects/${item.id}`">
               <Button label="View" size="small" />
             </NuxtLink>
-            <PulsingRedCircle v-if="guidanceTitle == 'Go to the newly created project'" />
+            <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.VIEW_PROJECT" />
           </div>
           <NuxtLink :to="`/projects/${item.id}/edit`" data-test="edit-project-link">
             <Button label="Edit" size="small" link />
@@ -38,7 +38,7 @@
     <Dialog v-model:visible="showCreateModal" modal header="Create new project">
       <div class="flex justify-center mb-4">
         <span class="relative w-full">
-          <InputText v-model="new_project.name" data-test="project-name" id="project_name" autocomplete="off"
+          <InputText v-model="new_project.name" data-test="project-name" id="project_name" autocomplete="off" ulk-
             class="peer w-full" placeholder="" />
           <label for="project_name"
             class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
@@ -60,6 +60,7 @@ import type { Project } from "~/types";
 import Table from "@/components/Table.vue";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
+import { GuidanceSteps } from "~/utils/guidance";
 
 const projectTable = ref<InstanceType<typeof Table> | null>();
 
@@ -74,22 +75,13 @@ const new_project = reactive<Omit<Project, "id">>({
 
 const showCreateModal = ref<boolean>(false);
 
-const guidanceText = computed(() => {
-  if(projectTable.value?.total == 0) {
-    return "The first step is to create a new project. To do that, click on the highlighted button and fill in the form."
+const currentGuidanceStep = computed(() => {
+  if (projectTable.value?.total == 0) {
+    return GuidanceSteps.CREATE_PROJECT;
   } else if (projectTable.value?.total == 1) {
-    return "Now that you have a project, click on the highlighted button to continue."
+    return GuidanceSteps.VIEW_PROJECT;
   }
-  return ''
-});
-
-const guidanceTitle = computed(() => {
-  if(projectTable.value?.total == 0) {
-    return "Create your first project"
-  } else if (projectTable.value?.total == 1) {
-    return "Go to the newly created project"
-  }
-  return ''
+  return GuidanceSteps.NONE;
 });
 
 watch(showCreateModal, (new_val) => {

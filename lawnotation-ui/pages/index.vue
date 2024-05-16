@@ -42,7 +42,6 @@ const alert_assigned_task_id = ref<number>()
 
 
 onMounted(async () => {
-  console.log(user.value?.user_metadata)
   if (user.value?.user_metadata?.assigned_task_id) {
     alert_assigned_task_id.value = user.value?.user_metadata?.assigned_task_id;
     await $trpc.user.clearInviteMetadata.mutate();
