@@ -12,6 +12,8 @@ import type {
   LSSerializedAnnotations,
 } from "~/types";
 
+// import { LabelStudio } from "@humansignal/source/editor/src/LabelStudio"
+
 const { $trpc } = useNuxtApp();
 
 const label_studio = ref();
@@ -82,8 +84,11 @@ const initLS = async () => {
   document.body.appendChild(script);
 
   // @ts-expect-error
-  const LabelStudio = (await import("@heartexlabs/label-studio")).default;
-  label_studio.value = new LabelStudio("label-studio", {
+  // const LabelStudio = (await import("@heartexlabs/label-studio")).default;
+  // const LabelStudio = (await import("lsf?develop/js/main")).default;
+   const LabelStudio = (await import("editor/main"));
+
+  label_studio.value = new window.LabelStudio("label-studio", {
     config: `
                 <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
                   <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto;">
@@ -150,6 +155,7 @@ const initLS = async () => {
       "edit-history",
     ],
     user: {
+      id: 1,
       pk: 1,
       firstName: props.user.value?.email,
       // lastName: "Dean",
