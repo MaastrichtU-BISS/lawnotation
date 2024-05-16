@@ -249,7 +249,6 @@ import type {
 } from "~/types";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
-import Labelsets from "~/components/Labelsets.vue";
 import Labelset from "~/components/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { isWordLevel } from "~/utils/levels";
@@ -278,6 +277,13 @@ const activeTabTaskModal = ref<number>(0);
 const showUploadDocumentsModal = ref<boolean>(false);
 
 let labelsets = await $trpc.labelset.find.useQuery({});
+const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
+  id: undefined,
+  editor_id: undefined,
+  name: "",
+  desc: "",
+  labels: [],
+});
 
 const import_json = ref<any>(null);
 const import_progress = ref<{
@@ -306,22 +312,25 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   annotation_level: undefined,
 });
 
+const assignmentsCount = ref<number>((await $trpc.assignment.getCountByUser.query(user.value?.id!))!); 
+
 const currentGuidanceStep = computed(() => {
-  if (documentTable.value?.total == 0) {
-    return GuidanceSteps.UPLOAD_DOCUMENTS;
-  } else if (documentTable.value?.total! > 0 && taskTable.value?.total! == 0) {
-    return GuidanceSteps.CREATE_TASK;
-  } else if (documentTable.value?.total! > 0 && taskTable.value?.total! > 0) {
-    return GuidanceSteps.ASSIGN_ANNOTATORS;
+  if(documentTable.value && taskTable.value) {
+    if (documentTable.value.total == 0) {
+      return GuidanceSteps.UPLOAD_DOCUMENTS;
+    } else if (taskTable.value.total == 0) {
+      return GuidanceSteps.CREATE_TASK;
+    } else if (assignmentsCount.value == 0) {
+      return GuidanceSteps.ASSIGN_ANNOTATORS;
+    }
   }
   return GuidanceSteps.NONE;
 });
 
-const refreshLabelsets = async (id: number) => {
+const refreshLabelsets = async () => {
   activeTabTaskModal.value = 0;
-  const new_labelset = await $trpc.labelset.findById.query(id);
-  labelsets.data.value?.push(new_labelset);
-  new_task.labelset_id = id;
+  labelsets.data.value?.push(labelset.value as any);
+  new_task.labelset_id = labelset.value.id!;
 }
 
 const uploadDocuments = async (event: { files: FileList }) => {

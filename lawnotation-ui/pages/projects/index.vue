@@ -67,6 +67,8 @@ const projectTable = ref<InstanceType<typeof Table> | null>();
 const user = useSupabaseUser();
 const { $toast, $trpc } = useNuxtApp();
 
+const documentsCount = ref<number>((await $trpc.document.getCountByUser.query(user.value?.id!))!); 
+
 const new_project = reactive<Omit<Project, "id">>({
   name: "",
   desc: "",
@@ -76,10 +78,12 @@ const new_project = reactive<Omit<Project, "id">>({
 const showCreateModal = ref<boolean>(false);
 
 const currentGuidanceStep = computed(() => {
-  if (projectTable.value?.total == 0) {
-    return GuidanceSteps.CREATE_PROJECT;
-  } else if (projectTable.value?.total == 1) {
-    return GuidanceSteps.VIEW_PROJECT;
+  if(projectTable.value) {
+    if (projectTable.value.total == 0) {
+      return GuidanceSteps.CREATE_PROJECT;
+    } else if (documentsCount.value == 0) {
+      return GuidanceSteps.VIEW_PROJECT;
+    }
   }
   return GuidanceSteps.NONE;
 });
