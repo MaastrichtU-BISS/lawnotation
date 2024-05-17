@@ -44,9 +44,15 @@ dependencies:
   flowbite:
     specifier: ^1.8.1
     version: 1.8.1
+  js:
+    specifier: link:labelstudio_dist/label_studio/frontend/dist/lsf/js
+    version: link:labelstudio_dist/label_studio/frontend/dist/lsf/js
   jszip:
     specifier: ^3.10.1
     version: 3.10.1
+  lsf:
+    specifier: link:labelstudio_dist/label_studio/frontend/dist/lsf
+    version: link:labelstudio_dist/label_studio/frontend/dist/lsf
   lsf-develop:
     specifier: https://gitpkg.now.sh/HumanSignal/label-studio/label_studio/frontend/dist/lsf?develop
     version: '@gitpkg.now.sh/HumanSignal/label-studio/label_studio/frontend/dist/lsf?develop'

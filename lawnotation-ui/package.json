@@ -12,7 +12,8 @@
     "supabase-mail": "open-cli http://localhost:54324",
     "supabase:db:reset": "npx supabase db reset",
     "update-types": "npx supabase gen types typescript --project-id \"aukazbmquapjrmbhefkc\" > types/supabase.ts",
-    "postinstall": "nuxt prepare && git clone --no-checkout --depth=1 https://github.com/HumanSignal/label-studio labelstudio_dist; cd labelstudio_dist; git checkout develop -- web/dist/libs/editor; cd ..; pnpm i labelstudio_dist/web/dist/libs/editor/"
+    "install-lsf": "git clone --no-checkout --depth=1 https://github.com/HumanSignal/label-studio labelstudio_dist; cd labelstudio_dist; git checkout develop -- label_studio/frontend/dist/lsf; cd ..; pnpm i labelstudio_dist/label_studio/frontend/dist/lsf",
+    "postinstall": "install-lsf && nuxt prepare"
   },
   "devDependencies": {
     "@nuxtjs/supabase": "^1.2.1",
@@ -42,7 +43,9 @@
     "epic-spinners": "^2.0.0",
     "file-saver": "^2.0.5",
     "flowbite": "^1.8.1",
+    "js": "link:labelstudio_dist/label_studio/frontend/dist/lsf/js",
     "jszip": "^3.10.1",
+    "lsf": "link:labelstudio_dist/label_studio/frontend/dist/lsf",
     "lsf-develop": "https://gitpkg.now.sh/HumanSignal/label-studio/label_studio/frontend/dist/lsf?develop",
     "mailtrap": "^3.3.0",
     "primeicons": "^6.0.1",
