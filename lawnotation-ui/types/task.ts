@@ -5,5 +5,13 @@ export type Task = {
   project_id: number;
   labelset_id: number;
   ann_guidelines: string;
-  annotation_level: 'word' | 'document';
+  annotation_level: AnnotationLevels;
 };
+
+export enum AnnotationLevels {
+  SYMBOL = 'symbol',
+  WORD = 'word', 
+  SENTENCE = 'sentence', 
+  PARAGRAPH = 'paragraph',
+  DOCUMENT= 'document',
+}
