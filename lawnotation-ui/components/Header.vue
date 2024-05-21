@@ -1,7 +1,7 @@
 <template>
   <!-- <div class="flex items-center justify-between px-4 py-4 bg-neutral-100"> -->
   <div class="">
-    <Menubar class="p-3 justify-between" :pt="{end: {class: ''}}" :model="[
+    <Menubar class="p-3 justify-between" :pt="{ end: { class: '' } }" :model="[
       {
         label: 'Projects',
         icon: 'pi pi-list',
@@ -21,7 +21,7 @@
         dataTest: 'published-link'
       },
       {
-          is_separator: true
+        is_separator: true
       },
       {
         label: 'Assigned Tasks',
@@ -36,7 +36,8 @@
             <NuxtLink to="/"><img src="/lawnotation-logo.svg" /></NuxtLink>
           </div>
           <div class="ml-4">
-            <Button text type="button" icon="pi pi-link" @click="(e) => linksMenu?.toggle(e)" aria-haspopup="true" aria-controls="overlay_menu" />
+            <Button text type="button" icon="pi pi-link" @click="(e) => linksMenu?.toggle(e)" aria-haspopup="true"
+              aria-controls="overlay_menu" />
             <Menu ref="linksMenu" id="overlay_menu" :model="[
               {
                 label: 'External',
@@ -74,7 +75,8 @@
       </template>
       <template #item="{ item, props, hasSubmenu }">
         <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
-          <a :data-test="item.dataTest" :class="{ active: routeIsActive(item.route) }" v-ripple :href="href" v-bind="props.action" @click="navigate">
+          <a :data-test="item.dataTest" :class="{ active: routeIsActive(item.route) }" v-ripple :href="href"
+            v-bind="props.action" @click="navigate">
             <span :class="item.icon" />
             <span class="ml-2">{{ item.label }}</span>
           </a>
@@ -89,20 +91,18 @@
       <template #end>
         <div class="flex align-items-center gap-2">
           <div v-if="user">
-            <Button
-              text plain
-              :label="user.email?.split('@')[0]"
-              type="button"
-              icon="pi pi-user"
-              @click="(e) => userMenu?.toggle(e)"
-              aria-haspopup="true"
-              aria-controls="overlay_menu"
-            />
+            <Button text plain :label="user.email?.split('@')[0]" type="button" icon="pi pi-user"
+              @click="(e) => userMenu?.toggle(e)" aria-haspopup="true" aria-controls="overlay_menu" />
             <TieredMenu ref="userMenu" id="overlay_menu" :model="[
               {
                 label: 'Dashboard',
                 icon: 'pi pi-chart-pie',
                 url: '/dashboard'
+              },
+              {
+                label: guidanceLabel,
+                icon: 'pi pi-info-circle',
+                command: toggleGuidance
               },
               {
                 label: 'Sign out',
@@ -123,12 +123,20 @@ import type TieredMenu from 'primevue/tieredmenu';
 const supabase = useSupabaseClient()
 const user = useSupabaseUser();
 
+const supa = useSupabaseClient();
+
 const { $trpc } = useNuxtApp();
 
 const route = useRoute();
 
 const linksMenu = ref<Menu>();
 const userMenu = ref<TieredMenu>();
+
+const guidanceIsVisible = computed(() => {
+  return user.value?.user_metadata?.guidanceStatus != false;
+});
+
+const guidanceLabel = computed(() => { return guidanceIsVisible.value ? 'Hide Tips' : 'Show Tips' });
 
 const routeIsActive = computed(() => (match: string) => {
   return route.path.startsWith(match);
@@ -137,6 +145,11 @@ const routeIsActive = computed(() => (match: string) => {
 const signOut = async () => {
   await supabase.auth.signOut()
   navigateTo('/auth/login');
+}
+
+const toggleGuidance = async () => {
+  await $trpc.user.setGuidance.mutate(!guidanceIsVisible.value);
+  supa.auth.refreshSession();
 }
 </script>
 

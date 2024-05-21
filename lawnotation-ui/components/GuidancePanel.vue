@@ -46,18 +46,18 @@ const panelData = computed(() => {
     }
 });
 
-const hiddenByUser = computed(() => {
-    return user.value?.user_metadata?.hiddenGuidance == true;
+const guidanceIsVisible = computed(() => {
+    return user.value?.user_metadata?.guidanceStatus != false;
 });
 
 const isVisible = computed(() => {
-    if(hiddenByUser.value) return false;
+    if(guidanceIsVisible.value == false) return false;
     if(props.currentStep == guidance.GuidanceSteps.NONE) return false;
     return true;
 });
 
 const hide = async () => {
-    await $trpc.user.hideGuidance.mutate();
+    await $trpc.user.setGuidance.mutate(false);
     supa.auth.refreshSession();
 };
 
