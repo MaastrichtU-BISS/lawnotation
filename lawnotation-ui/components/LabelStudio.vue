@@ -4,7 +4,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import "@heartexlabs/label-studio/build/static/css/main.css";
+// import "@heartexlabs/label-studio/build/static/css/main.css";
 import type {
   LSSerializedRelation,
   Assignment,
@@ -12,6 +12,7 @@ import type {
   LSSerializedAnnotations,
 } from "~/types";
 
+import "lsf/css/main.css"
 // import { LabelStudio } from "@humansignal/source/editor/src/LabelStudio"
 
 const { $trpc } = useNuxtApp();
@@ -83,11 +84,12 @@ const initLS = async () => {
   script.src = "data:text/javascript,void(0);";
   document.body.appendChild(script);
 
-  // @ts-expect-error
+  // .@ts-expect-error
   // const LabelStudio = (await import("@heartexlabs/label-studio")).default;
   // const LabelStudio = (await import("lsf?develop/js/main")).default;
-   const LabelStudio = (await import("editor/main"));
-
+  // (await import("editor/main"));
+  // (await import("lsf/css/main.css"))
+  (await import("lsf/js/main"))
   label_studio.value = new window.LabelStudio("label-studio", {
     config: `
                 <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
@@ -130,6 +132,7 @@ const initLS = async () => {
       continuousLabeling: true,
     },
     interfaces: [
+      "basic",
       "panel",
       "update",
       "submit",
@@ -154,6 +157,7 @@ const initLS = async () => {
       // "auto-annotation",
       "edit-history",
     ],
+    options: { secureMode: false },
     user: {
       id: 1,
       pk: 1,
@@ -292,6 +296,7 @@ onMounted(() => {
   });
 });
 </script>
+
 <style>
 #label-studio {
   border: 1px solid rgba(0, 0, 0, 0.1);
