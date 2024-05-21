@@ -68,10 +68,10 @@ export const convert_annotation_ls2db = (
 
 export const convert_annotation_db2ls = (
   anns: Annotation[],
-  isWordLevel: boolean,
+  isSpanLevel: boolean,
   isHtml: boolean,
 ): LSSerializedAnnotations => {
-  if (isWordLevel) {
+  if (isSpanLevel) {
     if(isHtml) {
       return anns.map((a) => {
         return {

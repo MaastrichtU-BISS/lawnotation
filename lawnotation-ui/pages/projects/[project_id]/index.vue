@@ -45,7 +45,7 @@
                     {{ item.desc }}
                   </td>
                   <td class="px-6 py-2">
-                    {{ isWordLevel(item) ? 'Word' : 'Document' }}
+                    {{ item.annotation_level }}
                   </td>
                   <td class="px-6 py-2 flex">
                     <div class="relative mr-2">
@@ -101,7 +101,7 @@
                     </div>
                     <div>
                       <p class="font-bold">Annotation level</p>
-                      <SelectButton v-model="new_task.annotation_level" :options="['word', 'document']"
+                      <SelectButton v-model="new_task.annotation_level" :options="Object.values(AnnotationLevels)"
                         class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
                           label: {
                             class: 'font-normal'
@@ -251,10 +251,10 @@ import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Labelset from "~/components/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel } from "~/utils/levels";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
 import { GuidanceSteps } from "~/utils/guidance";
+import { AnnotationLevels } from "~/types/task";
 
 const { $toast, $trpc } = useNuxtApp();
 
