@@ -136,7 +136,7 @@ const initLS = async () => {
       "topbar:prevnext",
       props.isEditor ? "review" : "",
       "instruction",
-      props.isSpanLevel ? "side-column" : "",
+      props.annotation_level != AnnotationLevels.DOCUMENT ? "side-column" : "",
       // "ground-truth",
       // "annotations:history",
       // "annotations:tabs",
@@ -270,7 +270,7 @@ onMounted(() => {
   waitForElement('.lsf-button[aria-label="submit"]').then(
     (el) => (el.innerHTML = "Next")
   );
-  if(!props.isSpanLevel) {
+  if(props.annotation_level == AnnotationLevels.DOCUMENT) {
     waitForElement('.ls-common').then(
       (el) => {
         el.firstChild!.parentElement!.style.gridTemplateColumns = 'auto';
