@@ -37,5 +37,11 @@ export default defineNuxtConfig({
   },
   vite: {
     optimizeDeps: { exclude: ["/lawnotation-ui/utils/enums.ts", "/lawnotation-ui/utils/guidance.ts"] },
+    vue: {
+      script: {
+        defineModel: true,
+        propsDestructure: true,
+      },
+    },
   }
 });
