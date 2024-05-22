@@ -294,7 +294,7 @@ const selectedAnnotationLevel = ref<'Span' | 'Document'>();
 let labelsets = await $trpc.labelset.find.useQuery({});
 const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
   id: undefined,
-  editor_id: undefined,
+  editor_id: user.value?.id,
   name: "",
   desc: "",
   labels: [],
