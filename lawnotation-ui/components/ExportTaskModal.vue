@@ -370,7 +370,7 @@ const active = ref<number>(0);
 
 const emit = defineEmits(["export", "close"]);
 
-watch(formValues.value.export_options, () => {
+watch(formValues?.value?.export_options, () => {
   formValues.value.modalOperations.loaded = false;
 });
 
