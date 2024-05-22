@@ -247,7 +247,6 @@
         </Dialog>
       </TabPanel>
     </TabView>
-    {{emptyTask}}
   </div>
 </template>
 <script setup lang="ts">
