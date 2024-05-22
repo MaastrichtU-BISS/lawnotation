@@ -53,7 +53,7 @@
                         data-test="view-task-link">
                         <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
                       </NuxtLink>
-                      <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
+                      <PulsingRedCircle v-if="item.assignments[0].count ? currentGuidanceStep == GuidanceSteps.CHECK_ASSIGNMENTS : currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
                     </div>
                     <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                       data-test="edit-task-link">
@@ -247,6 +247,7 @@
         </Dialog>
       </TabPanel>
     </TabView>
+    {{emptyTask}}
   </div>
 </template>
 <script setup lang="ts">
@@ -326,7 +327,7 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   annotation_level: undefined,
 });
 
-const assignmentsCount = ref<number>((await $trpc.assignment.getCountByUser.query(user.value?.id!))!);
+const assignmentsCount = ref<number>((await $trpc.assignment.getCountByProject.query(project.id))!);
 
 const currentGuidanceStep = computed(() => {
   if (documentTable.value && taskTable.value) {
@@ -336,6 +337,8 @@ const currentGuidanceStep = computed(() => {
       return GuidanceSteps.CREATE_TASK;
     } else if (assignmentsCount.value == 0) {
       return GuidanceSteps.ASSIGN_ANNOTATORS;
+    } else {
+      return GuidanceSteps.CHECK_ASSIGNMENTS;
     }
   }
   return GuidanceSteps.NONE;

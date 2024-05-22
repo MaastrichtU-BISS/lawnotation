@@ -12,4 +12,5 @@ export enum GuidanceSteps {
   UPLOAD_DOCUMENTS = "upload_documents",
   CREATE_TASK = "create_task",
   ASSIGN_ANNOTATORS = "assign_annotators",
+  CHECK_ASSIGNMENTS = "check_assignments"
 }

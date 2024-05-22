@@ -24,4 +24,9 @@ export const guidancePanel = {
     text: "The task is ready, all that remains is to assign annotators to the documents. Click on the highlighted button to go to the last step.",
     step: 5
   },
+  check_assignments: {
+    title: "Check Assignemnts",
+    text: "Annotators have received an email notifying them that they can start annotating the new task. Click on the highlighted button to check out their progress.",
+    step: 6
+  },
 };
