@@ -35,7 +35,7 @@
       <div class="dimmer-content h-full">
         <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
           :annotations="ls_annotations" :relations="ls_relations" :labels="labels" :guidelines="task?.ann_guidelines"
-          :isWordLevel="isWordLevel(task)" :isHtml="isHtml" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
+          :annotation_level="task.annotation_level" :isHtml="isHtml" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
         </LabelStudio>
       </div>
     </div>
@@ -53,7 +53,7 @@ import type {
   LSSerializedRelation,
 } from "~/types";
 import Breadcrumb from "~/components/Breadcrumb.vue";
-import { isWordLevel, getDocFormat } from "~/utils/levels";
+import { isDocumentLevel, getDocFormat } from "~/utils/levels";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const user = useSupabaseUser();
@@ -154,7 +154,7 @@ const loadData = async () => {
 
     ls_annotations.splice(0);
     if (_annotations.length) {
-      const db2ls_anns = convert_annotation_db2ls(_annotations, isWordLevel(task.value), isHtml.value);
+      const db2ls_anns = convert_annotation_db2ls(_annotations, !isDocumentLevel(task.value), isHtml.value);
       ls_annotations.push(...db2ls_anns);
     }
 

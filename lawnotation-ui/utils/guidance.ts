@@ -1,12 +1,3 @@
-export enum GuidanceSteps {
-  NONE = '',
-  CREATE_PROJECT = "create_project",
-  VIEW_PROJECT = "view_project",
-  UPLOAD_DOCUMENTS = "upload_documents",
-  CREATE_TASK = "create_task",
-  ASSIGN_ANNOTATORS = "assign_annotators",
-}
-
 export const guidancePanel = {
   create_project: {
     title: "Create your first project",

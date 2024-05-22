@@ -60,7 +60,7 @@ import type { Project } from "~/types";
 import Table from "@/components/Table.vue";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
-import { GuidanceSteps } from "~/utils/guidance";
+import { GuidanceSteps } from "~/utils/enums";
 
 const projectTable = ref<InstanceType<typeof Table> | null>();
 
