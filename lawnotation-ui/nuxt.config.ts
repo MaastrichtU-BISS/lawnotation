@@ -18,7 +18,7 @@ export default defineNuxtConfig({
     importPT: { as: "Lara", from: "@/presets/lara" }
   },
   build: {
-    transpile: ['trpc-nuxt']
+    transpile: ['trpc-nuxt'],
   },
   css: ["@/assets/styles/main.scss", "@vueform/multiselect/themes/default.css", 'primeicons/primeicons.css'],
   supabase: {
@@ -34,5 +34,8 @@ export default defineNuxtConfig({
         detectSessionInUrl: true,
       }
     }
+  },
+  vite: {
+    optimizeDeps: { exclude: ["/lawnotation-ui/utils/enums.ts", "/lawnotation-ui/utils/guidance.ts"] },
   }
 });

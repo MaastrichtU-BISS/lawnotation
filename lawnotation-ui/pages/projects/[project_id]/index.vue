@@ -266,8 +266,7 @@ import Labelset from "~/components/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
-import { GuidanceSteps } from "~/utils/guidance";
-import { AnnotationLevels } from "~/types/task";
+import { AnnotationLevels, GuidanceSteps } from "~/utils/enums";
 
 const { $toast, $trpc } = useNuxtApp();
 

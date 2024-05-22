@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Task, Annotator } from "~/types";
-import { AnnotationLevels } from "~/types/task";
+import { AnnotationLevels } from "~/utils/enums";
 import type { Context } from "../context";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";

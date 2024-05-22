@@ -5,14 +5,13 @@
 </template>
 <script setup lang="ts">
 import "@heartexlabs/label-studio/build/static/css/main.css";
-import { isDocumentLevel } from "~/utils/levels";
 import type {
   LSSerializedRelation,
   Assignment,
   LsLabels,
   LSSerializedAnnotations,
 } from "~/types";
-import {  AnnotationLevels } from "~/types";
+import { AnnotationLevels } from "~/utils/enums";
 
 const { $trpc } = useNuxtApp();
 
