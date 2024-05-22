@@ -1,15 +1,4 @@
 <template>
-  <Breadcrumb v-if="project" :crumbs="[
-    {
-      name: 'Projects',
-      link: '/projects',
-    },
-    {
-      name: `Project ${project.name}`,
-      link: `/projects/${project.id}`,
-    },
-  ]" />
-
   <div v-if="project">
     <GuidancePanel :currentStep="currentGuidanceStep" />
     <TabView v-model:activeIndex="activeTab">
@@ -259,6 +248,18 @@ import { GuidanceSteps } from "~/utils/guidance";
 const { $toast, $trpc } = useNuxtApp();
 
 const { project } = usePage<{ project: Project }>().value;
+const { setBreadcrumb } = useBreadcrumb();
+setBreadcrumb([
+  {
+    name: 'Projects',
+    link: '/projects',
+  },
+  {
+    name: `Project ${project.name}`,
+    link: `/projects/${project.id}`,
+  },
+])
+renderPageDependencies();
 
 const user = useSupabaseUser();
 
@@ -646,7 +647,7 @@ definePageMeta({
   middleware: [
     "auth",
     async (to) => authorizeClient([["project", +to.params.project_id]]),
-  ],
+  ]
 });
 </script>
 
@@ -662,4 +663,4 @@ div.tabs-holder {
     @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
 }
-</style>~/components/Labelsets.vue
+</style>

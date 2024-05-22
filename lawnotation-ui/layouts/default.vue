@@ -1,7 +1,9 @@
 <template>
   <div>
     <Header></Header>
-    <div id="breadcrumb-holder" class="bg-white dark:bg-gray-800"></div>
+    <div class="bg-white dark:bg-gray-800">
+      <Breadcrumb />
+    </div>
   </div>
   <div class="mx-auto max-w-screen-lg py-2">
     <slot />

@@ -1,19 +1,4 @@
 <template>
-  <Breadcrumb v-if="task && project" :crumbs="[
-    {
-      name: 'Projects',
-      link: '/projects',
-    },
-    {
-      name: `Project ${project.name}`,
-      link: `/projects/${project.id}`,
-    },
-    {
-      name: `Task ${task.name}`,
-      link: `/projects/${project.id}/tasks/${task.id}`,
-    },
-  ]" />
-
   <div class="my-3 dimmer-wrapper">
     <Dimmer v-model="loading" />
     <div class="dimmer-content">
@@ -161,6 +146,23 @@ const total_docs = totalAmountOfDocs ?? 0;
 const number_of_docs = ref<number>(total_docs);
 const number_of_fixed_docs = ref<number>(total_docs);
 const optionsMenu = ref()
+
+const { setBreadcrumb } = useBreadcrumb();
+setBreadcrumb([
+  {
+    name: 'Projects',
+    link: '/projects',
+  },
+  {
+    name: `Project ${project.name}`,
+    link: `/projects/${project.id}`,
+  },
+  {
+    name: `Task ${task.name}`,
+    link: `/projects/${project.id}/tasks/${task.id}`,
+  },
+])
+renderPageDependencies();
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
 
