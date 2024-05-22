@@ -397,11 +397,7 @@ const createTask = () => {
     $toast.error("Task description is required");
     return;
   }
-  if (!new_task.ann_guidelines) {
-    $toast.error("Task guidelines are required");
-    return;
-  }
-  else {
+  if (new_task.ann_guidelines){
     try {
       const url = new URL(new_task.ann_guidelines);
     } catch (_) {
