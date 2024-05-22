@@ -1,4 +1,3 @@
-import type { _AsyncData } from "nuxt/dist/app/composables/asyncData";
 import type { AppRouter } from "~/server/trpc/routers";
 import { createTRPCNuxtClient } from "trpc-nuxt/client";
 
