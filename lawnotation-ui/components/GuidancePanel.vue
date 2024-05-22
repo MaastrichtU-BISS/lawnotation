@@ -27,22 +27,23 @@
     </transition>
 </template>
 <script setup lang="ts">
-import * as guidance from "~/utils/guidance";
+import { guidancePanel } from "~/utils/guidance";
+import { GuidanceSteps } from "~/utils/enums";
 
 const { $trpc } = useNuxtApp();
 const user = useSupabaseUser();
 const supa = useSupabaseClient();
 
 const props = defineProps<{
-    currentStep: guidance.GuidanceSteps
+    currentStep: GuidanceSteps
 }>();
 
 const panelData = computed(() => {
-    if(props.currentStep == guidance.GuidanceSteps.NONE) return null;
+    if(props.currentStep == GuidanceSteps.NONE) return null;
     return {
-        step: guidance.guidancePanel[props.currentStep].step,
-        title: guidance.guidancePanel[props.currentStep].title,
-        text: guidance.guidancePanel[props.currentStep].text
+        step: guidancePanel[props.currentStep].step,
+        title: guidancePanel[props.currentStep].title,
+        text: guidancePanel[props.currentStep].text
     }
 });
 
@@ -52,7 +53,7 @@ const guidanceIsVisible = computed(() => {
 
 const isVisible = computed(() => {
     if(guidanceIsVisible.value == false) return false;
-    if(props.currentStep == guidance.GuidanceSteps.NONE) return false;
+    if(props.currentStep == GuidanceSteps.NONE) return false;
     return true;
 });
 

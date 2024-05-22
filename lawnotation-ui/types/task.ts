@@ -1,3 +1,5 @@
+import { AnnotationLevels } from "~/utils/enums";
+
 export type Task = {
   id: number;
   name: string;
@@ -5,5 +7,5 @@ export type Task = {
   project_id: number;
   labelset_id: number;
   ann_guidelines: string;
-  annotation_level: 'word' | 'document';
+  annotation_level: AnnotationLevels;
 };

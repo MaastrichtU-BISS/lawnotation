@@ -21,7 +21,7 @@
         <div v-if="totalAssignments.data.value?.total">
           <div class="flex justify-center gap-6 my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
-              <Button type="button" v-if="isWordLevel(task)" label="Analyze Agreement Metrics"
+              <Button type="button" v-if="!isDocumentLevel(task)" label="Analyze Agreement Metrics"
                 data-test="metrics-button" />
             </NuxtLink>
             <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true" data-test="export-publish-button" />
@@ -138,9 +138,8 @@ import type {
   Publication,
 } from "~/types";
 import { PublicationStatus } from "~/types"
-import { isWordLevel } from "~/utils/levels";
+import { isDocumentLevel } from "~/utils/levels";
 import Table from "~/components/Table.vue";
-import { Modal } from "flowbite";
 import _ from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";

@@ -1,12 +1,3 @@
-export enum GuidanceSteps {
-  NONE = '',
-  CREATE_PROJECT = "create_project",
-  VIEW_PROJECT = "view_project",
-  UPLOAD_DOCUMENTS = "upload_documents",
-  CREATE_TASK = "create_task",
-  ASSIGN_ANNOTATORS = "assign_annotators",
-}
-
 export const guidancePanel = {
   create_project: {
     title: "Create your first project",
@@ -32,5 +23,10 @@ export const guidancePanel = {
     title: "Assign annotators",
     text: "The task is ready, all that remains is to assign annotators to the documents. Click on the highlighted button to go to the last step.",
     step: 5
+  },
+  check_assignments: {
+    title: "Check Assignemnts",
+    text: "Annotators have received an email notifying them that they can start annotating the new task. Click on the highlighted button to check out their progress.",
+    step: 6
   },
 };

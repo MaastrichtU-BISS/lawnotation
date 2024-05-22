@@ -45,7 +45,7 @@
                     {{ item.desc }}
                   </td>
                   <td class="px-6 py-2">
-                    {{ isWordLevel(item) ? 'Word' : 'Document' }}
+                    {{ item.annotation_level }}
                   </td>
                   <td class="px-6 py-2 flex">
                     <div class="relative mr-2">
@@ -53,7 +53,7 @@
                         data-test="view-task-link">
                         <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
                       </NuxtLink>
-                      <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
+                      <PulsingRedCircle v-if="item.assignments[0].count ? currentGuidanceStep == GuidanceSteps.CHECK_ASSIGNMENTS : currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
                     </div>
                     <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                       data-test="edit-task-link">
@@ -86,10 +86,11 @@
                       placeholder="Description" class="w-full mb-4" />
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
-                        <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines" id="annotation_guidelines" autocomplete="off"
-                          class="peer w-full" placeholder="" />
+                        <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines"
+                          id="annotation_guidelines" autocomplete="off" class="peer w-full" placeholder="" />
                         <label for="annotation_guidelines"
-                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines url</label>
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines
+                          url</label>
                       </span>
                     </div>
                     <div class="flex items-center pb-4">
@@ -99,16 +100,28 @@
                       <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
                         data-test='create-new-labelset' />
                     </div>
-                    <div>
-                      <p class="font-bold">Annotation level</p>
-                      <SelectButton v-model="new_task.annotation_level" :options="['word', 'document']"
-                        class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
-                          label: {
-                            class: 'font-normal'
-                          }
-                        }" />
+                    <div class="mb-4 flex justify-between items-center">
+                      <div>
+                        <p class="font-bold mb-4">Annotation level</p>
+                        <SelectButton :options="['Span', 'Document']" v-model="selectedAnnotationLevel"
+                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
+                            label: {
+                              class: 'font-normal'
+                            }
+                          }" />
+                      </div>
+                      <div v-if="selectedAnnotationLevel == 'Span'">
+                        <p class="font-bold mb-4">Granularity</p>
+                        <SelectButton v-model="new_task.annotation_level"
+                          :options="Object.values(AnnotationLevels).filter(level => level != 'document')"
+                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
+                            label: {
+                              class: 'font-normal'
+                            }
+                          }" />
+                      </div>
                     </div>
-                    <div class="flex justify-center mt-6">
+                    <div class="flex justify-center mt-10">
                       <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
                         @click="showCreateTaskModal = false;" />
                       <Button data-test="create-tasks" label="Create" size="small" icon="pi pi-check" iconPos="right"
@@ -165,7 +178,7 @@
                     </div>
                   </TabPanel>
                   <TabPanel header="Labelset">
-                      <Labelset v-model="labelset" @labelset-persisted="refreshLabelsets" />
+                    <Labelset v-model="labelset" @labelset-persisted="refreshLabelsets" />
                   </TabPanel>
                 </TabView>
               </Dialog>
@@ -187,7 +200,7 @@
           <div class="relative">
             <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
               icon-pos="right" data-test="open-documents-modal" />
-              <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
+            <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
           </div>
         </div>
         <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
@@ -234,6 +247,7 @@
         </Dialog>
       </TabPanel>
     </TabView>
+    {{emptyTask}}
   </div>
 </template>
 <script setup lang="ts">
@@ -251,10 +265,9 @@ import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Labelset from "~/components/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel } from "~/utils/levels";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
-import { GuidanceSteps } from "~/utils/guidance";
+import { AnnotationLevels, GuidanceSteps } from "~/utils/enums";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -275,6 +288,8 @@ const uploadHasStarted = ref<boolean>(false);
 const activeTabTaskModal = ref<number>(0);
 
 const showUploadDocumentsModal = ref<boolean>(false);
+
+const selectedAnnotationLevel = ref<'Span' | 'Document'>();
 
 let labelsets = await $trpc.labelset.find.useQuery({});
 const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
@@ -312,16 +327,18 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   annotation_level: undefined,
 });
 
-const assignmentsCount = ref<number>((await $trpc.assignment.getCountByUser.query(user.value?.id!))!); 
+const assignmentsCount = ref<number>((await $trpc.assignment.getCountByProject.query(project.id))!);
 
 const currentGuidanceStep = computed(() => {
-  if(documentTable.value && taskTable.value) {
+  if (documentTable.value && taskTable.value) {
     if (documentTable.value.total == 0) {
       return GuidanceSteps.UPLOAD_DOCUMENTS;
     } else if (taskTable.value.total == 0) {
       return GuidanceSteps.CREATE_TASK;
     } else if (assignmentsCount.value == 0) {
       return GuidanceSteps.ASSIGN_ANNOTATORS;
+    } else {
+      return GuidanceSteps.CHECK_ASSIGNMENTS;
     }
   }
   return GuidanceSteps.NONE;
@@ -380,11 +397,7 @@ const createTask = () => {
     $toast.error("Task description is required");
     return;
   }
-  if (!new_task.ann_guidelines) {
-    $toast.error("Task guidelines are required");
-    return;
-  }
-  else {
+  if (new_task.ann_guidelines){
     try {
       const url = new URL(new_task.ann_guidelines);
     } catch (_) {
@@ -419,6 +432,14 @@ const createTask = () => {
 watch(showCreateTaskModal, (new_val) => {
   if (new_val) {
     resetModal();
+  }
+});
+
+watch(selectedAnnotationLevel, (new_val) => {
+  if (new_val == 'Span') {
+    new_task.annotation_level = AnnotationLevels.SYMBOL;
+  } else {
+    new_task.annotation_level = AnnotationLevels.DOCUMENT;
   }
 });
 
