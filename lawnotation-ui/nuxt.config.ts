@@ -10,7 +10,15 @@ export default defineNuxtConfig({
           : "http://localhost:3000",
     },
   },
-  modules: ["@nuxtjs/supabase", "@nuxtjs/tailwindcss", 'nuxt-primevue'],
+  modules: [
+    "@nuxtjs/supabase",
+    "@nuxtjs/tailwindcss",
+    "nuxt-primevue",
+    "nuxt-page-dependencies"
+  ],
+  pageDependencies: {
+    checkComposableCalled: true,
+  },
   primevue: {
     options: {
       unstyled: true

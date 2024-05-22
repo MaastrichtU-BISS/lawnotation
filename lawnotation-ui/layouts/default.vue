@@ -2,7 +2,9 @@
   <div>
     <Header></Header>
     <div class="bg-white dark:bg-gray-800">
-      <Breadcrumb />
+      <NuxtPageDependency>
+        <Breadcrumb />
+      </NuxtPageDependency>
     </div>
   </div>
   <div class="mx-auto max-w-screen-lg py-2">
