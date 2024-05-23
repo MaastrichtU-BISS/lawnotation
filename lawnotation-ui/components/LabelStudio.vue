@@ -108,7 +108,7 @@ const initLS = async () => {
                         </View>` 
                         :
                         ``}
-                        <View style="margin-top: 10px;">
+                        <View style="margin-top: 10px">
                           <Header style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" value="Document Confidence"/>
                           <Rating value="$diff-rating" toName="rating" name="rating" maxRating="5" icon="star" size="medium" />
                         </View>
@@ -397,5 +397,13 @@ sup {
 
 .ls-menu {
   overflow-y: auto;
+}
+
+.ant-rate svg {
+  color: #d2cece;
+}
+
+.ant-rate-star-full svg {
+  color: #fadb14;
 }
 </style>
