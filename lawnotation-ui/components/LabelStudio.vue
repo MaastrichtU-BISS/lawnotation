@@ -399,11 +399,7 @@ sup {
   overflow-y: auto;
 }
 
-.ant-rate svg {
+.ant-rate-star-zero svg {
   color: #d2cece;
-}
-
-.ant-rate-star-full svg {
-  color: #fadb14;
 }
 </style>
