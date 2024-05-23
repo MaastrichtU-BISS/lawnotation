@@ -102,13 +102,13 @@ const initLS = async () => {
                       <View style="border-top: 1px solid rgba(0,0,0,.1); padding: 10px 5px; margin-top: auto">
                         ${ props.annotation_level != AnnotationLevels.DOCUMENT 
                         ? 
-                        `<View visibleWhen="region-selected">
+                        `<View visibleWhen="region-selected" style="margin-bottom: 10px">
                           <Header value="Annotation Confidence" style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" />
                           <Rating name="confidence" toName="text" perRegion="true" />
                         </View>` 
                         :
                         ``}
-                        <View style="margin-top: 10px">
+                        <View>
                           <Header style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" value="Document Confidence"/>
                           <Rating value="$diff-rating" toName="rating" name="rating" maxRating="5" icon="star" size="medium" />
                         </View>
