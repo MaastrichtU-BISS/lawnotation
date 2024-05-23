@@ -87,7 +87,7 @@ const initLS = async () => {
   label_studio.value = new LabelStudio("label-studio", {
     config: `
                 <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
-                  <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto;">
+                  <View style="min-width: 200px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto; display: flex; flex-direction: column; flex: 1">
                       ${ (props.annotation_level != AnnotationLevels.DOCUMENT) 
                       ? 
                         `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
@@ -99,6 +99,20 @@ const initLS = async () => {
                           ${props.labels?.map((l) => (`<Choice value="${l.name}"/>`)).join("\n")}
                         </Choices>`
                       }
+                      <View style="border-top: 1px solid rgba(0,0,0,.1); padding: 10px 5px; margin-top: auto">
+                        ${ props.annotation_level != AnnotationLevels.DOCUMENT 
+                        ? 
+                        `<View visibleWhen="region-selected">
+                          <Header value="Annotation Confidence" style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" />
+                          <Rating name="confidence" toName="text" perRegion="true" />
+                        </View>` 
+                        :
+                        ``}
+                        <View style="margin-top: 10px;">
+                          <Header style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" value="Document Confidence"/>
+                          <Rating value="$diff-rating" toName="rating" name="rating" maxRating="5" icon="star" size="medium" />
+                        </View>
+                      </View>
                   </View>
                   <View style="width: 100%; overflow-y: auto;">
                     <View style="height: auto; padding: 0 1.7em 1em;">
@@ -114,10 +128,6 @@ const initLS = async () => {
                       <Relation value="Is not" />
                       <Relation value="Part of" />
                     </Relations>
-                  </View>
-                  <View style="padding: .7em; border-top: 1px solid rgba(0,0,0,.1);  grid-column: span 2;">
-                    <Header style="margin-bottom: 0; margin: 0px; user-select: none;" value="Confidence (1=not confident at all, 5=very confident)"/>
-                    <Rating value="$diff-rating" toName="rating" name="rating" maxRating="5" icon="star" size="medium" />
                   </View>
                 </View>
                 `,
