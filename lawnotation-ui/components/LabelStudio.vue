@@ -11,6 +11,7 @@ import type {
   LsLabels,
   LSSerializedAnnotations,
 } from "~/types";
+import { AnnotationLevels } from "~/utils/enums";
 
 const { $trpc } = useNuxtApp();
 
@@ -27,7 +28,7 @@ const props = defineProps<{
   labels: LsLabels | undefined;
   isEditor: boolean | undefined;
   guidelines: string | undefined;
-  isWordLevel: boolean;
+  annotation_level: AnnotationLevels;
   isHtml: boolean;
   // mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
@@ -87,7 +88,7 @@ const initLS = async () => {
     config: `
                 <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
                   <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto;">
-                      ${ (props.isWordLevel) 
+                      ${ (props.annotation_level != AnnotationLevels.DOCUMENT) 
                       ? 
                         `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
                         <${props.isHtml ? "HyperTextLabels" : "Labels"} style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
@@ -101,7 +102,7 @@ const initLS = async () => {
                   </View>
                   <View style="width: 100%; overflow-y: auto;">
                     <View style="height: auto; padding: 0 1.7em 1em;">
-                      <${props.isHtml ? "HyperText" : "Text"} name="text" value="$text" inline="true"/>
+                      <${props.isHtml ? "HyperText" : "Text"} name="text" value="$text" inline="true" ${props.annotation_level != AnnotationLevels.DOCUMENT ? `granularity="${props.annotation_level}"` : ''}/>
                     </View>
                     <Relations>
                       <Relation value="Is a" />
@@ -135,7 +136,7 @@ const initLS = async () => {
       "topbar:prevnext",
       props.isEditor ? "review" : "",
       "instruction",
-      props.isWordLevel ? "side-column" : "",
+      props.annotation_level != AnnotationLevels.DOCUMENT ? "side-column" : "",
       // "ground-truth",
       // "annotations:history",
       // "annotations:tabs",
@@ -269,7 +270,7 @@ onMounted(() => {
   waitForElement('.lsf-button[aria-label="submit"]').then(
     (el) => (el.innerHTML = "Next")
   );
-  if(!props.isWordLevel) {
+  if(props.annotation_level == AnnotationLevels.DOCUMENT) {
     waitForElement('.ls-common').then(
       (el) => {
         el.firstChild!.parentElement!.style.gridTemplateColumns = 'auto';

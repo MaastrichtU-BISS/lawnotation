@@ -21,7 +21,7 @@
         <div v-if="totalAssignments.data.value?.total">
           <div class="flex justify-center gap-6 my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
-              <Button type="button" v-if="isWordLevel(task)" label="Analyze Agreement Metrics"
+              <Button type="button" v-if="!isDocumentLevel(task)" label="Analyze Agreement Metrics"
                 data-test="metrics-button" />
             </NuxtLink>
             <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true" data-test="export-publish-button" />
@@ -351,13 +351,12 @@ import type {
   Publication,
 } from "~/types";
 import { PublicationStatus } from "~/types"
-import { isWordLevel } from "~/utils/levels";
+import { isDocumentLevel } from "~/utils/levels";
 import Table from "~/components/Table.vue";
 import _ from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
-import type { ModalOptions } from "flowbite";
 import type { TabViewChangeEvent } from "primevue/tabview";
 
 const { $toast, $trpc } = useNuxtApp();
@@ -742,15 +741,6 @@ const exportTask = async () => {
   formValues.value.modalOperations.loading = false;
   $toast.success(`Task has been exported!`);
 };
-
-onMounted(async () => {
-  const modalOptions: ModalOptions = {
-    placement: "center",
-    backdrop: "dynamic",
-    backdropClasses: "bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40",
-    closable: true,
-  };
-});
 
 definePageMeta({
   middleware: [

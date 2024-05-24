@@ -90,8 +90,6 @@ const emit = defineEmits(["labelsetCreated", "labelsetPersisted"]);
 
 const labelset = defineModel<Optional<Labelset, "id" | "editor_id">>({ required: true });
 
-labelset.value.editor_id = user.value?.id;
-
 const addLabel = () => {
   try {
     validateNewLabel();

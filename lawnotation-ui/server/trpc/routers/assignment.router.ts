@@ -238,6 +238,22 @@ export const assignmentRouter = router({
       return data;
     }),
 
+    getCountByProject: protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: p_id }) => {
+      const { data, error, count } = await ctx.supabase
+        .from("assignments")
+        .select("*, task:tasks!inner(project_id)", { count: "exact" })
+        .eq("tasks.project_id", p_id);
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in getCountByUser: ${error.message}`,
+        });
+      return count;
+    }),
+
   getDifficultiesByEditor: protectedProcedure
     .input(z.string())
     .query(async ({ ctx, input: e_id }) => {
