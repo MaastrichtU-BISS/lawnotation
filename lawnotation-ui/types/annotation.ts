@@ -16,7 +16,8 @@ export type Annotation = {
       start: number;
       end: number;
     }
-  } 
+  },
+  confidence_rating: number;
 };
 
 export type RichAnnotation = {
@@ -36,13 +37,14 @@ export type LSSerializedAnnotation = {
   from_name: string;
   to_name: string;
   origin: string;
-  type: "labels" | "choices" | "hypertextlabels";
+  type: "labels" | "choices" | "hypertextlabels" | "rating";
   value: {
     start?: number | string;
     end?: number | string;
     text?: string;
     labels?: string[];
     choices?: string[];
+    confidence_rating?: number;
     hypertextlabels?: string[];
     startOffset?: number;
     endOffset?: number;

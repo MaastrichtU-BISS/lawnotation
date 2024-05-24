@@ -3,6 +3,7 @@ import type {
   Annotation,
   LSSerializedRelation,
   AnnotationRelation,
+  LSSerializedAnnotation,
 } from "~/types";
 
 export const convert_annotation_ls2db = (
@@ -58,6 +59,7 @@ export const convert_annotation_ls2db = (
           label: label,
           assignment_id: assignment_id,
           html_metadata: html_metadata,
+          confidence_rating: ann.value.confidence_rating!
         };
       })
     );
@@ -73,7 +75,7 @@ export const convert_annotation_db2ls = (
 ): LSSerializedAnnotations => {
   if (isSpanLevel) {
     if(isHtml) {
-      return anns.map((a) => {
+      const base_anns = anns.map((a) => {
         return {
           id: a.ls_id,
           origin: "manual",
@@ -92,10 +94,34 @@ export const convert_annotation_db2ls = (
               end: a.html_metadata?.globalOffsets.end!
             }
           },
-        };
+        } as LSSerializedAnnotation;
       });
+
+      const confidence_anns = anns.map((a) => {
+        return {
+          id: a.ls_id,
+          origin: "manual",
+          from_name: "ann_confidence",
+          to_name: "text",
+          type: "rating",
+          value: {
+            start: a.html_metadata?.start,
+            end: a.html_metadata?.end,
+            text: a.text,
+            rating: a.confidence_rating,
+            startOffset: a.html_metadata?.startOffset,
+            endOffset: a.html_metadata?.endOffset,
+            globalOffsets: {
+              start: a.html_metadata?.globalOffsets.start!,
+              end: a.html_metadata?.globalOffsets.end!
+            }
+          },
+        } as LSSerializedAnnotation;
+      });
+
+      return base_anns.concat(confidence_anns);
     } else {
-      return anns.map((a) => {
+      const base_anns = anns.map((a) => {
         return {
           id: a.ls_id,
           origin: "manual",
@@ -108,8 +134,26 @@ export const convert_annotation_db2ls = (
             text: a.text,
             labels: [a.label],
           },
-        };
+        } as LSSerializedAnnotation;
       });
+
+      const confidence_anns = anns.map((a) => { 
+        return {
+          id: a.ls_id,
+          origin: "manual",
+          from_name: "ann_confidence",
+          to_name: "text",
+          type: "rating",
+          value: {
+            start: a.start_index,
+            end: a.end_index,
+            text: a.text,
+            rating: a.confidence_rating,
+          },
+        } as LSSerializedAnnotation;
+      });
+
+      return base_anns.concat(confidence_anns);
     }
   } else {
     // Document level
