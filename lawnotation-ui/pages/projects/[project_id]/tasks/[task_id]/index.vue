@@ -138,7 +138,7 @@
                       </div>
                     </template>
                     <template v-else-if="node.type == 'document'">
-                      <div class="flex justify-between">
+                      <div class="flex justify-between items-center">
                         <div class="space-x-3">
                           <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
                           <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
@@ -260,7 +260,7 @@
                       </div>
                     </template>
                     <template v-else-if="node.type == 'annotator'">
-                      <div class="flex justify-between">
+                      <div class="flex justify-between items-center">
                         <div class="space-x-3">
                           <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
                           <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
