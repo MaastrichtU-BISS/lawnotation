@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import {
   sortByDocumentAndRange,
   setTextToHidden,
@@ -11,6 +11,7 @@ import { H3Event } from "h3";
 type DocDic = Record<number, { full_text: string; name: string }>;
 
 export default eventHandler(async (event) => {
+
   const data = await readBody(event);
 
   const documentsDataPromise = getDocuments(
@@ -123,6 +124,8 @@ async function getNonAnnotations(
       });
     }
 
+    
+
     new_annotations.push(current_ann);
     last_end = Math.max(last_end, current_ann.end);
     previous_ann = current_ann;
@@ -158,7 +161,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   documents: string[] | undefined,
   annotators: string[] | undefined
 ): Promise<RichAnnotation[]> {
-  const supabase = await serverSupabaseClient<Database>(event);
+  const supabase = await serverSupabaseServiceRole<Database>(event);
   let query = supabase
     .from("annotations")
     .select(
@@ -200,7 +203,7 @@ async function getDocuments(
   task_id: number,
   documents: number[]
 ) {
-  const supabase = await serverSupabaseClient<Database>(event);
+  const supabase = await serverSupabaseServiceRole<Database>(event);
   let list: number[] = [];
   let dic: DocDic = {};
   let query = supabase.rpc("get_all_shared_docs_from_task", {
