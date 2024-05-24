@@ -89,20 +89,10 @@
 
       <div class="mt-6 mx-auto sm:w-full sm:max-w-sm bg-white px-6 py-6 shadow rounded-md">
         <div class="space-y-4">
-          <label for="token" class="block text-sm font-medium leading-6 text-gray-900"
+          <label for="token" class="flex justify-center ext-gray-900"
             >Enter the 6-digit code</label>
-          <div class="mt-2">
-            <input
-              id="token"
-              name="token"
-              type="text"
-              maxlength="6"
-              v-model="token"
-              @keydown.enter="verifyToken()"
-              required
-              class="block w-full rounded-md border-0 text-xl tracking-widest text-center px-3 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-slate-600 sm:leading-6"
-              data-test="token-field-to-login"
-            />
+          <div class="mt-2 flex justify-center">
+            <InputOtp v-model="token" :length="6" required @paste="verifyToken()" @keydown.enter="verifyToken()" data-test="token-field-to-login"/>
           </div>
           <button
             :disabled="loading"
@@ -110,7 +100,7 @@
             @click="verifyToken()"
             type="button"
             class="flex w-full justify-center rounded-md bg-slate-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-            data-test="login-button"
+            data-test="verify-button"
           >
             <span v-if="!loading">Verify</span>
             <template v-else>

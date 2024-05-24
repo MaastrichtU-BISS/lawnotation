@@ -272,8 +272,6 @@ export const taskRouter = router({
       return true;
     }),
 
-  // Note: wont work, probably
-  // Now it does ;)
   replicateTask: protectedProcedure
     .input(z.number().int())
     .mutation(async ({ ctx, input: task_id }): Promise<Task> => {

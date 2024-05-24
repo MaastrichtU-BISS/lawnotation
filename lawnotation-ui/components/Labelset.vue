@@ -1,8 +1,5 @@
 <template>
-  <div class="flex flex-row justify-between">
-    <h2 class="text-2xl">
-      {{ `Labelset ${labelset.name}` }}
-    </h2>
+  <div class="flex flex-row justify-end">
     <Button
       type="button"
       :label="labelset.id ? 'Save' : 'Create'"
@@ -93,6 +90,8 @@ const emit = defineEmits(["labelsetCreated", "labelsetPersisted"]);
 
 const labelset = defineModel<Optional<Labelset, "id" | "editor_id">>({ required: true });
 
+labelset.value.editor_id = user.value?.id;
+
 const addLabel = () => {
   try {
     validateNewLabel();
@@ -153,10 +152,11 @@ const persistLabelset = async () => {
         ...labelset.value,
         editor_id: user.value.id,
       });
+      labelset.value.id = create.id;
       $toast.success(`Labelset "${labelset.value.name}" created`);
     }
-
     emit("labelsetPersisted");
+
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Error creating new labelset: ${error.message}`);
