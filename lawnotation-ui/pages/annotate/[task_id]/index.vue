@@ -1,5 +1,5 @@
 <template>
-  <Breadcrumb v-if="task" :crumbs="[
+  <Breadcrumb v-if="task && doc" :crumbs="[
     {
       name: 'Tasks',
       link: '/tasks',
@@ -9,31 +9,16 @@
       link: `/tasks/${task.id}`,
     },
     {
-      name: `Assignment ${seq_pos}`,
+      name: `${doc.name}`,
       link: `/annotate/${task.id}?seq=${seq_pos}`,
     },
   ]" />
 
-  <template v-if="assignment && task">
-    <div class="my-4 px-8 flex justify-between items-center">
-      <span class="font-bold text-gray-500">{{ doc?.name }}</span>
-      <div class="max-w-screen-md w-full" v-if="loadedData && seq_pos && assignmentCounts">
-        <div class="flex justify-between mb-1">
-          <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
-          <span class="text-sm font-medium text-blue-700" data-test="progress">{{ seq_pos }} / {{ assignmentCounts.total
-          }}</span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2.5">
-          <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-            :style="{ width: `${(seq_pos / assignmentCounts.total) * 100}%` }"></div>
-        </div>
-      </div>
-      <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
-    </div>
+  <template v-if="task && assignmentCounts">
     <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />
       <div class="dimmer-content h-full">
-        <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
+        <LabelStudio v-if="loadedData" :assignment="assignment" :assignmentsTotal="assignmentCounts.total" :user="user" :isEditor="isEditor" :text="doc?.full_text"
           :annotations="ls_annotations" :relations="ls_relations" :labels="labels" :guidelines="task?.ann_guidelines"
           :annotation_level="task.annotation_level" :isHtml="isHtml" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
         </LabelStudio>
