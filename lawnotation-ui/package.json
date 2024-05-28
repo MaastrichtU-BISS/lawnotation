@@ -12,8 +12,7 @@
     "supabase-mail": "open-cli http://localhost:54324",
     "supabase:db:reset": "npx supabase db reset",
     "update-types": "npx supabase gen types typescript --project-id \"aukazbmquapjrmbhefkc\" > types/supabase.ts",
-    "install-lsf": "git clone --no-checkout --depth=1 https://github.com/HumanSignal/label-studio labelstudio_dist; cd labelstudio_dist; git checkout develop -- label_studio/frontend/dist/lsf; cd ..; pnpm i labelstudio_dist/label_studio/frontend/dist/lsf",
-    "postinstall": "install-lsf && nuxt prepare"
+    "postinstall": "git clone --no-checkout --depth=1 https://github.com/HumanSignal/label-studio labelstudio_dist; cd labelstudio_dist; git checkout develop -- label_studio/frontend/dist/lsf; cd ..; pnpm i labelstudio_dist/label_studio/frontend/dist/lsf && nuxt prepare"
   },
   "devDependencies": {
     "@nuxtjs/supabase": "^1.2.1",
