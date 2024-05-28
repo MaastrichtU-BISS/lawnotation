@@ -84,7 +84,11 @@ const loadData = async () => {
 
     if (!assignment.value) throw Error("Assignment not found");
 
-    annotator_email.value = (await $trpc.user.findById.query(assignment.value.annotator_id)).email;
+    if(assignment.value.annotator_id) {
+      annotator_email.value = (await $trpc.user.findById.query(assignment.value.annotator_id)).email
+    } else {
+      annotator_email.value = `annotator ${assignment.value.annotator_number}`;
+    }
 
     doc.value = await $trpc.document.findById.query(+assignment.value.document_id);
     if (!doc.value) throw Error("Document not found");
