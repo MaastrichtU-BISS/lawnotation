@@ -504,6 +504,144 @@ export const assignmentRouter = router({
         });
       return true;
     }),
+    
+    getGroupByAnnotators: protectedProcedure
+      .input(z.object({
+        task_id: z.number().int(),
+        page: z.number().int(),
+        filter: z.object({
+          email: z.string()
+        })
+      }))
+      .query(async ({ctx, input}) => {
+        const rowsPerPage = 10;
+
+        const query = ctx.supabase
+          .from("users")
+          .select(
+            "id, email, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, document:documents!inner(id, name))",
+            { count: "exact" }
+          )
+          .eq("assignments.task_id", input.task_id)
+          .order("seq_pos", { referencedTable: "assignments", ascending: true })
+          .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage)
+      
+        if (input.filter.email.length)
+          query.ilike("email", `%${input.filter.email}%`)
+        
+        const { data, error, count } = await query
+        
+        if (error)
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Error in getGroupByAnnotators: ${error.message}`,
+          });
+        
+        const grouped = data
+          .map(ann => ({
+            type: 'annotator',
+            key: `ann-${ann.id}`,
+            data: {
+              email: ann.email,
+              annotator_number: ann.assignments[0].annotator_number,
+              amount_done: ann.assignments.filter(ass => ass.status == "done").length,
+              amount_total: ann.assignments.length,
+              next_seq_pos: Math.min(...ann.assignments.filter(ass => ass.status == 'pending').map(ass => ass.seq_pos!))
+            },
+            children: ann.assignments!.map(ass => ({
+              type: 'document',
+              key: `ass-${ass.id}`,
+              data: {
+                assignment_id: ass.id,
+                seq_pos: ass.seq_pos,
+                document_id: ass.document!.id,
+                document_name: ass.document!.name,
+                difficulty_rating: ass.difficulty_rating,
+                status: ass.status
+              }
+            }))
+          }))
+          // .sort((a, b) => {
+          //   if (a.data.email == ctx.user.email)
+          //     return -1
+          //   else if (b.data.email == ctx.user.email)
+          //     return 1;
+
+          //   if (a.data.annotator_number > b.data.annotator_number) 
+          //     return 1;
+          //   else if (a.data.annotator_number < b.data.annotator_number)
+          //     return -1;
+          //   else
+          //     return 0
+          // })
+        
+        return {data: grouped ?? [], total: count ?? 0 };
+      }),
+    
+    getGroupByDocuments: protectedProcedure
+      .input(z.object({
+        task_id: z.number().int(),
+        page: z.number().int(),
+        filter: z.object({
+          document: z.string()
+        }),
+        // sort: z.object({
+        //   field: z.union([
+        //     z.literal('name'),
+        //     z.literal('progress')
+        //   ])
+        // })
+      }))
+      .query(async ({ctx, input}) => {
+        const rowsPerPage = 10;
+
+        const query = ctx.supabase
+          .from("documents")
+          .select(
+            "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, user:users!inner(id, email))",
+            { count: "exact" }
+          )
+          .eq("assignments.task_id", input.task_id)
+          .order("seq_pos", { referencedTable: "assignments", ascending: true })
+          .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage)
+      
+        if (input.filter.document.length)
+          query.ilike("name", `%${input.filter.document}%`)
+        
+        const { data, error, count } = await query
+        
+        if (error)
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Error in getGroupByAnnotators: ${error.message}`,
+          });
+        
+        const grouped = data
+          .map(doc => ({
+            type: 'document',
+            key: `doc-${doc.id}`,
+            data: {
+              document_id: doc!.id,
+              document_name: doc!.name,
+              amount_done: doc.assignments.filter(ass => ass.status == "done").length,
+              amount_total: doc.assignments.length,
+              next_seq_pos: Math.min(...doc.assignments.filter(doc => doc.status == 'pending').map(ass => ass.seq_pos!))
+            },
+            children: doc.assignments!.map(ass => ({
+              type: 'annotator',
+              key: `ass-${ass.id}`,
+              data: {
+                email: ass.user!.email,
+                seq_pos: ass.seq_pos,
+                difficulty_rating: ass.difficulty_rating,
+                status: ass.status
+              }
+            }))
+          }))
+        
+        return {data: grouped ?? [], total: count ?? 0 };
+      })
+
 });
 
 export type AssignmentRouter = typeof assignmentRouter;
