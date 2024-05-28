@@ -23,6 +23,7 @@ const ZAnnotationFields = z.object({
       }),
     })
     .optional(),
+  confidence_rating: z.number().int().optional()
 });
 
 export const annotationRouter = router({

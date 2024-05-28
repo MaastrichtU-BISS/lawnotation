@@ -33,6 +33,16 @@ const props = defineProps<{
   // mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
 
+const doc_confidence_ann = ref({
+  origin: "manual",
+  from_name: "doc_confidence",
+  to_name: "doc_confidence",
+  type: "rating",
+  value: {
+    rating: props.assignment?.difficulty_rating ?? 0
+  }
+});
+
 const serializeLSAnnotations = () => {
   return label_studio.value.store.annotationStore.annotations.map((a: any) =>
     a.serializeAnnotation()
@@ -48,11 +58,10 @@ const clickNext = async () => {
 
   const serializedAnnotations: any[] = serializeLSAnnotations();
 
-  const pos_rating: number = serializedAnnotations.findIndex((x) => x.type == "rating");
+  const pos_rating: number = serializedAnnotations.findIndex((x) => x.from_name == "doc_confidence");
   let rating: number = props.assignment.difficulty_rating;
   if (pos_rating >= 0) {
     rating = serializedAnnotations[pos_rating].value.rating;
-    serializedAnnotations.splice(pos_rating, 1);
   }
 
   if (
@@ -87,18 +96,32 @@ const initLS = async () => {
   label_studio.value = new LabelStudio("label-studio", {
     config: `
                 <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
-                  <View style="width: 150px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto;">
-                      ${ (props.annotation_level != AnnotationLevels.DOCUMENT) 
-                      ? 
-                        `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
+                  <View style="min-width: 200px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto; display: flex; flex-direction: column; flex: 1">
+                      ${(props.annotation_level != AnnotationLevels.DOCUMENT)
+        ?
+        `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
                         <${props.isHtml ? "HyperTextLabels" : "Labels"} style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
-                          ${props.labels?.map((l,index) =>  (`<Label value="${l.name}" background="${l.color}" selected="${!props.isEditor && index==0}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
+                          ${props.labels?.map((l, index) => (`<Label value="${l.name}" background="${l.color}" selected="${!props.isEditor && index == 0}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
                         </${props.isHtml ? "HyperTextLabels" : "Labels"}>`
-                      : 
-                        `<Choices name="label" toName="text" choice="multiple">
+        :
+        `<Choices name="label" toName="text" choice="multiple">
                           ${props.labels?.map((l) => (`<Choice value="${l.name}"/>`)).join("\n")}
                         </Choices>`
-                      }
+      }
+                      <View style="border-top: 1px solid rgba(0,0,0,.1); padding: 10px 5px; margin-top: auto">
+                        ${props.annotation_level != AnnotationLevels.DOCUMENT
+        ?
+        `<View visibleWhen="region-selected" style="margin-bottom: 10px">
+                          <Header value="Annotation Confidence" style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" />
+                          <Rating name="ann_confidence" toName="text" perRegion="true" />
+                        </View>`
+        :
+        ``}
+                        <View>
+                          <Header style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" value="Document Confidence"/>
+                          <Rating toName="doc_confidence" name="doc_confidence" maxRating="5" icon="star" size="medium" />
+                        </View>
+                      </View>
                   </View>
                   <View style="width: 100%; overflow-y: auto;">
                     <View style="height: auto; padding: 0 1.7em 1em;">
@@ -114,10 +137,6 @@ const initLS = async () => {
                       <Relation value="Is not" />
                       <Relation value="Part of" />
                     </Relations>
-                  </View>
-                  <View style="padding: .7em; border-top: 1px solid rgba(0,0,0,.1);  grid-column: span 2;">
-                    <Header style="margin-bottom: 0; margin: 0px; user-select: none;" value="Confidence (1=not confident at all, 5=very confident)"/>
-                    <Rating value="$diff-rating" toName="rating" name="rating" maxRating="5" icon="star" size="medium" />
                   </View>
                 </View>
                 `,
@@ -153,16 +172,14 @@ const initLS = async () => {
     user: {
       pk: 1,
       firstName: props.user.value?.email,
-      // lastName: "Dean",
     },
     task: {
-      annotations: props.annotations?.length
-        ? [{ result: (props.annotations as any).concat(props.relations) }]
-        : [],
+      annotations: [{
+          result: (props.annotations as any).concat(props.relations).concat([doc_confidence_ann.value])
+        }],
       // predictions: this.predictions,
       data: {
         text: props.text,
-        diff_rating: props.assignment?.difficulty_rating,
       },
     },
     onLabelStudioLoad: (LS: any) => {
@@ -208,7 +225,25 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
   if (!props.assignment) return;
 
   // create annotations
-  const ls_anns = serializedAnnotations.filter((x) => x.type == "labels" || x.type == "choices" || x.type == "hypertextlabels");
+  const ls_anns = [];
+  for (let i = 0; i < serializedAnnotations.length; i++) {
+    const ann = serializedAnnotations[i];
+    if (ann.from_name == "label") {
+      ls_anns.push(ann);
+    } else {
+      // assumes each confidence comes right after their respective labeled annotation
+      // (so far it seems correct to assume this, based on LS sorting the annotations by Id)
+      if (ls_anns.length > 0 && ann.from_name == "ann_confidence") {
+        if (ann.id == ls_anns[ls_anns.length - 1].id) {
+          ls_anns[ls_anns.length - 1].value.confidence_rating = ann.value.rating;
+        }
+      }
+    }
+  }
+
+  console.log(serializedAnnotations);
+  console.log(ls_anns);
+
   const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id);
 
   const created_anns = await $trpc.annotation.updateAssignmentAnnotations.mutate({
@@ -264,27 +299,23 @@ function waitForElement(selector: string): Promise<Element> {
 onMounted(() => {
   initLS();
 
+  console.log(props.annotations)
+  console.log(props.relations)
+  console.log(doc_confidence_ann.value);
+
   waitForElement('.lsf-button[aria-label="skip-task"]').then(
     (el) => (el.innerHTML = "Back")
   );
   waitForElement('.lsf-button[aria-label="submit"]').then(
     (el) => (el.innerHTML = "Next")
   );
-  if(props.annotation_level == AnnotationLevels.DOCUMENT) {
+  if (props.annotation_level == AnnotationLevels.DOCUMENT) {
     waitForElement('.ls-common').then(
       (el) => {
         el.firstChild!.parentElement!.style.gridTemplateColumns = 'auto';
       }
     );
   }
-
-  waitForElement(".ant-rate").then((el) => {
-    if (props.assignment?.difficulty_rating! < 1) return;
-    (document
-      .getElementsByClassName("ant-rate-star-zero")
-      .item(props.assignment?.difficulty_rating! - 1)
-      ?.firstChild as HTMLButtonElement).click();
-  });
 });
 </script>
 <style>
@@ -387,5 +418,9 @@ sup {
 
 .ls-menu {
   overflow-y: auto;
+}
+
+.ant-rate-star-zero svg {
+  color: #d2cece;
 }
 </style>
