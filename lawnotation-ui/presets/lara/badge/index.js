@@ -36,7 +36,8 @@ export default {
                 'bg-blue-500 dark:bg-blue-400': props.severity == 'info',
                 'bg-orange-500 dark:bg-orange-400': props.severity == 'warning',
                 'bg-purple-500 dark:bg-purple-400': props.severity == 'help',
-                'bg-red-500 dark:bg-red-400': props.severity == 'danger'
+                'bg-red-500 dark:bg-red-400': props.severity == 'danger',
+                'bg-yellow-400 dark:bg-yellow-500': props.severity == 'yellow'
             }
         ]
     })

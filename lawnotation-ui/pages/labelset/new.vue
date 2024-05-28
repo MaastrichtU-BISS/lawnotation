@@ -17,8 +17,10 @@
 
 <script setup lang="ts">
 import Labelset from "~/components/Labelset.vue";
+const user = useSupabaseUser();
 
 const labelset = ref({
+  editor_id: user.value?.id,
   name: "",
   desc: "",
   labels: [],

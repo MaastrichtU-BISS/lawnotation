@@ -54,7 +54,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { Task, AssignmentTableData } from "~/types";
+import type { AssignmentTableData } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const { $toast, $trpc } = useNuxtApp();

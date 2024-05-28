@@ -11,11 +11,12 @@
   ]" />
 
   <div v-if="project">
+    <GuidancePanel :currentStep="currentGuidanceStep" />
     <TabView v-model:activeIndex="activeTab">
       <TabPanel :disabled="!documentTable?.total" :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
       }">
-      <template #header>
+        <template #header>
           <div class="flex gap-3 items-center h-6">
             <span class="leading-none whitespace-nowrap">Tasks</span>
           </div>
@@ -25,8 +26,11 @@
           <div class="dimmer-content">
             <div data-test="tasks-table">
               <div class="flex justify-end">
-                <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
-                  data-test="open-tasks-modal" />
+                <div class="relative">
+                  <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
+                    data-test="open-tasks-modal" />
+                  <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK" />
+                </div>
               </div>
               <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
                 :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
@@ -41,13 +45,16 @@
                     {{ item.desc }}
                   </td>
                   <td class="px-6 py-2">
-                    {{ isWordLevel(item) ? 'Word' : 'Document' }}
+                    {{ item.annotation_level }}
                   </td>
                   <td class="px-6 py-2 flex">
-                    <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-                      data-test="view-task-link">
-                      <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
-                    </NuxtLink>
+                    <div class="relative mr-2">
+                      <NuxtLink class="base" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
+                        data-test="view-task-link">
+                        <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
+                      </NuxtLink>
+                      <PulsingRedCircle v-if="item.assignments[0].count ? currentGuidanceStep == GuidanceSteps.CHECK_ASSIGNMENTS : currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
+                    </div>
                     <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                       data-test="edit-task-link">
                       <Button label="Edit" size="small" link />
@@ -55,60 +62,66 @@
                   </td>
                 </template>
               </Table>
-              <Dialog 
-                v-model:visible="showCreateTaskModal" 
-                modal 
-                header="Create task" 
-                :autoZIndex="false" 
-                :draggable="false" 
-                :pt="{
+              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :autoZIndex="false"
+                :draggable="false" :pt="{
                   root: '!w-[80vw] xl:!w-[50vw]',
                   header: {
                     style: 'padding-bottom: 0px'
-                  }, 
+                  },
                   content: {
                     style: 'padding-bottom: 0px'
                   }
-                }"
-                :ptOptions="{ mergeProps: true }"
-              >
+                }" :ptOptions="{ mergeProps: true }">
                 <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[540px]">
-                  <TabPanel header="New" :pt="{ headerAction: {'data-test': 'new-tab'} }">
+                  <TabPanel header="New" :pt="{ headerAction: { 'data-test': 'new-tab' } }">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
                         <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
                           class="peer w-full" placeholder="" />
                         <label for="task_name"
-                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
                       </span>
                     </div>
                     <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
                       placeholder="Description" class="w-full mb-4" />
-                    <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
-                      cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
+                    <div class="flex justify-center mb-4">
+                      <span class="relative w-full">
+                        <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines"
+                          id="annotation_guidelines" autocomplete="off" class="peer w-full" placeholder="" />
+                        <label for="annotation_guidelines"
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines
+                          url</label>
+                      </span>
+                    </div>
                     <div class="flex items-center pb-4">
-                      <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value"
-                        filter optionLabel="name" option-value="id" placeholder="Select Labelset"
-                        class="w-full md:w-1/2" data-test="select-labelset" />
-                      <Button 
-                        label="Create new labelset" 
-                        size="small" 
-                        @click="activeTabTaskModal = 2" 
-                        link 
-                        data-test='create-new-labelset'
-                      />
+                      <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value" filter optionLabel="name"
+                        option-value="id" placeholder="Select Labelset" class="w-full md:w-1/2"
+                        data-test="select-labelset" />
+                      <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
+                        data-test='create-new-labelset' />
                     </div>
-                    <div>
-                      <p class="font-bold">Annotation level</p>
-                      <SelectButton v-model="new_task.annotation_level" :options="['word', 'document']" 
-                        class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level"
-                        :pt="{
-                          label: {
-                            class: 'font-normal'
-                          }
-                        }" />
+                    <div class="mb-4 flex justify-between items-center">
+                      <div>
+                        <p class="font-bold mb-4">Annotation level</p>
+                        <SelectButton :options="['Span', 'Document']" v-model="selectedAnnotationLevel"
+                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
+                            label: {
+                              class: 'font-normal'
+                            }
+                          }" />
+                      </div>
+                      <div v-if="selectedAnnotationLevel == 'Span'">
+                        <p class="font-bold mb-4">Granularity</p>
+                        <SelectButton v-model="new_task.annotation_level"
+                          :options="Object.values(AnnotationLevels).filter(level => level != 'document')"
+                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
+                            label: {
+                              class: 'font-normal'
+                            }
+                          }" />
+                      </div>
                     </div>
-                    <div class="flex justify-center mt-6">
+                    <div class="flex justify-center mt-10">
                       <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
                         @click="showCreateTaskModal = false;" />
                       <Button data-test="create-tasks" label="Create" size="small" icon="pi pi-check" iconPos="right"
@@ -117,8 +130,8 @@
                   </TabPanel>
                   <TabPanel header="Upload">
                     <div v-if="!uploadHasStarted" class="pt-6">
-                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json" chooseLabel="Select"
-                        :pt="{
+                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
+                        chooseLabel="Select" :pt="{
                           chooseButton: {
                             'data-test': 'choose-task',
                           },
@@ -153,7 +166,7 @@
                           <InputText v-model="new_annotators[index]" autocomplete="off" class="peer w-full" placeholder=""
                             :id="`annotator_${index}`" />
                           <label :for="`annotator_${index}`"
-                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
+                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
                               `annotator ${index + 1} ` }}</label>
                         </span>
                       </div>
@@ -164,25 +177,8 @@
                       </div>
                     </div>
                   </TabPanel>
-                  <TabPanel header="Labelsets">
-                    <template v-if="labelsetStage === 'overview'">
-                      <Labelsets @add-labelset="loadLabelset" @edit-labelset="(labelsetId: number) => loadLabelset(labelsetId)"/>
-                    </template>
-                    <template v-else-if="labelsetStage === 'labelset'">
-                      <Button 
-                        label="back"
-                        size="small"
-                        icon="pi pi-arrow-left"
-                        link
-                        @click="labelsetStage = 'overview'"
-                        :pt="{root: 'ps-0'}"
-                        :ptOptions="{ mergeProps: true }"
-                      />
-                      <Labelset 
-                        v-model="labelset" 
-                        @labelset-persisted="refreshLabelsets"
-                      />
-                    </template>
+                  <TabPanel header="Labelset">
+                    <Labelset v-model="labelset" @labelset-persisted="refreshLabelsets" />
                   </TabPanel>
                 </TabView>
               </Dialog>
@@ -196,17 +192,16 @@
         <template #header>
           <div class="flex gap-3 items-center h-6">
             <span class="leading-none whitespace-nowrap">Documents</span>
-            <Badge 
-              v-if="documentTable?.total"
-              :value="documentTable?.total || 0" 
-              :pt="{ root: 'opacity-75' }" 
-              :ptOptions="{ mergeProps: true }"
-            ></Badge>
+            <Badge v-if="documentTable?.total" :value="documentTable?.total || 0" :pt="{ root: 'opacity-75' }"
+              :ptOptions="{ mergeProps: true }"></Badge>
           </div>
         </template>
         <div class="flex justify-end pt-2">
-          <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
-            icon-pos="right" data-test="open-documents-modal" />
+          <div class="relative">
+            <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
+              icon-pos="right" data-test="open-documents-modal" />
+            <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
+          </div>
         </div>
         <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
           :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
@@ -225,8 +220,8 @@
           </template>
         </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html" chooseLabel="Select"
-            :maxFileSize="3145728" :pt="{
+          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html"
+            chooseLabel="Select" :maxFileSize="3145728" :pt="{
               input: {
                 'data-test': 'choose-documents'
               },
@@ -267,10 +262,11 @@ import type {
 } from "~/types";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
-import Labelsets from "~/components/Labelsets.vue";
 import Labelset from "~/components/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel } from "~/utils/levels";
+import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
+import GuidancePanel from "~/components/GuidancePanel.vue";
+import { AnnotationLevels, GuidanceSteps } from "~/utils/enums";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -289,18 +285,19 @@ const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
 const activeTabTaskModal = ref<number>(0);
-const labelsetStage = ref<'overview' | 'labelset'>('overview');
+
+const showUploadDocumentsModal = ref<boolean>(false);
+
+const selectedAnnotationLevel = ref<'Span' | 'Document'>();
+
+let labelsets = await $trpc.labelset.find.useQuery({});
 const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
   id: undefined,
-  editor_id: undefined,
+  editor_id: user.value?.id,
   name: "",
   desc: "",
   labels: [],
 });
-
-const showUploadDocumentsModal = ref<boolean>(false);
-
-let labelsets = await $trpc.labelset.find.useQuery({});
 
 const import_json = ref<any>(null);
 const import_progress = ref<{
@@ -329,24 +326,27 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   annotation_level: undefined,
 });
 
-const loadLabelset = async (id?: number) => {
-  if (id) {
-    labelset.value = await $trpc.labelset.findById.query(id);
-  } else {
-    labelset.value = {
-      id: undefined,
-      editor_id: undefined,
-      name: "",
-      desc: "",
-      labels: [],
-    };
+const assignmentsCount = ref<number>((await $trpc.assignment.getCountByProject.query(project.id))!);
+
+const currentGuidanceStep = computed(() => {
+  if (documentTable.value && taskTable.value) {
+    if (documentTable.value.total == 0) {
+      return GuidanceSteps.UPLOAD_DOCUMENTS;
+    } else if (taskTable.value.total == 0) {
+      return GuidanceSteps.CREATE_TASK;
+    } else if (assignmentsCount.value == 0) {
+      return GuidanceSteps.ASSIGN_ANNOTATORS;
+    } else {
+      return GuidanceSteps.CHECK_ASSIGNMENTS;
+    }
   }
-  labelsetStage.value = 'labelset';
-}
+  return GuidanceSteps.NONE;
+});
 
 const refreshLabelsets = async () => {
-  labelsetStage.value = 'overview';
-  labelsets = await $trpc.labelset.find.useQuery({});
+  activeTabTaskModal.value = 0;
+  labelsets.data.value?.push(labelset.value as any);
+  new_task.labelset_id = labelset.value.id!;
 }
 
 const uploadDocuments = async (event: { files: FileList }) => {
@@ -396,9 +396,13 @@ const createTask = () => {
     $toast.error("Task description is required");
     return;
   }
-  if (!new_task.ann_guidelines) {
-    $toast.error("Task guidelines are required");
-    return;
+  if (new_task.ann_guidelines){
+    try {
+      const url = new URL(new_task.ann_guidelines);
+    } catch (_) {
+      $toast.error("Invalid Guidelines url");
+      return;
+    }
   }
   if (!new_task.labelset_id) {
     $toast.error("Task must have a labelset");
@@ -427,6 +431,14 @@ const createTask = () => {
 watch(showCreateTaskModal, (new_val) => {
   if (new_val) {
     resetModal();
+  }
+});
+
+watch(selectedAnnotationLevel, (new_val) => {
+  if (new_val == 'Span') {
+    new_task.annotation_level = AnnotationLevels.SYMBOL;
+  } else {
+    new_task.annotation_level = AnnotationLevels.DOCUMENT;
   }
 });
 

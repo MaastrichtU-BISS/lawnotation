@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Task, Annotator } from "~/types";
+import { AnnotationLevels } from "~/utils/enums";
 import type { Context } from "../context";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
@@ -12,7 +13,7 @@ const ZTaskFields = z.object({
   project_id: z.number().int(),
   labelset_id: z.number().int(),
   ann_guidelines: z.string(),
-  annotation_level: z.union([z.literal("word"), z.literal("document")])
+  annotation_level: z.nativeEnum(AnnotationLevels)
 });
 
 const taskAuthorizer = async (
@@ -272,8 +273,6 @@ export const taskRouter = router({
       return true;
     }),
 
-  // Note: wont work, probably
-  // Now it does ;)
   replicateTask: protectedProcedure
     .input(z.number().int())
     .mutation(async ({ ctx, input: task_id }): Promise<Task> => {
