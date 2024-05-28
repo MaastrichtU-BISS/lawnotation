@@ -1,5 +1,5 @@
 <template>
-  <Breadcrumb v-if="project && task && assignment" :crumbs="[
+  <Breadcrumb v-if="project && task && assignment && doc" :crumbs="[
     {
       name: 'Projects',
       link: '/projects',
@@ -13,18 +13,11 @@
       link: `/projects/${project.id}/tasks/${task.id}`,
     },
     {
-      name: `Assignment ${assignment.id}`,
+      name: `${doc.name} - ${annotator_email}`,
       link: `/assignments/${assignment.id}`,
     },
   ]" />
   <template v-if="task">
-    <template v-if="assignment">
-      <div class="my-4 px-8 flex justify-between items-center">
-        <span class="font-bold text-gray-500 mx-2">{{ doc?.name }}</span>
-        <span class="font-bold text-gray-500 mx-2">{{ annotator_email }}</span>
-        <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
-      </div>
-    </template>
     <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />
       <div class="dimmer-content h-full">

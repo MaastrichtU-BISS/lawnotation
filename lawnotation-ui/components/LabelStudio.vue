@@ -1,5 +1,24 @@
 <template>
-  <div id="label-studio-container" class="h-full p-4 pt-0">
+  <div v-if="assignment" id="label-studio-container" class="h-full p-4 pt-0">
+    <div class="my-2 flex items-center justify-between">
+      <div class="flex items-center">
+        <NuxtLink :to="guidelines" target="_blank" class="mr-3">
+          <Button label="See Annotation Guidelines" size="small" outlined />
+        </NuxtLink>
+        <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'"
+          class="capitalize px-2" />
+      </div>
+      <div v-if="!isEditor && assignmentsTotal" class="flex items-center w-1/3">
+        <span class="font-semibold mr-2">{{ assignment.seq_pos }}/{{ assignmentsTotal }}</span>
+        <span class="w-full">
+          <ProgressBar :value="assignment.seq_pos / assignmentsTotal * 100"> {{ Math.round(assignment.seq_pos / assignmentsTotal * 100)}}% </ProgressBar>
+        </span>
+      </div>
+      <div>
+        <Button label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
+        <Button label="Next" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
+      </div>
+    </div>
     <div id="label-studio" class="h-full"></div>
   </div>
 </template>
@@ -22,6 +41,7 @@ const emit = defineEmits(["previousAssignment", "nextAssignment"]);
 const props = defineProps<{
   user: any;
   assignment: Assignment | undefined;
+  assignmentsTotal: number | undefined;
   annotations: LSSerializedAnnotations | undefined;
   relations: LSSerializedRelation[] | undefined;
   text: string | undefined;
@@ -42,48 +62,6 @@ const doc_confidence_ann = ref({
     rating: props.assignment?.difficulty_rating ?? 0
   }
 });
-
-const serializeLSAnnotations = () => {
-  return label_studio.value.store.annotationStore.annotations.map((a: any) =>
-    a.serializeAnnotation()
-  )[0];
-};
-
-const clickPrevious = async () => {
-  emit("previousAssignment");
-};
-
-const clickNext = async () => {
-  if (!props.assignment) return;
-
-  const serializedAnnotations: any[] = serializeLSAnnotations();
-
-  const pos_rating: number = serializedAnnotations.findIndex((x) => x.from_name == "doc_confidence");
-  let rating: number = props.assignment.difficulty_rating;
-  if (pos_rating >= 0) {
-    rating = serializedAnnotations[pos_rating].value.rating;
-  }
-
-  if (
-    props.assignment.status !== "done" &&
-    serializedAnnotations.length === 0 &&
-    !confirm(
-      "No annotations were made in this document.\nAre you sure you want to continue?"
-    )
-  ) {
-    return;
-  }
-
-  await updateAnnotationsAndRelations(serializedAnnotations);
-  await $trpc.assignment.update.mutate({
-    id: props.assignment.id,
-    updates: {
-      status: "done",
-      difficulty_rating: rating,
-    },
-  });
-  emit("nextAssignment");
-};
 
 const initLS = async () => {
   // Following is to prevent error:
@@ -140,21 +118,20 @@ const initLS = async () => {
                   </View>
                 </View>
                 `,
-    description: `<html><a href="${props.guidelines}">${props.guidelines}</a></html>`,
     settings: {
       continuousLabeling: true,
     },
     interfaces: [
-      "panel",
-      "update",
-      "submit",
-      "skip",
-      "controls",
-      "infobar",
-      "topbar",
-      "topbar:prevnext",
-      props.isEditor ? "review" : "",
-      "instruction",
+      // "panel",
+      // "update",
+      // "submit",
+      // "skip",
+      // "controls",
+      // "infobar",
+      // "topbar",
+      // "topbar:prevnext",
+      // props.isEditor ? "review" : "",
+      // "instruction",
       props.annotation_level != AnnotationLevels.DOCUMENT ? "side-column" : "",
       // "ground-truth",
       // "annotations:history",
@@ -167,7 +144,7 @@ const initLS = async () => {
       // "predictions:tabs",
       // "predictions:menu",
       // "auto-annotation",
-      "edit-history",
+      // "edit-history",
     ],
     user: {
       pk: 1,
@@ -175,8 +152,8 @@ const initLS = async () => {
     },
     task: {
       annotations: [{
-          result: (props.annotations as any).concat(props.relations).concat([doc_confidence_ann.value])
-        }],
+        result: (props.annotations as any).concat(props.relations).concat([doc_confidence_ann.value])
+      }],
       // predictions: this.predictions,
       data: {
         text: props.text,
@@ -221,6 +198,48 @@ const initLS = async () => {
   });
 };
 
+const serializeLSAnnotations = () => {
+  return label_studio.value.store.annotationStore.annotations.map((a: any) =>
+    a.serializeAnnotation()
+  )[0];
+};
+
+const clickPrevious = async () => {
+  emit("previousAssignment");
+};
+
+const clickNext = async () => {
+  if (!props.assignment) return;
+
+  const serializedAnnotations: any[] = serializeLSAnnotations();
+
+  const pos_rating: number = serializedAnnotations.findIndex((x) => x.from_name == "doc_confidence");
+  let rating: number = props.assignment.difficulty_rating;
+  if (pos_rating >= 0) {
+    rating = serializedAnnotations[pos_rating].value.rating;
+  }
+
+  if (
+    props.assignment.status !== "done" &&
+    serializedAnnotations.length === 0 &&
+    !confirm(
+      "No annotations were made in this document.\nAre you sure you want to continue?"
+    )
+  ) {
+    return;
+  }
+
+  await updateAnnotationsAndRelations(serializedAnnotations);
+  await $trpc.assignment.update.mutate({
+    id: props.assignment.id,
+    updates: {
+      status: "done",
+      difficulty_rating: rating,
+    },
+  });
+  emit("nextAssignment");
+};
+
 const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
   if (!props.assignment) return;
 
@@ -240,9 +259,6 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
       }
     }
   }
-
-  console.log(serializedAnnotations);
-  console.log(ls_anns);
 
   const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id);
 

@@ -116,7 +116,4 @@ import type { DifficultyMetricResult } from "~/utils/metrics";
 const props = defineProps<{
   modelValue: DifficultyMetricResult;
 }>();
-onMounted(() => {
-  console.log(props.modelValue);
-});
 </script>
