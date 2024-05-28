@@ -241,9 +241,6 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
     }
   }
 
-  console.log(serializedAnnotations);
-  console.log(ls_anns);
-
   const db_anns = convert_annotation_ls2db(ls_anns, props.assignment?.id);
 
   const created_anns = await $trpc.annotation.updateAssignmentAnnotations.mutate({
@@ -298,10 +295,6 @@ function waitForElement(selector: string): Promise<Element> {
 
 onMounted(() => {
   initLS();
-
-  console.log(props.annotations)
-  console.log(props.relations)
-  console.log(doc_confidence_ann.value);
 
   waitForElement('.lsf-button[aria-label="skip-task"]').then(
     (el) => (el.innerHTML = "Back")
