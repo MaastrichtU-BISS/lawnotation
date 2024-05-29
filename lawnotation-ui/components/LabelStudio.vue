@@ -120,6 +120,7 @@ const initLS = async () => {
                 `,
     settings: {
       continuousLabeling: true,
+      selectAfterCreate: true
     },
     interfaces: [
       // "panel",
