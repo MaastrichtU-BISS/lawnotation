@@ -120,6 +120,7 @@ const initLS = async () => {
                 `,
     settings: {
       continuousLabeling: true,
+      selectAfterCreate: true
     },
     interfaces: [
       // "panel",
@@ -196,6 +197,51 @@ const initLS = async () => {
       clickNext();
     },
   });
+
+  console.log(label_studio.value);
+  console.log(label_studio.value.events.events.get('submitAnnotation'));
+};
+
+const serializeLSAnnotations = () => {
+  return label_studio.value.store.annotationStore.annotations.map((a: any) =>
+    a.serializeAnnotation()
+  )[0];
+};
+
+const clickPrevious = async () => {
+  emit("previousAssignment");
+};
+
+const clickNext = async () => {
+  if (!props.assignment) return;
+
+  const serializedAnnotations: any[] = serializeLSAnnotations();
+
+  const pos_rating: number = serializedAnnotations.findIndex((x) => x.from_name == "doc_confidence");
+  let rating: number = props.assignment.difficulty_rating;
+  if (pos_rating >= 0) {
+    rating = serializedAnnotations[pos_rating].value.rating;
+  }
+
+  if (
+    props.assignment.status !== "done" &&
+    serializedAnnotations.length === 0 &&
+    !confirm(
+      "No annotations were made in this document.\nAre you sure you want to continue?"
+    )
+  ) {
+    return;
+  }
+
+  await updateAnnotationsAndRelations(serializedAnnotations);
+  await $trpc.assignment.update.mutate({
+    id: props.assignment.id,
+    updates: {
+      status: "done",
+      difficulty_rating: rating,
+    },
+  });
+  emit("nextAssignment");
 };
 
 const serializeLSAnnotations = () => {
