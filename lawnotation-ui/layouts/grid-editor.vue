@@ -9,6 +9,6 @@
 <style lang="postcss" scoped>
 .h-dynamic-screen {
   height: 100vh;
-  height: 94dvh;
+  height: 93dvh;
 }
 </style>

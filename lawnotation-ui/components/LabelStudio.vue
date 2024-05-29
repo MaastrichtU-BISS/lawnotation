@@ -120,32 +120,11 @@ const initLS = async () => {
                 `,
     settings: {
       continuousLabeling: true,
-      selectAfterCreate: true
+      selectAfterCreate: true,
+      showLabels: true
     },
     interfaces: [
-      // "panel",
-      // "update",
-      // "submit",
-      // "skip",
-      // "controls",
-      // "infobar",
-      // "topbar",
-      // "topbar:prevnext",
-      // props.isEditor ? "review" : "",
-      // "instruction",
       props.annotation_level != AnnotationLevels.DOCUMENT ? "side-column" : "",
-      // "ground-truth",
-      // "annotations:history",
-      // "annotations:tabs",
-      // "annotations:menu",
-      // "annotations:current",
-      // "annotations:add-new",
-      // "annotations:delete",
-      // "annotations:view-all",
-      // "predictions:tabs",
-      // "predictions:menu",
-      // "auto-annotation",
-      // "edit-history",
     ],
     user: {
       pk: 1,
@@ -161,40 +140,7 @@ const initLS = async () => {
       },
     },
     onLabelStudioLoad: (LS: any) => {
-      LS.settings.showLabels = true;
-      if (props.annotations?.length) {
-        LS.annotationStore.selectAnnotation(LS.annotationStore.annotations);
-      } else {
-        const c = LS.annotationStore.addAnnotation({
-          userGenerate: true,
-        });
-        LS.annotationStore.selectAnnotation(c.id);
-      }
-    },
-    onRejectAnnotation() { },
-
-    // 'back'
-    onSkipTask() {
-      clickPrevious();
-    },
-    // 'next'
-    onSubmitAnnotation: async (
-      LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
-    ) => {
-      clickNext();
-    },
-    onAcceptAnnotation: async (
-      LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
-    ) => {
-      clickNext();
-    },
-    onUpdateAnnotation: async (
-      LS: any,
-      { serializeAnnotation }: { serializeAnnotation: () => LSSerializedAnnotations }
-    ) => {
-      clickNext();
+      LS.annotationStore.selectAnnotation(LS.annotationStore.annotations);
     },
   });
 
@@ -316,13 +262,6 @@ function waitForElement(selector: string): Promise<Element> {
 
 onMounted(() => {
   initLS();
-
-  waitForElement('.lsf-button[aria-label="skip-task"]').then(
-    (el) => (el.innerHTML = "Back")
-  );
-  waitForElement('.lsf-button[aria-label="submit"]').then(
-    (el) => (el.innerHTML = "Next")
-  );
   if (props.annotation_level == AnnotationLevels.DOCUMENT) {
     waitForElement('.ls-common').then(
       (el) => {
@@ -339,47 +278,6 @@ onMounted(() => {
 
 .lsf-richtext {
   margin-top: 1.5rem;
-}
-
-.lsf-current-task {
-  display: none;
-}
-
-.lsf-topbar__section {
-  border-left: none !important;
-  padding: 0 !important;
-  margin-left: 0;
-}
-
-[aria-label="Reset"],
-[aria-label="Copy Annotation"],
-[aria-label="Settings"],
-[aria-label="Delete"],
-.lsf-annotations-list {
-  display: none;
-}
-
-/* [aria-label="skip-task"], */
-[aria-label="reject-annotation"] {
-  order: 1;
-}
-
-/* [aria-label="skip-task"]:first-child, */
-[aria-label="reject-annotation"]:first-child {
-  visibility: hidden;
-}
-
-/* [aria-label="skip-task"]::after {
-  content: "Back";
-  margin-left: -40px;
-  visibility: visible;
-}
-*/
-
-[aria-label="reject-annotation"]::after {
-  content: "Reject";
-  margin-left: -40px;
-  visibility: visible;
 }
 
 .ant-input {
@@ -403,10 +301,6 @@ onMounted(() => {
   margin: 0px 8px 8px 0px !important;
 }
 
-.lsf-tooltip {
-  display: none !important;
-}
-
 .ls-common,
 .main-content-wrapper--1qjJ0,
 .lsf-main-view {
@@ -419,14 +313,6 @@ onMounted(() => {
 }
 
 sup {
-  display: none;
-}
-
-.lsf-main-view__infobar {
-  display: none;
-}
-
-.lsf-entity__info {
   display: none;
 }
 
