@@ -59,7 +59,7 @@ export const convert_annotation_ls2db = (
           label: label,
           assignment_id: assignment_id,
           html_metadata: html_metadata,
-          confidence_rating: ann.value.confidence_rating!
+          confidence_rating: ann.value.confidence_rating ?? 0
         };
       })
     );
@@ -148,7 +148,7 @@ export const convert_annotation_db2ls = (
             start: a.start_index,
             end: a.end_index,
             text: a.text,
-            rating: a.confidence_rating,
+            rating: a.confidence_rating ?? 0,
           },
         } as LSSerializedAnnotation;
       });
