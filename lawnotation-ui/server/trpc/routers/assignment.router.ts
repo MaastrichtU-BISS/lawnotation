@@ -598,7 +598,7 @@ export const assignmentRouter = router({
         const query = ctx.supabase
           .from("documents")
           .select(
-            "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, user:users!inner(id, email))",
+            "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, user:users(id, email))",
             { count: "exact" }
           )
           .eq("assignments.task_id", input.task_id)
@@ -631,7 +631,7 @@ export const assignmentRouter = router({
               type: 'annotator',
               key: `ass-${ass.id}`,
               data: {
-                email: ass.user!.email,
+                email: ass.user?.email ?? `annotator ${ass.annotator_number}`,
                 seq_pos: ass.seq_pos,
                 difficulty_rating: ass.difficulty_rating,
                 status: ass.status
