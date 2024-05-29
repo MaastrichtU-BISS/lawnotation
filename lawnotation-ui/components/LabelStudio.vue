@@ -198,8 +198,6 @@ const initLS = async () => {
     },
   });
 
-  console.log(label_studio.value);
-  console.log(label_studio.value.events.events.get('submitAnnotation'));
 };
 
 const serializeLSAnnotations = () => {
