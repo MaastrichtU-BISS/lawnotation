@@ -8,18 +8,27 @@ export const userRouter = router({
 
   'clearInviteMetadata': protectedProcedure
     .mutation(async ({ ctx }) => {
-      const serviceClient = ctx.getSupabaseServiceRoleClient();
       const user_metadata = ctx.user.user_metadata;
       
       if (user_metadata.assigned_task_id)
         user_metadata.assigned_task_id = null;
 
-      const update = await serviceClient.auth.admin.updateUserById(ctx.user.id, {user_metadata});
+      const update = await ctx.supabase.auth.admin.updateUserById(ctx.user.id, {user_metadata});
+    }),
+
+    'setGuidance': protectedProcedure
+    .input(
+      z.boolean()
+    )
+    .mutation(async ({ ctx, input }) => {
+      const user_metadata = ctx.user.user_metadata;
+      user_metadata.guidanceStatus = input;
+      const update = await ctx.supabase.auth.admin.updateUserById(ctx.user.id, {user_metadata});
     }),
 
   'findById': protectedProcedure
     .input(
-      z.number().int()
+      z.string()
     )
     .query(async ({ ctx, input: id }) => {
       const { data, error } = await ctx.supabase.from("users").select().eq('id', id).single();
@@ -81,8 +90,7 @@ export const userRouter = router({
   //     })
   //   )
   //   .query(async ({ ctx, input }) => {
-  //     const serviceClient = ctx.getSupabaseServiceRoleClient()
-  //     const { data, error } = await serviceClient.auth.admin.generateLink({
+  //     const { data, error } = await ctx.supabase.auth.admin.generateLink({
   //       type: "magiclink",
   //       email: input.email,
   //       options: {
@@ -102,8 +110,7 @@ export const userRouter = router({
     .use(opts => authorizer(opts, async () => false))
     .query(async ({ctx, input: email}) => {
       const config = useRuntimeConfig();
-      const client = ctx.getSupabaseServiceRoleClient();
-      const { data, error } = await client.auth.admin.generateLink({
+      const { data, error } = await ctx.supabase.auth.admin.generateLink({
         type: "magiclink",
         email: email,
         options: { redirectTo: `${config.public.baseURL}/auth/validate` },

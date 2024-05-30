@@ -227,12 +227,12 @@ import type {
 } from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
 
-import _, { zip } from "lodash";
+import _ from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
 import { saveAs } from "file-saver";
 import JSZip, { file } from "jszip";
-import { RangeLabel } from "~/utils/metrics";
+import type { RangeLabel } from "~/utils/metrics";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const config = useRuntimeConfig();
@@ -584,6 +584,7 @@ const clickDownloadAll = async () => {
     download_progress.value.loading = false;
     $toast.success(`One .zip file has been downloaded!`);
   } catch (error) {
+    console.log(error);
     download_progress.value.loading = false;
   }
 };
@@ -609,7 +610,7 @@ async function download_all(data: any) {
         name: `_confidence.xlsx`,
       });
       download_progress.value.current++;
-    } catch (error) { }
+    } catch (error) { console.log(error) }
 
     // All metrics
     const workbookMetrics = XLSX.utils.book_new();
@@ -630,7 +631,7 @@ async function download_all(data: any) {
         data.documentsData,
         data.documentsOptions
       );
-      console.log("x");
+
       const metrics_sheet = await getMetricsSheet(
         metrics,
         label,
@@ -644,9 +645,9 @@ async function download_all(data: any) {
         data.annotators
       );
 
-      XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label);
-      XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label);
-      XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label);
+      XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label.substring(0, 31));
+      XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label.substring(0, 31));
+      XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label.substring(0, 31));
 
       download_progress.value.current += 3;
     }
@@ -704,7 +705,6 @@ async function download_all(data: any) {
           data.documentsData,
           data.documentsOptions
         );
-        console.log("x");
 
         const metrics_sheet = await getMetricsSheet(metrics, label, [document], data);
         const metrics_sample = metrics[0].table?? metrics[2].table!;
@@ -713,9 +713,10 @@ async function download_all(data: any) {
           metrics_sample,
           data.annotators
         );
-        XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label);
-        XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label);
-        XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label);
+
+        XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label.substring(0, 31));
+        XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label.substring(0, 31));
+        XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label.substring(0, 31));
 
         download_progress.value.current += 3;
       }
@@ -737,7 +738,7 @@ async function download_all(data: any) {
     }
 
     return results;
-  } catch (error) { }
+  } catch (error) { console.log(error) }
   return [];
 }
 
@@ -808,7 +809,7 @@ async function getAnnotationsSheet(table: RangeLabel[]) {
           annotator: k,
           start: r.start,
           end: r.end,
-          text: r.text,
+          text: r.text.length <= 1000 ? r.text : `${r.text.substring(0,100)} ... ${r.text.substring(900, 1000)}`,
           value: v,
         });
       });

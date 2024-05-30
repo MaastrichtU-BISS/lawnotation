@@ -13,10 +13,7 @@ export async function createContext(event: H3Event) {
   const authorization = getRequestHeader(event, 'authorization')
 
   let user = null;
-  const supabase = await serverSupabaseClient<Database>(event);
-  const getSupabaseServiceRoleClient = () => {
-    return serverSupabaseServiceRole<Database>(event);
-  }
+  const supabase = await serverSupabaseServiceRole<Database>(event);
 
   if (authorization) {
 
@@ -36,9 +33,7 @@ export async function createContext(event: H3Event) {
   
   return {
     user,
-    supabase,
-    getSupabaseServiceRoleClient,
-    // hooksKey
+    supabase
   }
 }
 

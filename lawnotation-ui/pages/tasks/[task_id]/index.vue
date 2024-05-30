@@ -39,9 +39,7 @@
           {{ item.document.name }}
         </td>
         <td class="px-6 py-2">
-          <span class="capitalize" :class="item.status == 'done' ? 'text-green-600' : 'text-orange-700'">{{
-            item.status
-          }}</span>
+          <Badge :value="item.status" :severity="item.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
         </td>
         <td class="px-6 py-2">
           <span>{{ item.difficulty_rating }}</span>
@@ -56,7 +54,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { Task, AssignmentTableData } from "~/types";
+import type { AssignmentTableData } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const { $toast, $trpc } = useNuxtApp();

@@ -11,17 +11,26 @@
   ]" />
 
   <div v-if="project">
-    <TabView>
-      <TabPanel header="Tasks" :pt="{
+    <GuidancePanel :currentStep="currentGuidanceStep" />
+    <TabView v-model:activeIndex="activeTab">
+      <TabPanel :disabled="!documentTable?.total" :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
       }">
+        <template #header>
+          <div class="flex gap-3 items-center h-6">
+            <span class="leading-none whitespace-nowrap">Tasks</span>
+          </div>
+        </template>
         <div class="dimmer-wrapper pt-2">
           <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
           <div class="dimmer-content">
             <div data-test="tasks-table">
               <div class="flex justify-end">
-                <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
-                  data-test="open-tasks-modal" />
+                <div class="relative">
+                  <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
+                    data-test="open-tasks-modal" />
+                  <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK" />
+                </div>
               </div>
               <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
                 :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
@@ -36,13 +45,16 @@
                     {{ item.desc }}
                   </td>
                   <td class="px-6 py-2">
-                    {{ isWordLevel(item) ? 'Word' : 'Document' }}
+                    {{ item.annotation_level }}
                   </td>
                   <td class="px-6 py-2 flex">
-                    <NuxtLink class="base mr-2" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-                      data-test="view-task-link">
-                      <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
-                    </NuxtLink>
+                    <div class="relative mr-2">
+                      <NuxtLink class="base" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
+                        data-test="view-task-link">
+                        <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
+                      </NuxtLink>
+                      <PulsingRedCircle v-if="item.assignments[0].count ? currentGuidanceStep == GuidanceSteps.CHECK_ASSIGNMENTS : currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
+                    </div>
                     <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                       data-test="edit-task-link">
                       <Button label="Edit" size="small" link />
@@ -50,42 +62,72 @@
                   </td>
                 </template>
               </Table>
-              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :pt="{
-                header: {
-                  style: 'padding-bottom: 0px'
-                },
-                content: {
-                  style: 'padding-bottom: 0px'
-                }
-              }">
-                <TabView v-model:active-index="activeTabTaskModal" class="min-h-[540px]">
-                  <TabPanel header="New">
+              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :autoZIndex="false"
+                :draggable="false" :pt="{
+                  root: '!w-[80vw] xl:!w-[50vw]',
+                  header: {
+                    style: 'padding-bottom: 0px'
+                  },
+                  content: {
+                    style: 'padding-bottom: 0px'
+                  }
+                }" :ptOptions="{ mergeProps: true }">
+                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[56px]">
+                  <TabPanel header="New" :pt="{ headerAction: { 'data-test': 'new-tab' } }">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
                         <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
                           class="peer w-full" placeholder="" />
                         <label for="task_name"
-                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
                       </span>
                     </div>
                     <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
                       placeholder="Description" class="w-full mb-4" />
-                    <Textarea v-model="new_task.ann_guidelines" data-test="annotation-guidelines" autoResize rows="3"
-                      cols="30" placeholder="Annotation Guidelines" class="w-full mb-4" />
-                    <div class="flex justify-between items-center pb-4">
-                      <Dropdown data-test="select-labelset" v-model="new_task.labelset_id" :options="labelsets"
-                        filter optionLabel="name" option-value="id" placeholder="Select Labelset"
-                        class="w-full" @update:model-value="labelSelected($event)" />
-                      <NuxtLink :to="`/labelset/new`">
-                        <Button label="Create new labelset" size="small" link />
-                      </NuxtLink>
+                    <div class="flex justify-center mb-4">
+                      <span class="relative w-full">
+                        <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines"
+                          id="annotation_guidelines" autocomplete="off" class="peer w-full" placeholder="" />
+                        <label for="annotation_guidelines"
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines
+                          url</label>
+                      </span>
                     </div>
-                    <Dropdown data-test="select-annotation-level" v-model="new_task.annotation_level" optionLabel="name" @update:model-value="annotationLevelSelected($event)"
-                      option-value="type" placeholder="Select an annotation level" class="w-full mb-4"
-                      :options="[{ name: 'Word', type: 'word' }, { name: 'Document', type: 'document' }]" />
-                    <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
+                    <div class="flex items-center pb-4">
+                      <Dropdown v-model="new_task.labelset_id" :options="labelsets" filter optionLabel="name"
+                        option-value="id" placeholder="Select Labelset" class="w-full md:w-1/2"
+                        data-test="select-labelset" @update:model-value="labelSelected($event)"/>
+                      <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
+                        data-test='create-new-labelset' />
+                    </div>
+                    <div class="flex items-center pb-4">
+                      <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
                       optionLabel="name" option-value="id" placeholder="Select Model (Optional)" class="w-full" @update:model-value="modelSelected($event)" :show-clear="true"/>
-                    <div class="flex justify-center mt-6">
+                    </div>
+                    <div class="mb-4 flex justify-between items-center">
+                      <div>
+                        <p class="font-bold mb-4">Annotation level</p>
+                        <SelectButton :options="['span', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel" @update:model-value="annotationLevelSelected($event)"
+                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
+                            label: {
+                              class: 'font-normal'
+                            }
+                          }"/>
+                      </div>
+                      <div v-if="selectedAnnotationLevel == 'span'">
+                        <p class="font-bold mb-4">Granularity</p>
+                        <SelectButton 
+                          v-model="new_task.annotation_level"
+                          :options="Object.values(AnnotationLevels).filter(level => level != AnnotationLevels.DOCUMENT)"
+                          @update:model-value="annotationLevelSelected($event)"
+                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level-2" :pt="{
+                            label: {
+                              class: 'font-normal'
+                            }
+                          }" />
+                      </div>
+                    </div>
+                    <div class="flex justify-center mt-10">
                       <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
                         @click="showCreateTaskModal = false;" />
                       <Button data-test="create-tasks" label="Create" size="small" icon="pi pi-check" iconPos="right"
@@ -95,9 +137,9 @@
                   <TabPanel header="Upload">
                     <div v-if="!uploadHasStarted" class="pt-6">
                       <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
-                        :pt="{
+                        chooseLabel="Select" :pt="{
                           chooseButton: {
-                            'data-test': 'choose-task'
+                            'data-test': 'choose-task',
                           },
                           uploadbutton: {
                             root: {
@@ -130,7 +172,7 @@
                           <InputText v-model="new_annotators[index]" autocomplete="off" class="peer w-full" placeholder=""
                             :id="`annotator_${index}`" />
                           <label :for="`annotator_${index}`"
-                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
+                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
                               `annotator ${index + 1} ` }}</label>
                         </span>
                       </div>
@@ -141,18 +183,31 @@
                       </div>
                     </div>
                   </TabPanel>
+                  <TabPanel header="Labelset">
+                    <Labelset v-model="labelset" @labelset-persisted="refreshLabelsets" />
+                  </TabPanel>
                 </TabView>
               </Dialog>
             </div>
           </div>
         </div>
       </TabPanel>
-      <TabPanel header="Documents" :pt="{
+      <TabPanel :pt="{
         headeraction: { 'data-test': 'documents-tab' }
       }">
+        <template #header>
+          <div class="flex gap-3 items-center h-6">
+            <span class="leading-none whitespace-nowrap">Documents</span>
+            <Badge v-if="documentTable?.total" :value="documentTable?.total || 0" :pt="{ root: 'opacity-75' }"
+              :ptOptions="{ mergeProps: true }"></Badge>
+          </div>
+        </template>
         <div class="flex justify-end pt-2">
-          <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
-            icon-pos="right" data-test="open-documents-modal" />
+          <div class="relative">
+            <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
+              icon-pos="right" data-test="open-documents-modal" />
+            <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
+          </div>
         </div>
         <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
           :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
@@ -171,26 +226,27 @@
           </template>
         </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt" :pt="{
-            input: {
-              'data-test': 'choose-documents'
-            },
-            uploadbutton: {
-              root: {
-                'data-test': 'upload-documents'
+          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html"
+            chooseLabel="Select" :maxFileSize="3145728" :pt="{
+              input: {
+                'data-test': 'choose-documents'
+              },
+              uploadbutton: {
+                root: {
+                  'data-test': 'upload-documents'
+                }
+              },
+              thumbnail: {
+                class: 'hidden'
               }
-            },
-            thumbnail: {
-              class: 'hidden'
             }
-          }
-            ">
+              ">
             <template #empty>
               <div class="flex items-center justify-center flex-col">
                 <i
                   class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
                 <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                <p class="text-gray-400 text-xs">.txt file(s)</p>
+                <p class="text-gray-400 text-xs">.txt .html file(s)</p>
               </div>
             </template>
           </FileUpload>
@@ -204,7 +260,7 @@ import type {
   Project,
   Document,
   Task,
-  Labelset,
+  Labelset as LabelsetType,
   Assignment,
   Annotation,
   User,
@@ -213,8 +269,11 @@ import type {
 } from "~/types";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
+import Labelset from "~/components/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel } from "~/utils/levels";
+import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
+import GuidancePanel from "~/components/GuidancePanel.vue";
+import { AnnotationLevels, GuidanceSteps } from "~/utils/enums";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -230,6 +289,7 @@ const config = useRuntimeConfig();
 
 const loading_docs = ref(false);
 
+const activeTab = ref<number>(0);
 const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
@@ -237,7 +297,16 @@ const activeTabTaskModal = ref<number>(0);
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
-const labelsets = ref<Labelset[]>(await $trpc.labelset.find.query({}));
+const labelsets = ref(await $trpc.labelset.find.query({}));
+const selectedAnnotationLevel = ref<'span' | AnnotationLevels.DOCUMENT>();
+
+const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
+  id: undefined,
+  editor_id: user.value?.id,
+  name: "",
+  desc: "",
+  labels: [],
+});
 
 const import_json = ref<any>(null);
 const import_progress = ref<{
@@ -267,6 +336,23 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   ml_model_id: undefined
 });
 
+const assignmentsCount = ref<number>((await $trpc.assignment.getCountByProject.query(project.id))!);
+
+const currentGuidanceStep = computed(() => {
+  if (documentTable.value && taskTable.value) {
+    if (documentTable.value.total == 0) {
+      return GuidanceSteps.UPLOAD_DOCUMENTS;
+    } else if (taskTable.value.total == 0) {
+      return GuidanceSteps.CREATE_TASK;
+    } else if (assignmentsCount.value == 0) {
+      return GuidanceSteps.ASSIGN_ANNOTATORS;
+    } else {
+      return GuidanceSteps.CHECK_ASSIGNMENTS;
+    }
+  }
+  return GuidanceSteps.NONE;
+});
+
 const modelSelected = async (id: number) => {
 
   // remove added labelsets
@@ -279,6 +365,11 @@ const modelSelected = async (id: number) => {
   const model = models.value.find(m => m.id == id);
 
   if(new_task.annotation_level != model?.annotation_level) {
+    if(model?.annotation_level == AnnotationLevels.DOCUMENT) {
+      selectedAnnotationLevel.value = AnnotationLevels.DOCUMENT;
+    } else {
+      selectedAnnotationLevel.value = "span";
+    }
     new_task.annotation_level = model?.annotation_level;
   }
 
@@ -299,7 +390,12 @@ const labelSelected = async (id: number) => {
   }
 };
 
-const annotationLevelSelected = async (value: string) => {
+const annotationLevelSelected = async (value: "span" | AnnotationLevels) => {
+  if(value == "span") {
+    new_task.annotation_level = AnnotationLevels.SYMBOL;
+  } else {
+    new_task.annotation_level = value;
+  }
   if(new_task.ml_model_id) {
     const model = await $trpc.mlModel.findById.query(new_task?.ml_model_id);
     if(model.annotation_level != value) {
@@ -311,6 +407,12 @@ const annotationLevelSelected = async (value: string) => {
     }
   }
 };
+
+const refreshLabelsets = async () => {
+  activeTabTaskModal.value = 0;
+  labelsets.value?.push(labelset.value as any);
+  new_task.labelset_id = labelset.value.id!;
+}
 
 const uploadDocuments = async (event: { files: FileList }) => {
 
@@ -334,9 +436,6 @@ const uploadDocuments = async (event: { files: FileList }) => {
   texts.forEach((t, index) => {
     new_docs[index].full_text = t;
   });
-
-  // TODO: progress bar instead of instantly adding to list, and after all are added reload documents table (keep loading = true while adding?)
-  // documents.push(...(await documentApi.createDocuments(new_docs)));
 
   try {
     await $trpc.document.createMany.mutate(new_docs);
@@ -362,9 +461,13 @@ const createTask = () => {
     $toast.error("Task description is required");
     return;
   }
-  if (!new_task.ann_guidelines) {
-    $toast.error("Task guidelines are required");
-    return;
+  if (new_task.ann_guidelines){
+    try {
+      const url = new URL(new_task.ann_guidelines);
+    } catch (_) {
+      $toast.error("Invalid Guidelines url");
+      return;
+    }
   }
   if (!new_task.labelset_id) {
     $toast.error("Task must have a labelset");
@@ -394,10 +497,6 @@ watch(showCreateTaskModal, (new_val) => {
   if (new_val) {
     resetModal();
   }
-});
-
-watch(activeTabTaskModal, (new_val) => {
-  resetModal();
 });
 
 const resetModal = () => {
@@ -599,36 +698,29 @@ const importTask = async () => {
   }
 };
 
-const removeDocuments = async (ids: string[]) => {
-  const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.document.delete.mutate(+id)));
-  await Promise.all(promises);
-  await documentTable.value?.refresh();
-  $toast.success("Documents successfully deleted!");
+const removeDocuments = (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+  finish(ids.map((id) => $trpc.document.delete.mutate(+id)));
 };
-const removeAllDocuments = async () => {
-  if (!project) throw new Error("Invalid Project!");
-  await $trpc.document.deleteAllFromProject.mutate(+project.id);
-  await documentTable.value?.refresh();
-  $toast.success("Documents successfully deleted!");
+const removeAllDocuments = (finish: (promises: (Promise<Boolean>)) => void) => {
+  finish($trpc.document.deleteAllFromProject.mutate(+project.id));
 };
-const removeTasks = async (ids: string[]) => {
-  const promises: Promise<Boolean>[] = [];
-  promises.push(...ids.map((id) => $trpc.task.delete.mutate(+id)));
-  await Promise.all(promises);
-  await taskTable.value?.refresh();
-  $toast.success("Tasks successfully deleted!");
+
+const removeTasks = (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+  finish(ids.map((id) => $trpc.task.delete.mutate(+id)));
 };
-const removeAllTasks = async () => {
-  if (!project) throw new Error("Invalid Project!");
-  await $trpc.task.deleteAllFromProject.mutate(project.id);
-  await taskTable.value?.refresh();
-  $toast.success("Tasks successfully deleted!");
+const removeAllTasks = (finish: (promises: (Promise<Boolean>)) => void) => {
+  finish($trpc.task.deleteAllFromProject.mutate(project.id));
 };
 
 onMounted(async () => {
   new_task.project_id = project.id;
+
+  if (!documentTable?.value?.total) activeTab.value = 1;
 });
+
+watch(() => documentTable?.value?.total, (newTotal) => {
+  if (newTotal) activeTab.value = 0;
+})
 
 definePageMeta({
   middleware: [
@@ -650,4 +742,4 @@ div.tabs-holder {
     @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
 }
-</style>
+</style>~/components/Labelsets.vue

@@ -4,9 +4,7 @@ import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Assignment, User, Document, MlModel, Annotation, Labelset } from "~/types";
 import type { Context } from "../context";
 import { zValidEmail } from "~/utils/validators";
-import { appRouter } from ".";
-
-const config = useRuntimeConfig();
+import { MailtrapClient } from "mailtrap"
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string().nullable(),
@@ -64,21 +62,12 @@ export const assignmentRouter = router({
         task_id: z.number(),
       })
     )
-    .query(async ({ ctx, input }) => {
-      const serviceClient = ctx.getSupabaseServiceRoleClient();
-
-      const email_found = await serviceClient
-        .from("users")
-        .select("id")
-        .eq("email", input.email)
-        .maybeSingle();
-      let user_id: User["id"] | null = null;
+    .query(async ({ctx, input}) => {
+      const email_found = await ctx.supabase.from('users').select().eq('email', input.email).maybeSingle();
+      let user_id: User['id'] | null = null;
       if (!email_found.data) {
         // email is a new user
-        const invite = await serviceClient.auth.admin.inviteUserByEmail(
-          input.email,
-          { data: { assigned_task_id: input.task_id } }
-        );
+        const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, {data: {assigned_task_id: input.task_id}})
 
         if (invite.error)
           throw new TRPCError({
@@ -90,15 +79,30 @@ export const assignmentRouter = router({
       } else {
         // email is already an user
         user_id = email_found.data.id as string;
+        const user_email = email_found.data.email as string;
 
-        await serviceClient.auth.admin.updateUserById(user_id, {
-          user_metadata: { assigned_task_id: input.task_id },
-        });
+        await ctx.supabase.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
 
-        // ...
-        console.log(
-          `Hypothetically sending notification to user ${user_id} that it is assigned to new task`
-        );
+        const config = useRuntimeConfig();
+        // send email to existing user
+        if (!config.mailtrapToken)
+          throw Error("Mailtrap API token not set")
+
+        const mailClient = new MailtrapClient({ token: config.mailtrapToken });
+
+        const body = `Hello ${user_email},<br />
+        You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
+
+        const mail = await mailClient.send({
+          from: {email: 'no-reply@login.lawnotation.org', name: 'Lawnotation'},
+          to: [{email: user_email}],
+          subject: 'Assigned to new task',
+          html: body
+        })
+  
+        if (!mail.success)
+          throw new TRPCError({message: 'There was an error sending an email to the invited user.', code: 'INTERNAL_SERVER_ERROR'})
+        
       }
 
       if (!user_id)
@@ -117,12 +121,8 @@ export const assignmentRouter = router({
         task_id: z.number(),
       })
     )
-    .query(async ({ ctx, input }) => {
-      const serviceClient = ctx.getSupabaseServiceRoleClient();
-      const invite = await serviceClient.auth.admin.inviteUserByEmail(
-        input.email,
-        { data: { invited_task_id: input.task_id } }
-      );
+    .query(async ({ctx, input}) => {
+      const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, {data: {invited_task_id: input.task_id}})
 
       if (invite.error)
         throw new TRPCError({
@@ -329,6 +329,22 @@ export const assignmentRouter = router({
           message: `Error in getCountByUser: ${error.message}`,
         });
       return data;
+    }),
+
+    getCountByProject: protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: p_id }) => {
+      const { data, error, count } = await ctx.supabase
+        .from("assignments")
+        .select("*, task:tasks!inner(project_id)", { count: "exact" })
+        .eq("tasks.project_id", p_id);
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in getCountByUser: ${error.message}`,
+        });
+      return count;
     }),
 
   getDifficultiesByEditor: protectedProcedure
@@ -613,6 +629,144 @@ export const assignmentRouter = router({
         predicting: count ?? 0
       };
     }),
+    
+    getGroupByAnnotators: protectedProcedure
+      .input(z.object({
+        task_id: z.number().int(),
+        page: z.number().int(),
+        filter: z.object({
+          email: z.string()
+        })
+      }))
+      .query(async ({ctx, input}) => {
+        const rowsPerPage = 10;
+
+        const query = ctx.supabase
+          .from("users")
+          .select(
+            "id, email, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, document:documents!inner(id, name))",
+            { count: "exact" }
+          )
+          .eq("assignments.task_id", input.task_id)
+          .order("seq_pos", { referencedTable: "assignments", ascending: true })
+          .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage)
+      
+        if (input.filter.email.length)
+          query.ilike("email", `%${input.filter.email}%`)
+        
+        const { data, error, count } = await query
+        
+        if (error)
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Error in getGroupByAnnotators: ${error.message}`,
+          });
+        
+        const grouped = data
+          .map(ann => ({
+            type: 'annotator',
+            key: `ann-${ann.id}`,
+            data: {
+              email: ann.email,
+              annotator_number: ann.assignments[0].annotator_number,
+              amount_done: ann.assignments.filter(ass => ass.status == "done").length,
+              amount_total: ann.assignments.length,
+              next_seq_pos: Math.min(...ann.assignments.filter(ass => ass.status == 'pending').map(ass => ass.seq_pos!))
+            },
+            children: ann.assignments!.map(ass => ({
+              type: 'document',
+              key: `ass-${ass.id}`,
+              data: {
+                assignment_id: ass.id,
+                seq_pos: ass.seq_pos,
+                document_id: ass.document!.id,
+                document_name: ass.document!.name,
+                difficulty_rating: ass.difficulty_rating,
+                status: ass.status
+              }
+            }))
+          }))
+          // .sort((a, b) => {
+          //   if (a.data.email == ctx.user.email)
+          //     return -1
+          //   else if (b.data.email == ctx.user.email)
+          //     return 1;
+
+          //   if (a.data.annotator_number > b.data.annotator_number) 
+          //     return 1;
+          //   else if (a.data.annotator_number < b.data.annotator_number)
+          //     return -1;
+          //   else
+          //     return 0
+          // })
+        
+        return {data: grouped ?? [], total: count ?? 0 };
+      }),
+    
+    getGroupByDocuments: protectedProcedure
+      .input(z.object({
+        task_id: z.number().int(),
+        page: z.number().int(),
+        filter: z.object({
+          document: z.string()
+        }),
+        // sort: z.object({
+        //   field: z.union([
+        //     z.literal('name'),
+        //     z.literal('progress')
+        //   ])
+        // })
+      }))
+      .query(async ({ctx, input}) => {
+        const rowsPerPage = 10;
+
+        const query = ctx.supabase
+          .from("documents")
+          .select(
+            "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, user:users!inner(id, email))",
+            { count: "exact" }
+          )
+          .eq("assignments.task_id", input.task_id)
+          .order("seq_pos", { referencedTable: "assignments", ascending: true })
+          .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage)
+      
+        if (input.filter.document.length)
+          query.ilike("name", `%${input.filter.document}%`)
+        
+        const { data, error, count } = await query
+        
+        if (error)
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Error in getGroupByAnnotators: ${error.message}`,
+          });
+        
+        const grouped = data
+          .map(doc => ({
+            type: 'document',
+            key: `doc-${doc.id}`,
+            data: {
+              document_id: doc!.id,
+              document_name: doc!.name,
+              amount_done: doc.assignments.filter(ass => ass.status == "done").length,
+              amount_total: doc.assignments.length,
+              next_seq_pos: Math.min(...doc.assignments.filter(doc => doc.status == 'pending').map(ass => ass.seq_pos!))
+            },
+            children: doc.assignments!.map(ass => ({
+              type: 'annotator',
+              key: `ass-${ass.id}`,
+              data: {
+                email: ass.user!.email,
+                seq_pos: ass.seq_pos,
+                difficulty_rating: ass.difficulty_rating,
+                status: ass.status
+              }
+            }))
+          }))
+        
+        return {data: grouped ?? [], total: count ?? 0 };
+      })
+
 });
 
 export type AssignmentRouter = typeof assignmentRouter;

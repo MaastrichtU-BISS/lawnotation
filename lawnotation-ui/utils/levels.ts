@@ -1,9 +1,11 @@
 import type { Task } from "~/types";
 
-export function isWordLevel(task: Task) {
-  return task.annotation_level == "word" || task.annotation_level == undefined;
-}
-
 export function isDocumentLevel(task: Task) {
   return task.annotation_level == "document";
+}
+
+export function getDocFormat(docName: string) {
+  const splitted = docName.split('.');
+  const format = splitted[splitted.length - 1];
+  return format;
 }

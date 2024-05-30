@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Document } from "~/types";
 import type { Context } from "../context";
+import sanitizeHtml from "sanitize-html";
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -90,6 +91,8 @@ export const documentRouter = router({
   create: protectedProcedure
     .input(ZDocumentFields)
     .mutation(async ({ ctx, input }) => {
+      sanitizeFullText(input);
+
       const { data, error } = await ctx.supabase
         .from("documents")
         .insert(input)
@@ -107,6 +110,10 @@ export const documentRouter = router({
   createMany: protectedProcedure
     .input(z.array(ZDocumentFields))
     .mutation(async ({ ctx, input }) => {
+      input.forEach((doc) => {
+        sanitizeFullText(doc);
+      });
+
       const { data, error } = await ctx.supabase
         .from("documents")
         .insert(input)
@@ -269,6 +276,22 @@ export const documentRouter = router({
       return count; // TODO: check if valid. original is data.count
     }),
 
+  getCountByUser: protectedProcedure
+    .input(z.string())
+    .query(async ({ ctx, input: editor_id }) => {
+      const { data, error, count } = await ctx.supabase
+        .from("documents")
+        .select("*, project:projects!inner(id, editor_id)", { count: "exact" })
+        .eq("projects.editor_id", editor_id);
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in projects.getCountByUser: ${error.message}`,
+        });
+      return count;
+    }),
+
   // TODO: replace with just get whole doc and get name property from there?
   getName: protectedProcedure
     .input(z.number().int())
@@ -306,5 +329,49 @@ export const documentRouter = router({
       return true;
     }),
 });
+
+function sanitizeFullText(doc: { full_text: string }) {
+  doc.full_text = sanitizeHtml(doc.full_text, {
+    allowedAttributes: {
+      "*": [
+        "style",
+        "height",
+        "width",
+        "valign",
+        "border",
+        "cellspacing",
+        "cellpadding",
+      ],
+    },
+    allowedStyles: {
+      "*": {
+        color: [
+          /^#(0x)?[0-9a-f]+$/i,
+          /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
+        ],
+        "background-color": [
+          /^#(0x)?[0-9a-f]+$/i,
+          /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
+        ],
+        background: [
+          /^#(0x)?[0-9a-f]+$/i,
+          /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
+        ],
+        "text-align": [/^left$/, /^right$/, /^center$/],
+        display: [/^inline$/, /^block$/, /^flex$/, /^inline-block$/, /^grid$/],
+        "font-size": [/^\d+(?:px|em|%|rem)$/],
+        padding: [/^^\d+(?:px|em|%|rem|)(\s\d+(?:px|em|%|rem|)?)?$/],
+        margin: [/^\d+(?:px|em|%|rem|)(\s\d+(?:px|em|%|rem|)?)?$/],
+        "border-radius": [/^\d+(?:px|em|%|rem|)(\s\d+(?:px|em|%|rem|)?)?$/],
+        float: [/^left$/, /^right$/, /^top$/, /^bottom$/],
+        clear: [/^none$/, /^left$/, /^right$/, /^both$/],
+        width: [/^\d+(?:px|em|%|rem|)$/],
+        "max-width": [/^\d+(?:px|em|%|rem|)$/],
+        height: [/^\d+(?:px|em|%|rem|)$/],
+        "max-height": [/^\d+(?:px|em|%|rem|)$/],
+      },
+    },
+  });
+}
 
 export type DocumentRouter = typeof documentRouter;

@@ -1,5 +1,5 @@
 <template>
-  <Breadcrumb v-if="task" :crumbs="[
+  <Breadcrumb v-if="task && doc" :crumbs="[
     {
       name: 'Tasks',
       link: '/tasks',
@@ -9,35 +9,18 @@
       link: `/tasks/${task.id}`,
     },
     {
-      name: `Assignment ${seq_pos}`,
+      name: `${doc.name}`,
       link: `/annotate/${task.id}?seq=${seq_pos}`,
     },
   ]" />
 
-  <template v-if="assignment && task">
-    <div class="my-4 px-8 flex justify-between">
-      <span>&nbsp;</span>
-      <div class="max-w-screen-md w-full" v-if="loadedData && seq_pos && assignmentCounts">
-        <div class="flex justify-between mb-1">
-          <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
-          <span class="text-sm font-medium text-blue-700" data-test="progress">{{ seq_pos }} / {{ assignmentCounts.total
-          }}</span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2.5">
-          <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-            :style="{ width: `${(seq_pos / assignmentCounts.total) * 100}%` }"></div>
-        </div>
-      </div>
-      <span class="capitalize" :class="assignmentStatusClass(assignment.status)">{{
-        assignment.status
-      }}</span>
-    </div>
+  <template v-if="task && assignmentCounts">
     <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />
       <div class="dimmer-content h-full">
-        <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
+        <LabelStudio v-if="loadedData" :assignment="assignment" :assignmentsTotal="assignmentCounts.total" :user="user" :isEditor="isEditor" :text="doc?.full_text"
           :annotations="ls_annotations" :relations="ls_relations" :labels="labels" :guidelines="task?.ann_guidelines"
-          :isWordLevel="isWordLevel(task)" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
+          :annotation_level="task.annotation_level" :isHtml="isHtml" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
         </LabelStudio>
       </div>
     </div>
@@ -55,7 +38,7 @@ import type {
   LSSerializedRelation,
 } from "~/types";
 import Breadcrumb from "~/components/Breadcrumb.vue";
-import { isWordLevel } from "~/utils/levels";
+import { isDocumentLevel, getDocFormat } from "~/utils/levels";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const user = useSupabaseUser();
@@ -79,12 +62,12 @@ const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
 const assignmentCounts = ref<{ next: number; total: number }>();
 
-const assignmentStatusClass = (status: Assignment["status"]) => {
-  return status === "done" ? "text-green-600" : "text-red-500";
-};
-
 const loading = ref(false);
 const key = ref("ls-default");
+
+const isHtml = computed(() => {
+  return getDocFormat(doc?.value?.name!) == 'html';
+});
 
 // const seq_pos = ref(assignment.value?.seq_pos ?? 1);
 const seq_pos = ref<number>(assignment.value?.seq_pos ?? 0);
@@ -156,7 +139,7 @@ const loadData = async () => {
 
     ls_annotations.splice(0);
     if (_annotations.length) {
-      const db2ls_anns = convert_annotation_db2ls(_annotations, assignment.value.id, isWordLevel(task.value));
+      const db2ls_anns = convert_annotation_db2ls(_annotations, !isDocumentLevel(task.value), isHtml.value);
       ls_annotations.push(...db2ls_anns);
     }
 

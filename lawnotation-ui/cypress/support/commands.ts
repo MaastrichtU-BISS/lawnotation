@@ -1,24 +1,29 @@
 import Role from './role';
 
 Cypress.Commands.add("login", (role: Role) => {
-  cy.visit('/auth/login')
+  cy.session(role, () => {
+    cy.visit('/auth/login')
 
-  cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
-  cy.get('input[data-test="email-field-to-login"]').type(`${role}@example.com`)
-  cy.get('button[data-test="login-button"]').click()
-  cy.wait(4000)
+    cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
+    cy.get('input[data-test="email-field-to-login"]').type(`${role}@example.com`)
+    cy.get('button[data-test="login-button"]').click()
+    cy.wait(4000)
 
-  cy.request(`http://127.0.0.1:54324/api/v1/mailbox/${role}`).then((response) => {
-    return response.body.pop().id;
-  }).then((mailId) => {
-    return cy.request(`http://127.0.0.1:54324/serve/mailbox/${role}/${mailId}`).then((response) => {
-      return response.body.html
+    cy.request(`http://127.0.0.1:54324/api/v1/mailbox/${role}`).then((response) => {
+      return response.body.pop().id;
+    }).then((mailId) => {
+      return cy.request(`http://127.0.0.1:54324/serve/mailbox/${role}/${mailId}`).then((response) => {
+        return response.body.html
+      })
+    }).then(html => {
+      return Cypress.$(html).find('span').text();
+    }).then(code => {
+      cy.get('div[data-test="token-field-to-login"]').children().each((el, index) => {
+        cy.wrap(el).type(code[index]);
+      })
+      cy.get('button[data-test="verify-button"]').click()
     })
-  }).then(html => {
-    return Cypress.$(html).find('span').text();
-  }).then(code => cy.get('input[data-test="token-field-to-login"]').type(code))
-
-  cy.get('button[data-test="login-button"]').click()
+  })
 });
 
 Cypress.Commands.add('resetDatabase', () => {
@@ -32,15 +37,14 @@ Cypress.Commands.add('addProject', (projectname) => {
   cy.get('button[data-test="add-project"]').click()
 });
 
-Cypress.Commands.add('addTask', (taskname, annotation_level='Word') => {
+Cypress.Commands.add('addTask', (taskname, annotationLevel = 'word') => {
   cy.get('button[data-test="open-tasks-modal"]').click();
   cy.get('input[data-test="task-name"]').clear().type(taskname)
   cy.get('textarea[data-test="task-description"]').clear().type('test task')
   cy.get('textarea[data-test="annotation-guidelines"]').clear().type('1.{enter}2.{enter}3.{enter}')
   cy.get('div[data-test="select-labelset"]').click()
-  cy.get('li[aria-label="Seeded labelset"]').click();
-  cy.get('div[data-test="select-annotation-level"]').click()
-  cy.get(`li[aria-label="${annotation_level}"]`).click();
+  cy.get('li[aria-label="Seeded labelset"]').click()
+  cy.get('div[data-test="select-annotation-level"]').find(`div[aria-label="${annotationLevel}"]`).click()
   cy.get('button[data-test="create-tasks"]').click()
 })
 

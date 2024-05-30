@@ -1,10 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Annotation, Task, User, Annotator } from "~/types";
+import type { Task, Annotator } from "~/types";
+import { AnnotationLevels } from "~/utils/enums";
 import type { Context } from "../context";
 import { appRouter } from ".";
-import type { Database } from "~/types/supabase";
 import { zValidEmail } from "~/utils/validators";
 
 const ZTaskFields = z.object({
@@ -13,8 +13,8 @@ const ZTaskFields = z.object({
   project_id: z.number().int(),
   labelset_id: z.number().int(),
   ann_guidelines: z.string(),
-  annotation_level: z.union([z.literal("word"), z.literal("document")]),
   ml_model_id: z.number().int().optional(),
+  annotation_level: z.nativeEnum(AnnotationLevels)
 });
 
 const taskAuthorizer = async (
@@ -300,8 +300,6 @@ export const taskRouter = router({
       return true;
     }),
 
-  // Note: wont work, probably
-  // Now it does ;)
   replicateTask: protectedProcedure
     .input(z.number().int())
     .mutation(async ({ ctx, input: task_id }): Promise<Task> => {
@@ -309,15 +307,7 @@ export const taskRouter = router({
 
       const task = await caller.task.findById(task_id);
 
-      const new_task = await caller.task.create({
-        name: task.name,
-        desc: task.desc,
-        project_id: task.project_id,
-        ann_guidelines: task.ann_guidelines,
-        labelset_id: task.labelset_id,
-        annotation_level: task.annotation_level,
-        ml_model_id: task.ml_model_id,
-      });
+      const new_task = await caller.task.create(task);
 
       const assignments = await caller.assignment.findAssignmentsByTask(
         task_id

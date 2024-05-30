@@ -1,5 +1,5 @@
 <template>
-  <Breadcrumb v-if="project && task && assignment" :crumbs="[
+  <Breadcrumb v-if="project && task && assignment && doc" :crumbs="[
     {
       name: 'Projects',
       link: '/projects',
@@ -13,7 +13,7 @@
       link: `/projects/${project.id}/tasks/${task.id}`,
     },
     {
-      name: `Assignment ${assignment.id}`,
+      name: `${doc.name} - ${annotator_email}`,
       link: `/assignments/${assignment.id}`,
     },
   ]" />
@@ -22,7 +22,7 @@
       <Dimmer v-model="loading" />
       <div class="dimmer-content h-full">
         <LabelStudio v-if="loadedData" :assignment="assignment" :user="user" :isEditor="isEditor" :text="doc?.full_text"
-          :annotations="ls_annotations" :relations="ls_relations" :guidelines="task?.ann_guidelines" :labels="labels" :isWordLevel="isWordLevel(task)">
+          :annotations="ls_annotations" :relations="ls_relations" :guidelines="task?.ann_guidelines" :labels="labels" :annotation_level="task.annotation_level"  :isHtml="isHtml">
         </LabelStudio>
       </div>
     </div>
@@ -42,7 +42,7 @@ import type {
   LSSerializedRelation,
 } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
-import { isWordLevel } from "~/utils/levels";
+import { isDocumentLevel, getDocFormat } from "~/utils/levels";
 
 const user = useSupabaseUser();
 
@@ -55,6 +55,7 @@ const assignment = ref<Assignment>();
 const task = ref<Task>();
 const project = ref<Project>();
 const doc = ref<Document>();
+const annotator_email = ref<string>();
 const loadedData = ref(false);
 const loading = ref(false);
 
@@ -65,12 +66,22 @@ const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
 
+const isHtml = computed(() => {
+  return getDocFormat(doc?.value?.name!) == 'html';
+});
+
 const loadData = async () => {
   try {
     loading.value = true;
     assignment.value = await $trpc.assignment.findById.query(+route.params.assignment_id);
 
     if (!assignment.value) throw Error("Assignment not found");
+
+    if(assignment.value.annotator_id) {
+      annotator_email.value = (await $trpc.user.findById.query(assignment.value.annotator_id)).email
+    } else {
+      annotator_email.value = `annotator ${assignment.value.annotator_number}`;
+    }
 
     doc.value = await $trpc.document.findById.query(+assignment.value.document_id);
     if (!doc.value) throw Error("Document not found");
@@ -97,7 +108,7 @@ const loadData = async () => {
         ...(await $trpc.annotation.findByAssignment.query(+assignment.value.id))
       );
 
-    const db2ls_anns = convert_annotation_db2ls(annotations, assignment.value.id, isWordLevel(task.value));
+    const db2ls_anns = convert_annotation_db2ls(annotations, !isDocumentLevel(task.value), isHtml.value);
     if (annotations.length) {
       ls_annotations.splice(0) && ls_annotations.push(...db2ls_anns);
     }
