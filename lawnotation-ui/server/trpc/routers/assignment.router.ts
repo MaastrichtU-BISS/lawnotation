@@ -3,28 +3,20 @@ import { number, z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Assignment, User, Document, MlModel, Annotation, Labelset } from "~/types";
 import type { Context } from "../context";
+import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
 import { MailtrapClient } from "mailtrap"
+import { Origins, AssignmentStatuses } from "~/utils/enums";
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string().nullable(),
   task_id: z.number().int(),
   document_id: z.number().int(),
-  status: z.union([
-    z.literal("pending"),
-    z.literal("done"),
-    z.literal("predicting"),
-    z.literal("pre-annotated"),
-    z.literal("predicting"),
-  ]),
+  status: z.nativeEnum(AssignmentStatuses),
   seq_pos: z.number().int(),
   difficulty_rating: z.number().int(),
   annotator_number: z.number().int(),
-  origin: z.union([
-    z.literal("manual"),
-    z.literal("imported"),
-    z.literal("model"),
-  ]),
+  origin: z.nativeEnum(Origins),
 });
 
 const assignmentAuthorizer = async (
@@ -160,14 +152,7 @@ export const assignmentRouter = router({
             annotator_id: z.string().optional(),
             task_id: z.number().int(),
             document_id: z.number().int(),
-            status: z
-              .union([
-                z.literal("pending"),
-                z.literal("done"),
-                z.literal("predicting"),
-                z.literal("pre-annotated"),
-                z.literal("failed"),
-              ])
+            status: z.nativeEnum(AssignmentStatuses)
               .optional(),
             seq_pos: z.number().int().optional(),
             difficulty_rating: z.number().int().optional(),
@@ -239,8 +224,8 @@ export const assignmentRouter = router({
           const response = caller.mlModel.predict({
             text: doc.full_text,
             assignment_ids: doc2ass[doc.id],
-            model_name: model.name,
-            task_type: model.type,
+            name: model.name,
+            type: model.type,
             labels: labels,
           });
         });

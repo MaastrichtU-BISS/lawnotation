@@ -4,6 +4,7 @@ import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { MlModel } from "~/types";
 import type { Context } from "../context";
 import type { PostgrestError } from "@supabase/supabase-js";
+import { AnnotationLevels } from "~/utils/enums";
 
 
 const config = useRuntimeConfig();
@@ -12,7 +13,7 @@ const ZMlModelFields = z.object({
   name: z.string().min(3),
   type: z.string(),
   labelset_id: z.number().optional(),
-  annotation_level: z.union([z.literal("word"), z.literal("document")])
+  annotation_level: z.nativeEnum(AnnotationLevels)
 });
 
 const MlModelAuthorizer = async (
@@ -71,9 +72,9 @@ export const mlModelRouter = router({
   predict: protectedProcedure
   .input(
     z.object({
-      model_name: z.string().min(3),
+      name: z.string().min(3),
       assignment_ids: z.array(z.number().int()).optional(),
-      task_type: z.string(),
+      type: z.string(),
       text: z.string(),
       labels: z.array(z.string()).optional()
     })

@@ -10,6 +10,7 @@ import type { Context } from "../context";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { appRouter } from ".";
 import type { Annotation, Assignment } from "~/types";
+import { Origins } from "~/utils/enums";
 
 const hookAuthorizer = middleware((opts) => {
   // opts.ctx.hooksKey
@@ -27,11 +28,7 @@ export const hookRouter = router({
             start_index: z.number().int(),
             end_index: z.number().int(),
             text: z.string(),
-            origin: z.union([
-              z.literal("manual"),
-              z.literal("imported"),
-              z.literal("model"),
-            ]),
+            origin: z.nativeEnum(Origins),
             ls_id: z.string(),
           })
         )

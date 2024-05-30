@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "~/server/trpc";
 import type { Annotation } from "~/types";
+import { Origins } from "~/utils/enums";
 
 const ZAnnotationFields = z.object({
   label: z.string(),
@@ -9,7 +10,7 @@ const ZAnnotationFields = z.object({
   start_index: z.number().int(),
   end_index: z.number().int(),
   text: z.string(),
-  origin: z.union([z.literal("manual"), z.literal("imported"), z.literal("model")]),
+  origin: z.nativeEnum(Origins),
   ls_id: z.string(),
   html_metadata: z
     .object({

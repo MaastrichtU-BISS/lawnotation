@@ -1,13 +1,15 @@
+import { Origins, AssignmentStatuses } from "~/utils/enums";
+
 export type Assignment = {
   id: number;
   annotator_id: string;
   task_id: number;
   document_id: number;
-  status: "pending" | "done" | "predicting" | "pre-annotated" | "failed";
+  status: AssignmentStatuses;
   seq_pos: number;
   difficulty_rating: number;
   annotator_number: number;
-  origin: "manual" | "imported" | "model";
+  origin: Origins
 };
 
 export type AssignmentTableData = {
@@ -23,11 +25,11 @@ export type AssignmentTableData = {
     source: string;
     // full_text: string
   };
-  status: "pending" | "done" | "predicting" | "pre-annotated" | "failed";
+  status: AssignmentStatuses;
   seq_pos: number;
   difficulty_rating: number;
   annotator_number: number;
-  origin: "manual" | "imported" | "model";
+  origin: Origins
 };
 
 export function isUnfinishedByAnnotator(assignment: Assignment) {
