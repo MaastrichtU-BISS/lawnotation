@@ -110,7 +110,7 @@
               >
                 <Column columnKey="name" header="Name" expander style="white-space: nowrap; padding-right: 3rem">
                   <template #filter>
-                    <InputText v-model="groupByAnnotatorsArgs.filter.email" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by email" />
+                    <InputText v-model="groupByAnnotatorsArgs.filter.name" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by email" />
                   </template>
                   <template #body="{node}">
                     <template v-if="node.type == 'annotator' && node.data.name == user!.email">
@@ -138,7 +138,7 @@
                           :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
                         />
                         <NuxtLink
-                          v-if="node.data.amount_done < node.data.amount_total && node.data.email == user!.email"
+                          v-if="node.data.amount_done < node.data.amount_total && node.data.name == user!.email"
                           class="ml-5"
                           :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`"
                         >
@@ -235,12 +235,12 @@
                     <InputText v-model="groupByDocumentsArgs.filter.document" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by document" />
                   </template>
                   <template #body="{node}">
-                    <template v-if="node.type == 'annotator' && node.data.email == user!.email">
+                    <template v-if="node.type == 'annotator' && node.data.name == user!.email">
                       <i class="pi pi-user mr-3 ml-2"></i>
-                      <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.email }}</span>
+                      <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.name }}</span>
                     </template>
                     <template v-else-if="node.type == 'annotator'">
-                      <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.email }}
+                      <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.name }}
                     </template>
                     <template v-else-if="node.type == 'document'">
                       <i class="pi pi-file mr-3 ml-2" />{{ node.data.document_name }}
@@ -443,7 +443,7 @@ const groupByAnnotatorsSelectedAssignmentIds = computed(() => {
     .filter(x => x[0].startsWith('ass-') && x[1].checked)
     .map(x => x[0].replace('ass-', ''))
 })
-const groupByAnnotatorsArgs = reactive({task_id: task.id, page: 1, filter: {email: ''}});
+const groupByAnnotatorsArgs = reactive({task_id: task.id, page: 1, filter: {name: ''}});
 const groupByAnnotators = await $trpc.assignment.getGroupByAnnotators.useQuery(groupByAnnotatorsArgs);
 const groupByAnnotatorsLoading = ref(false);
 const refreshGroupByAnnotators = () => {
@@ -455,7 +455,7 @@ const groupByAnnotatorsPaginate = ({page}: {page: number}) => {
   groupByAnnotatorsArgs.page = page + 1;
   refreshGroupByAnnotators()
 }
-watch(() => groupByAnnotatorsArgs.filter.email, refreshGroupByAnnotators)
+watch(() => groupByAnnotatorsArgs.filter.name, refreshGroupByAnnotators)
 
 // end
 

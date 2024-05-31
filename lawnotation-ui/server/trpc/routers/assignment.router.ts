@@ -615,7 +615,7 @@ export const assignmentRouter = router({
         task_id: z.number().int(),
         page: z.number().int(),
         filter: z.object({
-          email: z.string()
+          name: z.string()
         })
       }))
       .query(async ({ctx, input}) => {
@@ -648,12 +648,20 @@ export const assignmentRouter = router({
 
         const count = (await ctx.sql`SELECT DISTINCT annotator_number FROM assignments WHERE task_id = ${input.task_id}`).count
 
-        const queryAnnotators = ctx.sql<{annotator_number: number, email?: string}[]>`
-          SELECT DISTINCT a.annotator_number, u.email
+        const sanitizedFilter = input.filter.name.replace(/[%_]/g, '')
+        const annotatorNameComputation = ctx.sql.unsafe("COALESCE(u.email, CONCAT('annotator ', a.annotator_number))")
+
+        const queryAnnotators = ctx.sql<{annotator_number: number, email?: string, annotator_name: string}[]>`
+          SELECT DISTINCT a.annotator_number, u.email, ${annotatorNameComputation} as annotator_name
           FROM assignments AS a
           LEFT JOIN users AS u
             ON (a.annotator_id = u.id)
           WHERE a.task_id = ${input.task_id}
+          ${
+            sanitizedFilter
+              ? ctx.sql`AND ${annotatorNameComputation} ILIKE ${ '%' + sanitizedFilter + '%' }`
+              : ctx.sql``
+          }
           ORDER BY annotator_number
           LIMIT ${rowsPerPage} OFFSET ${(input.page-1) * rowsPerPage}
         `
@@ -668,6 +676,7 @@ export const assignmentRouter = router({
               LEFT JOIN users AS u
                 ON (a.annotator_id = u.id)
               WHERE annotator_number = ${dbAnnotator.annotator_number}
+              AND a.task_id = ${input.task_id}
             `
 
             const children: TreeItem['children'] = []
@@ -691,7 +700,7 @@ export const assignmentRouter = router({
               type: 'annotator',
               key: `ann-${dbAnnotator.annotator_number}`,
               data: {
-                name: dbAnnotator.email ?? `annotator ${dbAnnotator.annotator_number}`,
+                name: dbAnnotator.annotator_name, // dbAnnotator.email ?? `annotator ${dbAnnotator.annotator_number}`,
                 amount_done: dbAssignments.filter(ass => ass.status == "done").length,
                 amount_total: dbAssignments.length,
                 next_seq_pos: Math.min(...dbAssignments.filter(ass => ass.status == 'pending').map(ass => ass.seq_pos!))
@@ -756,7 +765,7 @@ export const assignmentRouter = router({
               type: 'annotator',
               key: `ass-${ass.id}`,
               data: {
-                email: ass.user?.email ?? `annotator ${ass.annotator_number}`,
+                name: ass.user?.email ?? `annotator ${ass.annotator_number}`,
                 seq_pos: ass.seq_pos,
                 difficulty_rating: ass.difficulty_rating,
                 status: ass.status
