@@ -13,12 +13,21 @@
       link: `/projects/${project.id}/tasks/${task.id}`,
     },
   ]" />
-
-  <div class="my-3 dimmer-wrapper">
+  <div class="dimmer-wrapper">
     <Dimmer v-model="loading" />
     <div class="dimmer-content">
       <div v-if="task">
         <div v-if="totalAssignments.data.value?.total">
+          <div class="pb-4" v-if="showPredictionProgressBar">
+            <div class="flex justify-center items-center">
+              <h3 class="my-3 text-lg text-center font-semibold">Generating pre-annotations:</h3>
+              <span class="mx-2">{{ mlProccessed }}/{{
+                totalAssignments.data?.value?.total }}</span>
+              <ProgressSpinner style="width: 20px; height: 20px; margin: 0" strokeWidth="8" animationDuration=".5s"
+                aria-label="Loading" />
+            </div>
+            <ProgressBar :value="Math.floor((mlProccessed / totalAssignments.data?.value?.total) * 100)"></ProgressBar>
+          </div>
           <div class="flex justify-center gap-6 my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
               <Button type="button" v-if="!isDocumentLevel(task)" label="Analyze Agreement Metrics"
@@ -349,6 +358,9 @@ import type {
   User,
   Project,
   Publication,
+  Annotation,
+  MlModel,
+  Labelset
 } from "~/types";
 import { PublicationStatus } from "~/types"
 import { isDocumentLevel } from "~/utils/levels";
@@ -366,6 +378,7 @@ const user = useSupabaseUser();
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
 const project = await $trpc.project.findById.query(+route.params.project_id);
+
 const totalAssignments = await $trpc.table.assignments.useQuery({ filter: { task_id: task.id } });
 const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
 const total_docs = totalAmountOfDocs ?? 0;
@@ -375,6 +388,50 @@ const optionsMenu = ref()
 
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
 
+//#region  ml variables
+const mlIntervalId = ref();
+const predicting = ref<number>((await $trpc.assignment.countMLStatus.query(task.id)).predicting);
+
+const showPredictionProgressBar = computed(() => {
+  return task.ml_model_id && predicting.value;
+});
+
+const mlProccessed = computed(() => {
+  return totalAssignments.data.value?.total! - predicting.value;
+});
+
+const updateMLStatus = async () => {
+  const new_predicting = (await $trpc.assignment.countMLStatus.query(task.id)).predicting;
+  if (predicting.value != new_predicting) {
+    predicting.value = new_predicting;
+    totalAssignments.refresh();
+    assignmentTable.value?.refresh();
+  }
+}
+
+const startQueryingMlBackend = (interval: number = 1000) => {
+  updateMLStatus();
+  mlIntervalId.value = setInterval(async () => {
+    updateMLStatus();
+  }, interval)
+};
+
+const stopQueryingMlBackend = () => {
+  clearInterval(mlIntervalId.value);
+  predicting.value = 0;
+  mlIntervalId.value = null;
+};
+
+watch(showPredictionProgressBar, (new_value) => {
+  if (new_value) {
+    if (!mlIntervalId.value) {
+      startQueryingMlBackend();
+    }
+  } else {
+    stopQueryingMlBackend();
+  }
+})
+//#endregion
 // start definitions related to treeview grouped by annotators
 
 const annotatorsSelectionMenu = ref();
@@ -545,14 +602,16 @@ const createAssignments = async () => {
       n: number_of_docs.value,
     });
 
-    const new_assignments: Pick<Assignment, "task_id" | "document_id">[] = [];
+    const new_assignments: Pick<Assignment, "task_id" | "document_id" | "origin" | "status">[] = [];
 
     // Create shared assignments (only with docs info)
     for (let i = 0; i < number_of_fixed_docs.value; ++i) {
       for (let j = 0; j < annotators_email.value.length; ++j) {
-        const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
+        const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
           task_id: task.id,
           document_id: docs[i],
+          status: task.ml_model_id ? "predicting" : "pending",
+          origin: "manual"
         };
         new_assignments.push(new_assignment);
       }
@@ -560,9 +619,11 @@ const createAssignments = async () => {
 
     // Create unique assignments (only with docs info)
     for (let i = number_of_fixed_docs.value; i < number_of_docs.value; ++i) {
-      const new_assignment: Pick<Assignment, "task_id" | "document_id"> = {
+      const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
         task_id: task.id,
         document_id: docs[i],
+        status: task.ml_model_id ? "predicting" : "pending",
+        origin: "manual"
       };
       new_assignments.push(new_assignment);
     }
@@ -600,12 +661,42 @@ const createAssignments = async () => {
         (permutations[i % annotators_id.length].pop() ?? Math.floor(i / annotators_id.length)) + 1;
     }
 
+    //create MlModel assignments
+    // if (task.ml_model_id) {
+    //   docs.map(doc => {
+    //     const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "annotator_number" | "status"> = {
+    //       task_id: task.id,
+    //       document_id: doc,
+    //       annotator_number: annotators_id.length + 1,
+    //       origin: "model",
+    //       status: "done"
+    //     };
+    //     new_assignments.push(new_assignment);
+    //   });
+    // }
+
     const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
-      new_assignments
+      {
+        assignments: new_assignments,
+        pre_annotations: task.ml_model_id ?
+          {
+            ml_model_id: task.ml_model_id, 
+            labelset_id: task.labelset_id,
+            reveal: true
+          } :
+          undefined
+      }
     );
 
+   
+    if(task.ml_model_id) {
+      startQueryingMlBackend();
+    } else {
+      assignmentTable.value?.refresh();
+      totalAssignments.refresh();
+    }
     refreshGroupByAnnotators();
-    totalAssignments.refresh();
+    // totalAssignments.refresh();
     loading.value = false;
     $toast.success("Assignments successfully created");
   } catch (error) {
@@ -741,6 +832,18 @@ const exportTask = async () => {
   formValues.value.modalOperations.loading = false;
   $toast.success(`Task has been exported!`);
 };
+
+const resetForm = () => {
+  Object.assign(formValues.value, JSON.parse(JSON.stringify(defaultFormValues)));
+}
+
+onMounted(async () => {
+
+  if(showPredictionProgressBar.value && !mlIntervalId.value) {
+    startQueryingMlBackend();
+  }
+
+});
 
 definePageMeta({
   middleware: [

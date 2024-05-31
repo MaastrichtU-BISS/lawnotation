@@ -105,7 +105,7 @@ const addLabel = () => {
 
 const validateNewLabel = () => {
   if (!/^\#[a-zA-Z0-9]{6}$/.test(newLabel.color)) throw new Error("Invalid label color");
-  if (!/^[a-zA-Z0-9 ]+$/.test(newLabel.name)) throw new Error("Invalid label name");
+  if (!/^[a-zA-Z0-9 \- \_]+$/.test(newLabel.name)) throw new Error("Invalid label name");
   if (
     labelset.value.labels.some(
       (x) => x.name.toLocaleLowerCase() === newLabel.name.toLocaleLowerCase()

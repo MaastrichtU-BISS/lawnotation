@@ -91,7 +91,7 @@ export const relationRouter = router({
 
       if (error)
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findRelationsByTask: ${error.message}`});
-      return data;
+      return data as AnnotationRelation[];
     }),
 
   // previously 'findRelation':
@@ -109,7 +109,7 @@ export const relationRouter = router({
             throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findFromAnnotationIds: ${error.message}`});
       }
 
-      return relations;
+      return relations as AnnotationRelation[];
     })
 
 })
