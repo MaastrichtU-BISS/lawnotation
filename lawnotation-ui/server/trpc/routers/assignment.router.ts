@@ -661,6 +661,7 @@ export const assignmentRouter = router({
               type: 'annotator',
               key: `ass-${ass.id}`,
               data: {
+                assignment_id: ass.id,
                 name: ass.user?.email ?? `annotator ${ass.annotator_number}`,
                 seq_pos: ass.seq_pos,
                 difficulty_rating: ass.difficulty_rating,
