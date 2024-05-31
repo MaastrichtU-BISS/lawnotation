@@ -129,7 +129,7 @@
                           :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
                         />
                         <NuxtLink
-                          v-if="node.data.amount_done < node.data.amount_total && node.data.email == user!.email"
+                          v-if="node.data.amount_done < node.data.amount_total && node.data.name == user!.email"
                           class="ml-5"
                           :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`"
                         >
