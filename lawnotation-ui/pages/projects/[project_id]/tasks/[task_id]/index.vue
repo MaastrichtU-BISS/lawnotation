@@ -104,12 +104,12 @@
                     <InputText v-model="groupByAnnotatorsArgs.filter.email" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by email" />
                   </template>
                   <template #body="{node}">
-                    <template v-if="node.type == 'annotator' && node.data.email == user!.email">
+                    <template v-if="node.type == 'annotator' && node.data.name == user!.email">
                       <i class="pi pi-user mr-3 ml-2"></i>
-                      <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.email }}</span>
+                      <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.name }}</span>
                     </template>
                     <template v-else-if="node.type == 'annotator'">
-                      <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.email }}
+                      <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.name }}
                     </template>
                     <template v-else-if="node.type == 'document'">
                       <i class="pi pi-file mr-3 ml-2" /><Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name }}
