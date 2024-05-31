@@ -5,6 +5,7 @@ import type { Assignment, User } from "~/types";
 import type { Context } from "../context";
 import { zValidEmail } from "~/utils/validators";
 import { MailtrapClient } from "mailtrap"
+import postgres from "postgres";
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string().nullable(),
@@ -55,7 +56,7 @@ export const assignmentRouter = router({
       const email_found = await ctx.supabase.from('users').select().eq('email', input.email).maybeSingle();
       let user_id: User['id'] | null = null;
       if (!email_found.data) {
-        // email is a new user
+        // email is a new user.
         const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, {data: {assigned_task_id: input.task_id}})
 
         if (invite.error)
@@ -510,71 +511,99 @@ export const assignmentRouter = router({
         task_id: z.number().int(),
         page: z.number().int(),
         filter: z.object({
-          email: z.string()
+          name: z.string()
         })
       }))
       .query(async ({ctx, input}) => {
         const rowsPerPage = 10;
-
-        const query = ctx.supabase
-          .from("users")
-          .select(
-            "id, email, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, document:documents!inner(id, name))",
-            { count: "exact" }
-          )
-          .eq("assignments.task_id", input.task_id)
-          .order("seq_pos", { referencedTable: "assignments", ascending: true })
-          .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage)
-      
-        if (input.filter.email.length)
-          query.ilike("email", `%${input.filter.email}%`)
         
-        const { data, error, count } = await query
-        
-        if (error)
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Error in getGroupByAnnotators: ${error.message}`,
-          });
-        
-        const grouped = data
-          .map(ann => ({
-            type: 'annotator',
-            key: `ann-${ann.id}`,
+        type TreeItem = {
+          type: 'annotator',
+          key: string,
+          data: {
+            name: string,
+            amount_done: number,
+            amount_total: number,
+            next_seq_pos: number
+          },
+          children: {
+            type: 'document',
+            key: string,
             data: {
-              email: ann.email,
-              annotator_number: ann.assignments[0].annotator_number,
-              amount_done: ann.assignments.filter(ass => ass.status == "done").length,
-              amount_total: ann.assignments.length,
-              next_seq_pos: Math.min(...ann.assignments.filter(ass => ass.status == 'pending').map(ass => ass.seq_pos!))
-            },
-            children: ann.assignments!.map(ass => ({
-              type: 'document',
-              key: `ass-${ass.id}`,
-              data: {
-                assignment_id: ass.id,
-                seq_pos: ass.seq_pos,
-                document_id: ass.document!.id,
-                document_name: ass.document!.name,
-                difficulty_rating: ass.difficulty_rating,
-                status: ass.status
-              }
-            }))
-          }))
-          // .sort((a, b) => {
-          //   if (a.data.email == ctx.user.email)
-          //     return -1
-          //   else if (b.data.email == ctx.user.email)
-          //     return 1;
+              assignment_id: number,
+              seq_pos: number,
+              document_id: number,
+              document_name: string,
+              difficulty_rating: number,
+              status: string
+            }
+          }[]
+        };
 
-          //   if (a.data.annotator_number > b.data.annotator_number) 
-          //     return 1;
-          //   else if (a.data.annotator_number < b.data.annotator_number)
-          //     return -1;
-          //   else
-          //     return 0
-          // })
-        
+        const grouped: TreeItem[] = []
+
+        const count = (await ctx.sql`SELECT DISTINCT annotator_number FROM assignments WHERE task_id = ${input.task_id}`).count
+
+        const sanitizedFilter = input.filter.name.replace(/[%_]/g, '')
+        const annotatorNameComputation = ctx.sql.unsafe("COALESCE(u.email, CONCAT('annotator ', a.annotator_number))")
+
+        const queryAnnotators = ctx.sql<{annotator_number: number, email?: string, annotator_name: string}[]>`
+          SELECT DISTINCT a.annotator_number, u.email, ${annotatorNameComputation} as annotator_name
+          FROM assignments AS a
+          LEFT JOIN users AS u
+            ON (a.annotator_id = u.id)
+          WHERE a.task_id = ${input.task_id}
+          ${
+            sanitizedFilter
+              ? ctx.sql`AND ${annotatorNameComputation} ILIKE ${ '%' + sanitizedFilter + '%' }`
+              : ctx.sql``
+          }
+          ORDER BY annotator_number
+          LIMIT ${rowsPerPage} OFFSET ${(input.page-1) * rowsPerPage}
+        `
+      
+        await queryAnnotators.cursor(async ([dbAnnotator]) => {
+
+            const dbAssignments = await ctx.sql`
+              SELECT a.*, u.email, d.name AS document_name
+              FROM assignments AS a
+              INNER JOIN documents AS d
+                ON (a.document_id = d.id)
+              LEFT JOIN users AS u
+                ON (a.annotator_id = u.id)
+              WHERE annotator_number = ${dbAnnotator.annotator_number}
+            `
+
+            const children: TreeItem['children'] = []
+
+            for (const dbAssignment of dbAssignments) {
+              children.push({
+                type: 'document',
+                key: `ass-${dbAssignment.id}`,
+                data: {
+                  assignment_id: dbAssignment.id,
+                  seq_pos: dbAssignment.seq_pos,
+                  document_id: dbAssignment.document_id,
+                  document_name: dbAssignment.document_name,
+                  difficulty_rating: dbAssignment.difficulty_rating,
+                  status: dbAssignment.status
+                },
+              })
+            }
+
+            grouped.push({
+              type: 'annotator',
+              key: `ann-${dbAnnotator.annotator_number}`,
+              data: {
+                name: dbAnnotator.annotator_name, // dbAnnotator.email ?? `annotator ${dbAnnotator.annotator_number}`,
+                amount_done: dbAssignments.filter(ass => ass.status == "done").length,
+                amount_total: dbAssignments.length,
+                next_seq_pos: Math.min(...dbAssignments.filter(ass => ass.status == 'pending').map(ass => ass.seq_pos!))
+              },
+              children
+            })
+        })
+
         return {data: grouped ?? [], total: count ?? 0 };
       }),
     
@@ -598,7 +627,7 @@ export const assignmentRouter = router({
         const query = ctx.supabase
           .from("documents")
           .select(
-            "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, user:users!inner(id, email))",
+            "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, user:users(id, email))",
             { count: "exact" }
           )
           .eq("assignments.task_id", input.task_id)
@@ -631,7 +660,7 @@ export const assignmentRouter = router({
               type: 'annotator',
               key: `ass-${ass.id}`,
               data: {
-                email: ass.user!.email,
+                name: ass.user?.email ?? `annotator ${ass.annotator_number}`,
                 seq_pos: ass.seq_pos,
                 difficulty_rating: ass.difficulty_rating,
                 status: ass.status
