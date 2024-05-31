@@ -1,2 +1,0 @@
-alter table "public"."annotations" alter column "origin" type "public"."origins" using "origin"::text::"public"."origins";
-alter table "public"."annotations" alter column "origin" set default 'manual'::"public"."origins";

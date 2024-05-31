@@ -1,2 +1,0 @@
-create type "public"."annotation_level" as enum ('word', 'document');
-alter table "public"."tasks" add column "annotation_level" "public"."annotation_level" default 'word'::"public"."annotation_level";
