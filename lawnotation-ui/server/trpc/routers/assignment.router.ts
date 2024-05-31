@@ -158,13 +158,7 @@ export const assignmentRouter = router({
             seq_pos: z.number().int().optional(),
             difficulty_rating: z.number().int().optional(),
             annotator_number: z.number().int().optional(),
-            origin: z
-              .union([
-                z.literal("manual"),
-                z.literal("imported"),
-                z.literal("model"),
-              ])
-              .optional(),
+            origin: z.nativeEnum(Origins).optional(),
           })
         ),
         pre_annotations: z

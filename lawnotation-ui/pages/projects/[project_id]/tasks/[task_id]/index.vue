@@ -370,6 +370,7 @@ import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
 import type { TabViewChangeEvent } from "primevue/tabview";
+import { Origins, AssignmentStatuses } from "~/utils/enums";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -610,8 +611,8 @@ const createAssignments = async () => {
         const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
           task_id: task.id,
           document_id: docs[i],
-          status: task.ml_model_id ? "predicting" : "pending",
-          origin: "manual"
+          status: task.ml_model_id ? AssignmentStatuses.PREDICTING : AssignmentStatuses.PENDING,
+          origin: Origins.MANUAL
         };
         new_assignments.push(new_assignment);
       }
@@ -622,8 +623,8 @@ const createAssignments = async () => {
       const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
         task_id: task.id,
         document_id: docs[i],
-        status: task.ml_model_id ? "predicting" : "pending",
-        origin: "manual"
+        status: task.ml_model_id ? AssignmentStatuses.PREDICTING : AssignmentStatuses.PENDING,
+        origin: Origins.MANUAL
       };
       new_assignments.push(new_assignment);
     }
@@ -687,7 +688,6 @@ const createAssignments = async () => {
           undefined
       }
     );
-
    
     if(task.ml_model_id) {
       startQueryingMlBackend();
