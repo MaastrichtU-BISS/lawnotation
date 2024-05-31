@@ -572,6 +572,7 @@ export const assignmentRouter = router({
               LEFT JOIN users AS u
                 ON (a.annotator_id = u.id)
               WHERE annotator_number = ${dbAnnotator.annotator_number}
+              AND a.task_id = ${input.task_id}
             `
 
             const children: TreeItem['children'] = []
