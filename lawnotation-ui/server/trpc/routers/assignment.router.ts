@@ -56,7 +56,7 @@ export const assignmentRouter = router({
       const email_found = await ctx.supabase.from('users').select().eq('email', input.email).maybeSingle();
       let user_id: User['id'] | null = null;
       if (!email_found.data) {
-        // email is a new user
+        // email is a new user.
         const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, {data: {assigned_task_id: input.task_id}})
 
         if (invite.error)
