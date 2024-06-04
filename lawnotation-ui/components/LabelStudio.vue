@@ -181,7 +181,7 @@ const clickNext = async () => {
   await $trpc.assignment.update.mutate({
     id: props.assignment.id,
     updates: {
-      status: "done",
+      status: AssignmentStatuses.DONE,
       difficulty_rating: rating,
     },
   });
