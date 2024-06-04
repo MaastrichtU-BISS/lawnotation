@@ -11,7 +11,7 @@
       <div v-if="!isEditor && assignmentsTotal" class="flex items-center w-1/3">
         <span class="font-semibold mr-2">{{ assignment.seq_pos }}/{{ assignmentsTotal }}</span>
         <span class="w-full">
-          <ProgressBar :value="assignment.seq_pos / assignmentsTotal * 100"> {{ Math.round(assignment.seq_pos / assignmentsTotal * 100)}}% </ProgressBar>
+          <ProgressBar :value="Math.round((assignment.seq_pos / assignmentsTotal) * 100)"> {{ Math.round(assignment.seq_pos / assignmentsTotal * 100)}}% </ProgressBar>
         </span>
       </div>
       <div>
