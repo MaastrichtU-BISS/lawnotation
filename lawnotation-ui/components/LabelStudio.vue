@@ -2,7 +2,7 @@
   <div v-if="assignment" id="label-studio-container" class="h-full p-4 pt-0">
     <div class="my-2 flex items-center justify-between">
       <div class="flex items-center">
-        <NuxtLink :to="guidelines" target="_blank" class="mr-3">
+        <NuxtLink v-if="guidelines" :to="guidelines" target="_blank" class="mr-3">
           <Button label="See Annotation Guidelines" size="small" outlined />
         </NuxtLink>
         <Badge :value="assignment.status" :severity="assignment.status == AssignmentStatuses.DONE ? 'success' : 'danger'"
