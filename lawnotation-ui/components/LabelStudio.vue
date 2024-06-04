@@ -14,9 +14,9 @@
           <ProgressBar :value="Math.round((assignment.seq_pos / assignmentsTotal) * 100)"> {{ Math.round(assignment.seq_pos / assignmentsTotal * 100)}}% </ProgressBar>
         </span>
       </div>
-      <div v-if="!isEditor">
-        <Button label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
-        <Button label="Next" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
+      <div v-if="!isEditor && assignmentsTotal">
+        <Button :disabled="assignment.seq_pos == 1" label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
+        <Button :label="assignment.seq_pos < assignmentsTotal ? 'Next' : 'Finish'" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
       </div>
     </div>
     <div id="label-studio" class="h-full"></div>
