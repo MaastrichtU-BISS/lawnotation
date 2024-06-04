@@ -155,7 +155,7 @@
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                          <NuxtLink v-if="node.data.status == 'done'" :to="`/assignments/${node.data.assignment_id}`">
+                          <NuxtLink v-if="node.data.status == AssignmentStatuses.DONE" :to="node.data.name == user?.email ? `/annotate/${task.id}?seq=${node.data.seq_pos}` : `/assignments/${node.data.assignment_id}`">
                             <Button label="View" size="small" icon="pi pi-eye" />
                           </NuxtLink>
                         </div>
@@ -271,13 +271,13 @@
                     <template v-else-if="node.type == 'annotator'">
                       <div class="flex justify-between items-center">
                         <div class="space-x-3">
-                          <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
+                          <Badge :value="node.data.status" :severity="node.data.status == AssignmentStatuses.DONE ? 'success' : 'danger'" class="capitalize px-2" />
                           <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
                             <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                          <NuxtLink v-if="node.data.status == 'done'" :to="`/assignments/${node.data.assignment_id}`">
+                          <NuxtLink v-if="node.data.status == AssignmentStatuses.DONE" :to="`/assignments/${node.data.assignment_id}`">
                             <Button label="View" size="small" icon="pi pi-eye" />
                           </NuxtLink>
                         </div>
@@ -406,7 +406,7 @@ const updateMLStatus = async () => {
   if (predicting.value != new_predicting) {
     predicting.value = new_predicting;
     totalAssignments.refresh();
-    assignmentTable.value?.refresh();
+    refreshGroupByAnnotators();
   }
 }
 
@@ -571,8 +571,6 @@ const annotators_email = ref<string[]>([]);
 
 const loading = ref(false);
 
-const assignmentTable = ref<InstanceType<typeof Table>>();
-
 watch(annotators_email, (new_val) => {
   if (new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
     new_val.pop();
@@ -692,7 +690,7 @@ const createAssignments = async () => {
     if(task.ml_model_id) {
       startQueryingMlBackend();
     } else {
-      assignmentTable.value?.refresh();
+      refreshGroupByAnnotators();
       totalAssignments.refresh();
     }
     refreshGroupByAnnotators();
