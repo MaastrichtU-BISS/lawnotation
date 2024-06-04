@@ -128,21 +128,23 @@
                 <Column columnKey="progress" header="Progress" style="width: 99%;">
                   <template #body="{node}">
                     <template v-if="node.type == 'annotator'">
-                      <div class="flex items-center">
-                        <span class="whitespace-nowrap mr-4">
+                      <div class="flex justify-between items-center">
+                        <div class="flex">
+                          <span class="whitespace-nowrap mr-4">
                           {{ node.data.amount_done }} / {{ node.data.amount_total }}
                         </span>
                         <ProgressBar
-                          class="w-full"
+                          class="w-80"
                           :showValue="false"
                           :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
                         />
+                        </div>
                         <NuxtLink
                           v-if="node.data.amount_done < node.data.amount_total && node.data.name == user!.email"
                           class="ml-5"
                           :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`"
                         >
-                          <Button label="Annotate" size="small" icon="pi pi-pencil" />
+                          <Button label="Annotate Next" size="small" icon="pi pi-pencil" />
                         </NuxtLink>
                       </div>
                     </template>
@@ -155,9 +157,14 @@
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                          <NuxtLink v-if="node.data.status == 'done'" :to="`/assignments/${node.data.assignment_id}`">
+                        <template v-if="node.data.status == AssignmentStatuses.DONE">
+                          <NuxtLink v-if="node.data.annotator_name == user?.email" :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
+                            <Button label="Annotate" size="small" icon="pi pi-pencil" />
+                          </NuxtLink>
+                          <NuxtLink v-else :to="`/assignments/${node.data.assignment_id}`">
                             <Button label="View" size="small" icon="pi pi-eye" />
                           </NuxtLink>
+                        </template>
                         </div>
                       </div>
                     </template>
@@ -271,15 +278,20 @@
                     <template v-else-if="node.type == 'annotator'">
                       <div class="flex justify-between items-center">
                         <div class="space-x-3">
-                          <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
+                          <Badge :value="node.data.status" :severity="node.data.status == AssignmentStatuses.DONE ? 'success' : 'danger'" class="capitalize px-2" />
                           <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
                             <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                          <NuxtLink v-if="node.data.status == 'done'" :to="`/assignments/${node.data.assignment_id}`">
-                            <Button label="View" size="small" icon="pi pi-eye" />
-                          </NuxtLink>
+                          <template v-if="node.data.status == AssignmentStatuses.DONE">
+                            <NuxtLink v-if="node.data.name == user?.email" :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
+                              <Button label="Annotate" size="small" icon="pi pi-pencil" />
+                            </NuxtLink>
+                            <NuxtLink v-else :to="`/assignments/${node.data.assignment_id}`">
+                              <Button label="View" size="small" icon="pi pi-eye" />
+                            </NuxtLink>
+                          </template>
                         </div>
                       </div>
                     </template>
@@ -406,7 +418,7 @@ const updateMLStatus = async () => {
   if (predicting.value != new_predicting) {
     predicting.value = new_predicting;
     totalAssignments.refresh();
-    assignmentTable.value?.refresh();
+    refreshGroupByAnnotators();
   }
 }
 
@@ -571,8 +583,6 @@ const annotators_email = ref<string[]>([]);
 
 const loading = ref(false);
 
-const assignmentTable = ref<InstanceType<typeof Table>>();
-
 watch(annotators_email, (new_val) => {
   if (new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
     new_val.pop();
@@ -692,7 +702,7 @@ const createAssignments = async () => {
     if(task.ml_model_id) {
       startQueryingMlBackend();
     } else {
-      assignmentTable.value?.refresh();
+      refreshGroupByAnnotators();
       totalAssignments.refresh();
     }
     refreshGroupByAnnotators();

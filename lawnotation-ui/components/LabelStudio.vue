@@ -2,21 +2,21 @@
   <div v-if="assignment" id="label-studio-container" class="h-full p-4 pt-0">
     <div class="my-2 flex items-center justify-between">
       <div class="flex items-center">
-        <NuxtLink :to="guidelines" target="_blank" class="mr-3">
+        <NuxtLink v-if="guidelines" :to="guidelines" target="_blank" class="mr-3">
           <Button label="See Annotation Guidelines" size="small" outlined />
         </NuxtLink>
-        <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'"
+        <Badge :value="assignment.status" :severity="assignment.status == AssignmentStatuses.DONE ? 'success' : 'danger'"
           class="capitalize px-2" />
       </div>
       <div v-if="!isEditor && assignmentsTotal" class="flex items-center w-1/3">
         <span class="font-semibold mr-2">{{ assignment.seq_pos }}/{{ assignmentsTotal }}</span>
         <span class="w-full">
-          <ProgressBar :value="assignment.seq_pos / assignmentsTotal * 100"> {{ Math.round(assignment.seq_pos / assignmentsTotal * 100)}}% </ProgressBar>
+          <ProgressBar :value="Math.round((assignment.seq_pos / assignmentsTotal) * 100)"> {{ Math.round(assignment.seq_pos / assignmentsTotal * 100)}}% </ProgressBar>
         </span>
       </div>
-      <div>
-        <Button label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
-        <Button label="Next" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
+      <div v-if="!isEditor && assignmentsTotal">
+        <Button :disabled="assignment.seq_pos == 1" label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
+        <Button :label="assignment.seq_pos < assignmentsTotal ? 'Next' : 'Finish'" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
       </div>
     </div>
     <div id="label-studio" class="h-full"></div>
@@ -30,7 +30,7 @@ import type {
   LsLabels,
   LSSerializedAnnotations,
 } from "~/types";
-import { AnnotationLevels } from "~/utils/enums";
+import { AnnotationLevels, AssignmentStatuses } from "~/utils/enums";
 
 const { $trpc } = useNuxtApp();
 
@@ -50,7 +50,6 @@ const props = defineProps<{
   guidelines: string | undefined;
   annotation_level: AnnotationLevels;
   isHtml: boolean;
-  // mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
 
 const doc_confidence_ann = ref({
@@ -61,6 +60,10 @@ const doc_confidence_ann = ref({
   value: {
     rating: props.assignment?.difficulty_rating ?? 0
   }
+});
+
+const showSideColumn = computed(() => {
+  return props.annotation_level != AnnotationLevels.DOCUMENT && !props.isEditor;
 });
 
 const initLS = async () => {
@@ -74,33 +77,35 @@ const initLS = async () => {
   label_studio.value = new LabelStudio("label-studio", {
     config: `
                 <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
-                  <View style="min-width: 200px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto; display: flex; flex-direction: column; flex: 1">
-                      ${(props.annotation_level != AnnotationLevels.DOCUMENT)
-        ?
-        `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
-                        <${props.isHtml ? "HyperTextLabels" : "Labels"} style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
-                          ${props.labels?.map((l, index) => (`<Label value="${l.name}" background="${l.color}" selected="${!props.isEditor && index == 0}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
-                        </${props.isHtml ? "HyperTextLabels" : "Labels"}>`
-        :
-        `<Choices name="label" toName="text" choice="multiple">
-                          ${props.labels?.map((l) => (`<Choice value="${l.name}"/>`)).join("\n")}
-                        </Choices>`
-      }
-                      <View style="border-top: 1px solid rgba(0,0,0,.1); padding: 10px 5px; margin-top: auto">
-                        ${props.annotation_level != AnnotationLevels.DOCUMENT
-        ?
-        `<View visibleWhen="region-selected" style="margin-bottom: 10px">
-                          <Header value="Annotation Confidence" style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" />
-                          <Rating name="ann_confidence" toName="text" perRegion="true" />
-                        </View>`
-        :
-        ``}
+                    <View style="min-width: 200px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto; display: flex; flex-direction: column; flex: 1">
+                        ${(props.annotation_level != AnnotationLevels.DOCUMENT)
+                          ?
+                          `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
+                            <${props.isHtml ? "HyperTextLabels" : "Labels"} style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
+                              ${props.labels?.map((l, index) => (`<Label value="${l.name}" background="${l.color}" selected="${!props.isEditor && index == 0}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
+                            </${props.isHtml ? "HyperTextLabels" : "Labels"}>`
+                          :
+                          `<Choices name="label" toName="text" choice="multiple">
+                            ${props.labels?.map((l) => (`<Choice value="${l.name}"/>`)).join("\n")}
+                          </Choices>`
+                        }
+                        <View style="border-top: 1px solid rgba(0,0,0,.1); padding: 10px 5px; margin-top: auto">
+                          ${props.annotation_level != AnnotationLevels.DOCUMENT
+                            ?
+                            `<View visibleWhen="region-selected" style="margin-bottom: 10px">
+                                <Header value="Annotation Confidence" style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" />
+                                <Rating name="ann_confidence" toName="text" perRegion="true" />
+                            </View>`
+                            :
+                            ``
+                          }
                         <View>
                           <Header style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" value="Document Confidence"/>
                           <Rating toName="doc_confidence" name="doc_confidence" maxRating="5" icon="star" size="medium" />
                         </View>
                       </View>
-                  </View>
+                    </View>
+                  }
                   <View style="width: 100%; overflow-y: auto;">
                     <View style="height: auto; padding: 0 1.7em 1em;">
                       <${props.isHtml ? "HyperText" : "Text"} name="text" value="$text" inline="true" ${props.annotation_level != AnnotationLevels.DOCUMENT ? `granularity="${props.annotation_level}"` : ''}/>
@@ -124,7 +129,7 @@ const initLS = async () => {
       showLabels: true
     },
     interfaces: [
-      props.annotation_level != AnnotationLevels.DOCUMENT ? "side-column" : "",
+      showSideColumn.value ? "side-column" : "",
     ],
     user: {
       pk: 1,
@@ -181,7 +186,7 @@ const clickNext = async () => {
   await $trpc.assignment.update.mutate({
     id: props.assignment.id,
     updates: {
-      status: "done",
+      status: AssignmentStatuses.DONE,
       difficulty_rating: rating,
     },
   });
@@ -262,7 +267,7 @@ function waitForElement(selector: string): Promise<Element> {
 
 onMounted(() => {
   initLS();
-  if (props.annotation_level == AnnotationLevels.DOCUMENT) {
+  if (!showSideColumn.value) {
     waitForElement('.ls-common').then(
       (el) => {
         el.firstChild!.parentElement!.style.gridTemplateColumns = 'auto';

@@ -501,7 +501,7 @@ export const assignmentRouter = router({
         .from("assignments")
         .select()
         .eq("annotator_id", user_id)
-        .eq("status", "pending")
+        .in("status", [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED])
         .order("task_id", { ascending: false })
         .order("seq_pos", { ascending: true })
         .limit(1)
@@ -598,7 +598,7 @@ export const assignmentRouter = router({
         .from("assignments")
         .select("*", { count: "exact", head: true })
         .eq("task_id", task_id)
-        .eq("status", "predicting");
+        .eq("status", AssignmentStatuses.PREDICTING);
 
       if (error)
         throw new TRPCError({
@@ -638,6 +638,7 @@ export const assignmentRouter = router({
               seq_pos: number,
               document_id: number,
               document_name: string,
+              annotator_name: string,
               difficulty_rating: number,
               status: string
             }
@@ -690,6 +691,7 @@ export const assignmentRouter = router({
                   seq_pos: dbAssignment.seq_pos,
                   document_id: dbAssignment.document_id,
                   document_name: dbAssignment.document_name,
+                  annotator_name: dbAnnotator.annotator_name,
                   difficulty_rating: dbAssignment.difficulty_rating,
                   status: dbAssignment.status
                 },
@@ -701,9 +703,9 @@ export const assignmentRouter = router({
               key: `ann-${dbAnnotator.annotator_number}`,
               data: {
                 name: dbAnnotator.annotator_name, // dbAnnotator.email ?? `annotator ${dbAnnotator.annotator_number}`,
-                amount_done: dbAssignments.filter(ass => ass.status == "done").length,
+                amount_done: dbAssignments.filter(ass => ass.status == AssignmentStatuses.DONE).length,
                 amount_total: dbAssignments.length,
-                next_seq_pos: Math.min(...dbAssignments.filter(ass => ass.status == 'pending').map(ass => ass.seq_pos!))
+                next_seq_pos: Math.min(...dbAssignments.filter(ass => [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED].includes(ass.status)).map(ass => ass.seq_pos!))
               },
               children
             })
@@ -757,9 +759,9 @@ export const assignmentRouter = router({
             data: {
               document_id: doc!.id,
               document_name: doc!.name,
-              amount_done: doc.assignments.filter(ass => ass.status == "done").length,
+              amount_done: doc.assignments.filter(ass => ass.status == AssignmentStatuses.DONE).length,
               amount_total: doc.assignments.length,
-              next_seq_pos: Math.min(...doc.assignments.filter(doc => doc.status == 'pending').map(ass => ass.seq_pos!))
+              next_seq_pos: Math.min(...doc.assignments.filter(doc => [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED].includes(doc.status)).map(ass => ass.seq_pos!))
             },
             children: doc.assignments!.map(ass => ({
               type: 'annotator',
