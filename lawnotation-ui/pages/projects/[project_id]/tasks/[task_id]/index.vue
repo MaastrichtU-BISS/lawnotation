@@ -418,11 +418,10 @@ const updateMLStatus = async () => {
   if (predicting.value != new_predicting) {
     predicting.value = new_predicting;
     totalAssignments.refresh();
-    refreshGroupByAnnotators();
   }
 }
 
-const startQueryingMlBackend = (interval: number = 1000) => {
+const startQueryingMlBackend = (interval: number = 3000) => {
   updateMLStatus();
   mlIntervalId.value = setInterval(async () => {
     updateMLStatus();
@@ -433,6 +432,7 @@ const stopQueryingMlBackend = () => {
   clearInterval(mlIntervalId.value);
   predicting.value = 0;
   mlIntervalId.value = null;
+  refreshGroupByAnnotators();
 };
 
 watch(showPredictionProgressBar, (new_value) => {
@@ -701,12 +701,10 @@ const createAssignments = async () => {
    
     if(task.ml_model_id) {
       startQueryingMlBackend();
-    } else {
-      refreshGroupByAnnotators();
-      totalAssignments.refresh();
     }
+
     refreshGroupByAnnotators();
-    // totalAssignments.refresh();
+    totalAssignments.refresh();
     loading.value = false;
     $toast.success("Assignments successfully created");
   } catch (error) {
