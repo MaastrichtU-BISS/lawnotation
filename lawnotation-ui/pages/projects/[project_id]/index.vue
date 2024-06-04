@@ -72,7 +72,7 @@
                     style: 'padding-bottom: 0px'
                   }
                 }" :ptOptions="{ mergeProps: true }">
-                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[540px]">
+                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[56px]">
                   <TabPanel header="New" :pt="{ headerAction: { 'data-test': 'new-tab' } }">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
@@ -94,27 +94,33 @@
                       </span>
                     </div>
                     <div class="flex items-center pb-4">
-                      <Dropdown v-model="new_task.labelset_id" :options="labelsets.data.value" filter optionLabel="name"
+                      <Dropdown v-model="new_task.labelset_id" :options="labelsets" filter optionLabel="name"
                         option-value="id" placeholder="Select Labelset" class="w-full md:w-1/2"
-                        data-test="select-labelset" />
+                        data-test="select-labelset" @update:model-value="labelSelected($event)"/>
                       <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
                         data-test='create-new-labelset' />
+                    </div>
+                    <div class="flex items-center pb-4">
+                      <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
+                      optionLabel="name" option-value="id" placeholder="Select Model (Optional)" class="w-full" @update:model-value="modelSelected($event)" :show-clear="true"/>
                     </div>
                     <div class="mb-4 flex justify-between items-center">
                       <div>
                         <p class="font-bold mb-4">Annotation level</p>
-                        <SelectButton :options="['Span', 'Document']" v-model="selectedAnnotationLevel"
+                        <SelectButton :options="['span', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel" @update:model-value="annotationLevelSelected($event)"
                           class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
                             label: {
                               class: 'font-normal'
                             }
-                          }" />
+                          }"/>
                       </div>
-                      <div v-if="selectedAnnotationLevel == 'Span'">
+                      <div v-if="selectedAnnotationLevel == 'span'">
                         <p class="font-bold mb-4">Granularity</p>
-                        <SelectButton v-model="new_task.annotation_level"
-                          :options="Object.values(AnnotationLevels).filter(level => level != 'document')"
-                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
+                        <SelectButton 
+                          v-model="new_task.annotation_level"
+                          :options="Object.values(AnnotationLevels).filter(level => level != AnnotationLevels.DOCUMENT)"
+                          @update:model-value="annotationLevelSelected($event)"
+                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level-2" :pt="{
                             label: {
                               class: 'font-normal'
                             }
@@ -260,6 +266,7 @@ import type {
   Annotation,
   User,
   AnnotationRelation,
+  MlModel
 } from "~/types";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
@@ -272,6 +279,8 @@ import { AnnotationLevels, GuidanceSteps } from "~/utils/enums";
 const { $toast, $trpc } = useNuxtApp();
 
 const { project } = usePage<{ project: Project }>().value;
+
+const models = ref<MlModel[]>(await $trpc.mlModel.findAll.query());
 
 const user = useSupabaseUser();
 
@@ -289,9 +298,9 @@ const activeTabTaskModal = ref<number>(0);
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
-const selectedAnnotationLevel = ref<'Span' | 'Document'>();
+const labelsets = ref(await $trpc.labelset.find.query({}));
+const selectedAnnotationLevel = ref<'span' | AnnotationLevels.DOCUMENT>();
 
-let labelsets = await $trpc.labelset.find.useQuery({});
 const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
   id: undefined,
   editor_id: user.value?.id,
@@ -325,6 +334,7 @@ const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "
   labelset_id: undefined,
   project_id: undefined,
   annotation_level: undefined,
+  ml_model_id: undefined
 });
 
 const assignmentsCount = ref<number>((await $trpc.assignment.getCountByProject.query(project.id))!);
@@ -344,9 +354,64 @@ const currentGuidanceStep = computed(() => {
   return GuidanceSteps.NONE;
 });
 
+const modelSelected = async (id: number) => {
+
+  // remove added labelsets
+  const labelToRemoveIndex = labelsets.value.findIndex(l => !l.editor_id);
+  if(labelToRemoveIndex > 0 && new_task.labelset_id == labelsets.value[labelToRemoveIndex].id) {
+    new_task.labelset_id = undefined;
+    labelsets.value.splice(labelToRemoveIndex, 1);
+  }
+
+  const model = models.value.find(m => m.id == id);
+
+  if(new_task.annotation_level != model?.annotation_level) {
+    if(model?.annotation_level == AnnotationLevels.DOCUMENT) {
+      selectedAnnotationLevel.value = AnnotationLevels.DOCUMENT;
+    } else {
+      selectedAnnotationLevel.value = "span";
+    }
+    new_task.annotation_level = model?.annotation_level;
+  }
+
+  if(model?.labelset_id) {
+    const modelLabelset = await $trpc.labelset.findById.query(model?.labelset_id);
+    labelsets.value.push(modelLabelset);
+    new_task.labelset_id = modelLabelset.id;
+  }
+};
+
+const labelSelected = async (id: number) => {
+  if(new_task.ml_model_id) {
+    const model = await $trpc.mlModel.findById.query(new_task?.ml_model_id);
+    if(model.labelset_id) {
+      new_task.ml_model_id = undefined;
+      labelsets.value = labelsets.value.filter(l => l.editor_id);
+    }
+  }
+};
+
+const annotationLevelSelected = async (value: "span" | AnnotationLevels) => {
+  if(value == "span") {
+    new_task.annotation_level = AnnotationLevels.SYMBOL;
+  } else {
+    new_task.annotation_level = value;
+  }
+  if(new_task.ml_model_id) {
+    const model = await $trpc.mlModel.findById.query(new_task?.ml_model_id);
+    if(model.annotation_level != value) {
+      new_task.ml_model_id = undefined;
+      labelsets.value = labelsets.value.filter(l => l.editor_id);
+    } 
+    if(model.labelset_id) {
+      new_task.labelset_id = undefined;
+    }
+  }
+};
+
 const refreshLabelsets = async () => {
   activeTabTaskModal.value = 0;
-  labelsets.data.value?.push(labelset.value as any);
+  labelsets.value?.push(labelset.value as any);
   new_task.labelset_id = labelset.value.id!;
 }
 
@@ -435,14 +500,6 @@ watch(showCreateTaskModal, (new_val) => {
   }
 });
 
-watch(selectedAnnotationLevel, (new_val) => {
-  if (new_val == 'Span') {
-    new_task.annotation_level = AnnotationLevels.SYMBOL;
-  } else {
-    new_task.annotation_level = AnnotationLevels.DOCUMENT;
-  }
-});
-
 const resetModal = () => {
   uploadHasStarted.value = false;
   new_annotators.value.splice(0);
@@ -452,6 +509,7 @@ const resetModal = () => {
   new_task.ann_guidelines = "";
   new_task.labelset_id = undefined;
   new_task.annotation_level = undefined;
+  new_task.ml_model_id = undefined;
 };
 
 const loadExportTaskFile = async (event: { files: FileList }) => {
@@ -487,7 +545,7 @@ const importTask = async () => {
   try {
     // creating labelset
     import_progress.value.message = "Creating Labelset";
-    let new_labelset_id = labelsets.data.value![0]?.id ?? 0;
+    let new_labelset_id = labelsets.value![0]?.id ?? 0;
     if (import_json.value.labelset) {
       new_labelset_id = (
         await $trpc.labelset.create.mutate({
@@ -505,7 +563,8 @@ const importTask = async () => {
       desc: import_json.value.desc ?? "Blank",
       ann_guidelines: import_json.value.ann_guidelines ?? "Blank",
       labelset_id: new_labelset_id,
-      annotation_level: import_json.value.annotation_level ?? 'word'
+      annotation_level: import_json.value.annotation_level ?? 'word',
+      ml_model_id: import_json.value.ml_model_id ?? undefined
     };
 
     const task = await $trpc.task.create.mutate(_new_task);
@@ -561,6 +620,7 @@ const importTask = async () => {
               seq_pos: ass.order,
               status: "pending",
               annotator_number: ass.annotator,
+              origin: "imported"
             };
 
             if (ann_id) {
@@ -571,7 +631,7 @@ const importTask = async () => {
           });
         });
 
-        const assignments = await $trpc.assignment.createMany.mutate(new_assignments);
+        const assignments = await $trpc.assignment.createMany.mutate({assignments: new_assignments});
 
         if (import_json.value.counts?.annotations) {
           // Creating annotations
@@ -595,8 +655,8 @@ const importTask = async () => {
               ass_index++;
             });
           });
-
-          const annotations = await $trpc.annotation.createMany.mutate(new_annotations);
+          
+          const annotations = await $trpc.annotation.createMany.mutate(new_annotations)
 
           // create relations
           import_progress.value.message = "Creating Relations";
@@ -653,7 +713,7 @@ const removeAllTasks = (finish: (promises: (Promise<Boolean>)) => void) => {
   finish($trpc.task.deleteAllFromProject.mutate(project.id));
 };
 
-onMounted(() => {
+onMounted(async () => {
   new_task.project_id = project.id;
 
   if (!documentTable?.value?.total) activeTab.value = 1;

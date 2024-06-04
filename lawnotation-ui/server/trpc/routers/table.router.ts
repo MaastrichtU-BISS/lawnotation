@@ -10,6 +10,7 @@ export type SupabaseDataSource = {
       search_columns?: Record<string, string[]>
       // filter can be defined on server (like user_id) and on client (like project_id)
       filter?: object | (( { ctx }: { ctx: Context } ) => object);
+      or?: string;
     }
 
 
@@ -38,6 +39,7 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
       }).default({query: ""}),
 
       filter: z.record(z.string(), z.any()).optional(),
+      or: z.string().optional(),
 
       page: z.number().min(1).default(1),
       items_per_page: z.number().default(10)
@@ -68,8 +70,13 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
         let query = ctx.supabase
           .from(source.from)
           .select(source.select ?? "*", { count: "exact" })
-          .match(filter)
-          .range(offset, offset + limit - 1);
+          .match(filter);
+
+        if (source.or){
+          query = query.or(source.or);
+        }
+
+        query = query.range(offset, offset + limit - 1);
 
         if (input.search.query) {
           // Approach 1: using 'or' method (fails due to cast and in general)
@@ -168,8 +175,8 @@ export const tableRouter = router({
   'assignments': createTableProcedure({
     type: 'supabase_table',
     from: 'assignments',
-    select: 'id, task_id, status, difficulty_rating, seq_pos, annotator_number, annotator:users(id, email), document:documents!inner(id, name, source)'
-    // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
+    select: 'id, task_id, status, difficulty_rating, seq_pos, annotator_number, origin, annotator:users(id, email), document:documents!inner(id, name, source)',
+    // or: "origin.neq.model",
   }),
 
   'assignedTasks': createTableProcedure({

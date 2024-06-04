@@ -8,3 +8,4 @@ export * from './relation';
 export * from './task';
 export * from './user';
 export * from './publications';
+export * from './ml_model'

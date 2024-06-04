@@ -14,3 +14,17 @@ export enum GuidanceSteps {
   ASSIGN_ANNOTATORS = "assign_annotators",
   CHECK_ASSIGNMENTS = "check_assignments"
 }
+
+export enum AssignmentStatuses {
+  PENDING = "pending",
+  DONE = "done",
+  PREDICTING = "predicting",
+  PREANNOTATED = "pre-annotated",
+  FAILED = "failed"
+}
+
+export enum Origins {
+  MANUAL = "manual",
+  IMPORTED = "imported",
+  MODEL = "model"
+}

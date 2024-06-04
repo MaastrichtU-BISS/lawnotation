@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     mailtrapToken: process.env.MAILTRAP_TOKEN,
     public: {
+      mlBackendURL: process.env.MLBACKEND_URL,
       baseURL:
         process.env.NODE_ENV === "production"
           ? "https://app.lawnotation.org"

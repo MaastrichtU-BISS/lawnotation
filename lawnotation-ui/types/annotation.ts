@@ -1,10 +1,12 @@
+import { Origins } from "~/utils/enum";
+
 export type Annotation = {
   id: number;
   assignment_id: number;
   start_index: number;
   end_index: number;
   text: string;
-  origin: string;
+  origin: Origins,
   ls_id: string;
   label: string;
   html_metadata?: {
@@ -36,7 +38,7 @@ export type LSSerializedAnnotation = {
   id: string;
   from_name: string;
   to_name: string;
-  origin: string;
+  origin: "manual" | "imported" | "model";
   type: "labels" | "choices" | "hypertextlabels" | "rating";
   value: {
     start?: number | string;

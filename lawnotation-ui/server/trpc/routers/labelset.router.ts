@@ -28,7 +28,7 @@ const labelsetAuthorizer = async (
       head: true,
     })
     .eq("id", labelset_id)
-    .eq("editor_id", user_id);
+    .or(`editor_id.eq.${user_id},editor_id.is.null`);
 
   if (editor.count) return true;
 
