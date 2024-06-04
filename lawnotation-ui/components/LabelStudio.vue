@@ -5,7 +5,7 @@
         <NuxtLink :to="guidelines" target="_blank" class="mr-3">
           <Button label="See Annotation Guidelines" size="small" outlined />
         </NuxtLink>
-        <Badge :value="assignment.status" :severity="assignment.status == 'done' ? 'success' : 'danger'"
+        <Badge :value="assignment.status" :severity="assignment.status == AssignmentStatuses.DONE ? 'success' : 'danger'"
           class="capitalize px-2" />
       </div>
       <div v-if="!isEditor && assignmentsTotal" class="flex items-center w-1/3">
@@ -14,7 +14,7 @@
           <ProgressBar :value="Math.round((assignment.seq_pos / assignmentsTotal) * 100)"> {{ Math.round(assignment.seq_pos / assignmentsTotal * 100)}}% </ProgressBar>
         </span>
       </div>
-      <div>
+      <div v-if="!isEditor">
         <Button label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
         <Button label="Next" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
       </div>
@@ -30,7 +30,7 @@ import type {
   LsLabels,
   LSSerializedAnnotations,
 } from "~/types";
-import { AnnotationLevels } from "~/utils/enums";
+import { AnnotationLevels, AssignmentStatuses } from "~/utils/enums";
 
 const { $trpc } = useNuxtApp();
 
