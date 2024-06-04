@@ -50,7 +50,6 @@ const props = defineProps<{
   guidelines: string | undefined;
   annotation_level: AnnotationLevels;
   isHtml: boolean;
-  // mode: "annotator.annotate" | "annotator.lookback" | "editor.check";
 }>();
 
 const doc_confidence_ann = ref({
@@ -61,6 +60,10 @@ const doc_confidence_ann = ref({
   value: {
     rating: props.assignment?.difficulty_rating ?? 0
   }
+});
+
+const showSideColumn = computed(() => {
+  return props.annotation_level != AnnotationLevels.DOCUMENT && !props.isEditor;
 });
 
 const initLS = async () => {
@@ -74,33 +77,35 @@ const initLS = async () => {
   label_studio.value = new LabelStudio("label-studio", {
     config: `
                 <View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
-                  <View style="min-width: 200px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto; display: flex; flex-direction: column; flex: 1">
-                      ${(props.annotation_level != AnnotationLevels.DOCUMENT)
-        ?
-        `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
-                        <${props.isHtml ? "HyperTextLabels" : "Labels"} style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
-                          ${props.labels?.map((l, index) => (`<Label value="${l.name}" background="${l.color}" selected="${!props.isEditor && index == 0}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
-                        </${props.isHtml ? "HyperTextLabels" : "Labels"}>`
-        :
-        `<Choices name="label" toName="text" choice="multiple">
-                          ${props.labels?.map((l) => (`<Choice value="${l.name}"/>`)).join("\n")}
-                        </Choices>`
-      }
-                      <View style="border-top: 1px solid rgba(0,0,0,.1); padding: 10px 5px; margin-top: auto">
-                        ${props.annotation_level != AnnotationLevels.DOCUMENT
-        ?
-        `<View visibleWhen="region-selected" style="margin-bottom: 10px">
-                          <Header value="Annotation Confidence" style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" />
-                          <Rating name="ann_confidence" toName="text" perRegion="true" />
-                        </View>`
-        :
-        ``}
+                    <View style="min-width: 200px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto; display: flex; flex-direction: column; flex: 1">
+                        ${(props.annotation_level != AnnotationLevels.DOCUMENT)
+                          ?
+                          `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
+                            <${props.isHtml ? "HyperTextLabels" : "Labels"} style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
+                              ${props.labels?.map((l, index) => (`<Label value="${l.name}" background="${l.color}" selected="${!props.isEditor && index == 0}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
+                            </${props.isHtml ? "HyperTextLabels" : "Labels"}>`
+                          :
+                          `<Choices name="label" toName="text" choice="multiple">
+                            ${props.labels?.map((l) => (`<Choice value="${l.name}"/>`)).join("\n")}
+                          </Choices>`
+                        }
+                        <View style="border-top: 1px solid rgba(0,0,0,.1); padding: 10px 5px; margin-top: auto">
+                          ${props.annotation_level != AnnotationLevels.DOCUMENT
+                            ?
+                            `<View visibleWhen="region-selected" style="margin-bottom: 10px">
+                                <Header value="Annotation Confidence" style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" />
+                                <Rating name="ann_confidence" toName="text" perRegion="true" />
+                            </View>`
+                            :
+                            ``
+                          }
                         <View>
                           <Header style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" value="Document Confidence"/>
                           <Rating toName="doc_confidence" name="doc_confidence" maxRating="5" icon="star" size="medium" />
                         </View>
                       </View>
-                  </View>
+                    </View>
+                  }
                   <View style="width: 100%; overflow-y: auto;">
                     <View style="height: auto; padding: 0 1.7em 1em;">
                       <${props.isHtml ? "HyperText" : "Text"} name="text" value="$text" inline="true" ${props.annotation_level != AnnotationLevels.DOCUMENT ? `granularity="${props.annotation_level}"` : ''}/>
@@ -124,7 +129,7 @@ const initLS = async () => {
       showLabels: true
     },
     interfaces: [
-      props.annotation_level != AnnotationLevels.DOCUMENT ? "side-column" : "",
+      showSideColumn.value ? "side-column" : "",
     ],
     user: {
       pk: 1,
@@ -262,7 +267,7 @@ function waitForElement(selector: string): Promise<Element> {
 
 onMounted(() => {
   initLS();
-  if (props.annotation_level == AnnotationLevels.DOCUMENT) {
+  if (!showSideColumn.value) {
     waitForElement('.ls-common').then(
       (el) => {
         el.firstChild!.parentElement!.style.gridTemplateColumns = 'auto';
