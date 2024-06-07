@@ -534,6 +534,7 @@ const importTask = async () => {
     const new_email = new_annotators.value[i];
     if (new_email.length && !/^\S+@\S+\.\S+$/.test(new_email)) {
       $toast.error(`Invalid email: ${new_email}`);
+      import_progress.value.loading = false;
       return;
     }
   };
