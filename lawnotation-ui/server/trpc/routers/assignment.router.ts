@@ -678,6 +678,7 @@ export const assignmentRouter = router({
                 ON (a.annotator_id = u.id)
               WHERE annotator_number = ${dbAnnotator.annotator_number}
               AND a.task_id = ${input.task_id}
+              ORDER BY a.seq_pos
             `
 
             const children: TreeItem['children'] = []
