@@ -13,7 +13,7 @@
   <div v-if="project">
     <GuidancePanel :currentStep="currentGuidanceStep" />
     <TabView v-model:activeIndex="activeTab">
-      <TabPanel :disabled="!documentTable?.total" :pt="{
+      <TabPanel :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
       }">
         <template #header>
