@@ -72,7 +72,7 @@
                     style: 'padding-bottom: 0px'
                   }
                 }" :ptOptions="{ mergeProps: true }">
-                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[56px]">
+                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[565px]">
                   <TabPanel header="New" :pt="{ headerAction: { 'data-test': 'new-tab' } }">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
