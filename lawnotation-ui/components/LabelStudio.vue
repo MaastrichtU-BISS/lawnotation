@@ -18,6 +18,9 @@
         <Button :disabled="assignment.seq_pos == 1" label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
         <Button :label="assignment.seq_pos < assignmentsTotal ? 'Next' : 'Finish'" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
       </div>
+      <div v-else>
+        <Button label="Save" icon="pi pi-check" @click="clickNext" icon-pos="right" />
+      </div>
     </div>
     <div id="label-studio" class="h-full"></div>
   </div>
@@ -32,7 +35,7 @@ import type {
 } from "~/types";
 import { AnnotationLevels, AssignmentStatuses } from "~/utils/enums";
 
-const { $trpc } = useNuxtApp();
+const { $trpc, $toast } = useNuxtApp();
 
 const label_studio = ref();
 
@@ -63,7 +66,8 @@ const doc_confidence_ann = ref({
 });
 
 const showSideColumn = computed(() => {
-  return props.annotation_level != AnnotationLevels.DOCUMENT && !props.isEditor;
+  // return props.annotation_level != AnnotationLevels.DOCUMENT && !props.isEditor;
+  return props.annotation_level != AnnotationLevels.DOCUMENT;
 });
 
 const initLS = async () => {
@@ -172,7 +176,9 @@ const clickNext = async () => {
     rating = serializedAnnotations[pos_rating].value.rating;
   }
 
+
   if (
+    !props.isEditor &&
     props.assignment.status !== "done" &&
     serializedAnnotations.length === 0 &&
     !confirm(
@@ -190,7 +196,12 @@ const clickNext = async () => {
       difficulty_rating: rating,
     },
   });
-  emit("nextAssignment");
+
+  if(!props.isEditor) {
+    emit("nextAssignment");
+  } else {
+    $toast.success("Changes were successfully saved!");
+  }
 };
 
 const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
