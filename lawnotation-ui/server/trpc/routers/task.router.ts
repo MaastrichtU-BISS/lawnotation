@@ -310,13 +310,9 @@ export const taskRouter = router({
 
       const new_task = await caller.task.create(task);
 
-      console.log(new_task)
-
       const assignments = await caller.assignment.findAssignmentsByTask(
         task_id
       );
-
-      console.log(assignments)
 
       const new_assignments = await caller.assignment.createMany({
         assignments: assignments.map((a) => {
@@ -356,6 +352,7 @@ export const taskRouter = router({
             text: a.text!,
             ls_id: a.ls_id!,
             origin: a.origin,
+            confidence_rating: a.confidence_rating
           };
         })
       );

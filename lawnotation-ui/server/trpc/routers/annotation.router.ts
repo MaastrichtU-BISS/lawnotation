@@ -230,7 +230,7 @@ export const annotationRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`,
         });
-      return data;
+      return data as Annotation[];
     }),
 
   findAnnotationsByTask: protectedProcedure
@@ -249,7 +249,7 @@ export const annotationRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`,
         });
-      return data;
+      return data as Annotation[];
     }),
 
   updateAssignmentAnnotations: protectedProcedure
