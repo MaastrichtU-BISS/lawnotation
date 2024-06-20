@@ -650,6 +650,7 @@ const importTask = async () => {
                   assignment_id: assignments[ass_index].id,
                   origin: "imported",
                   ls_id: ann.ls_id,
+                  confidence_rating: ann.confidence_rating
                 });
               });
               ass_index++;
