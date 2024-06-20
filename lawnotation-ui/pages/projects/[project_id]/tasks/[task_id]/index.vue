@@ -810,7 +810,8 @@ const exportTask = async () => {
           label: a.label,
           text: a.text,
           relations: [],
-          ls_id: a.ls_id
+          ls_id: a.ls_id,
+          confidence_rating: a.confidence_rating
         });
       });
 

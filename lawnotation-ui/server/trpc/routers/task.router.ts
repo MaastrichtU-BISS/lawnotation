@@ -13,7 +13,7 @@ const ZTaskFields = z.object({
   project_id: z.number().int(),
   labelset_id: z.number().int(),
   ann_guidelines: z.string(),
-  ml_model_id: z.number().int().optional(),
+  ml_model_id: z.number().int().nullable().optional(),
   annotation_level: z.nativeEnum(AnnotationLevels)
 });
 
@@ -307,11 +307,13 @@ export const taskRouter = router({
 
       const task = await caller.task.findById(task_id);
 
+
       const new_task = await caller.task.create(task);
 
       const assignments = await caller.assignment.findAssignmentsByTask(
         task_id
       );
+
       const new_assignments = await caller.assignment.createMany({
         assignments: assignments.map((a) => {
           return {
@@ -350,6 +352,7 @@ export const taskRouter = router({
             text: a.text!,
             ls_id: a.ls_id!,
             origin: a.origin,
+            confidence_rating: a.confidence_rating
           };
         })
       );
@@ -374,7 +377,6 @@ export const taskRouter = router({
         })
       );
 
-      // return 1;
       return new_task;
     }),
 });

@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import type { Assignment } from "~/types";
 import type { DifficultyMetricResult, MetricResult } from "~/utils/metrics";
 import { newEmptyMetricResult } from "~/utils/metrics";
@@ -178,7 +178,7 @@ async function findAssignmentsByTaskUsersDocuments(
   annotators_id: string[] = [],
   documents_id: string[] = []
 ): Promise<any> {
-  const supabase = await serverSupabaseClient(event);
+  const supabase = await serverSupabaseServiceRole(event);
   let query = supabase
     .from("assignments")
     .select("*, user:users!inner(id, email)")
