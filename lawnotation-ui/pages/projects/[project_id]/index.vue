@@ -134,7 +134,7 @@
                         @click="createTask" />
                     </div>
                   </TabPanel>
-                  <TabPanel header="Upload">
+                  <TabPanel header="Import">
                     <div v-if="!uploadHasStarted" class="pt-6">
                       <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
                         chooseLabel="Select" :pt="{
