@@ -13,7 +13,7 @@
   <div v-if="project">
     <GuidancePanel :currentStep="currentGuidanceStep" />
     <TabView v-model:activeIndex="activeTab">
-      <TabPanel :disabled="!documentTable?.total" :pt="{
+      <TabPanel :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
       }">
         <template #header>
@@ -72,7 +72,7 @@
                     style: 'padding-bottom: 0px'
                   }
                 }" :ptOptions="{ mergeProps: true }">
-                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[56px]">
+                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[565px]">
                   <TabPanel header="New" :pt="{ headerAction: { 'data-test': 'new-tab' } }">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
@@ -134,7 +134,7 @@
                         @click="createTask" />
                     </div>
                   </TabPanel>
-                  <TabPanel header="Upload">
+                  <TabPanel header="Import">
                     <div v-if="!uploadHasStarted" class="pt-6">
                       <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
                         chooseLabel="Select" :pt="{
