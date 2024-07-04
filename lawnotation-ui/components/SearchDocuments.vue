@@ -10,10 +10,10 @@
                 <Chips v-model="eclis" separator="," addOnBlur :pt="{
                     input: {
                         'data-test': 'eclis'
-                    }
+                    },
                 }" />
                 <div class="my-4 text-center">
-                    <Button type="button" @click="download" label="Download" icon="pi pi-download" iconPos="right"
+                    <Button type="button" @click="fetchDocuments" :label="addDocumentsToProject ? 'Confirm' : 'Download'" :icon="addDocumentsToProject ? 'pi pi-check' : 'pi pi-download'" iconPos="right"
                         :disabled="!eclis.length || loading" data-test="download-button" />
                 </div>
             </div>
@@ -29,11 +29,19 @@ import JSZip, { file } from "jszip";
 
 const { $toast, $trpc } = useNuxtApp();
 
+const props = withDefaults(
+    defineProps<{
+        addDocumentsToProject: boolean
+    }>(),
+    { addDocumentsToProject: false });
+
+const emit = defineEmits(["onDocumentsFetched"]);
+
 const eclis = ref<string[]>([]);
 const format = ref<DocFormat>("text/plain");
 const loading = ref<boolean>(false);
 
-// ECLI:NL:RBLIM:2023:7197, ECLI:NL:OGEAC:2021:280
+// ECLI:NL:RBLIM:2023:7197, ECLI:NL:OGEAC:2021:280, ECLI:NL:RVS:2011:BU7101
 
 // Recursively gets the text from the xml
 const getText = (node: any): string => {
@@ -49,14 +57,19 @@ const getText = (node: any): string => {
     return acc;
 }
 
-const download = async () => {
+const fetchDocuments = async () => {
     loading.value = true;
+
+    let docs: Doc[] = [];
 
     try {
         const xmls = await $trpc.archive.getXMLFromRechtspraak.query(eclis.value);
 
-        const parser = new DOMParser();
-        const docs = xmls.map((xml: string, index: number) => {
+        
+
+        docs = xmls.map((xml: string, index: number) => {
+            console.log(xml);
+            const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xml, "text/xml");
             const text = getText(xmlDoc);
             return {
@@ -66,8 +79,23 @@ const download = async () => {
             }
         });
 
-        const zip = JSZip();
+    } catch (error) {
+        loading.value = false;
+        $toast.error(error as string);
+    }
 
+    if(props.addDocumentsToProject) {
+        emit("onDocumentsFetched", docs);
+    } else {
+        download(docs);
+    }
+
+    return docs;
+};
+
+const download = async (docs: Doc[]) => {
+    const zip = JSZip();
+    try {
         docs.map((doc: Doc) => {
             zip.file(doc.name, new Blob([doc.content]));
         });
