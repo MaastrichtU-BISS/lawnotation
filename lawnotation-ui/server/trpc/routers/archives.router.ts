@@ -9,8 +9,7 @@ import {
 import type { Context } from "../context";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { appRouter } from ".";
-import type { Annotation, Assignment } from "~/types";
-import { Origins } from "~/utils/enums";
+import type { DocFormat, Doc } from "~/types/archive";
 
 const archiveAuthorizer = middleware((opts) => {
   // opts.ctx.hooksKey
@@ -20,7 +19,7 @@ const archiveAuthorizer = middleware((opts) => {
 export const archiveRouter = router({
   getXMLFromRechtspraak: publicProcedure
     .input(z.array(z.string()))
-    // .use(hookAuthorizer)
+    // .use(archiveAuthorizer)
     .query(async ({ ctx, input }) => {
       
       const promises: Promise<any>[] = [];
@@ -30,15 +29,15 @@ export const archiveRouter = router({
 
       const responses = await Promise.all(promises);
 
-      const promisesText: Promise<string>[] = [];
+      const promisesXMLS: Promise<string>[] = [];
 
       responses.map(r => {
-        promisesText.push(r.text());
+        promisesXMLS.push(r.text());
       });
 
-      const texts = await Promise.all(promisesText);
+      const xmls = await Promise.all(promisesXMLS);
 
-      return texts;
+      return xmls;
     }),
 });
 
