@@ -1,5 +1,5 @@
 <template>
-<div class="max-w-screen-lg mx-auto my-8">
+<div class="max-w-screen-lg px-4 mx-auto my-8">
 <SearchDocuments />
 </div>
 </template>
