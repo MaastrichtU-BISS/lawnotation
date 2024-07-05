@@ -11,6 +11,8 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import { appRouter } from ".";
 import type { DocFormat, Doc } from "~/types/archive";
 
+const config = useRuntimeConfig();
+
 const archiveAuthorizer = middleware((opts) => {
   // opts.ctx.hooksKey
   return opts.next();
@@ -18,26 +20,20 @@ const archiveAuthorizer = middleware((opts) => {
 
 export const archiveRouter = router({
   getXMLFromRechtspraak: publicProcedure
-    .input(z.array(z.string()))
+    .input(z.object({ eclis: z.array(z.string())}))
     // .use(archiveAuthorizer)
     .query(async ({ ctx, input }) => {
       
-      const promises: Promise<any>[] = [];
-      input.map((ecli: string) => {
-        promises.push(fetch(`https://data.rechtspraak.nl/uitspraken/content?id=${ecli}&return=DOC`));
+      const response = await fetch(`${config.public.mlBackendURL}/archives/search/rechtspraak`, {
+        method: "POST",
+        body: JSON.stringify(input)
       });
 
-      const responses = await Promise.all(promises);
+      console.log(response)
 
-      const promisesXMLS: Promise<string>[] = [];
+      const xmls = await response.json();
 
-      responses.map(r => {
-        promisesXMLS.push(r.text());
-      });
-
-      const xmls = await Promise.all(promisesXMLS);
-
-      return xmls;
+      return xmls as string[];
     }),
 });
 

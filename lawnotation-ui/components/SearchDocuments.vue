@@ -41,7 +41,7 @@ const eclis = ref<string[]>([]);
 const format = ref<DocFormat>("text/plain");
 const loading = ref<boolean>(false);
 
-// ECLI:NL:RBLIM:2023:7197, ECLI:NL:OGEAC:2021:280, ECLI:NL:RVS:2011:BU7101
+// ECLI:NL:RBLIM:2023:7197,ECLI:NL:OGEAC:2021:280,ECLI:NL:RVS:2011:BU7101
 
 // Recursively gets the text from the xml
 const getText = (node: any): string => {
@@ -63,9 +63,7 @@ const fetchDocuments = async () => {
     let docs: Doc[] = [];
 
     try {
-        const xmls = await $trpc.archive.getXMLFromRechtspraak.query(eclis.value);
-
-        
+        const xmls = await $trpc.archive.getXMLFromRechtspraak.query({ eclis: eclis.value });
 
         docs = xmls.map((xml: string, index: number) => {
             console.log(xml);
