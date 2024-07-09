@@ -14,7 +14,7 @@ import { userRouter } from './user.router';
 import { metricsRouter } from './metrics.router';
 import { tableRouter } from './table.router';
 import { hookRouter } from './hook.router';
-import { archiveRouter } from './archives.router';
+import { archiveRouter } from './archive.router';
 
 export const appRouter = router({
   relation: relationRouter,

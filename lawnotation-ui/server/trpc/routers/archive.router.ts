@@ -24,16 +24,23 @@ export const archiveRouter = router({
     // .use(archiveAuthorizer)
     .query(async ({ ctx, input }) => {
       
-      const response = await fetch(`${config.public.mlBackendURL}/archives/search/rechtspraak`, {
-        method: "POST",
-        body: JSON.stringify(input)
-      });
+      try {
+        const response = await fetch(`${config.public.mlBackendURL}/archives/search/rechtspraak`, {
+          method: "POST",
+          body: JSON.stringify(input)
+        });
 
-      console.log(response)
+        
+        console.log(response)
+        const xmls = await response.json();
+        return xmls as string[];
 
-      const xmls = await response.json();
-
-      return xmls as string[];
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in archive.getXMLFromRechtspraak: ${error.message}`,
+        });
+      }
     }),
 });
 
