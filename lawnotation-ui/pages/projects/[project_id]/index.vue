@@ -53,7 +53,8 @@
                         data-test="view-task-link">
                         <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
                       </NuxtLink>
-                      <PulsingRedCircle v-if="item.assignments[0].count ? currentGuidanceStep == GuidanceSteps.CHECK_ASSIGNMENTS : currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
+                      <PulsingRedCircle
+                        v-if="item.assignments[0].count ? currentGuidanceStep == GuidanceSteps.CHECK_ASSIGNMENTS : currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
                     </div>
                     <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
                       data-test="edit-task-link">
@@ -96,31 +97,32 @@
                     <div class="flex items-center pb-4">
                       <Dropdown v-model="new_task.labelset_id" :options="labelsets" filter optionLabel="name"
                         option-value="id" placeholder="Select Labelset" class="w-full md:w-1/2"
-                        data-test="select-labelset" @update:model-value="labelSelected($event)"/>
+                        data-test="select-labelset" @update:model-value="labelSelected($event)" />
                       <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
                         data-test='create-new-labelset' />
                     </div>
                     <div class="flex items-center pb-4">
                       <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
-                      optionLabel="name" option-value="id" placeholder="Select Model (Optional)" class="w-full" @update:model-value="modelSelected($event)" :show-clear="true"/>
+                        optionLabel="name" option-value="id" placeholder="Select Model (Optional)" class="w-full"
+                        @update:model-value="modelSelected($event)" :show-clear="true" />
                     </div>
                     <div class="mb-4 flex justify-between items-center">
                       <div>
                         <p class="font-bold mb-4">Annotation level</p>
-                        <SelectButton :options="['span', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel" @update:model-value="annotationLevelSelected($event)"
-                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level" :pt="{
+                        <SelectButton :options="['span', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel"
+                          @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
+                          aria-labelledby="basic" data-test="select-annotation-level" :pt="{
                             label: {
                               class: 'font-normal'
                             }
-                          }"/>
+                          }" />
                       </div>
                       <div v-if="selectedAnnotationLevel == 'span'">
                         <p class="font-bold mb-4">Granularity</p>
-                        <SelectButton 
-                          v-model="new_task.annotation_level"
+                        <SelectButton v-model="new_task.annotation_level"
                           :options="Object.values(AnnotationLevels).filter(level => level != AnnotationLevels.DOCUMENT)"
-                          @update:model-value="annotationLevelSelected($event)"
-                          class="capitalize font-normal" aria-labelledby="basic" data-test="select-annotation-level-2" :pt="{
+                          @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
+                          aria-labelledby="basic" data-test="select-annotation-level-2" :pt="{
                             label: {
                               class: 'font-normal'
                             }
@@ -225,31 +227,49 @@
             </td>
           </template>
         </Table>
-        <Dialog v-model:visible="showUploadDocumentsModal" modal header="Upload documents">
-          <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html"
-            chooseLabel="Select" :maxFileSize="3145728" :pt="{
-              input: {
-                'data-test': 'choose-documents'
-              },
-              uploadbutton: {
-                root: {
-                  'data-test': 'upload-documents'
-                }
-              },
-              thumbnail: {
-                class: 'hidden'
-              }
-            }
-              ">
-            <template #empty>
-              <div class="flex items-center justify-center flex-col">
-                <i
-                  class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
-                <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                <p class="text-gray-400 text-xs">.txt .html file(s)</p>
+        <Dialog v-model:visible="showUploadDocumentsModal" modal header="Add documents" :pt="{
+          root: '!w-[80vw] xl:!w-[50vw]',
+          header: {
+            style: 'padding-bottom: 0px'
+          },
+          content: {
+            style: 'padding-bottom: 0px'
+          }
+        }" :ptOptions="{ mergeProps: true }">
+          <TabView v-model:activeIndex="activeTabDocumentsModal" class="min-h-[565px]">
+            <TabPanel header="Upload" :pt="{ headerAction: { 'data-test': 'upload-documents-tab' } }">
+              <div class="pt-6">
+                <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html"
+                  chooseLabel="Select" :maxFileSize="3145728" :pt="{
+                    input: {
+                      'data-test': 'choose-documents'
+                    },
+                    uploadbutton: {
+                      root: {
+                        'data-test': 'upload-documents'
+                      }
+                    },
+                    thumbnail: {
+                      class: 'hidden'
+                    }
+                  }
+                    ">
+                  <template #empty>
+                    <div class="flex items-center justify-center flex-col">
+                      <i
+                        class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
+                      <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
+                      <p class="text-gray-400 text-xs">.txt .html file(s)</p>
+                    </div>
+                  </template>
+                </FileUpload>
               </div>
-            </template>
-          </FileUpload>
+            </TabPanel>
+            <TabPanel header="Find (Rechtspraak)">
+              <SearchDocuments :add-documents-to-project="true" @on-documents-fetched="onDocumentsFetched"/>
+            </TabPanel>
+          </TabView>
+
         </Dialog>
       </TabPanel>
     </TabView>
@@ -265,8 +285,9 @@ import type {
   Annotation,
   User,
   AnnotationRelation,
-  MlModel
+  MlModel,
 } from "~/types";
+import type { Doc } from "~/types/archive";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Labelset from "~/components/Labelset.vue";
@@ -274,6 +295,7 @@ import { authorizeClient } from "~/utils/authorize.client";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
 import { AnnotationLevels, GuidanceSteps } from "~/utils/enums";
+import SearchDocuments from "~/components/SearchDocuments.vue"
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -294,6 +316,7 @@ const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
 const activeTabTaskModal = ref<number>(0);
+const activeTabDocumentsModal = ref<number>(0);
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
@@ -357,15 +380,15 @@ const modelSelected = async (id: number) => {
 
   // remove added labelsets
   const labelToRemoveIndex = labelsets.value.findIndex(l => !l.editor_id);
-  if(labelToRemoveIndex > 0 && new_task.labelset_id == labelsets.value[labelToRemoveIndex].id) {
+  if (labelToRemoveIndex > 0 && new_task.labelset_id == labelsets.value[labelToRemoveIndex].id) {
     new_task.labelset_id = undefined;
     labelsets.value.splice(labelToRemoveIndex, 1);
   }
 
   const model = models.value.find(m => m.id == id);
 
-  if(new_task.annotation_level != model?.annotation_level) {
-    if(model?.annotation_level == AnnotationLevels.DOCUMENT) {
+  if (new_task.annotation_level != model?.annotation_level) {
+    if (model?.annotation_level == AnnotationLevels.DOCUMENT) {
       selectedAnnotationLevel.value = AnnotationLevels.DOCUMENT;
     } else {
       selectedAnnotationLevel.value = "span";
@@ -373,7 +396,7 @@ const modelSelected = async (id: number) => {
     new_task.annotation_level = model?.annotation_level;
   }
 
-  if(model?.labelset_id) {
+  if (model?.labelset_id) {
     const modelLabelset = await $trpc.labelset.findById.query(model?.labelset_id);
     labelsets.value.push(modelLabelset);
     new_task.labelset_id = modelLabelset.id;
@@ -381,9 +404,9 @@ const modelSelected = async (id: number) => {
 };
 
 const labelSelected = async (id: number) => {
-  if(new_task.ml_model_id) {
+  if (new_task.ml_model_id) {
     const model = await $trpc.mlModel.findById.query(new_task?.ml_model_id);
-    if(model.labelset_id) {
+    if (model.labelset_id) {
       new_task.ml_model_id = undefined;
       labelsets.value = labelsets.value.filter(l => l.editor_id);
     }
@@ -391,18 +414,18 @@ const labelSelected = async (id: number) => {
 };
 
 const annotationLevelSelected = async (value: "span" | AnnotationLevels) => {
-  if(value == "span") {
+  if (value == "span") {
     new_task.annotation_level = AnnotationLevels.SYMBOL;
   } else {
     new_task.annotation_level = value;
   }
-  if(new_task.ml_model_id) {
+  if (new_task.ml_model_id) {
     const model = await $trpc.mlModel.findById.query(new_task?.ml_model_id);
-    if(model.annotation_level != value) {
+    if (model.annotation_level != value) {
       new_task.ml_model_id = undefined;
       labelsets.value = labelsets.value.filter(l => l.editor_id);
-    } 
-    if(model.labelset_id) {
+    }
+    if (model.labelset_id) {
       new_task.labelset_id = undefined;
     }
   }
@@ -437,6 +460,26 @@ const uploadDocuments = async (event: { files: FileList }) => {
     new_docs[index].full_text = t;
   });
 
+  saveDocuments(new_docs);
+};
+
+const onDocumentsFetched = (docs: Doc[]) => {
+  var new_docs: Omit<Document, "id">[] = [];
+  loading_docs.value = true;
+  showUploadDocumentsModal.value = false;
+  docs.map((doc: Doc) => {
+    new_docs.push({
+      name: doc.name,
+      source: "rechtspraak",
+      full_text: doc.content,
+      project_id: +route.params.project_id,
+    });
+  });
+
+  saveDocuments(new_docs);
+};
+
+const saveDocuments = async (new_docs: Omit<Document, "id">[]) => {
   try {
     await $trpc.document.createMany.mutate(new_docs);
     documentTable.value?.refresh();
@@ -461,7 +504,7 @@ const createTask = () => {
     $toast.error("Task description is required");
     return;
   }
-  if (new_task.ann_guidelines){
+  if (new_task.ann_guidelines) {
     try {
       const url = new URL(new_task.ann_guidelines);
     } catch (_) {
@@ -631,7 +674,7 @@ const importTask = async () => {
           });
         });
 
-        const assignments = await $trpc.assignment.createMany.mutate({assignments: new_assignments});
+        const assignments = await $trpc.assignment.createMany.mutate({ assignments: new_assignments });
 
         if (import_json.value.counts?.annotations) {
           // Creating annotations
@@ -656,7 +699,7 @@ const importTask = async () => {
               ass_index++;
             });
           });
-          
+
           const annotations = await $trpc.annotation.createMany.mutate(new_annotations)
 
           // create relations

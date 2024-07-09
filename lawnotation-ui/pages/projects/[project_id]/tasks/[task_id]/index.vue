@@ -836,7 +836,7 @@ const exportTask = async () => {
     }
   }
 
-  downloadAs(json, `${json.name}.json`);
+  downloadAs(JSON.stringify(json), `${json.name}.json`);
   formValues.value.modalOperations.loaded = true;
   formValues.value.modalOperations.loading = false;
   $toast.success(`Task has been exported!`);

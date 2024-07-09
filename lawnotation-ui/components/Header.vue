@@ -15,19 +15,25 @@
         dataTest: 'labelset-link'
       },
       {
+        label: 'Assigned Tasks',
+        icon: 'pi pi-pencil',
+        route: '/tasks',
+        dataTest: 'assigned-tasks-menu-item'
+      },
+      {
+        is_separator: true
+      },
+      {
         label: 'Published Tasks',
         icon: 'pi pi-search',
         route: '/published',
         dataTest: 'published-link'
       },
       {
-        is_separator: true
-      },
-      {
-        label: 'Assigned Tasks',
-        icon: 'pi pi-pencil',
-        route: '/tasks',
-        dataTest: 'assigned-tasks-menu-item'
+        label: 'Archives',
+        icon: 'pi pi-book',
+        route: '/archives',
+        dataTest: 'archives-menu-item'
       }
     ]">
       <template #start>

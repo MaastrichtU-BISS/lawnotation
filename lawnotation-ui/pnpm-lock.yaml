@@ -1,9 +1,5 @@
 lockfileVersion: '6.0'
 
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false
-
 overrides:
   vue: 3.3.13
 
@@ -2136,7 +2132,7 @@ packages:
     resolution: {integrity: sha512-eXTZsAAN4dPz4eA2UD5YU2kD/DqgfyQp1UYsIdCe6+PAVe1ifkUboBjbc0piR5+3qI/S/eqk3nzxRGbiYF7Ccg==}
     engines: {node: ^14.18.0 || >=16.10.0}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.3.4
     dependencies:
       '@nuxt/kit': 3.11.2
       '@rollup/plugin-replace': 5.0.5(rollup@4.14.3)
@@ -2908,7 +2904,7 @@ packages:
   /@unhead/vue@1.9.5(vue@3.3.13):
     resolution: {integrity: sha512-L3yDB6Mwm92gJNPqZApMwfGluS0agR0HIizkXCKKz3WkZ+ef/negMwTNGpTtd+uqh/+hSyG73Bl4yySuPsD4nA==}
     peerDependencies:
-      vue: 3.3.13
+      vue: '>=2.7 || >=3'
     dependencies:
       '@unhead/schema': 1.9.5
       '@unhead/shared': 1.9.5
@@ -3158,7 +3154,7 @@ packages:
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       vite: ^4.0.0 || ^5.0.0
-      vue: 3.3.13
+      vue: ^3.0.0
     dependencies:
       '@babel/core': 7.24.4
       '@babel/plugin-transform-typescript': 7.24.4(@babel/core@7.24.4)
@@ -3174,7 +3170,7 @@ packages:
     engines: {node: ^18.0.0 || >=20.0.0}
     peerDependencies:
       vite: ^5.0.0
-      vue: 3.3.13
+      vue: ^3.2.25
     dependencies:
       vite: 5.2.9(sass@1.75.0)
       vue: 3.3.13(typescript@5.4.5)
@@ -3184,7 +3180,7 @@ packages:
     resolution: {integrity: sha512-WC66NPVh2mJWqm4L0l/u/cOqm4pNOIwVdMGnDYAH2rHcOWy5x68GkhpkYTBu1+xwCSeHWOQn1TCGGbD+98fFpA==}
     engines: {node: '>=16.14.0'}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^2.7.0 || ^3.2.25
     peerDependenciesMeta:
       vue:
         optional: true
@@ -3320,7 +3316,7 @@ packages:
   /@vue/devtools-applet@7.0.27(@unocss/reset@0.59.4)(floating-vue@5.2.2)(unocss@0.59.4)(vite@5.2.9)(vue@3.3.13):
     resolution: {integrity: sha512-ubNn/qIn5n3x7YCVSabfQfKL49GoJPJdYu4LfdNz/gZkgb1+djdATpKl/+xzQoOqtGzqnR9nMoCHApAJAgeMyg==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.0.0
     dependencies:
       '@vue/devtools-core': 7.0.27(vite@5.2.9)(vue@3.3.13)
       '@vue/devtools-kit': 7.0.27(vue@3.3.13)
@@ -3366,7 +3362,7 @@ packages:
   /@vue/devtools-kit@7.0.27(vue@3.3.13):
     resolution: {integrity: sha512-/A5xM38pPCFX5Yhl/lRFAzjyK6VNsH670nww2WbjFKWqlu3I+lMxWKzQkCW6A1V8bduITgl2kHORfg2gTw6QaA==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.0.0
     dependencies:
       '@vue/devtools-shared': 7.0.27
       hookable: 5.5.3
@@ -3388,7 +3384,7 @@ packages:
       '@unocss/reset': '>=0.50.0-0'
       floating-vue: '>=2.0.0-0'
       unocss: '>=0.50.0-0'
-      vue: 3.3.13
+      vue: '>=3.0.0-0'
     dependencies:
       '@unocss/reset': 0.59.4
       '@vueuse/components': 10.9.0(vue@3.3.13)
@@ -5188,7 +5184,7 @@ packages:
   /epic-spinners@2.0.0(vue@3.3.13):
     resolution: {integrity: sha512-nU7xF7NoXrObmIGdXYwj1hfE3EH3jDVQ8oi1S5wG0yutrQILMJ3Xs0ZQEdGIjBQnFveDrAs/61m8/vm5SMvObA==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.2.0
     dependencies:
       vue: 3.3.13(typescript@5.4.5)
     dev: false
@@ -5496,7 +5492,7 @@ packages:
     resolution: {integrity: sha512-afW+h2CFafo+7Y9Lvw/xsqjaQlKLdJV7h1fCHfcYQ1C4SVMlu7OAekqWgu5d4SgvkBVU0pVpLlVsrSTBURFRkg==}
     peerDependencies:
       '@nuxt/kit': ^3.2.0
-      vue: 3.3.13
+      vue: ^3.2.0
     peerDependenciesMeta:
       '@nuxt/kit':
         optional: true
@@ -8325,7 +8321,7 @@ packages:
   /primevue@3.49.1(vue@3.3.13):
     resolution: {integrity: sha512-OmUTqbKbPB63Zqf7uA49cipDi+Qh+/13AYJPwgvsVsI4QmAKIkeibBwkOgj1CNIFlopfF79YmyBshFUAPqlw9A==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.0.0
     dependencies:
       vue: 3.3.13(typescript@5.4.5)
     dev: true
@@ -8333,7 +8329,7 @@ packages:
   /primevue@3.51.0(vue@3.3.13):
     resolution: {integrity: sha512-BdMveidLSr0fNJ5+mxuke8mMCHyiXwvfDP4iwPr6R98rl3E0Wcm1u4/RKVrL7o0Iq606SXyhPQL3LGyAfXngcA==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.0.0
     dependencies:
       vue: 3.3.13(typescript@5.4.5)
     dev: false
@@ -10317,7 +10313,7 @@ packages:
   /vue-countup-v3@1.4.1(vue@3.3.13):
     resolution: {integrity: sha512-umhQyf4rGdH5tL+ZuWgnoEbq7VpqxC0NH3Yd5TfaYVggGhuD5ihMd2TuNo9PU+F+SCwIGho8Muvfu2LYQBft0A==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.0.0
     dependencies:
       countup.js: 2.8.0
       vue: 3.3.13(typescript@5.4.5)
@@ -10330,7 +10326,7 @@ packages:
     requiresBuild: true
     peerDependencies:
       '@vue/composition-api': ^1.0.0-rc.1
-      vue: 3.3.13
+      vue: ^3.0.0-0 || ^2.6.0
     peerDependenciesMeta:
       '@vue/composition-api':
         optional: true
@@ -10345,7 +10341,7 @@ packages:
   /vue-observe-visibility@2.0.0-alpha.1(vue@3.3.13):
     resolution: {integrity: sha512-flFbp/gs9pZniXR6fans8smv1kDScJ8RS7rEpMjhVabiKeq7Qz3D9+eGsypncjfIyyU84saU88XZ0zjbD6Gq/g==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.0.0
     dependencies:
       vue: 3.3.13(typescript@5.4.5)
     dev: true
@@ -10353,7 +10349,7 @@ packages:
   /vue-resize@2.0.0-alpha.1(vue@3.3.13):
     resolution: {integrity: sha512-7+iqOueLU7uc9NrMfrzbG8hwMqchfVfSzpVlCMeJQe4pyibqyoifDNbKTZvwxZKDvGkB+PdFeKvnGZMoEb8esg==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.0.0
     dependencies:
       vue: 3.3.13(typescript@5.4.5)
     dev: true
@@ -10361,7 +10357,7 @@ packages:
   /vue-router@4.3.2(vue@3.3.13):
     resolution: {integrity: sha512-hKQJ1vDAZ5LVkKEnHhmm1f9pMiWIBNGF5AwU67PdH7TyXCj/a4hTccuUuYCAMgJK6rO/NVYtQIEN3yL8CECa7Q==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.2.0
     dependencies:
       '@vue/devtools-api': 6.6.1
       vue: 3.3.13(typescript@5.4.5)
@@ -10370,7 +10366,7 @@ packages:
   /vue-toastification@2.0.0-rc.5(vue@3.3.13):
     resolution: {integrity: sha512-q73e5jy6gucEO/U+P48hqX+/qyXDozAGmaGgLFm5tXX4wJBcVsnGp4e/iJqlm9xzHETYOilUuwOUje2Qg1JdwA==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.0.2
     dependencies:
       vue: 3.3.13(typescript@5.4.5)
     dev: false
@@ -10378,7 +10374,7 @@ packages:
   /vue-virtual-scroller@2.0.0-beta.8(vue@3.3.13):
     resolution: {integrity: sha512-b8/f5NQ5nIEBRTNi6GcPItE4s7kxNHw2AIHLtDp+2QvqdTjVN0FgONwX9cr53jWRgnu+HRLPaWDOR2JPI5MTfQ==}
     peerDependencies:
-      vue: 3.3.13
+      vue: ^3.2.0
     dependencies:
       mitt: 2.1.0
       vue: 3.3.13(typescript@5.4.5)
@@ -10390,7 +10386,7 @@ packages:
     resolution: {integrity: sha512-rGbgUJDjtsyjfRF0uzwDjzt8+M7ICSRAbm1N9KCDiczW8BSpbEZuaEsJDJYnJuLFIIVXIGilYzIcjNBf6NbeYA==}
     peerDependencies:
       apexcharts: '> 3.0.0'
-      vue: 3.3.13
+      vue: '> 3.0.0'
     dependencies:
       apexcharts: 3.48.0
       vue: 3.3.13(typescript@5.4.5)
@@ -10607,3 +10603,7 @@ packages:
     engines: {node: '>=0.8'}
     hasBin: true
     dev: false
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
