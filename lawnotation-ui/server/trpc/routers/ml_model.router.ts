@@ -82,7 +82,7 @@ export const mlModelRouter = router({
   .query(async ({ input }) => {
     
     try {
-      const response = fetch(`${config.public.mlBackendURL}/predict`, {
+      const response = fetch(`${config.public.mlBackendURL}/predict/`, {
         method: "POST",
         body: JSON.stringify(input)
       });
