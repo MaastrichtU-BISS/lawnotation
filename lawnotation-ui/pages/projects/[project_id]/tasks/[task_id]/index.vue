@@ -342,7 +342,7 @@
                     </div>
                     <div>
                       <InputNumber class="my-2" v-model="number_of_fixed_docs" inputId="number_of_fixed_docs" showButtons
-                        buttonLayout="horizontal" :step="1" :min="0" :max="total_docs"
+                        buttonLayout="horizontal" :step="1" :min="0" :max="Math.min(total_docs, number_of_docs)"
                         decrementButtonClass="p-button-danger" incrementButtonClass="p-button-success"
                         incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" />
                     </div>
