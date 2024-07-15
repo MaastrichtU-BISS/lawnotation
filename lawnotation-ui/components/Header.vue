@@ -54,6 +54,11 @@
                     target: '_blank'
                   },
                   {
+                    label: 'Documentation',
+                    url: 'https://docs.lawnotation.org',
+                    target: '_blank'
+                  },
+                  {
                     label: 'GitHub',
                     url: 'https://www.github.com/MaastrichtU-BISS/lawnotation',
                     target: '_blank'
