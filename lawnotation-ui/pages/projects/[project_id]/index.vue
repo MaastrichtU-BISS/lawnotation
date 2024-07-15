@@ -240,7 +240,7 @@
             <TabPanel header="Upload" :pt="{ headerAction: { 'data-test': 'upload-documents-tab' } }">
               <div class="pt-6">
                 <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html"
-                  chooseLabel="Select" :maxFileSize="3145728" :pt="{
+                  chooseLabel="Select" :pt="{
                     input: {
                       'data-test': 'choose-documents'
                     },

@@ -342,12 +342,53 @@
                     </div>
                     <div>
                       <InputNumber class="my-2" v-model="number_of_fixed_docs" inputId="number_of_fixed_docs" showButtons
-                        buttonLayout="horizontal" :step="1" :min="0" :max="total_docs"
+                        buttonLayout="horizontal" :step="1" :min="0" :max="Math.min(total_docs, number_of_docs)"
                         decrementButtonClass="p-button-danger" incrementButtonClass="p-button-success"
                         incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" />
                     </div>
                   </div>
                 </div>
+                <template v-if="annotators_email.length > 0">
+                  <span class="mt-2 mb-4 block">Amount of assignments with this configuration:</span>
+                  <table id="tableAssignmentsAmounts">
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Shared</th>
+                        <th>Unique</th>
+                        <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th>Per annotator</th>
+                        <td>{{ number_of_fixed_docs }}</td>
+                        <template v-if="(number_of_docs - number_of_fixed_docs) % annotators_email.length == 0">
+                          <td>{{ (number_of_docs - number_of_fixed_docs) / annotators_email.length }}</td>
+                          <td>{{ (number_of_fixed_docs * annotators_email.length + (number_of_docs - number_of_fixed_docs)) / annotators_email.length }}</td>
+                        </template>
+                        <template v-else>
+                          <td>{{
+                              Math.floor((number_of_docs - number_of_fixed_docs) / annotators_email.length) 
+                          }} <i class="text-gray-500">or</i> {{
+                              Math.ceil((number_of_docs - number_of_fixed_docs) / annotators_email.length)
+                          }}</td>
+                          <td>{{
+                            Math.floor((number_of_fixed_docs * annotators_email.length + (number_of_docs - number_of_fixed_docs)) / annotators_email.length)
+                          }} <i class="text-gray-500">or</i> {{
+                            Math.ceil((number_of_fixed_docs * annotators_email.length + (number_of_docs - number_of_fixed_docs)) / annotators_email.length)
+                          }}</td>
+                        </template>
+                      </tr>
+                      <tr>
+                        <th>Total</th>
+                        <td>{{ number_of_fixed_docs * annotators_email.length }}</td>
+                        <td>{{ number_of_docs - number_of_fixed_docs }}</td>
+                        <td>{{ number_of_fixed_docs * annotators_email.length + (number_of_docs - number_of_fixed_docs) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </template>
               </AccordionTab>
             </Accordion>
             <div class="text-center pt-6">
@@ -871,6 +912,30 @@ definePageMeta({
   }
   tr ~ tr {
     display: table-row;
+  }
+}
+
+#tableAssignmentsAmounts {
+  width: 100%;
+
+  thead {
+    tr {
+      th {
+        @apply text-right;
+      }
+    }
+  }
+
+  tr {
+    @apply border;
+
+    th {
+      @apply px-4 py-2 text-left;
+    }
+
+    td {
+      @apply px-4 py-2 text-right;
+    }
   }
 }
 </style>

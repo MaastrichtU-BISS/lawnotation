@@ -247,17 +247,25 @@ export const documentRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase.rpc("random_sample", {
-        n: input.n,
-        pid: input.project_id,
-      });
+      try {
+        // using raw query to circumvent the 1000 row-limit of the supabase client
+        const data = (
+          await ctx.sql<{id: string}[]>`
+            SELECT id
+            FROM documents
+            WHERE project_id = ${input.project_id}
+            ORDER BY Random()
+            LIMIT ${input.n}
+          `
+        ).map(x => +x.id)
 
-      if (error)
+        return data as number[];
+      } catch {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in takeUpToNRandomDocuments: ${error.message}`,
+          message: `Error getting random documents from database`,
         });
-      return data as number[];
+      }
     }),
 
   totalAmountOfDocs: protectedProcedure
