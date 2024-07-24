@@ -9,6 +9,20 @@ export type RangeLabel = {
   doc_name: string;
   zeros: number;
   ones: number;
+  confidence: number;
+};
+
+export type RichAnnotation = {
+  start: number;
+  end: number;
+  text: string;
+  label: string;
+  annotator: string;
+  hidden: boolean;
+  ann_id: number;
+  doc_id: number;
+  doc_name?: string;
+  confidence: number;
 };
 
 export type MetricResult = {
@@ -65,6 +79,7 @@ export function createContingencyTable(
       doc_name: x.doc_name,
       zeros: 0,
       ones: 0,
+      confidence: x.confidence
     };
 
     let matches = false;

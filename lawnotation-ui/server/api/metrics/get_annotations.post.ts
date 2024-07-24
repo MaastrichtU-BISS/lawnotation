@@ -4,7 +4,7 @@ import {
   setTextToHidden,
   separateIntoWords,
 } from "~/utils/metrics";
-import type { RichAnnotation, Document } from "~/types";
+import { type RichAnnotation } from "~/utils/metrics";
 import type { Database } from "~/types/supabase";
 import { H3Event } from "h3";
 
@@ -121,6 +121,7 @@ async function getNonAnnotations(
         ann_id: -1,
         doc_id: current_ann.doc_id,
         doc_name: current_ann.doc_name,
+        confidence: current_ann.confidence
       });
     }
 
@@ -148,6 +149,7 @@ async function getNonAnnotations(
       ann_id: -1,
       doc_id: previous_ann.doc_id,
       doc_name: previous_ann.doc_name,
+      confidence: 0
     });
   }
   return new_annotations;
@@ -165,7 +167,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   let query = supabase
     .from("annotations")
     .select(
-      "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
+      "id, start_index, end_index, label, text, confidence_rating, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
     )
     .eq("assignments.task_id", task_id)
     .eq("label", label);
@@ -177,6 +179,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
     query = query.in("assignments.users.email", annotators);
 
   const { data, error } = await query;
+
   if (error)
     throw Error(
       `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`
@@ -193,6 +196,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
         ann_id: ann.id,
         doc_id: ann.assignment!.document_id,
         doc_name: ann.assignment!.document!.name,
+        confidence: ann.confidence_rating
       } as RichAnnotation;
     });
   }

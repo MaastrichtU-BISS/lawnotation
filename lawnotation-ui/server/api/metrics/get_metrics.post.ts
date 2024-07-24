@@ -1,4 +1,4 @@
-import type { RichAnnotation } from "~/types";
+import { type RichAnnotation } from "~/utils/metrics";
 import type { MetricResult } from "~/utils/metrics";
 import { newEmptyMetricResult } from "~/utils/metrics";
 

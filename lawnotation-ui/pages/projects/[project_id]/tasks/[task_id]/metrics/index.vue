@@ -381,7 +381,7 @@ const updateAnnotations = async () => {
       separate_into_words.value,
       hideNonText.value
     );
-    console.log(anns);
+
     annotations_length.value = anns.length;
     if (anns.length < annotations_limit) annotations.push(...anns);
     loading_annotations.value = false;
@@ -477,7 +477,6 @@ const clickComputeDifficultyMetrics = async () => {
       selectedAnnotatorsOrEmpty.value,
       selectedDocumentsOrEmpty.value
     );
-    console.log(metric);
     metrics_result.value.difficulty = metric;
     metrics_result.value.loading = false;
   } catch (error) {
@@ -504,58 +503,6 @@ const computeDifficultyMetrics = async (
   });
 };
 
-const get_json = async () => {
-  const anns = await $fetch("/api/metrics/get_all_annotations", {
-    method: "POST",
-    body: {
-      task_id: task.value?.id.toString()!,
-      labels: labelsOptions,
-      documents: selectedDocumentsOrEmpty.value,
-      annotators: selectedAnnotatorsOrEmpty.value,
-      byWords: separate_into_words.value,
-      hideNonText: hideNonText.value,
-    },
-  });
-
-  console.log(anns);
-  let label_index = 0;
-  let json: any = {
-    task_id: task.value?.id,
-    task_name: task.value?.name,
-    task_description: task.value?.desc,
-    labels: [],
-    annotators: selectedAnnotators.value,
-  };
-  anns.map((l) => {
-    json.labels.push({ value: labelsOptions[label_index], documents: [] });
-    let prev_doc_id = -1;
-    let doc_index = 0;
-    l.map((a) => {
-      if (!a.hidden) {
-        if (prev_doc_id != a.doc_id) {
-          json.labels[label_index].documents.push({
-            document_id: a.doc_id,
-            document_name: a.doc_name,
-            annotations: [],
-          });
-          doc_index++;
-        }
-        json.labels[label_index].documents[doc_index - 1].annotations.push({
-          start: a.start,
-          end: a.end,
-          text: a.text,
-          annotator: a.annotator,
-        });
-        prev_doc_id = a.doc_id;
-      }
-    });
-    label_index++;
-  });
-
-  console.log(json);
-  saveAs(new Blob([JSON.stringify(json)]), task.value?.name + ".json");
-};
-
 const clickDownloadAll = async () => {
   download_progress.value.loading = true;
   try {
@@ -573,7 +520,7 @@ const clickDownloadAll = async () => {
       documentsData: documentsData.value,
       documentsOptions: documentsOptions.map((d) => d.value),
     });
-    console.log(blobs);
+
     const zip = JSZip();
     for (let i = 0; i < blobs.length; i++) {
       const b = await (await fetch(blobs[i].wb)).blob();
@@ -584,7 +531,6 @@ const clickDownloadAll = async () => {
     download_progress.value.loading = false;
     $toast.success(`One .zip file has been downloaded!`);
   } catch (error) {
-    console.log(error);
     download_progress.value.loading = false;
   }
 };
@@ -810,6 +756,7 @@ async function getAnnotationsSheet(table: RangeLabel[]) {
           start: r.start,
           end: r.end,
           text: r.text.length <= 1000 ? r.text : `${r.text.substring(0,100)} ... ${r.text.substring(900, 1000)}`,
+          confidence: r.confidence,
           value: v,
         });
       });
@@ -1013,6 +960,58 @@ const toggleTextToHidden = (value: boolean): RichAnnotation[] => {
 
 const emitSetHidden = (ann_index: number, hidden: boolean): void => {
   annotations[ann_index].hidden = hidden;
+};
+
+const get_json = async () => {
+  const anns = await $fetch("/api/metrics/get_all_annotations", {
+    method: "POST",
+    body: {
+      task_id: task.value?.id.toString()!,
+      labels: labelsOptions,
+      documents: selectedDocumentsOrEmpty.value,
+      annotators: selectedAnnotatorsOrEmpty.value,
+      byWords: separate_into_words.value,
+      hideNonText: hideNonText.value,
+    },
+  });
+
+  console.log(anns);
+  let label_index = 0;
+  let json: any = {
+    task_id: task.value?.id,
+    task_name: task.value?.name,
+    task_description: task.value?.desc,
+    labels: [],
+    annotators: selectedAnnotators.value,
+  };
+  anns.map((l) => {
+    json.labels.push({ value: labelsOptions[label_index], documents: [] });
+    let prev_doc_id = -1;
+    let doc_index = 0;
+    l.map((a) => {
+      if (!a.hidden) {
+        if (prev_doc_id != a.doc_id) {
+          json.labels[label_index].documents.push({
+            document_id: a.doc_id,
+            document_name: a.doc_name,
+            annotations: [],
+          });
+          doc_index++;
+        }
+        json.labels[label_index].documents[doc_index - 1].annotations.push({
+          start: a.start,
+          end: a.end,
+          text: a.text,
+          annotator: a.annotator,
+        });
+        prev_doc_id = a.doc_id;
+      }
+    });
+    label_index++;
+  });
+
+  console.log(json);
+  saveAs(new Blob([JSON.stringify(json)]), task.value?.name + ".json");
 };
 
 onMounted(async () => {

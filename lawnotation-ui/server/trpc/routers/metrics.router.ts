@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
-import type { RichAnnotation } from '~/types';
+import type { RichAnnotation } from '~/utils/metrics';
 import type { Context } from '../context';
 import { appRouter } from '.';
 
@@ -18,6 +18,7 @@ export type RangeLabel = {
   doc_name: string;
   zeros: number;
   ones: number;
+  confidence: number;
 };
 export type MetricResult = {
   name: string;
@@ -56,7 +57,8 @@ const ZRangeLabel = z.object({
   doc_id: z.number(),
   doc_name: z.string(),
   zeros: z.number(),
-  ones: z.number()
+  ones: z.number(),
+  confidence: z.number()
 });
 const ZMetricResult = z.object({
   name: z.string(),

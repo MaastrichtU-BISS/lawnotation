@@ -1,6 +1,6 @@
 import {
-  RangeLabel,
-  MetricResult,
+  type RangeLabel,
+  type MetricResult,
   newEmptyMetricResult,
   createContingencyTable,
 } from "~/utils/metrics";

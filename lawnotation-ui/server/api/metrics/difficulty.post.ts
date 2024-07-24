@@ -1,5 +1,4 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
-import type { Assignment } from "~/types";
 import type { DifficultyMetricResult, MetricResult } from "~/utils/metrics";
 import { newEmptyMetricResult } from "~/utils/metrics";
 
