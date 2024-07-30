@@ -1,8 +1,8 @@
 import {
-  RangeLabel,
+  type RangeLabel,
   createContingencyTable,
   newEmptyMetricResult,
-  MetricResult,
+  type MetricResult,
 } from "~/utils/metrics";
 
 export default eventHandler(async (event) => {

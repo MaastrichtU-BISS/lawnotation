@@ -22,18 +22,6 @@ export type Annotation = {
   confidence_rating: number;
 };
 
-export type RichAnnotation = {
-  start: number;
-  end: number;
-  text: string;
-  label: string;
-  annotator: string;
-  hidden: boolean;
-  ann_id: number;
-  doc_id: number;
-  doc_name?: string;
-};
-
 export type LSSerializedAnnotation = {
   id: string;
   from_name: string;
