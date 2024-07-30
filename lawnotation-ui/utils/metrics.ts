@@ -9,7 +9,7 @@ export type RangeLabel = {
   doc_name: string;
   zeros: number;
   ones: number;
-  confidence: number;
+  confidences: any;
 };
 
 export type RichAnnotation = {
@@ -79,8 +79,12 @@ export function createContingencyTable(
       doc_name: x.doc_name,
       zeros: 0,
       ones: 0,
-      confidence: x.confidence
+      confidences: {}
     };
+
+    if(x.annotator.length) {
+      ann.confidences[x.annotator] = x.confidence;
+    }
 
     let matches = false;
     if (table.length > 0) {
@@ -103,6 +107,7 @@ export function createContingencyTable(
       table[table.length - 1].ones++;
       table[table.length - 1].zeros--;
       table[table.length - 1].annotators[x.annotator] = 1;
+      table[table.length - 1].confidences[x.annotator] = x.confidence;
     }
   });
 
@@ -293,6 +298,7 @@ export function separateIntoWords(annotations: RichAnnotation[]) {
         ann_id: ann.ann_id,
         doc_id: ann.doc_id,
         doc_name: ann.doc_name,
+        confidence: ann.confidence
       });
       limit--;
     }
