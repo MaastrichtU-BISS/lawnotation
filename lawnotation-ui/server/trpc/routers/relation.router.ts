@@ -93,23 +93,18 @@ export const relationRouter = router({
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findRelationsByTask: ${error.message}`});
       return data as AnnotationRelation[];
     }),
-
+    
   // previously 'findRelation':
   'findFromAnnotationIds': protectedProcedure
     .input(
       z.array(z.number().int())
     )
     .query(async ({ ctx, input }) => {
-      const relations: AnnotationRelation[] = [];
-      for (const id of input) {
-          const { data, error } = await ctx.supabase.from("annotation_relations").select().eq("from_id", id);
-          relations.push(...data as AnnotationRelation[]);
-
-          if (error)
-            throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findFromAnnotationIds: ${error.message}`});
-      }
-
-      return relations as AnnotationRelation[];
+      const { data, error } = await ctx.supabase.from("annotation_relations").select().in("from_id", input);
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findFromAnnotationIds: ${error.message}`});
+      
+      return data as AnnotationRelation[];
     })
 
 })
