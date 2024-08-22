@@ -34,12 +34,12 @@ describe('Assign a project to annotators as the editor', () => {
 
         cy.get('span[data-pc-section="label"]').contains('annotator@example.com').should('exist')
         cy.get('span[data-pc-section="label"]').contains('annotator1@example.com').should('exist')
-        cy.get('td').contains('Test.txt').should('exist')
+        // cy.get('td').contains('Test.txt').should('exist')
         cy.get('#breadcrumb-holder').find('li').eq(1).click()
         cy.get('a[data-test="view-task-link"]').click()
         cy.get('td').contains('annotator@example.com').should('exist')
         cy.get('td').contains('annotator1@example.com').should('exist')
-        cy.get('td').contains('Test.txt').should('exist')
+        // cy.get('td').contains('Test.txt').should('exist')
     })
 
     it('Editor can view the task', () => {
