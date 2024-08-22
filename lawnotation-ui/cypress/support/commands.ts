@@ -41,7 +41,7 @@ Cypress.Commands.add('addTask', (taskname, annotationLevel = 'span') => {
   cy.get('button[data-test="open-tasks-modal"]').click();
   cy.get('input[data-test="task-name"]').clear().type(taskname)
   cy.get('textarea[data-test="task-description"]').clear().type('test task')
-  cy.get('input[data-test="annotation-guidelines"]').clear().type('example.com')
+  cy.get('input[data-test="annotation-guidelines"]').clear().type('https://example.com')
   cy.get('div[data-test="select-labelset"]').click()
   cy.get('li[aria-label="Seeded labelset"]').click()
   cy.get('div[data-test="select-annotation-level"]').find(`div[aria-label="${annotationLevel}"]`).click()
