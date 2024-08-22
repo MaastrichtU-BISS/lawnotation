@@ -550,6 +550,7 @@ const resetModal = () => {
   new_task.desc = "";
   new_task.ann_guidelines = "";
   new_task.labelset_id = undefined;
+  selectedAnnotationLevel.value = undefined;
   new_task.annotation_level = undefined;
   new_task.ml_model_id = undefined;
 };
