@@ -66,7 +66,8 @@
                     <div
                       class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
                     </div>
-                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
+                    <span
+                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
                   </label>
                   <InfoToolTip :id="'tooltip_annotation_word'"
                     :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
@@ -584,7 +585,7 @@ async function download_all(data: any) {
         data.documentsOrEmpty,
         data
       );
-      const metrics_sample = metrics[0].table?? metrics[2].table!;
+      const metrics_sample = metrics[0].table ?? metrics[2].table!;
       const annotations_sheet = await getAnnotationsSheet(metrics_sample);
       const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
         metrics_sample,
@@ -653,7 +654,7 @@ async function download_all(data: any) {
         );
 
         const metrics_sheet = await getMetricsSheet(metrics, label, [document], data);
-        const metrics_sample = metrics[0].table?? metrics[2].table!;
+        const metrics_sample = metrics[0].table ?? metrics[2].table!;
         const annotations_sheet = await getAnnotationsSheet(metrics_sample);
         const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
           metrics_sample,
@@ -755,7 +756,7 @@ async function getAnnotationsSheet(table: RangeLabel[]) {
           annotator: k,
           start: r.start,
           end: r.end,
-          text: r.text.length <= 1000 ? r.text : `${r.text.substring(0,100)} ... ${r.text.substring(900, 1000)}`,
+          text: r.text.length <= 1000 ? r.text : `${r.text.substring(0, 100)} ... ${r.text.substring(900, 1000)}`,
           confidence: r.confidences[k],
           value: v,
         });
