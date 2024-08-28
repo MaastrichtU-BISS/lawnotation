@@ -620,7 +620,7 @@ async function download_all(data: any) {
         const workBookConfidence = await getConfidenceSheet(
           data.task_id,
           data.annotators.length,
-          data.annotatorOrEmpty,
+          data.annotatorsOrEmpty,
           [document]
         );
 
