@@ -113,7 +113,7 @@
 </template>
 <script setup lang="ts">
 import type { DifficultyMetricResult } from "~/utils/metrics";
-const props = defineProps<{
+const { modelValue } = defineProps<{
   modelValue: DifficultyMetricResult;
 }>();
 </script>

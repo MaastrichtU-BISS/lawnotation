@@ -213,7 +213,7 @@
         </div>
       </div>
     </div>
-    <DifficultyMetricsModal v-model="metrics_result.difficulty"></DifficultyMetricsModal>
+    <DifficultyMetricsModal :modelValue="metrics_result.difficulty!"></DifficultyMetricsModal>
   </div>
 </template>
 <script setup lang="ts">
