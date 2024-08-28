@@ -543,73 +543,75 @@ async function download_all(data: any) {
     (selectedDocuments.value.length + 1) * labelsOptions.length * 3 +
     (selectedDocuments.value.length + 1);
   try {
+    if (data.documents.length > 1) {
     // All confidence
-    try {
-      const workBookConfidence = await getConfidenceSheet(
-        data.task_id,
-        data.annotators.length,
-        data.annotatorOrEmpty,
-        data.documentsOrEmpty
-      );
+      try {
+        const workBookConfidence = await getConfidenceSheet(
+          data.task_id,
+          data.annotators.length,
+          data.annotatorOrEmpty,
+          data.documentsOrEmpty
+        );
 
+        results.push({
+          wb: getZippeableBlob(workBookConfidence),
+          name: `_confidence.xlsx`,
+        });
+        download_progress.value.current++;
+      } catch (error) { console.log(error) }
+
+      // All metrics
+      const workbookMetrics = XLSX.utils.book_new();
+      const workbookAnnotations = XLSX.utils.book_new();
+      const workbookDescriptive = XLSX.utils.book_new();
+      for (let i = 0; i < data.labelsOptions.length; i++) {
+        const label = data.labelsOptions[i];
+        const metrics = await compute_metrics(
+          data.task_id,
+          label,
+          data.documentsOrEmpty,
+          data.annotators,
+          data.annotatorsOrEmpty,
+          data.tolerance,
+          data.byWords,
+          data.hideNonText,
+          data.contained,
+          data.documentsData,
+          data.documentsOptions
+        );
+
+        const metrics_sheet = await getMetricsSheet(
+          metrics,
+          label,
+          data.documentsOrEmpty,
+          data
+        );
+        const metrics_sample = metrics[0].table ?? metrics[2].table!;
+        const annotations_sheet = await getAnnotationsSheet(metrics_sample);
+        const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
+          metrics_sample,
+          data.annotators
+        );
+
+        XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label.substring(0, 31));
+        XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label.substring(0, 31));
+        XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label.substring(0, 31));
+
+        download_progress.value.current += 3;
+      }
       results.push({
-        wb: getZippeableBlob(workBookConfidence),
-        name: `_confidence.xlsx`,
+        wb: getZippeableBlob(workbookMetrics),
+        name: `_metrics.xlsx`,
       });
-      download_progress.value.current++;
-    } catch (error) { console.log(error) }
-
-    // All metrics
-    const workbookMetrics = XLSX.utils.book_new();
-    const workbookAnnotations = XLSX.utils.book_new();
-    const workbookDescriptive = XLSX.utils.book_new();
-    for (let i = 0; i < data.labelsOptions.length; i++) {
-      const label = data.labelsOptions[i];
-      const metrics = await compute_metrics(
-        data.task_id,
-        label,
-        data.documentsOrEmpty,
-        data.annotators,
-        data.annotatorsOrEmpty,
-        data.tolerance,
-        data.byWords,
-        data.hideNonText,
-        data.contained,
-        data.documentsData,
-        data.documentsOptions
-      );
-
-      const metrics_sheet = await getMetricsSheet(
-        metrics,
-        label,
-        data.documentsOrEmpty,
-        data
-      );
-      const metrics_sample = metrics[0].table ?? metrics[2].table!;
-      const annotations_sheet = await getAnnotationsSheet(metrics_sample);
-      const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
-        metrics_sample,
-        data.annotators
-      );
-
-      XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label.substring(0, 31));
-      XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label.substring(0, 31));
-      XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label.substring(0, 31));
-
-      download_progress.value.current += 3;
+      results.push({
+        wb: getZippeableBlob(workbookAnnotations),
+        name: `_annotations.xlsx`,
+      });
+      results.push({
+        wb: getZippeableBlob(workbookDescriptive),
+        name: `_descriptive.xlsx`,
+      });
     }
-    results.push({
-      wb: getZippeableBlob(workbookMetrics),
-      name: `_metrics.xlsx`,
-    });
-    results.push({
-      wb: getZippeableBlob(workbookAnnotations),
-      name: `_annotations.xlsx`,
-    });
-    results.push({
-      wb: getZippeableBlob(workbookDescriptive),
-      name: `_descriptive.xlsx`,
-    });
 
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
