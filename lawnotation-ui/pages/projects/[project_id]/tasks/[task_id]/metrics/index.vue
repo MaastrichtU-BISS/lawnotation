@@ -685,7 +685,7 @@ async function download_all(data: any) {
     }
 
     return results;
-  } catch (error) { console.log(error) }
+  } catch (error) { console.error(error) }
   return [];
 }
 
