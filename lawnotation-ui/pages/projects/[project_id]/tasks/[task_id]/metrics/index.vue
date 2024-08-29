@@ -606,21 +606,22 @@ async function createWorkBooks(data: any, document?: any) {
   );
   download_progress.value.current++;
 
-  const annotations = await getAnnotations(
-    data.task_id,
-    data.label,
-    data.documents,
-    data.annotatorsOrEmpty,
-    data.byWords,
-    data.hideNonText,
-  );
-  
   // All metrics
   const workbookMetrics = XLSX.utils.book_new();
   const workbookAnnotations = XLSX.utils.book_new();
   const workbookDescriptive = XLSX.utils.book_new();
   for (let i = 0; i < data.labelsOptions.length; i++) {
     const label = data.labelsOptions[i];
+
+    const annotations = await getAnnotations(
+      data.task_id,
+      label,
+      data.documents,
+      data.annotators,
+      data.byWords,
+      data.hideNonText,
+    );
+
     const metrics = await compute_metrics(
       data.task_id,
       label,
@@ -643,7 +644,24 @@ async function createWorkBooks(data: any, document?: any) {
       data
     );
     const metrics_sample = metrics[0].table ?? metrics[2].table!;
-    const annotations_sheet = await getAnnotationsSheet(metrics_sample);
+    const annotations_sheet = await getAnnotationsSheet(metrics_sample?.length ?
+      metrics_sample :
+      annotations.map(annotation => {
+        return {
+          start: annotation.start,
+          end: annotation.end,
+          label: annotation.label,
+          text: annotation.text,
+          annotators: { [annotation.annotator]: Number(annotation.label !== "NOT ANNOTATED") },
+          doc_id: annotation.doc_id.toString(),
+          doc_name: annotation?.doc_name!,
+          zeros: 0,
+          ones: 0,
+          confidences: {
+            [annotation.annotator]: annotation.confidence
+          }
+        }
+      }));
     const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
       metrics_sample,
       data.annotators
