@@ -567,9 +567,9 @@ async function download_all(data: any) {
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
-      
+
       const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data, document);
-      
+
       results.push({
         wb: getZippeableBlob(workBookConfidence),
         name: `${filename}_confidence.xlsx`,
@@ -605,6 +605,16 @@ async function createWorkBooks(data: any, document?: any) {
     document ? [document] : data.documentsOrEmpty
   );
   download_progress.value.current++;
+
+  const annotations = await getAnnotations(
+    data.task_id,
+    data.label,
+    data.documents,
+    data.annotatorsOrEmpty,
+    data.byWords,
+    data.hideNonText,
+  );
+  
   // All metrics
   const workbookMetrics = XLSX.utils.book_new();
   const workbookAnnotations = XLSX.utils.book_new();
@@ -622,7 +632,8 @@ async function createWorkBooks(data: any, document?: any) {
       data.hideNonText,
       data.contained,
       data.documentsData,
-      data.documentsOptions
+      data.documentsOptions,
+      annotations
     );
 
     const metrics_sheet = await getMetricsSheet(
