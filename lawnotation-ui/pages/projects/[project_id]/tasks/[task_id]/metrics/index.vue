@@ -544,21 +544,19 @@ async function download_all(data: any) {
     (selectedDocuments.value.length + 1);
   try {
     if (data.documents.length > 1) {
-    // All confidence
-      try {
-        const workBookConfidence = await getConfidenceSheet(
-          data.task_id,
-          data.annotators.length,
-          data.annotatorOrEmpty,
-          data.documentsOrEmpty
-        );
+      // All confidence
+      const workBookConfidence = await getConfidenceSheet(
+        data.task_id,
+        data.annotators.length,
+        data.annotatorOrEmpty,
+        data.documentsOrEmpty
+      );
 
-        results.push({
-          wb: getZippeableBlob(workBookConfidence),
-          name: `_confidence.xlsx`,
-        });
-        download_progress.value.current++;
-      } catch (error) { console.log(error) }
+      results.push({
+        wb: getZippeableBlob(workBookConfidence),
+        name: `_confidence.xlsx`,
+      });
+      download_progress.value.current++;
 
       // All metrics
       const workbookMetrics = XLSX.utils.book_new();
@@ -618,23 +616,20 @@ async function download_all(data: any) {
       const document = data.documents[i];
       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
       // per document confidence
-      try {
-        const workBookConfidence = await getConfidenceSheet(
-          data.task_id,
-          data.annotators.length,
-          data.annotatorsOrEmpty,
-          [document]
-        );
+      const workBookConfidence = await getConfidenceSheet(
+        data.task_id,
+        data.annotators.length,
+        data.annotatorsOrEmpty,
+        [document]
+      );
 
-        results.push({
-          wb: getZippeableBlob(workBookConfidence),
-          name: `${filename}_confidence.xlsx`,
-        });
+      results.push({
+        wb: getZippeableBlob(workBookConfidence),
+        name: `${filename}_confidence.xlsx`,
+      });
 
-        download_progress.value.current++;
-      } catch (error) {
-        console.log(error);
-      }
+      download_progress.value.current++;
+
       const workbookMetrics = XLSX.utils.book_new();
       const workbookAnnotations = XLSX.utils.book_new();
       const workbookDescriptive = XLSX.utils.book_new();
