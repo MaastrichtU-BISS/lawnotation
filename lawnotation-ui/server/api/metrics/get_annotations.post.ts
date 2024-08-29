@@ -32,9 +32,7 @@ export default eventHandler(async (event) => {
   const annotations = await annotationsPromise;
   const documentsData = await documentsDataPromise;
 
-  let result = [];
-
-  result = await getNonAnnotations(
+  let result = await getNonAnnotations(
     annotations,
     documentsData[0],
     documentsData[1]
