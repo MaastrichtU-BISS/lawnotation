@@ -61,7 +61,7 @@
                   />
                 </svg>
                 <p class="ml-2 text-sm font-medium text-gray-900 dark:text-white">
-                  {{ modelValue?.average.toFixed(2) }} average
+                  {{ modelValue?.average?.toFixed(2) }} average
                 </p>
               </div>
               <p class="inline text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -113,7 +113,7 @@
 </template>
 <script setup lang="ts">
 import type { DifficultyMetricResult } from "~/utils/metrics";
-const props = defineProps<{
+const { modelValue } = defineProps<{
   modelValue: DifficultyMetricResult;
 }>();
 </script>
