@@ -76,25 +76,27 @@ export const assignmentRouter = router({
 
         await ctx.supabase.auth.admin.updateUserById(user_id, { user_metadata: { assigned_task_id: input.task_id } })
 
-        const config = useRuntimeConfig();
-        // send email to existing user
-        if (!config.mailtrapToken)
-          throw Error("Mailtrap API token not set")
-
-        const mailClient = new MailtrapClient({ token: config.mailtrapToken });
-
-        const body = `Hello ${user_email},<br />
-        You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
-
-        const mail = await mailClient.send({
-          from: { email: 'no-reply@login.lawnotation.org', name: 'Lawnotation' },
-          to: [{ email: user_email }],
-          subject: 'Assigned to new task',
-          html: body
-        })
-
-        if (!mail.success)
-          throw new TRPCError({ message: 'There was an error sending an email to the invited user.', code: 'INTERNAL_SERVER_ERROR' })
+        if (process.env.NODE_ENV !== "development") {
+          const config = useRuntimeConfig();
+          // send email to existing user
+          if (!config.mailtrapToken)
+            throw Error("Mailtrap API token not set")
+  
+          const mailClient = new MailtrapClient({ token: config.mailtrapToken });
+  
+          const body = `Hello ${user_email},<br />
+          You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
+  
+          const mail = await mailClient.send({
+            from: { email: 'no-reply@login.lawnotation.org', name: 'Lawnotation' },
+            to: [{ email: user_email }],
+            subject: 'Assigned to new task',
+            html: body
+          })
+  
+          if (!mail.success)
+            throw new TRPCError({ message: 'There was an error sending an email to the invited user.', code: 'INTERNAL_SERVER_ERROR' })
+        }
 
       }
 
