@@ -55,12 +55,12 @@ export const assignmentRouter = router({
         task_id: z.number(),
       })
     )
-    .query(async ({ctx, input}) => {
+    .query(async ({ ctx, input }) => {
       const email_found = await ctx.supabase.from('users').select().eq('email', input.email).maybeSingle();
       let user_id: User['id'] | null = null;
       if (!email_found.data) {
         // email is a new user.
-        const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, {data: {assigned_task_id: input.task_id}})
+        const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, { data: { assigned_task_id: input.task_id } })
 
         if (invite.error)
           throw new TRPCError({
@@ -74,7 +74,7 @@ export const assignmentRouter = router({
         user_id = email_found.data.id as string;
         const user_email = email_found.data.email as string;
 
-        await ctx.supabase.auth.admin.updateUserById(user_id, {user_metadata: {assigned_task_id: input.task_id}})
+        await ctx.supabase.auth.admin.updateUserById(user_id, { user_metadata: { assigned_task_id: input.task_id } })
 
         const config = useRuntimeConfig();
         // send email to existing user
@@ -87,15 +87,15 @@ export const assignmentRouter = router({
         You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
 
         const mail = await mailClient.send({
-          from: {email: 'no-reply@login.lawnotation.org', name: 'Lawnotation'},
-          to: [{email: user_email}],
+          from: { email: 'no-reply@login.lawnotation.org', name: 'Lawnotation' },
+          to: [{ email: user_email }],
           subject: 'Assigned to new task',
           html: body
         })
-  
+
         if (!mail.success)
-          throw new TRPCError({message: 'There was an error sending an email to the invited user.', code: 'INTERNAL_SERVER_ERROR'})
-        
+          throw new TRPCError({ message: 'There was an error sending an email to the invited user.', code: 'INTERNAL_SERVER_ERROR' })
+
       }
 
       if (!user_id)
@@ -114,8 +114,8 @@ export const assignmentRouter = router({
         task_id: z.number(),
       })
     )
-    .query(async ({ctx, input}) => {
-      const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, {data: {invited_task_id: input.task_id}})
+    .query(async ({ ctx, input }) => {
+      const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, { data: { invited_task_id: input.task_id } })
 
       if (invite.error)
         throw new TRPCError({
@@ -311,7 +311,7 @@ export const assignmentRouter = router({
       return data;
     }),
 
-    getCountByProject: protectedProcedure
+  getCountByProject: protectedProcedure
     .input(z.number().int())
     .query(async ({ ctx, input: p_id }) => {
       const { data, error, count } = await ctx.supabase
@@ -609,67 +609,66 @@ export const assignmentRouter = router({
         predicting: count ?? 0
       };
     }),
-    
-    getGroupByAnnotators: protectedProcedure
-      .input(z.object({
-        task_id: z.number().int(),
-        page: z.number().int(),
-        filter: z.object({
-          name: z.string()
-        })
-      }))
-      .query(async ({ctx, input}) => {
-        const rowsPerPage = 10;
-        
-        type TreeItem = {
-          type: 'annotator',
+
+  getGroupByAnnotators: protectedProcedure
+    .input(z.object({
+      task_id: z.number().int(),
+      page: z.number().int(),
+      filter: z.object({
+        name: z.string()
+      })
+    }))
+    .query(async ({ ctx, input }) => {
+      const rowsPerPage = 10;
+
+      type TreeItem = {
+        type: 'annotator',
+        key: string,
+        data: {
+          name: string,
+          amount_done: number,
+          amount_total: number,
+          next_seq_pos: number
+        },
+        children: {
+          type: 'document',
           key: string,
           data: {
-            name: string,
-            amount_done: number,
-            amount_total: number,
-            next_seq_pos: number
-          },
-          children: {
-            type: 'document',
-            key: string,
-            data: {
-              assignment_id: number,
-              seq_pos: number,
-              document_id: number,
-              document_name: string,
-              annotator_name: string,
-              difficulty_rating: number,
-              status: string
-            }
-          }[]
-        };
+            assignment_id: number,
+            seq_pos: number,
+            document_id: number,
+            document_name: string,
+            annotator_name: string,
+            difficulty_rating: number,
+            status: string
+          }
+        }[]
+      };
 
-        const grouped: TreeItem[] = []
+      const grouped: TreeItem[] = []
 
-        const count = (await ctx.sql`SELECT DISTINCT annotator_number FROM assignments WHERE task_id = ${input.task_id}`).count
+      const count = (await ctx.sql`SELECT DISTINCT annotator_number FROM assignments WHERE task_id = ${input.task_id}`).count
 
-        const sanitizedFilter = input.filter.name.replace(/[%_]/g, '')
-        const annotatorNameComputation = ctx.sql.unsafe("COALESCE(u.email, CONCAT('annotator ', a.annotator_number))")
+      const sanitizedFilter = input.filter.name.replace(/[%_]/g, '')
+      const annotatorNameComputation = ctx.sql.unsafe("COALESCE(u.email, CONCAT('annotator ', a.annotator_number))")
 
-        const queryAnnotators = ctx.sql<{annotator_number: number, email?: string, annotator_name: string}[]>`
+      const queryAnnotators = ctx.sql<{ annotator_number: number, email?: string, annotator_name: string }[]>`
           SELECT DISTINCT a.annotator_number, u.email, ${annotatorNameComputation} as annotator_name
           FROM assignments AS a
           LEFT JOIN users AS u
             ON (a.annotator_id = u.id)
           WHERE a.task_id = ${input.task_id}
-          ${
-            sanitizedFilter
-              ? ctx.sql`AND ${annotatorNameComputation} ILIKE ${ '%' + sanitizedFilter + '%' }`
-              : ctx.sql``
-          }
+          ${sanitizedFilter
+          ? ctx.sql`AND ${annotatorNameComputation} ILIKE ${'%' + sanitizedFilter + '%'}`
+          : ctx.sql``
+        }
           ORDER BY annotator_number
-          LIMIT ${rowsPerPage} OFFSET ${(input.page-1) * rowsPerPage}
+          LIMIT ${rowsPerPage} OFFSET ${(input.page - 1) * rowsPerPage}
         `
-      
-        await queryAnnotators.cursor(async ([dbAnnotator]) => {
 
-            const dbAssignments = await ctx.sql`
+      await queryAnnotators.cursor(async ([dbAnnotator]) => {
+
+        const dbAssignments = await ctx.sql`
               SELECT a.*, u.email, d.name AS document_name
               FROM assignments AS a
               INNER JOIN documents AS d
@@ -681,104 +680,104 @@ export const assignmentRouter = router({
               ORDER BY a.seq_pos
             `
 
-            const children: TreeItem['children'] = []
+        const children: TreeItem['children'] = []
 
-            for (const dbAssignment of dbAssignments) {
-              children.push({
-                type: 'document',
-                key: `ass-${dbAssignment.id}`,
-                data: {
-                  assignment_id: dbAssignment.id,
-                  seq_pos: dbAssignment.seq_pos,
-                  document_id: dbAssignment.document_id,
-                  document_name: dbAssignment.document_name,
-                  annotator_name: dbAnnotator.annotator_name,
-                  difficulty_rating: dbAssignment.difficulty_rating,
-                  status: dbAssignment.status
-                },
-              })
-            }
-
-            grouped.push({
-              type: 'annotator',
-              key: `ann-${dbAnnotator.annotator_number}`,
-              data: {
-                name: dbAnnotator.annotator_name, // dbAnnotator.email ?? `annotator ${dbAnnotator.annotator_number}`,
-                amount_done: dbAssignments.filter(ass => ass.status == AssignmentStatuses.DONE).length,
-                amount_total: dbAssignments.length,
-                next_seq_pos: Math.min(...dbAssignments.filter(ass => [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED].includes(ass.status)).map(ass => ass.seq_pos!))
-              },
-              children
-            })
-        })
-
-        return {data: grouped ?? [], total: count ?? 0 };
-      }),
-    
-    getGroupByDocuments: protectedProcedure
-      .input(z.object({
-        task_id: z.number().int(),
-        page: z.number().int(),
-        filter: z.object({
-          document: z.string()
-        }),
-        // sort: z.object({
-        //   field: z.union([
-        //     z.literal('name'),
-        //     z.literal('progress')
-        //   ])
-        // })
-      }))
-      .query(async ({ctx, input}) => {
-        const rowsPerPage = 10;
-
-        const query = ctx.supabase
-          .from("documents")
-          .select(
-            "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, user:users(id, email))",
-            { count: "exact" }
-          )
-          .eq("assignments.task_id", input.task_id)
-          .order("seq_pos", { referencedTable: "assignments", ascending: true })
-          .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage)
-      
-        if (input.filter.document.length)
-          query.ilike("name", `%${input.filter.document}%`)
-        
-        const { data, error, count } = await query
-        
-        if (error)
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Error in getGroupByAnnotators: ${error.message}`,
-          });
-        
-        const grouped = data
-          .map(doc => ({
+        for (const dbAssignment of dbAssignments) {
+          children.push({
             type: 'document',
-            key: `doc-${doc.id}`,
+            key: `ass-${dbAssignment.id}`,
             data: {
-              document_id: doc!.id,
-              document_name: doc!.name,
-              amount_done: doc.assignments.filter(ass => ass.status == AssignmentStatuses.DONE).length,
-              amount_total: doc.assignments.length,
-              next_seq_pos: Math.min(...doc.assignments.filter(doc => [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED].includes(doc.status)).map(ass => ass.seq_pos!))
+              assignment_id: dbAssignment.id,
+              seq_pos: dbAssignment.seq_pos,
+              document_id: dbAssignment.document_id,
+              document_name: dbAssignment.document_name,
+              annotator_name: dbAnnotator.annotator_name,
+              difficulty_rating: dbAssignment.difficulty_rating,
+              status: dbAssignment.status
             },
-            children: doc.assignments!.map(ass => ({
-              type: 'annotator',
-              key: `ass-${ass.id}`,
-              data: {
-                assignment_id: ass.id,
-                name: ass.user?.email ?? `annotator ${ass.annotator_number}`,
-                seq_pos: ass.seq_pos,
-                difficulty_rating: ass.difficulty_rating,
-                status: ass.status
-              }
-            }))
-          }))
-        
-        return {data: grouped ?? [], total: count ?? 0 };
+          })
+        }
+
+        grouped.push({
+          type: 'annotator',
+          key: `ann-${dbAnnotator.annotator_number}`,
+          data: {
+            name: dbAnnotator.annotator_name, // dbAnnotator.email ?? `annotator ${dbAnnotator.annotator_number}`,
+            amount_done: dbAssignments.filter(ass => ass.status == AssignmentStatuses.DONE).length,
+            amount_total: dbAssignments.length,
+            next_seq_pos: Math.min(...dbAssignments.filter(ass => [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED].includes(ass.status)).map(ass => ass.seq_pos!))
+          },
+          children
+        })
       })
+
+      return { data: grouped ?? [], total: count ?? 0 };
+    }),
+
+  getGroupByDocuments: protectedProcedure
+    .input(z.object({
+      task_id: z.number().int(),
+      page: z.number().int(),
+      filter: z.object({
+        document: z.string()
+      }),
+      // sort: z.object({
+      //   field: z.union([
+      //     z.literal('name'),
+      //     z.literal('progress')
+      //   ])
+      // })
+    }))
+    .query(async ({ ctx, input }) => {
+      const rowsPerPage = 10;
+
+      const query = ctx.supabase
+        .from("documents")
+        .select(
+          "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, user:users(id, email))",
+          { count: "exact" }
+        )
+        .eq("assignments.task_id", input.task_id)
+        .order("seq_pos", { referencedTable: "assignments", ascending: true })
+        .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage)
+
+      if (input.filter.document.length)
+        query.ilike("name", `%${input.filter.document}%`)
+
+      const { data, error, count } = await query
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in getGroupByAnnotators: ${error.message}`,
+        });
+
+      const grouped = data
+        .map(doc => ({
+          type: 'document',
+          key: `doc-${doc.id}`,
+          data: {
+            document_id: doc!.id,
+            document_name: doc!.name,
+            amount_done: doc.assignments.filter(ass => ass.status == AssignmentStatuses.DONE).length,
+            amount_total: doc.assignments.length,
+            next_seq_pos: Math.min(...doc.assignments.filter(doc => [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED].includes(doc.status)).map(ass => ass.seq_pos!))
+          },
+          children: doc.assignments!.map(ass => ({
+            type: 'annotator',
+            key: `ass-${ass.id}`,
+            data: {
+              assignment_id: ass.id,
+              name: ass.user?.email ?? `annotator ${ass.annotator_number}`,
+              seq_pos: ass.seq_pos,
+              difficulty_rating: ass.difficulty_rating,
+              status: ass.status
+            }
+          }))
+        }))
+
+      return { data: grouped ?? [], total: count ?? 0 };
+    })
 
 });
 
