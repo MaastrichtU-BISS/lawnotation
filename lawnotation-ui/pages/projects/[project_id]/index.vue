@@ -683,7 +683,7 @@ const importTask = async () => {
 
             let new_ass: any = {
               task_id: task.id,
-              document_id: documents[i].id,
+              document_id: import_json.value.documents[i].id,
               difficulty_rating: ass.difficulty_rating,
               seq_pos: ass.order,
               status: "pending",
