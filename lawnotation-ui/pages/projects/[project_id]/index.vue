@@ -204,29 +204,34 @@
               :ptOptions="{ mergeProps: true }"></Badge>
           </div>
         </template>
-        <div class="flex justify-end pt-2">
-          <div class="relative">
-            <Button label="Add" icon="pi pi-plus" :disabled="loading_docs" @click="showUploadDocumentsModal = true"
-              icon-pos="right" data-test="open-documents-modal" />
-            <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
+        <div class="dimmer-wrapper">
+          <DimmerProgress v-if="upload_docs_progress.loading" v-model="upload_docs_progress" />
+          <div class="dimmer-content">
+            <div class="flex justify-end pt-2">
+              <div class="relative">
+                <Button label="Add" icon="pi pi-plus" :disabled="upload_docs_progress.loading" @click="showUploadDocumentsModal = true"
+                  icon-pos="right" data-test="open-documents-modal" />
+                <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
+              </div>
+            </div>
+            <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
+              :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
+              <template #row="{ item }: { item: Document }">
+                <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
+                  {{ item.id }}
+                </td>
+                <td class="px-6 py-2">
+                  {{ item.name }}
+                </td>
+                <td class="px-6 py-2 flex">
+                  <NuxtLink class="base" :to="`/projects/${route.params.project_id}/documents/${item.id}`">
+                    <Button label="View" size="small" />
+                  </NuxtLink>
+                </td>
+              </template>
+            </Table>
           </div>
         </div>
-        <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
-          :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
-          <template #row="{ item }: { item: Document }">
-            <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-              {{ item.id }}
-            </td>
-            <td class="px-6 py-2">
-              {{ item.name }}
-            </td>
-            <td class="px-6 py-2 flex">
-              <NuxtLink class="base" :to="`/projects/${route.params.project_id}/documents/${item.id}`">
-                <Button label="View" size="small" />
-              </NuxtLink>
-            </td>
-          </template>
-        </Table>
         <Dialog v-model:visible="showUploadDocumentsModal" modal header="Add documents" :pt="{
           root: '!w-[80vw] xl:!w-[50vw]',
           header: {
@@ -309,8 +314,6 @@ const route = useRoute();
 
 const config = useRuntimeConfig();
 
-const loading_docs = ref(false);
-
 const activeTab = ref<number>(0);
 const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
@@ -340,6 +343,18 @@ const import_progress = ref<{
 }>({
   loading: false,
   message: "Creating Task",
+  current: 0,
+  total: 0,
+});
+
+const upload_docs_progress = ref<{
+  loading: boolean;
+  current: number;
+  total: number;
+  message: string;
+}>({
+  loading: false,
+  message: "Uploading documents",
   current: 0,
   total: 0,
 });
@@ -439,33 +454,31 @@ const refreshLabelsets = async () => {
 
 const uploadDocuments = async (event: { files: FileList }) => {
 
-  var text_promises: Promise<string>[] = [];
-  var new_docs: Omit<Document, "id">[] = [];
-  loading_docs.value = true;
+  const new_docs: Omit<Document, "id">[] = [];
+  upload_docs_progress.value.loading = true;
+  upload_docs_progress.value.total = event.files.length ?? 0;
+  upload_docs_progress.value.current = 0;
   showUploadDocumentsModal.value = false;
 
-  Array.from(event.files ?? []).forEach((file: File) => {
-    text_promises.push(file.text());
+  for (const file of event.files ?? []) {
     new_docs.push({
       name: file.name,
       source: "local_upload",
-      full_text: "",
+      full_text: await file.text(),
       project_id: +route.params.project_id,
     });
-  });
-
-  const texts = await Promise.all(text_promises);
-
-  texts.forEach((t, index) => {
-    new_docs[index].full_text = t;
-  });
-
+  };
+  
   saveDocuments(new_docs);
 };
 
 const onDocumentsFetched = (docs: Doc[]) => {
   var new_docs: Omit<Document, "id">[] = [];
-  loading_docs.value = true;
+
+  upload_docs_progress.value.loading = true;
+  upload_docs_progress.value.total = docs.length;
+  upload_docs_progress.value.current = 0;
+
   showUploadDocumentsModal.value = false;
   docs.map((doc: Doc) => {
     new_docs.push({
@@ -481,13 +494,16 @@ const onDocumentsFetched = (docs: Doc[]) => {
 
 const saveDocuments = async (new_docs: Omit<Document, "id">[]) => {
   try {
-    await $trpc.document.createMany.mutate(new_docs);
+    for (const doc of new_docs) {
+      await $trpc.document.create.mutate(doc);
+      upload_docs_progress.value.current++;
+    }
     documentTable.value?.refresh();
     $toast.success(`${new_docs.length} documents uploaded!`);
   } catch (error) {
     $toast.success(`Error uploading documents: ${error}`);
   } finally {
-    loading_docs.value = false;
+    upload_docs_progress.value.loading = false;
   }
 };
 
@@ -573,6 +589,9 @@ const loadExportTaskFile = async (event: { files: FileList }) => {
 
 const importTask = async () => {
   import_progress.value.loading = true;
+  import_progress.value.message = "Creating Task";
+  import_progress.value.total = 0;
+  import_progress.value.current = 0;
 
   for (let i = 0; i < new_annotators.value.length; i++) {
     const new_email = new_annotators.value[i];
@@ -616,17 +635,21 @@ const importTask = async () => {
     // creating documents
     if (import_json.value.documents) {
       import_progress.value.message = "Creating Documents";
+      import_progress.value.total = import_json.value.documents.length;
+      import_progress.value.current = 0;
 
-      const documents = await $trpc.document.createMany.mutate(
-        import_json.value.documents.map((d: any) => {
-          return {
-            name: d.name,
-            full_text: d.full_text,
-            source: "imported",
-            project_id: project.id,
-          };
+      for (const doc of import_json.value.documents as Omit<Document, 'id'>[]) {
+        await $trpc.document.create.mutate({
+          name: doc.name,
+          full_text: doc.full_text,
+          source: "imported",
+          project_id: project.id,
         })
-      );
+        import_progress.value.current++;
+      }
+
+      import_progress.value.total = 0;
+      import_progress.value.current = 0;
       documentTable.value?.refresh();
 
       if (import_json.value.counts?.annotators && new_annotators.value) {
