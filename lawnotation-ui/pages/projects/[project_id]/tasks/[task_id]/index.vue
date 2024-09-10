@@ -307,9 +307,9 @@
           <div class="w-1/2 space-y-2 border-neutral-300">
             <h3 class="mt-3 text-lg font-semibold text-center">Assign annotators</h3>
             <h3 class="mt-3 text-sm font-semibold">
-              Emails added: {{ annotators_email.length }}
+              Emails added: {{ annotatorEmails.length }}
             </h3>
-            <Chips v-model="annotators_email" separator="," addOnBlur :pt="{
+            <Chips v-model="annotatorEmails" separator="," addOnBlur :pt="{
               input: {
                 'data-test': 'annotator-emails'
               }
@@ -348,7 +348,7 @@
                     </div>
                   </div>
                 </div>
-                <template v-if="annotators_email.length > 0">
+                <template v-if="annotatorEmails.length > 0">
                   <span class="mt-2 mb-4 block">Amount of assignments with this configuration:</span>
                   <table id="tableAssignmentsAmounts">
                     <thead>
@@ -363,28 +363,28 @@
                       <tr>
                         <th>Per annotator</th>
                         <td>{{ number_of_fixed_docs }}</td>
-                        <template v-if="(number_of_docs - number_of_fixed_docs) % annotators_email.length == 0">
-                          <td>{{ (number_of_docs - number_of_fixed_docs) / annotators_email.length }}</td>
-                          <td>{{ (number_of_fixed_docs * annotators_email.length + (number_of_docs - number_of_fixed_docs)) / annotators_email.length }}</td>
+                        <template v-if="(number_of_docs - number_of_fixed_docs) % annotatorEmails.length == 0">
+                          <td>{{ (number_of_docs - number_of_fixed_docs) / annotatorEmails.length }}</td>
+                          <td>{{ (number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs)) / annotatorEmails.length }}</td>
                         </template>
                         <template v-else>
                           <td>{{
-                              Math.floor((number_of_docs - number_of_fixed_docs) / annotators_email.length) 
+                              Math.floor((number_of_docs - number_of_fixed_docs) / annotatorEmails.length) 
                           }} <i class="text-gray-500">or</i> {{
-                              Math.ceil((number_of_docs - number_of_fixed_docs) / annotators_email.length)
+                              Math.ceil((number_of_docs - number_of_fixed_docs) / annotatorEmails.length)
                           }}</td>
                           <td>{{
-                            Math.floor((number_of_fixed_docs * annotators_email.length + (number_of_docs - number_of_fixed_docs)) / annotators_email.length)
+                            Math.floor((number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs)) / annotatorEmails.length)
                           }} <i class="text-gray-500">or</i> {{
-                            Math.ceil((number_of_fixed_docs * annotators_email.length + (number_of_docs - number_of_fixed_docs)) / annotators_email.length)
+                            Math.ceil((number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs)) / annotatorEmails.length)
                           }}</td>
                         </template>
                       </tr>
                       <tr>
                         <th>Total</th>
-                        <td>{{ number_of_fixed_docs * annotators_email.length }}</td>
+                        <td>{{ number_of_fixed_docs * annotatorEmails.length }}</td>
                         <td>{{ number_of_docs - number_of_fixed_docs }}</td>
-                        <td>{{ number_of_fixed_docs * annotators_email.length + (number_of_docs - number_of_fixed_docs) }}</td>
+                        <td>{{ number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs) }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -392,7 +392,7 @@
               </AccordionTab>
             </Accordion>
             <div class="text-center pt-6">
-              <Button :disabled="annotators_email.length == 0" @click="createAssignments" data-test="create-assignments">
+              <Button :disabled="annotatorEmails.length == 0" @click="createAssignments" data-test="create-assignments">
                 Create Assignments
               </Button>
             </div>
@@ -620,11 +620,11 @@ const formValues = ref<{
 
 const exportModalVisible = ref(false);
 
-const annotators_email = ref<string[]>([]);
+const annotatorEmails = ref<string[]>([]);
 
 const loading = ref(false);
 
-watch(annotators_email, (new_val) => {
+watch(annotatorEmails, (new_val) => {
   if (new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
     new_val.pop();
     $toast.error('Invalid email!')
@@ -633,14 +633,14 @@ watch(annotators_email, (new_val) => {
 
 const addMyself = () => {
   if(!isMyselfAdded.value) {
-    annotators_email.value.push(user.value?.email!);
+    annotatorEmails.value.push(user.value?.email!);
   } else {
     $toast.error("You have been already added!")
   }
 };
 
 const isMyselfAdded = computed(() => {
-  return annotators_email.value.includes(user.value?.email!);
+  return annotatorEmails.value.includes(user.value?.email!);
 })
 
 const createAssignments = async () => {
@@ -658,7 +658,7 @@ const createAssignments = async () => {
 
     // Create shared assignments (only with docs info)
     for (let i = 0; i < number_of_fixed_docs.value; ++i) {
-      for (let j = 0; j < annotators_email.value.length; ++j) {
+      for (let j = 0; j < annotatorEmails.value.length; ++j) {
         const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
           task_id: task.id,
           document_id: docs[i],
@@ -682,9 +682,9 @@ const createAssignments = async () => {
 
     // Get Users
     const usersPromises: Promise<User['id']>[] = [];
-    for (let i = 0; i < annotators_email.value.length; ++i) {
+    for (let i = 0; i < annotatorEmails.value.length; ++i) {
       usersPromises.push(
-        $trpc.assignment.assignUserToTask.query({ email: annotators_email.value[i], task_id: task.id })
+        $trpc.assignment.assignUserToTask.query({ email: annotatorEmails.value[i], task_id: task.id })
       );
     }
 
