@@ -638,13 +638,16 @@ const importTask = async () => {
       import_progress.value.total = import_json.value.documents.length;
       import_progress.value.current = 0;
 
+      const documentIds: number[] = []
+
       for (const doc of import_json.value.documents as Omit<Document, 'id'>[]) {
-        await $trpc.document.create.mutate({
+        const uploadedDoc = await $trpc.document.create.mutate({
           name: doc.name,
           full_text: doc.full_text,
           source: "imported",
           project_id: project.id,
         })
+        documentIds.push(uploadedDoc.id);
         import_progress.value.current++;
       }
 
@@ -683,7 +686,7 @@ const importTask = async () => {
 
             let new_ass: any = {
               task_id: task.id,
-              document_id: import_json.value.documents[i].id,
+              document_id: documentIds[i],
               difficulty_rating: ass.difficulty_rating,
               seq_pos: ass.order,
               status: "pending",
