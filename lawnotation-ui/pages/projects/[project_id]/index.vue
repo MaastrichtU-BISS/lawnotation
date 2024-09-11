@@ -595,7 +595,7 @@ const importTask = async () => {
 
   for (let i = 0; i < new_annotators.value.length; i++) {
     const new_email = new_annotators.value[i];
-    if (new_email.length && !/^\S+@\S+\.\S+$/.test(new_email)) {
+    if (new_email.length && !/^\S+@(\S+\.\S+|localhost)$/.test(new_email)) {
       $toast.error(`Invalid email: ${new_email}`);
       import_progress.value.loading = false;
       return;
