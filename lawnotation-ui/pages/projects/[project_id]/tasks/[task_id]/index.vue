@@ -157,14 +157,15 @@
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                        <template v-if="node.data.status == AssignmentStatuses.DONE">
-                          <NuxtLink v-if="node.data.annotator_name == user?.email" :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
+                          <NuxtLink 
+                            v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
+                            :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`"
+                          >
                             <Button label="Annotate" size="small" icon="pi pi-pencil" />
                           </NuxtLink>
-                          <NuxtLink v-else :to="`/assignments/${node.data.assignment_id}`">
+                          <NuxtLink v-else-if="(node.data.status == AssignmentStatuses.DONE && !(node.data.name == user?.email)) || (node.data.status != AssignmentStatuses.DONE && user?.id == project.editor_id)" :to="`/assignments/${node.data.assignment_id}`">
                             <Button label="View" size="small" icon="pi pi-eye" />
                           </NuxtLink>
-                        </template>
                         </div>
                       </div>
                     </template>
@@ -284,14 +285,15 @@
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                          <template v-if="node.data.status == AssignmentStatuses.DONE">
-                            <NuxtLink v-if="node.data.name == user?.email" :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
-                              <Button label="Annotate" size="small" icon="pi pi-pencil" />
-                            </NuxtLink>
-                            <NuxtLink v-else :to="`/assignments/${node.data.assignment_id}`">
-                              <Button label="View" size="small" icon="pi pi-eye" />
-                            </NuxtLink>
-                          </template>
+                          <NuxtLink 
+                            v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
+                            :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`"
+                          >
+                            <Button label="Annotate" size="small" icon="pi pi-pencil" />
+                          </NuxtLink>
+                          <NuxtLink v-else-if="(node.data.status == AssignmentStatuses.DONE && !(node.data.name == user?.email)) || (node.data.status != AssignmentStatuses.DONE && user?.id == project.editor_id)" :to="`/assignments/${node.data.assignment_id}`">
+                            <Button label="View" size="small" icon="pi pi-eye" />
+                          </NuxtLink>
                         </div>
                       </div>
                     </template>
