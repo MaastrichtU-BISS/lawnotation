@@ -61,7 +61,7 @@ export default defineConfig({
     {
       name: 'editor auth setup',
       testMatch: '**/setup/editor.auth.ts',
-      dependencies: ['annoator auth setup'],
+      dependencies: ['annotator auth setup'],
     },
     // this project depends on the setup project
     {
