@@ -845,18 +845,23 @@ const exportTask = async () => {
       );
 
       annotations.map((a) => {
-        let doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
+        const doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
         ann_pos[a.id] = doc_anns.length
 
-        doc_anns.push({
+        const doc_ann: any = {
           start: a.start_index,
           end: a.end_index,
           label: a.label,
           text: a.text,
           relations: [],
           ls_id: a.ls_id,
-          confidence_rating: a.confidence_rating
-        });
+          confidence_rating: a.confidence_rating,
+        };
+        
+        if (a.html_metadata)
+          doc_ann.html_metadata = a.html_metadata
+        
+        doc_anns.push(doc_anns);
       });
 
       json.counts.annotations = annotations.length;
