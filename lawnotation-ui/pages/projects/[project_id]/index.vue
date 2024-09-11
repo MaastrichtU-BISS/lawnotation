@@ -595,7 +595,7 @@ const importTask = async () => {
 
   for (let i = 0; i < new_annotators.value.length; i++) {
     const new_email = new_annotators.value[i];
-    if (new_email.length && !/^\S+@\S+\.\S+$/.test(new_email)) {
+    if (new_email.length && !/^\S+@(\S+\.\S+|localhost)$/.test(new_email)) {
       $toast.error(`Invalid email: ${new_email}`);
       import_progress.value.loading = false;
       return;
@@ -721,7 +721,8 @@ const importTask = async () => {
                   assignment_id: assignments[ass_index].id,
                   origin: "imported",
                   ls_id: ann.ls_id,
-                  confidence_rating: ann.confidence_rating
+                  confidence_rating: ann.confidence_rating,
+                  html_metadata: ann.html_metadata
                 });
               });
               ass_index++;
