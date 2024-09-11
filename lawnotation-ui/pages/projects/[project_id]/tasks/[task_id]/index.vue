@@ -847,8 +847,8 @@ const exportTask = async () => {
       annotations.map((a) => {
         const doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
         ann_pos[a.id] = doc_anns.length
-
-        const doc_ann: any = {
+        
+        doc_anns.push({
           start: a.start_index,
           end: a.end_index,
           label: a.label,
@@ -856,12 +856,8 @@ const exportTask = async () => {
           relations: [],
           ls_id: a.ls_id,
           confidence_rating: a.confidence_rating,
-        };
-        
-        if (a.html_metadata)
-          doc_ann.html_metadata = a.html_metadata
-        
-        doc_anns.push(doc_anns);
+          html_metadata: a.html_metadata
+        });
       });
 
       json.counts.annotations = annotations.length;
