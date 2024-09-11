@@ -50,17 +50,27 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
     {
-      name: 'setup',
-      testMatch: '**/*.setup.ts',
+      name: 'db setup',
+      testMatch: '**/setup/db.ts',
+    },
+    {
+      name: 'annotator auth setup',
+      testMatch: '**/setup/annotator.auth.ts',
+      dependencies: ['db setup'],
+    },
+    {
+      name: 'editor auth setup',
+      testMatch: '**/setup/editor.auth.ts',
+      dependencies: ['annoator auth setup'],
     },
     // this project depends on the setup project
     {
       name: 'e2e tests logged in',
-      testMatch: '**/*loggedin.spec.ts',
-      dependencies: ['setup'],
-      use: {
-        storageState: 'playwright/.auth/editor.json',
-      },
+      testMatch: '**/*-loggedin.spec.ts',
+      dependencies: ['editor auth setup'],
+      // use: {
+      //   storageState: 'playwright/.auth/editor.json',
+      // },
     },
     // this project runs all tests except ones for logged in
     {
