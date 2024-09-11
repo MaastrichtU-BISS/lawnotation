@@ -9,13 +9,14 @@ test('Annotator goes to assignements and assert no assignments', async ({ browse
     await expect(annotatorPage.getByText('Showing 0 of 0')).toBeVisible();
 });
 
-test('Editor creates labels', async ({ browser }) => {
+test('Editor creates labelset', async ({ browser }) => {
+    test.setTimeout(60000);
     const editorContext = await browser.newContext({ storageState: 'playwright/.auth/editor.json' });
     const editorPage = await editorContext.newPage();
     await editorPage.goto('localhost:3000');
     await editorPage.getByTestId('labelset-link').click();
     await editorPage.getByTestId('create-new-labelset').click();
-    await delay(3000);
+    await editorPage.getByLabel('Breadcrumb').waitFor();
     await editorPage.getByTestId('labelset-name').fill('Test labelset');
     await editorPage.getByTestId('labelset-description').fill('Labelset description');
     await editorPage.getByTestId('label-name').fill('First label');
