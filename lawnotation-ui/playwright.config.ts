@@ -56,18 +56,18 @@ export default defineConfig({
     {
       name: 'annotator auth setup',
       testMatch: '**/setup/annotator.auth.ts',
-      dependencies: ['db setup'],
+      // dependencies: ['db setup'],
     },
     {
       name: 'editor auth setup',
       testMatch: '**/setup/editor.auth.ts',
-      dependencies: ['annotator auth setup'],
+      // dependencies: ['annotator auth setup'],
     },
     // this project depends on the setup project
     {
       name: 'e2e tests logged in',
       testMatch: '**/*-loggedin.spec.ts',
-      dependencies: ['editor auth setup'],
+      // dependencies: ['editor auth setup'],
       // use: {
       //   storageState: 'playwright/.auth/editor.json',
       // },
