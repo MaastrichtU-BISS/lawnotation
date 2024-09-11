@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { delay } from './utils';
+import path from 'node:path';
 
 test('Annotator goes to assignements and assert no assignments', async ({ browser }) => {
     const annotatorContext = await browser.newContext({ storageState: 'playwright/.auth/annotator.json' });
@@ -49,16 +50,21 @@ test('Editor creates project, adds a document and task, and assigns the task', a
     await editorPage.getByTestId('project-name').fill('Test project');
     await editorPage.getByTestId('add-project').click();
     await delay(3000);
-    const row = editorPage.getByRole('row', { name: '1 Test project View Edit' });
+    const row = editorPage.getByRole('table').locator('tbody').locator('tr').first();
     const viewButton = row.getByRole('button', { name: 'View' });
     await expect(viewButton).toBeVisible();
     await viewButton.click();
     await expect(editorPage.getByText("Upload dataset", { exact: true })).toBeVisible()
     // Document
+    await editorPage.getByTestId('documents-tab').click();
     await editorPage.getByTestId('open-documents-modal').click();
-    // Here the document upload
-
-
+    const fileChooserPromise = editorPage.waitForEvent('filechooser');
+    await editorPage.getByText("Select", { exact: true }).click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(path.join(__dirname, '/input/Test.txt'));
+    await editorPage.getByTestId('upload-documents').click();
+    await editorPage.getByRole('table').locator('tbody').locator('tr').waitFor();
+    await expect(editorPage.getByRole('table').locator('tbody').locator('tr')).toHaveCount(1);
 
     // Tasks
     await editorPage.getByTestId('tasks-tab').click();
@@ -80,7 +86,7 @@ test('Editor creates project, adds a document and task, and assigns the task', a
     await editorPage.getByLabel('Span').click();
     await editorPage.getByTestId('create-tasks').click();
     await delay(4000)
-    const projectRow = editorPage.getByRole('row', { name: '1 Test task Test discription' });
+    const projectRow = editorPage.getByRole('table').locator('tbody').locator('tr').first();
     const assignButton = projectRow.getByLabel('Assign');
     await expect(assignButton).toBeVisible();
     await assignButton.click();
@@ -89,6 +95,4 @@ test('Editor creates project, adds a document and task, and assigns the task', a
     await editorPage.getByTestId('annotator-emails').fill('annotator@example.com');
     await inputEmail.press('Enter');
     await editorPage.getByTestId('create-assignments').click();
-
-
 });
