@@ -44,23 +44,23 @@ test('Editor creates project, adds a document and task, and assigns the task', a
     const editorPage = await editorContext.newPage();
     await editorPage.goto('localhost:3000');
     await editorPage.getByRole('link', { name: 'Create new project' }).click();
-    await expect (editorPage.getByText("Don't show again", { exact: true })).toBeVisible()
+    await expect(editorPage.getByText("Don't show again", { exact: true })).toBeVisible()
     await editorPage.getByTestId('open-projects-modal').click();
     await editorPage.getByTestId('project-name').fill('Test project');
     await editorPage.getByTestId('add-project').click();
-    await delay(3000); 
+    await delay(3000);
     const row = editorPage.getByRole('row', { name: '1 Test project View Edit' });
     const viewButton = row.getByRole('button', { name: 'View' });
     await expect(viewButton).toBeVisible();
     await viewButton.click();
-    await expect (editorPage.getByText("Upload dataset", { exact: true })).toBeVisible()
-// Document
+    await expect(editorPage.getByText("Upload dataset", { exact: true })).toBeVisible()
+    // Document
     await editorPage.getByTestId('open-documents-modal').click();
-// Here the document upload
+    // Here the document upload
 
 
 
-// Tasks
+    // Tasks
     await editorPage.getByTestId('tasks-tab').click();
     await editorPage.getByTestId('open-tasks-modal').click();
     await editorPage.getByTestId('task-name').fill('Test task');
@@ -79,7 +79,7 @@ test('Editor creates project, adds a document and task, and assigns the task', a
     await editorPage.getByText('Seeded labelset').click();
     await editorPage.getByLabel('Span').click();
     await editorPage.getByTestId('create-tasks').click();
-    await delay (4000)
+    await delay(4000)
     const projectRow = editorPage.getByRole('row', { name: '1 Test task Test discription' });
     const assignButton = projectRow.getByLabel('Assign');
     await expect(assignButton).toBeVisible();
