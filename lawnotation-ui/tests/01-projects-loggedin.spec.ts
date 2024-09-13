@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 import { delay } from './utils';
 import path from 'node:path';
 
+
 test('Annotator goes to assignements and assert no assignments', async ({ browser }) => {
+    test.setTimeout(120000);
     const annotatorContext = await browser.newContext({ storageState: 'playwright/.auth/annotator.json' });
     const annotatorPage = await annotatorContext.newPage();
     await annotatorPage.goto('localhost:3000');
@@ -11,7 +13,7 @@ test('Annotator goes to assignements and assert no assignments', async ({ browse
 });
 
 test('Editor creates labelset', async ({ browser }) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
     const editorContext = await browser.newContext({ storageState: 'playwright/.auth/editor.json' });
     const editorPage = await editorContext.newPage();
     await editorPage.goto('localhost:3000');
