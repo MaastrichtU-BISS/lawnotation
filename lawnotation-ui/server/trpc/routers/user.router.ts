@@ -80,6 +80,19 @@ export const userRouter = router({
         throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.getName: ${error.message}`});
       return data.email
     }),
+  
+  'me': protectedProcedure
+    .query(async ({ctx}) => {
+      const { data, error } = await ctx.supabase
+        .from("users")
+        .select("email")
+        .eq("id", ctx.user.id)
+        .single();
+
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.getName: ${error.message}`});
+      return data
+    }),
 
   // TODO: definitely test!
   // 'inviteUser': protectedProcedure

@@ -111,9 +111,9 @@
                 url: '/dashboard'
               },
               {
-                label: guidanceLabel,
-                icon: 'pi pi-info-circle',
-                command: toggleGuidance
+                label: 'Account',
+                icon: 'pi pi-user',
+                url: '/account'
               },
               {
                 label: 'Sign out',
