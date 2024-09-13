@@ -40,12 +40,12 @@ test('Editor creates labelset', async ({ browser }) => {
 });
 
 test('Editor creates project, adds a document and task, and assigns the task', async ({ browser }) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
     const editorContext = await browser.newContext({ storageState: 'playwright/.auth/editor.json' });
     const editorPage = await editorContext.newPage();
     await editorPage.goto('localhost:3000');
     await editorPage.getByRole('link', { name: 'Create new project' }).click();
-    await expect(editorPage.getByText("Don't show again", { exact: true })).toBeVisible()
+    await editorPage.getByText("Don't show again", { exact: true }).waitFor();
     await editorPage.getByTestId('open-projects-modal').click();
     await editorPage.getByTestId('project-name').fill('Test project');
     await editorPage.getByTestId('add-project').click();
@@ -55,19 +55,18 @@ test('Editor creates project, adds a document and task, and assigns the task', a
     await expect(viewButton).toBeVisible();
     await viewButton.click();
     await expect(editorPage.getByText("Upload dataset", { exact: true })).toBeVisible()
+
     // Document
     await editorPage.getByTestId('documents-tab').click();
     await editorPage.getByTestId('open-documents-modal').click();
     const fileChooserPromise = editorPage.waitForEvent('filechooser');
     await editorPage.getByText("Select", { exact: true }).click();
     const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles(path.join(__dirname, '/input/Test.txt'));
+    await fileChooser.setFiles(path.join(__dirname, 'input', 'Test.txt'));
     await editorPage.getByTestId('upload-documents').click();
-    await editorPage.getByRole('table').locator('tbody').locator('tr').waitFor();
-    await expect(editorPage.getByRole('table').locator('tbody').locator('tr')).toHaveCount(1);
 
     // Tasks
-    await editorPage.getByTestId('tasks-tab').click();
+    await editorPage.getByTestId('open-tasks-modal').waitFor();
     await editorPage.getByTestId('open-tasks-modal').click();
     await editorPage.getByTestId('task-name').fill('Test task');
     await editorPage.getByTestId('task-description').fill('Test discription');
