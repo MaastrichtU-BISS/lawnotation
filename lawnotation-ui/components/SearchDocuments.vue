@@ -66,7 +66,6 @@ const fetchDocuments = async () => {
         const xmls = await $trpc.archive.getXMLFromRechtspraak.query({ eclis: eclis.value });
 
         docs = xmls.map((xml: string, index: number) => {
-            console.log(xml);
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xml, "text/xml");
             const text = getText(xmlDoc);
