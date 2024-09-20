@@ -3,7 +3,12 @@ export type Labelset = {
   name: string;
   desc: string;
   editor_id: string;
-  labels: { name: string; color: string }[];
+  labels: Label[];
 };
 
-export type LsLabels = Labelset['labels'];
+export type Label = {
+  name: string;
+  color: string;
+}
+
+export type LsLabels =Label[];
