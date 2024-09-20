@@ -24,6 +24,7 @@ test('Editor creates, edits, and deletes labelset', async ({ browser }) => {
     await editorPage.getByTestId('label-name').fill('Second label');
     await editorPage.getByTestId('add-label').click();
     await expect(editorPage.getByText('Second label')).toBeVisible();
+    await editorPage.getByTestId('labelset-name').fill('Test labelset edited');
     await editorPage.getByTestId('save-labelset').click();
     await expect(editorPage.getByRole('table').locator('tbody').locator('tr')).toHaveCount(3);
     await editorPage.getByTestId('checkbox').first().check();
