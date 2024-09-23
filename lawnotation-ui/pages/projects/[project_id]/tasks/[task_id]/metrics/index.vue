@@ -29,7 +29,7 @@
             <ul class="space-y-2 text-sm">
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label</label>
-                <Multiselect v-model="selectedLabel" :options="labelsOptions" :searchable="true"
+                <Multiselect v-model="selectedLabel" :options="labelsOptions.map((l) => l.name)" :searchable="true"
                   placeholder="Select a Label" @change="selectLabel" />
               </li>
               <li>
@@ -185,42 +185,18 @@
             </ul>
           </div>
         </aside>
-        <div class="px-4 sm:ml-64 side-panel-h overflow-auto" style="margin-left: 20rem">
-          <div id="annotations_list">
-            <div v-if="!loading" class="flex mb-3 justify-between">
-              <span class="flex-1 text-2xl font-bold text-center">
-                Annotations: {{ annotations_length }}
-              </span>
-            </div>
-            <ul>
-              <li v-for="(ann, index) in annotations">
-                <RangeLabelCmpt :annotation="ann" :index="index" :is-new-doc="isNewDoc(index)"
-                  :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)" @separate="emitSeparate"
-                  @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
-                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"></RangeLabelCmpt>
-              </li>
-            </ul>
-
-            <a href="#annotations_list" type="button"
-              class="absolute bottom-0 right-0 mb-3 mr-3 text-white bg-secondary hover:bg-secondary/80 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-              <svg class="w-4 h-4 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
-                fill="none" viewBox="0 0 10 14">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M5 13V1m0 0L1 5m4-4 4 4"></path>
-              </svg>
-              <span class="sr-only">Go up</span>
-            </a>
-          </div>
-        </div>
+        <AnnotationsList v-model="annotations" :labels="labelsOptions"></AnnotationsList>
       </div>
     </div>
     <DifficultyMetricsModal :modelValue="metrics_result.difficulty!"></DifficultyMetricsModal>
   </div>
 </template>
 <script setup lang="ts">
+import AnnotationsList from "~/components/metrics/AnnotationsList.vue"
 import * as XLSX from "xlsx";
 import Multiselect from "@vueform/multiselect";
-import type { Task, RichAnnotation, Project } from "~/types";
+import type { Task, Project } from "~/types";
+import type { RichAnnotation } from "~/utils/metrics";
 import type {
   MetricResult,
   newEmptyMetricResult,
@@ -251,7 +227,7 @@ const selectedDocumentsOrEmpty = ref<string[]>([]);
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotatorsOrEmpty = ref<string[]>([]);
 
-const labelsOptions = reactive<string[]>([]);
+const labelsOptions = reactive<{name: string, color: string}[]>([]);
 const selectedLabel = ref<string>();
 
 const tolerance = ref<number>(0);
@@ -264,14 +240,12 @@ const download_progress = ref<{ current: number; total: number; loading: boolean
   loading: false,
   message: ""
 });
-const downloadAllPromises = [];
-const downloadAllResults = [];
+
 const separate_into_words = ref(false);
 const hideNonText = ref(true);
 const contained = ref(false);
 
 const annotations_limit = 10 ** 3;
-const annotations_length = ref(0);
 const annotations = reactive<RichAnnotation[]>([]);
 const metrics_result = ref<{
   loading: Boolean;
@@ -307,15 +281,6 @@ const selectedDocuments = computed((): string[] => {
     ? selectedDocumentsOrEmpty.value
     : documentsOptions.map((d) => d.value);
 });
-
-function getBase64(file: File) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
-  });
-}
 
 const selectLabel = (value: string) => {
   selectedLabel.value = value;
@@ -383,7 +348,6 @@ const updateAnnotations = async () => {
       hideNonText.value
     );
 
-    annotations_length.value = anns.length;
     if (anns.length < annotations_limit) annotations.push(...anns);
     loading_annotations.value = false;
   } catch (error) {
@@ -509,7 +473,7 @@ const clickDownloadAll = async () => {
   try {
     const blobs = await download_all({
       task_id: task.value?.id.toString()!,
-      labelsOptions: labelsOptions,
+      labelsOptions: labelsOptions.map((l) => l.name),
       documents: selectedDocuments.value,
       documentsOrEmpty: selectedDocumentsOrEmpty.value,
       annotators: selectedAnnotators.value,
@@ -611,7 +575,7 @@ async function createWorkBooks(data: any, document?: any) {
   const workbookAnnotations = XLSX.utils.book_new();
   const workbookDescriptive = XLSX.utils.book_new();
   for (let i = 0; i < data.labelsOptions.length; i++) {
-    const label = data.labelsOptions[i];
+    const label = data.labelsOptions[i].name;
 
     const annotations = await getAnnotations(
       data.task_id,
@@ -857,50 +821,6 @@ function getZippeableBlob(workBook: XLSX.WorkBook) {
   return `data:${contentType};base64,${b64Data}`;
 }
 
-const canMergeUp = (index: number): Boolean => {
-  return (
-    index > 0 &&
-    annotations[index - 1].doc_id == annotations[index].doc_id &&
-    annotations[index - 1].ann_id == annotations[index].ann_id
-  );
-};
-
-const canMergeDown = (index: number): Boolean => {
-  return (
-    index < annotations.length - 1 &&
-    annotations[index + 1].doc_id == annotations[index].doc_id &&
-    annotations[index + 1].ann_id == annotations[index].ann_id
-  );
-};
-
-const isNewDoc = (index: number): Boolean => {
-  return (
-    index == 0 ||
-    (index > 0 && annotations[index - 1].doc_id != annotations[index].doc_id)
-  );
-};
-
-const emitSeparate = (ann_index: number, split_pos: number) => {
-  loading_annotations.value = true;
-  const current = _.clone(annotations[ann_index]);
-
-  annotations[ann_index].end = current.start + split_pos;
-  annotations[ann_index].text = current.text.substring(0, split_pos);
-
-  annotations.splice(ann_index + 1, 0, {
-    start: current.start + split_pos,
-    end: current.end,
-    label: current.label,
-    text: current.text.substring(split_pos, current.end),
-    annotator: current.annotator,
-    hidden: false,
-    ann_id: current.ann_id,
-    doc_id: current.doc_id,
-    doc_name: current.doc_name,
-  });
-  loading_annotations.value = false;
-};
-
 const modeToggle = (value: boolean) => {
   separate_into_words.value = value;
   if (!task.value) {
@@ -912,43 +832,9 @@ const modeToggle = (value: boolean) => {
   updateAnnotations();
 };
 
-const emitMergeUp = (ann_index: number): void => {
-  loading_annotations.value = true;
-  const current = _.clone(annotations[ann_index]);
-  const previous = _.clone(annotations[ann_index - 1]);
-
-  annotations[ann_index - 1].end = current.end;
-  annotations[ann_index - 1].text = documentsData.value[
-    current.doc_id
-  ].full_text.substring(previous.start, current.end);
-
-  annotations[ann_index].hidden = false;
-  annotations.splice(ann_index, 1);
-  loading_annotations.value = false;
-};
-
-const emitMergeDown = (ann_index: number): void => {
-  loading_annotations.value = true;
-  const current = _.clone(annotations[ann_index]);
-  const next = _.clone(annotations[ann_index + 1]);
-
-  annotations[ann_index + 1].start = current.start;
-  annotations[ann_index + 1].text = documentsData.value[
-    current.doc_id
-  ].full_text.substring(current.start, next.end);
-
-  annotations[ann_index].hidden = false;
-  annotations.splice(ann_index, 1);
-  loading_annotations.value = false;
-};
-
 const toggleTextToHidden = (value: boolean): RichAnnotation[] => {
   hideNonText.value = value;
   return setTextToHidden(annotations, value);
-};
-
-const emitSetHidden = (ann_index: number, hidden: boolean): void => {
-  annotations[ann_index].hidden = hidden;
 };
 
 onMounted(async () => {
@@ -961,9 +847,7 @@ onMounted(async () => {
   project.value = await $trpc.project.findById.query(+route.params.project_id);
 
   labelsOptions.push(
-    ...(await $trpc.labelset.findById.query(+task.value.labelset_id)).labels.map(
-      (l) => l.name
-    )
+    ...(await $trpc.labelset.findById.query(+task.value.labelset_id)).labels
   );
 
   documentsOptions.push(
