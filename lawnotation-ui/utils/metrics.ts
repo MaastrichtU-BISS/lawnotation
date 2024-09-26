@@ -33,7 +33,15 @@ export type MetricResult = {
   table: RangeLabel[] | undefined;
 };
 
-export type DifficultyMetricResult = {
+export type MetricResultsTable = {
+  loading: Boolean;
+  krippendorff: MetricResult | undefined;
+  fleiss_kappa: MetricResult | undefined;
+  cohens_kappa: MetricResult | undefined;
+  confidence: ConfidenceMetricResult;
+}
+
+export type ConfidenceMetricResult = {
   average: number;
   min: number;
   max: number;
