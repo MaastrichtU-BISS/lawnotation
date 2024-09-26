@@ -29,8 +29,23 @@
             <ul class="space-y-2 text-sm">
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label</label>
-                <Multiselect v-model="selectedLabel" :options="labelsOptions.map((l) => l.name)" :searchable="true"
-                  placeholder="Select a Label" @change="selectLabel" />
+                <Dropdown v-model="selectedLabel" :options="labelsOptions" optionLabel="name"
+                  placeholder="Select a Label" class="w-full" @change="selectLabel($event.value?.name)"
+                  :panel-style="{ width: '295px'}" :pt="{
+                    item: '!py-2'
+                  }" :ptOptions="{ mergeProps: true }">
+                  <template #value="slotProps">
+                    <div v-if="slotProps.value">
+                      <LabelCmpt :label="{color: labelsOptions.find((l) => l.name == slotProps.value)?.color!, name: slotProps.value}"></LabelCmpt>
+                    </div>
+                    <span v-else>
+                      {{ slotProps.placeholder }}
+                    </span>
+                  </template>
+                  <template #option="slotProps">
+                    <LabelCmpt :label="slotProps.option"></LabelCmpt>
+                  </template>
+                </Dropdown>
               </li>
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Document(s)</label>
@@ -66,8 +81,7 @@
                     <div
                       class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
                     </div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
                   </label>
                   <InfoToolTip :id="'tooltip_annotation_word'"
                     :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
@@ -124,13 +138,17 @@
             </ul>
           </div>
         </aside>
-        <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations" :labels="labelsOptions" :loading="loading" :documentsData="documentsData"></AnnotationsList>
+        <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations"
+          :labels="labelsOptions" :loading="loading" :documentsData="documentsData"></AnnotationsList>
       </div>
     </div>
-    <ResultsModal v-if="metricsResult?.confidence" v-model:visible="metricsModalVisible" :metricResults="metricsResult" :loading="loading"></ResultsModal>
+    <ResultsModal v-if="metricsResult?.confidence" v-model:visible="metricsModalVisible" :metricResults="metricsResult"
+      :loading="loading"></ResultsModal>
   </div>
 </template>
 <script setup lang="ts">
+import LabelCmpt from "~/components/labels/Label.vue";
+import Dropdown from "primevue/dropdown";
 import AnnotationsList from "~/components/metrics/AnnotationsList.vue";
 import ResultsModal from "~/components/metrics/ResultsModal.vue";
 import * as XLSX from "xlsx";
@@ -166,7 +184,7 @@ const download_progress = ref<{ current: number; total: number; loading: boolean
 // options
 const loading_options = ref(false);
 
-const labelsOptions = reactive<{name: string, color: string}[]>([]);
+const labelsOptions = reactive<{ name: string, color: string }[]>([]);
 const selectedLabel = ref<string>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
@@ -259,13 +277,6 @@ const getAnnotations = async (
 
 const updateAnnotations = async () => {
   loading_annotations.value = true;
-  metricsResult.value = {
-    krippendorff: undefined,
-    fleiss_kappa: undefined,
-    cohens_kappa: undefined,
-    difficulty: undefined,
-    loading: false,
-  };
   try {
     annotations.splice(0);
     const anns = await getAnnotations(
