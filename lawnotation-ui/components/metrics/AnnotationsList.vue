@@ -9,7 +9,8 @@
             <ul>
               <li v-for="(ann, index) in annotations">
                 <h5 v-if="isNewDoc(index)" class="text-lg font-semibold mb-3 mt-5 ml-1">
-                    {{ ann.doc_name?.substring(0, ann.doc_name.length - 4) }}
+                  <i class="pi pi-file mr-1" /> 
+                  {{ ann.doc_name?.substring(0, ann.doc_name.length - 4) }}
                 </h5>
                 <AnnotationComponent :annotation="ann" :labelColor="labelColor(ann.label)" :index="index" :is-new-doc="isNewDoc(index)"
                   :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)" @separate="emitSeparate"
