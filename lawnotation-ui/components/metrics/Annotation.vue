@@ -6,7 +6,7 @@
                     <LabelCmpt :label="{ name: annotation.label, color: labelColor }"></LabelCmpt>
                     <span class="ml-2 text-xs text-gray-500">
                         <i>{{ annotation.annotator }} | </i>
-                        <i>{{ annotation.confidence }} <i class="pi pi-star" /> </i>
+                        <i>{{ annotation.confidence }} <i class="pi pi-star-fill text-yellow-300" /> </i>
                     </span>
                 </template>
                 <template v-else>
