@@ -33,9 +33,8 @@ const { $toast, $trpc } = useNuxtApp();
 
 const props = withDefaults(
     defineProps<{
-        addDocumentsToProject: boolean
-    }>(),
-    { addDocumentsToProject: false });
+        addDocumentsToProject?: boolean
+    }>();
 
 const emit = defineEmits(["onDocumentsFetched"]);
 
