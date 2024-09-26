@@ -31,7 +31,7 @@ import JSZip, { file } from "jszip";
 
 const { $toast, $trpc } = useNuxtApp();
 
-const props = withDefaults(
+const { addDocumentsToProject = false } =
     defineProps<{
         addDocumentsToProject?: boolean
     }>();
@@ -82,7 +82,7 @@ const fetchDocuments = async () => {
         $toast.error(error as string);
     }
 
-    if(props.addDocumentsToProject) {
+    if (addDocumentsToProject) {
         emit("onDocumentsFetched", docs);
     } else {
         download(docs);
