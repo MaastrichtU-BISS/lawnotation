@@ -23,6 +23,7 @@ const ZAnnotationFields = z.object({
         end: z.number().int(),
       }),
     })
+    .nullable()
     .optional(),
   confidence_rating: z.number().int().optional()
 });
@@ -104,6 +105,7 @@ export const annotationRouter = router({
   createMany: protectedProcedure
     .input(z.array(ZAnnotationFields))
     .mutation(async ({ ctx, input }) => {
+
       const { data, error } = await ctx.supabase
         .from("annotations")
         .insert(input)

@@ -13,7 +13,9 @@
                     },
                 }" />
                 <div class="my-4 text-center">
-                    <Button type="button" @click="fetchDocuments" :label="addDocumentsToProject ? 'Confirm' : 'Download'" :icon="addDocumentsToProject ? 'pi pi-check' : 'pi pi-download'" iconPos="right"
+                    <Button type="button" @click="fetchDocuments"
+                        :label="addDocumentsToProject ? 'Confirm' : 'Download'"
+                        :icon="addDocumentsToProject ? 'pi pi-check' : 'pi pi-download'" iconPos="right"
                         :disabled="!eclis.length || loading" data-test="download-button" />
                 </div>
             </div>
@@ -29,11 +31,10 @@ import JSZip, { file } from "jszip";
 
 const { $toast, $trpc } = useNuxtApp();
 
-const props = withDefaults(
+const { addDocumentsToProject = false } =
     defineProps<{
-        addDocumentsToProject: boolean
-    }>(),
-    { addDocumentsToProject: false });
+        addDocumentsToProject?: boolean
+    }>();
 
 const emit = defineEmits(["onDocumentsFetched"]);
 
@@ -66,7 +67,6 @@ const fetchDocuments = async () => {
         const xmls = await $trpc.archive.getXMLFromRechtspraak.query({ eclis: eclis.value });
 
         docs = xmls.map((xml: string, index: number) => {
-            console.log(xml);
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xml, "text/xml");
             const text = getText(xmlDoc);
@@ -82,7 +82,7 @@ const fetchDocuments = async () => {
         $toast.error(error as string);
     }
 
-    if(props.addDocumentsToProject) {
+    if (addDocumentsToProject) {
         emit("onDocumentsFetched", docs);
     } else {
         download(docs);

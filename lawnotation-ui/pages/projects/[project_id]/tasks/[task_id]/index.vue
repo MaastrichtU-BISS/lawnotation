@@ -157,14 +157,15 @@
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                        <template v-if="node.data.status == AssignmentStatuses.DONE">
-                          <NuxtLink v-if="node.data.annotator_name == user?.email" :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
+                          <NuxtLink 
+                            v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
+                            :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`"
+                          >
                             <Button label="Annotate" size="small" icon="pi pi-pencil" />
                           </NuxtLink>
-                          <NuxtLink v-else :to="`/assignments/${node.data.assignment_id}`">
+                          <NuxtLink v-else-if="(node.data.status == AssignmentStatuses.DONE && !(node.data.name == user?.email)) || (node.data.status != AssignmentStatuses.DONE && user?.id == project.editor_id)" :to="`/assignments/${node.data.assignment_id}`">
                             <Button label="View" size="small" icon="pi pi-eye" />
                           </NuxtLink>
-                        </template>
                         </div>
                       </div>
                     </template>
@@ -284,14 +285,15 @@
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                          <template v-if="node.data.status == AssignmentStatuses.DONE">
-                            <NuxtLink v-if="node.data.name == user?.email" :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
-                              <Button label="Annotate" size="small" icon="pi pi-pencil" />
-                            </NuxtLink>
-                            <NuxtLink v-else :to="`/assignments/${node.data.assignment_id}`">
-                              <Button label="View" size="small" icon="pi pi-eye" />
-                            </NuxtLink>
-                          </template>
+                          <NuxtLink 
+                            v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
+                            :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`"
+                          >
+                            <Button label="Annotate" size="small" icon="pi pi-pencil" />
+                          </NuxtLink>
+                          <NuxtLink v-else-if="(node.data.status == AssignmentStatuses.DONE && !(node.data.name == user?.email)) || (node.data.status != AssignmentStatuses.DONE && user?.id == project.editor_id)" :to="`/assignments/${node.data.assignment_id}`">
+                            <Button label="View" size="small" icon="pi pi-eye" />
+                          </NuxtLink>
                         </div>
                       </div>
                     </template>
@@ -843,9 +845,9 @@ const exportTask = async () => {
       );
 
       annotations.map((a) => {
-        let doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
+        const doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
         ann_pos[a.id] = doc_anns.length
-
+        
         doc_anns.push({
           start: a.start_index,
           end: a.end_index,
@@ -853,7 +855,8 @@ const exportTask = async () => {
           text: a.text,
           relations: [],
           ls_id: a.ls_id,
-          confidence_rating: a.confidence_rating
+          confidence_rating: a.confidence_rating,
+          html_metadata: a.html_metadata
         });
       });
 
