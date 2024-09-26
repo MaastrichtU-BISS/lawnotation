@@ -185,7 +185,7 @@
             </ul>
           </div>
         </aside>
-        <AnnotationsList v-model="annotations" :labels="labelsOptions"></AnnotationsList>
+        <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations" :labels="labelsOptions" :loading="loading" :documentsData="documentsData"></AnnotationsList>
       </div>
     </div>
     <DifficultyMetricsModal :modelValue="metrics_result.difficulty!"></DifficultyMetricsModal>
@@ -204,7 +204,6 @@ import type {
 } from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
 
-import _ from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
 import { saveAs } from "file-saver";

@@ -3,18 +3,18 @@
           <div id="annotations_list">
             <div v-if="!loading" class="flex mb-3 justify-between">
               <span class="flex-1 text-2xl font-bold text-center">
-                Annotations: {{ modelValue.length }}
+                Annotations: {{ annotations.length }}
               </span>
             </div>
             <ul>
-              <li v-for="(ann, index) in modelValue">
+              <li v-for="(ann, index) in annotations">
                 <h5 v-if="isNewDoc(index)" class="text-lg font-semibold mb-3 mt-5 ml-1">
                     {{ ann.doc_name?.substring(0, ann.doc_name.length - 4) }}
                 </h5>
                 <AnnotationComponent :annotation="ann" :labelColor="labelColor(ann.label)" :index="index" :is-new-doc="isNewDoc(index)"
                   :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)" @separate="emitSeparate"
                   @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
-                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"></AnnotationComponent>
+                  :key="ann.ann_id"></AnnotationComponent>
               </li>
             </ul>
 
@@ -31,72 +31,77 @@
         </div>
 </template>
 <script setup lang="ts">
+import _ from "lodash";
 import type { RichAnnotation } from "~/utils/metrics";
 import AnnotationComponent from "./Annotation.vue";
 
 const props = defineProps<{
-  modelValue: RichAnnotation[];
   labels: {name: string, color: string}[];
+  loading: boolean;
+  documentsData: any;
 }>();
+
+const annotations = defineModel<RichAnnotation[]>('annotations', {required: true });
+const loading_annotations = defineModel('loading_annotations', { type: Boolean, required: true });
 
 const emitMergeDown = (ann_index: number): void => {
   loading_annotations.value = true;
-  const current = _.clone(props.modelValue[ann_index]);
-  const next = _.clone(props.modelValue[ann_index + 1]);
+  const current = _.clone(annotations.value[ann_index]);
+  const next = _.clone(annotations.value[ann_index + 1]);
 
-  props.modelValue[ann_index + 1].start = current.start;
-  props.modelValue[ann_index + 1].text = documentsData.value[
+  annotations.value[ann_index + 1].start = current.start;
+  annotations.value[ann_index + 1].text = props.documentsData[
     current.doc_id
   ].full_text.substring(current.start, next.end);
 
-  props.modelValue[ann_index].hidden = false;
-  props.modelValue.splice(ann_index, 1);
+  annotations.value[ann_index].hidden = false;
+  annotations.value.splice(ann_index, 1);
   loading_annotations.value = false;
 };
 
 const emitSetHidden = (ann_index: number, hidden: boolean): void => {
-  props.modelValue[ann_index].hidden = hidden;
+  annotations.value[ann_index].hidden = hidden;
 };
 
 const emitMergeUp = (ann_index: number): void => {
   loading_annotations.value = true;
-  const current = _.clone(props.modelValue[ann_index]);
-  const previous = _.clone(props.modelValue[ann_index - 1]);
+  const current = _.clone(annotations.value[ann_index]);
+  const previous = _.clone(annotations.value[ann_index - 1]);
 
-  props.modelValue[ann_index - 1].end = current.end;
-  props.modelValue[ann_index - 1].text = documentsData.value[
+  annotations.value[ann_index - 1].end = current.end;
+  annotations.value[ann_index - 1].text = props.documentsData[
     current.doc_id
   ].full_text.substring(previous.start, current.end);
 
-  props.modelValue[ann_index].hidden = false;
-  props.modelValue.splice(ann_index, 1);
+  annotations.value[ann_index].hidden = false;
+  annotations.value.splice(ann_index, 1);
   loading_annotations.value = false;
 };
 
 const canMergeUp = (index: number): Boolean => {
   return (
     index > 0 &&
-    props.modelValue[index - 1].doc_id == props.modelValue[index].doc_id &&
-    props.modelValue[index - 1].ann_id == props.modelValue[index].ann_id
+    annotations.value[index - 1].doc_id == annotations.value[index].doc_id &&
+    annotations.value[index - 1].ann_id == annotations.value[index].ann_id
   );
 };
 
 const canMergeDown = (index: number): Boolean => {
   return (
-    index < props.modelValue.length - 1 &&
-    props.modelValue[index + 1].doc_id == props.modelValue[index].doc_id &&
-    props.modelValue[index + 1].ann_id == props.modelValue[index].ann_id
+    index < annotations.value.length - 1 &&
+    annotations.value[index + 1].doc_id == annotations.value[index].doc_id &&
+    annotations.value[index + 1].ann_id == annotations.value[index].ann_id
   );
 };
 
 const emitSeparate = (ann_index: number, split_pos: number) => {
   loading_annotations.value = true;
-  const current = _.clone(props.modelValue[ann_index]);
+  const current = _.clone(annotations.value[ann_index]);
 
-  props.modelValue[ann_index].end = current.start + split_pos;
-  props.modelValue[ann_index].text = current.text.substring(0, split_pos);
+  annotations.value[ann_index].end = current.start + split_pos;
+  annotations.value[ann_index].text = current.text.substring(0, split_pos);
 
-  props.modelValue.splice(ann_index + 1, 0, {
+  annotations.value.splice(ann_index + 1, 0, {
     start: current.start + split_pos,
     end: current.end,
     label: current.label,
@@ -114,7 +119,7 @@ const emitSeparate = (ann_index: number, split_pos: number) => {
 const isNewDoc = (index: number): Boolean => {
   return (
     index == 0 ||
-    (index > 0 && props.modelValue[index - 1].doc_id != props.modelValue[index].doc_id)
+    (index > 0 && annotations.value[index - 1].doc_id != annotations.value[index].doc_id)
   );
 };
 
