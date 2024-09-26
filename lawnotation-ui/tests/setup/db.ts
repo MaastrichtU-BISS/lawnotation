@@ -1,24 +1,7 @@
 import { test as setup } from '@playwright/test';
-import util from 'util';
-import { exec, execSync } from 'child_process';
-
-// const execAsync = util.promisify(exec);
-// import path from 'path';
-
-// const parentDir = path.resolve(process.cwd(), '..');
+import { execSync } from 'child_process';
 
 setup('Reset database', ({ }) => {
-    //   console.log('Resetting database...');
-    //   const command = 'pnpm supabase db reset';
-
-    //   try {
-    //     const { stdout, stderr } = await execAsync(command, { cwd: parentDir });
-    //     console.log('stdout:', stdout);
-    //     console.error('stderr:', stderr);
-    //   } catch (error) {
-    //     console.error('exec error:', error);
-    //   }
-
     console.log(`Resetting database...`);
 
     try {
