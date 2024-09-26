@@ -16,7 +16,7 @@
         </template>
         <div class="flex items-start justify-between">
             <div contenteditable @keydown="onkeydown($event)" :class="_hidden ? 'text-gray-500' : ''"
-                class="contenteditable-text px-1 py-1">
+                class="px-1 py-1 whitespace-pre-wrap" style="word-break: break-word;">
                 {{ annotation.text }}
             </div>
             <div>
@@ -98,13 +98,3 @@ onMounted(async () => {
     annotated.value = props.annotation.label != "NOT ANNOTATED";
 });
 </script>
-<style>
-.contenteditable-text {
-    white-space: pre-wrap;
-}
-
-.contenteditable-text:focus {
-    outline: dotted 1px blue;
-}
-</style>
-  
