@@ -15,7 +15,7 @@
                 <AnnotationComponent :annotation="ann" :labelColor="labelColor(ann.label)" :index="index" :is-new-doc="isNewDoc(index)"
                   :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)" @separate="emitSeparate"
                   @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
-                  :key="ann.ann_id"></AnnotationComponent>
+                  :key="`${ann.ann_id}_${ann.start}_${ann.end}_${ann.text}`"></AnnotationComponent>
               </li>
             </ul>
 

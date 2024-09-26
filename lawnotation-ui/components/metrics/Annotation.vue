@@ -59,6 +59,7 @@ const onkeydown = (e: KeyboardEvent) => {
         return true;
     }
     e.preventDefault();
+    e.stopPropagation;
     return false;
 };
 
