@@ -206,7 +206,7 @@ const annotations = reactive<RichAnnotation[]>([]);
 
 // metrics
 const metricsModalVisible = ref<boolean>(false);
-const metricsResult = ref<MetricResultsTable>();
+const metricsResult = ref<MetricResultsTable>({} as any);
 
 const documentsData = ref<any>({});
 
@@ -295,6 +295,16 @@ const updateAnnotations = async () => {
   }
 };
 
+const updateMetrics = (metrics: MetricResult[], confidenceMetric: ConfidenceMetricResult) => {
+
+  metricsResult.value = {} as any;
+  metrics.map((m) => {
+    (metricsResult.value as any)[m.name] = m;
+  });
+  metricsResult.value.confidence = confidenceMetric;
+  metricsResult.value.loading = false;
+};
+
 const compute_metrics = async (
   task_id: string,
   label: string,
@@ -330,14 +340,8 @@ const compute_metrics = async (
   });
 };
 
-const updateMetrics = (metrics: MetricResult[]) => {
-  metrics.map((m) => {
-    (metricsResult.value as any)[m.name] = m;
-  });
-};
-
 const clickComputeMetrics = async () => {
-  if (!selectedLabel.value || !metricsResult.value) return;
+  if (!selectedLabel.value) return;
   metricsModalVisible.value = true;
   try {
     // agreement metrics
@@ -356,20 +360,18 @@ const clickComputeMetrics = async () => {
       annotations && annotations.length ? annotations : []
     );
 
-    updateMetrics(metrics);
-
     // confidence metrics
-    const metric = await computeConfidenceMetrics(
+    const confidenceMetric = await computeConfidenceMetrics(
       task.value?.id.toString()!,
       selectedAnnotators.value.length,
       selectedAnnotatorsOrEmpty.value,
       selectedDocumentsOrEmpty.value
     );
 
-    metricsResult.value.confidence = metric;
-    metricsResult.value.loading = false;
+    updateMetrics(metrics, confidenceMetric);
+
   } catch (error) {
-    metricsResult.value.loading = false;
+    metricsResult.value!.loading = false;
   }
 };
 
