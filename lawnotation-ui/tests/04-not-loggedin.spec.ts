@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { delay } from './utils';
-import path from 'node:path';
-
 
 test('Not logged in user goes to documentation and downloads an ECLI', async ({ browser, page }) => {
     test.setTimeout(120000);
