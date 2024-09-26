@@ -17,9 +17,9 @@ test('Annotator creates project, task, uploads document and assigns task', async
     const editorContext = await browser.newContext({ storageState: 'playwright/.auth/editor.json' });
     const editorPage = await editorContext.newPage();
     await editorPage.goto('localhost:3000');
-    await editorPage.getByTestId('projects-link').click();  
+    await editorPage.getByTestId('projects-link').click();
     await editorPage.getByText("Don't show again", { exact: true }).waitFor();
-    await editorPage.getByTestId('open-projects-modal').click(); 
+    await editorPage.getByTestId('open-projects-modal').click();
     await editorPage.getByTestId('project-name').fill('Test project');
     await editorPage.getByTestId('add-project').click();
     await delay(3000);
@@ -55,7 +55,7 @@ test('Annotator creates project, task, uploads document and assigns task', async
     await assignButton.click();
     await editorPage.getByText('Add myself').click();
     const inputEmail = editorPage.getByTestId('annotator-emails');
-    await editorPage.getByTestId('annotator-emails').fill('annotator@example.com');
+    await inputEmail.pressSequentially('annotator@example.com', { delay: 100 });
     await inputEmail.press('Enter');
     await editorPage.getByTestId('create-assignments').click();
 
