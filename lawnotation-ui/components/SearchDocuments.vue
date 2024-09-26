@@ -13,7 +13,9 @@
                     },
                 }" />
                 <div class="my-4 text-center">
-                    <Button type="button" @click="fetchDocuments" :label="addDocumentsToProject ? 'Confirm' : 'Download'" :icon="addDocumentsToProject ? 'pi pi-check' : 'pi pi-download'" iconPos="right"
+                    <Button type="button" @click="fetchDocuments"
+                        :label="addDocumentsToProject ? 'Confirm' : 'Download'"
+                        :icon="addDocumentsToProject ? 'pi pi-check' : 'pi pi-download'" iconPos="right"
                         :disabled="!eclis.length || loading" data-test="download-button" />
                 </div>
             </div>
