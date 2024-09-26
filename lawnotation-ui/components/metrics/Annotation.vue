@@ -19,7 +19,7 @@
                 class="px-1 py-1 whitespace-pre-wrap" style="word-break: break-word;">
                 {{ annotation.text }}
             </div>
-            <div>
+            <div class="flex items-start">
                 <button v-if="canMergeUp" @click="emit('mergeUp', index)"
                     class="ml-1 text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 mr-1 mb-2 text-xs">
                     &#8593;
