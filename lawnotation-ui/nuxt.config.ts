@@ -1,5 +1,15 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  app: {
+    head: {
+      script: [{
+        defer: true,
+        src: "https://umami-biss-um.vercel.app/script.js",
+        "data-website-id": "0d643ede-ed67-4311-a8c0-6db0edc96f64",
+        "data-domains": "app.lawnotation.org"
+      }]
+    }
+  },
   devtools: { enabled: false },
   runtimeConfig: {
     mailtrapToken: process.env.MAILTRAP_TOKEN,
