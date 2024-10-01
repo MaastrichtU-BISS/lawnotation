@@ -49,13 +49,13 @@
               </li>
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Document(s)</label>
-                <Multiselect v-model="selectedDocumentsOrEmpty" :mode="'tags'" :close-on-select="false"
-                  :options="documentsOptions" :searchable="true" placeholder="All" @change="selectDocument" />
+                <Multiselect v-model="selectedDocumentsOrEmpty" class="w-full" optionLabel="label" optionValue="value"
+                  :options="documentsOptions" placeholder="All" @change="selectDocument" />
               </li>
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Annotators</label>
-                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions" :mode="'tags'"
-                  :searchable="true" :close-on-select="false" placeholder="All" @change="selectAnnotators" />
+                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions"
+                 placeholder="All" class="w-full" @change="selectAnnotators" />
               </li>
               <li>
                 <div>
@@ -149,6 +149,7 @@
 <script setup lang="ts">
 import LabelCmpt from "~/components/labels/Label.vue";
 import Dropdown from "primevue/dropdown";
+import Multiselect from "primevue/multiselect";
 import AnnotationsList from "~/components/metrics/AnnotationsList.vue";
 import ResultsModal from "~/components/metrics/ResultsModal.vue";
 import * as XLSX from "xlsx";
