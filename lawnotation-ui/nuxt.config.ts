@@ -26,7 +26,7 @@ export default defineNuxtConfig({
     transpile: ['trpc-nuxt'],
   },
 
-  css: ["@/assets/styles/main.scss", "@vueform/multiselect/themes/default.css", 'primeicons/primeicons.css'],
+  css: ["@/assets/styles/main.scss", 'primeicons/primeicons.css'],
 
   supabase: {
     redirect: false,

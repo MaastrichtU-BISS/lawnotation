@@ -16,9 +16,6 @@ dependencies:
   '@trpc/server':
     specifier: ^10.45.2
     version: 10.45.2
-  '@vueform/multiselect':
-    specifier: ^2.6.7
-    version: 2.6.7
   apexcharts:
     specifier: ^3.48.0
     version: 3.48.0
@@ -3448,10 +3445,6 @@ packages:
 
   /@vue/shared@3.5.10:
     resolution: {integrity: sha512-VkkBhU97Ki+XJ0xvl4C9YJsIZ2uIlQ7HqPpZOS3m9VCvmROPaChZU6DexdMJqvz9tbgG+4EtFVrSuailUq5KGQ==}
-
-  /@vueform/multiselect@2.6.7:
-    resolution: {integrity: sha512-d0iwfzsj+N27o/JPE1KXbf0rVtwIe33dqlkQcOPxOP0RS6mW9umQG1hcuFEpdqNajuryHB9N4zo0rEcGmN20xQ==}
-    dev: false
 
   /@yr/monotone-cubic-spline@1.0.3:
     resolution: {integrity: sha512-FQXkOta0XBSUPHndIKON2Y9JeQz5ZeMqLYZVVK93FliNBFm7LNMIZmY6FrMEB9XPcDbE2bekMbZD6kzDkxwYjA==}

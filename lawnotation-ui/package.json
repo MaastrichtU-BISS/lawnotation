@@ -33,7 +33,6 @@
     "@supabase/supabase-js": "^2.42.4",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",
-    "@vueform/multiselect": "^2.6.7",
     "apexcharts": "^3.48.0",
     "child_process": "^1.0.2",
     "childprocess": "^2.0.2",
