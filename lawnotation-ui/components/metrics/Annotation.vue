@@ -1,5 +1,5 @@
 <template>
-    <Panel toggleable :collapsed="!annotated" class="mb-2">
+    <Panel toggleable :collapsed="!annotated" class="pb-2">
         <template #header>
             <div>
                 <template v-if="annotated">

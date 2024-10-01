@@ -200,7 +200,7 @@ const contained = ref(false);
 const hideNonText = ref(true);
 
 // annotations
-const annotations_limit = 10 ** 3;
+const annotations_limit = 10 ** 4;
 const loading_annotations = ref(false);
 const annotations = reactive<RichAnnotation[]>([]);
 
