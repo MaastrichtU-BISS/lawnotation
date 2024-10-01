@@ -20,7 +20,7 @@
     "@types/lodash": "^4.17.0",
     "autoprefixer": "^10.4.19",
     "cypress": "^13.13.3",
-    "nuxt": "^3.11.2",
+    "nuxt": "^3.13.2",
     "nuxt-primevue": "^0.3.1",
     "open-cli": "^7.2.0",
     "postcss": "^8.4.38",
