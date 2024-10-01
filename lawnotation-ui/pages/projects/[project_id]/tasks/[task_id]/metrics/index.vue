@@ -152,7 +152,6 @@ import Dropdown from "primevue/dropdown";
 import AnnotationsList from "~/components/metrics/AnnotationsList.vue";
 import ResultsModal from "~/components/metrics/ResultsModal.vue";
 import * as XLSX from "xlsx";
-import Multiselect from "@vueform/multiselect";
 import type { Task, Project } from "~/types";
 import type { RichAnnotation } from "~/utils/metrics";
 import type {
