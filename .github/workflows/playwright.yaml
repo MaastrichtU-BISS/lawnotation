@@ -33,7 +33,6 @@ jobs:
       - uses: supabase/setup-cli@v1
       - name: Start Supabase
         run: supabase start
-      - run: pnpm dev
       - name: Run Playwright tests
         run: pnpm exec playwright test
       - uses: actions/upload-artifact@v4
