@@ -28,12 +28,9 @@ jobs:
         run: pnpm install
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
-      - name: Startup Supabase
-        uses: ./lawnotation-ui
-        with:
-          start: pnpm supabase start
-          wait-on: http://localhost:54323
-          wait-on-timeout: 600
+      - uses: supabase/setup-cli@v1
+      - name: Start Supabase
+        run: supabase start
       - name: Run Playwright tests
         run: pnpm exec playwright test
       - uses: actions/upload-artifact@v4
