@@ -27,7 +27,7 @@ jobs:
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
       - name: Startup Supabase
-        uses: ./
+        uses: ./lawnotation-ui
         with:
           start: pnpm supabase start
           wait-on: http://localhost:54323
