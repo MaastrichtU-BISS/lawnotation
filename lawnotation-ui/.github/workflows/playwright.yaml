@@ -21,10 +21,14 @@ jobs:
           node-version: lts/*
       - name: Install dependencies
         run: npm install -g pnpm && pnpm install
-      - name: Start Supabase database
-        run: pnpm supabase start
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
+      - name: Startup Supabase
+        uses: ./
+        with:
+          start: pnpm supabase start
+          wait-on: http://localhost:54323
+          wait-on-timeout: 600
       - name: Run Playwright tests
         run: pnpm exec playwright test
       - uses: actions/upload-artifact@v4
