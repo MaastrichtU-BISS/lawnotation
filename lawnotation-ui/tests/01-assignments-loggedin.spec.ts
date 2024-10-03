@@ -10,6 +10,7 @@ test('Annotator creates project, task, uploads document and assigns task', async
     await annotatorPage.goto('localhost:3000');
 
     // Annotator assert if there are no assignments
+    await annotatorPage.getByTestId('assigned-tasks-menu-item').waitFor();
     await annotatorPage.getByTestId('assigned-tasks-menu-item').click();
     await expect(annotatorPage.getByText('Showing 0 of 0')).toBeVisible();
 
@@ -25,6 +26,7 @@ test('Annotator creates project, task, uploads document and assigns task', async
     await delay(3000);
     const row = editorPage.getByRole('table').locator('tbody').locator('tr').first();
     const viewButton = row.getByRole('button', { name: 'View' });
+    await viewButton.waitFor();
     await expect(viewButton).toBeVisible();
     await viewButton.click();
     await expect(editorPage.getByText("Upload dataset", { exact: true })).toBeVisible()

@@ -11,9 +11,10 @@ test('editor creates project, task, a new labelset and edits project and task', 
 
 
     // Editor creates project
-    await editorPage.getByTestId('projects-link').click();  
+    await editorPage.getByTestId('projects-link').waitFor();
+    await editorPage.getByTestId('projects-link').click();
     await editorPage.getByText("Don't show again", { exact: true }).waitFor();
-    await editorPage.getByTestId('open-projects-modal').click(); 
+    await editorPage.getByTestId('open-projects-modal').click();
     await editorPage.getByTestId('project-name').fill('Test project v2');
     await editorPage.getByTestId('project-description').fill('This is the description');
     await editorPage.getByTestId('add-project').click();
@@ -56,7 +57,7 @@ test('editor creates project, task, a new labelset and edits project and task', 
     await delay(3000);
 
     // Editor edits project
-    await editorPage.getByTestId('projects-link').click(); 
+    await editorPage.getByTestId('projects-link').click();
     const projectRow = editorPage.getByRole('table').locator('tbody').locator('tr').first();
     const editedButton = projectRow.getByLabel('Edit');
     await expect(editedButton).toBeVisible();

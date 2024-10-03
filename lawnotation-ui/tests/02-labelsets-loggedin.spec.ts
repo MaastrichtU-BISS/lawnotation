@@ -8,6 +8,7 @@ test('Editor creates, edits, and deletes labelset', async ({ browser }) => {
     const editorContext = await browser.newContext({ storageState: 'playwright/.auth/editor.json' });
     const editorPage = await editorContext.newPage();
     await editorPage.goto('localhost:3000');
+    await editorPage.getByTestId('labelset-link').waitFor();
     await editorPage.getByTestId('labelset-link').click();
     await editorPage.getByTestId('create-new-labelset').click();
     await editorPage.getByLabel('Breadcrumb').waitFor();
