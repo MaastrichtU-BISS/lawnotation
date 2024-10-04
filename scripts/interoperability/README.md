@@ -20,6 +20,9 @@ The scripts are written in Python, so make sure that Python is installed. No fur
 
 ### Doccano
 
+- From Lawnotation to Doccano:
+  - One Lawnotation Task will map to one or more Doccano JSON files.
+
 > [!NOTE]
 > Doccano does not support HTML documents. Therefore, such documents will be ignored.
 

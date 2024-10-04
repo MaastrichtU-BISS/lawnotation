@@ -44,6 +44,10 @@ interface Task {
 class Label(TypedDict):
     name: str
     color: str
+class Labelset(TypedDict):
+    name: str
+    desc: str
+    labels: List[Label]
 class Relation(TypedDict):
     to: int
     direction: str
@@ -71,7 +75,7 @@ class Counts(TypedDict):
 class Task(TypedDict):
     name: str
     desc: str
-    labelset: List[Label]
+    labelset: Labelset
     ann_guidelines: str
     documents: List[Document]
     counts: Counts

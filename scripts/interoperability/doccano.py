@@ -1,5 +1,7 @@
+from io import TextIOWrapper
 import json
 from converter import Converter
+from interface import Task
 
 """
 Doccano
@@ -23,11 +25,12 @@ This hypothesis is confirmed by producing an export, which results in a file for
 
 class DoccanoConverter(Converter):
 
-  def convert(self):
+  def convert_to(self, input: TextIOWrapper):
+    task = json.load(input)
 
     out_datasets = {}
 
-    for in_doc in self.input['documents']:
+    for in_doc in task['documents']:
       if in_doc['name'][-5:] == ".html":
         print(f"Skipping document '{in_doc['name']}'; HTML documents are not supported in Doccano")
         continue

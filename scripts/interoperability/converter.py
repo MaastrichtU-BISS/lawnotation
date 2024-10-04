@@ -1,8 +1,13 @@
-import json
+from abc import abstractmethod
 
 from interface import Task
 
 class Converter:
-  input: Task
-  def __init__(self, input):
-    self.input = json.load(input)
+  pass
+  # @abstractmethod
+  # def convert_to(self, task: Task):
+  #   pass
+
+  # @abstractmethod
+  # def convert_from(self) -> Task:
+  #   pass
