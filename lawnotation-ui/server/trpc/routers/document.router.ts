@@ -91,7 +91,8 @@ export const documentRouter = router({
   create: protectedProcedure
     .input(ZDocumentFields)
     .mutation(async ({ ctx, input }) => {
-      sanitizeFullText(input);
+      if (input.name.split('.').pop() == 'html')
+        sanitizeFullText(input);
 
       const { data, error } = await ctx.supabase
         .from("documents")
@@ -111,7 +112,8 @@ export const documentRouter = router({
     .input(z.array(ZDocumentFields))
     .mutation(async ({ ctx, input }) => {
       input.forEach((doc) => {
-        sanitizeFullText(doc);
+        if (doc.name.split('.').pop() == 'html')
+          sanitizeFullText(doc);
       });
 
       const { data, error } = await ctx.supabase
