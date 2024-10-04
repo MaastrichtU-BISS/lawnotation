@@ -61,7 +61,7 @@ class TranskribusConverter(Converter):
   #   full_text: str
   #   assignments: List[Assignment]
 
-  def process_document(self, file) -> Document:
+  def process_document(self, file, doc_num) -> Document:
     
     document_text = ''
     annotations = []
@@ -108,7 +108,7 @@ class TranskribusConverter(Converter):
       'full_text': document_text,
       'assignments': [{
         'annotator': 1,
-        'order': 1,
+        'order': doc_num + 1,
         'difficulty_rating': 0,
         'annotations': annotations
       }]
@@ -124,7 +124,7 @@ class TranskribusConverter(Converter):
 
     docs = []
     for file in files:
-      doc = self.process_document(file)
+      doc = self.process_document(file, count_docs)
       docs.append(doc)
       count_docs += 1
       count_annotations += len(doc['assignments'][0]['annotations'])
