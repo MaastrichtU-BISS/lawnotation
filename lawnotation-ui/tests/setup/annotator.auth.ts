@@ -4,6 +4,7 @@ import { delay } from '../utils';
 const annotatorFile = 'playwright/.auth/annotator.json';
 
 setup('Authenticate as annotator', async ({ context, page }) => {
+  setup.setTimeout(120000);
   await page.goto('localhost:3000');
   await delay(1000);
   const emailField = page.getByTestId('email-field-to-login');
