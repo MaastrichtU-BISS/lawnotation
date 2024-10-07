@@ -8,7 +8,7 @@ setup('Authenticate as annotator', async ({ context, page }) => {
   await page.goto('localhost:3000');
   await delay(1000);
   const emailField = page.getByTestId('email-field-to-login');
-  await emailField.fill('annotator@example.com');
+  await emailField.pressSequentially('annotator@example.com', { delay: 100 });
   await emailField.press('Enter');
   await delay(3000);
 
