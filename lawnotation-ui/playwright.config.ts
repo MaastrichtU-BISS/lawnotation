@@ -104,7 +104,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'pnpm build && pnpm preview',
+    command: process.env.NODE_ENV === 'production' ? 'pnpm build && pnpm preview' : 'pnpm dev',
     // url: 'http://127.0.0.1:3000',
     // port: 3000,
     url: 'http://localhost:3000',
