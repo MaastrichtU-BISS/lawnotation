@@ -14,7 +14,7 @@
 import type {
   MetricResultsTable
 } from "~/utils/metrics";
-import Dialog from 'primevue/Dialog';
+import Dialog from 'primevue/dialog';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
 import ResultsAgreement from "./ResultsAgreement.vue";
