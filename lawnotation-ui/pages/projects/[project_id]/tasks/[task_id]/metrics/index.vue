@@ -29,18 +29,33 @@
             <ul class="space-y-2 text-sm">
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label</label>
-                <Multiselect v-model="selectedLabel" :options="labelsOptions" :searchable="true"
-                  placeholder="Select a Label" @change="selectLabel" />
+                <Dropdown v-model="selectedLabel" :options="labelsOptions" optionLabel="name"
+                  placeholder="Select a Label" class="w-full" @change="selectLabel($event.value?.name)"
+                  :panel-style="{ width: '295px'}" :pt="{
+                    item: '!py-2'
+                  }" :ptOptions="{ mergeProps: true }">
+                  <template #value="slotProps">
+                    <div v-if="slotProps.value">
+                      <LabelCmpt :label="{color: labelsOptions.find((l) => l.name == slotProps.value)?.color!, name: slotProps.value}"></LabelCmpt>
+                    </div>
+                    <span v-else>
+                      {{ slotProps.placeholder }}
+                    </span>
+                  </template>
+                  <template #option="slotProps">
+                    <LabelCmpt :label="slotProps.option"></LabelCmpt>
+                  </template>
+                </Dropdown>
               </li>
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Document(s)</label>
-                <Multiselect v-model="selectedDocumentsOrEmpty" :mode="'tags'" :close-on-select="false"
-                  :options="documentsOptions" :searchable="true" placeholder="All" @change="selectDocument" />
+                <Multiselect v-model="selectedDocumentsOrEmpty" class="w-full" optionLabel="label" optionValue="value"
+                  :options="documentsOptions" placeholder="All" @change="selectDocument" />
               </li>
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Annotators</label>
-                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions" :mode="'tags'"
-                  :searchable="true" :close-on-select="false" placeholder="All" @change="selectAnnotators" />
+                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions"
+                 placeholder="All" class="w-full" @change="selectAnnotators" />
               </li>
               <li>
                 <div>
@@ -66,8 +81,7 @@
                     <div
                       class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
                     </div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
                   </label>
                   <InfoToolTip :id="'tooltip_annotation_word'"
                     :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
@@ -115,120 +129,38 @@
                     :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'" />
                 </div>
               </li>
-              <li class="">
-                <button data-modal-target="difficultyMetricsModal" data-modal-toggle="difficultyMetricsModal"
-                  class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                  @click="clickComputeDifficultyMetrics">
-                  Compute Confidence Metrics
-                </button>
+              <li>
+                <Button class="w-full" label="Compute Metrics" size="small" @click="clickComputeMetrics" />
               </li>
               <li>
-                <button :disabled="!selectedLabel"
-                  class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                  @click="clickComputeMetrics">
-                  Compute Annotation Metrics
-                </button>
+                <Button class="w-full" label="Download All" outlined size="small" @click="clickDownloadAll" />
               </li>
-              <ul class="pt-4 mt-4 space-y-2 font-medium pb-3 border-gray-200 dark:border-gray-700">
-                <li>
-                  <div class="relative overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                        <tr>
-                          <th scope="col" class="px-6 py-3">Metric</th>
-                          <th scope="col" class="px-6 py-3">Value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                            Krippendorff's alpha
-                          </th>
-                          <td class="px-6 py-4">
-                            <span v-if="!loading">{{
-                              metrics_result?.krippendorff?.result?.toFixed(3) ?? ""
-                            }}</span>
-                          </td>
-                        </tr>
-                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                            Fleiss' Kappa
-                          </th>
-                          <td class="px-6 py-4">
-                            <span v-if="!loading">{{
-                              metrics_result?.fleiss_kappa?.result?.toFixed(3) ?? ""
-                            }}</span>
-                          </td>
-                        </tr>
-                        <tr class="bg-white dark:bg-gray-800">
-                          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                            Cohen's Kappa
-                          </th>
-                          <td class="px-6 py-4">
-                            <span v-if="!loading">{{
-                              metrics_result?.cohens_kappa?.result?.toFixed(3) ?? ""
-                            }}</span>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </li>
-                <li class="">
-                  <button
-                    class="w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
-                    @click="clickDownloadAll">
-                    Download all
-                  </button>
-                </li>
-              </ul>
             </ul>
           </div>
         </aside>
-        <div class="px-4 sm:ml-64 side-panel-h overflow-auto" style="margin-left: 20rem">
-          <div id="annotations_list">
-            <div v-if="!loading" class="flex mb-3 justify-between">
-              <span class="flex-1 text-2xl font-bold text-center">
-                Annotations: {{ annotations_length }}
-              </span>
-            </div>
-            <ul>
-              <li v-for="(ann, index) in annotations">
-                <RangeLabelCmpt :annotation="ann" :index="index" :is-new-doc="isNewDoc(index)"
-                  :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)" @separate="emitSeparate"
-                  @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
-                  :key="index + '_' + ann.start + '_' + ann.end + '_' + ann.hidden"></RangeLabelCmpt>
-              </li>
-            </ul>
-
-            <a href="#annotations_list" type="button"
-              class="absolute bottom-0 right-0 mb-3 mr-3 text-white bg-secondary hover:bg-secondary/80 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-              <svg class="w-4 h-4 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
-                fill="none" viewBox="0 0 10 14">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M5 13V1m0 0L1 5m4-4 4 4"></path>
-              </svg>
-              <span class="sr-only">Go up</span>
-            </a>
-          </div>
-        </div>
+        <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations"
+          :labels="labelsOptions" :loading="loading" :documentsData="documentsData"></AnnotationsList>
       </div>
     </div>
-    <DifficultyMetricsModal :modelValue="metrics_result.difficulty!"></DifficultyMetricsModal>
+    <ResultsModal v-if="metricsResult?.confidence" v-model:visible="metricsModalVisible" :metricResults="metricsResult"
+      :loading="loading"></ResultsModal>
   </div>
 </template>
 <script setup lang="ts">
+import LabelCmpt from "~/components/labels/Label.vue";
+import Dropdown from "primevue/dropdown";
+import Multiselect from "primevue/multiselect";
+import AnnotationsList from "~/components/metrics/AnnotationsList.vue";
+import ResultsModal from "~/components/metrics/ResultsModal.vue";
 import * as XLSX from "xlsx";
-import Multiselect from "@vueform/multiselect";
-import type { Task, RichAnnotation, Project } from "~/types";
+import type { Task, Project } from "~/types";
+import type { RichAnnotation } from "~/utils/metrics";
 import type {
   MetricResult,
-  newEmptyMetricResult,
-  DifficultyMetricResult,
+  MetricResultsTable,
+  ConfidenceMetricResult,
 } from "~/utils/metrics";
 import { initFlowbite } from "flowbite";
-
-import _ from "lodash";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
 import { saveAs } from "file-saver";
@@ -236,14 +168,24 @@ import JSZip, { file } from "jszip";
 import type { RangeLabel } from "~/utils/metrics";
 import { authorizeClient } from "~/utils/authorize.client";
 
-const config = useRuntimeConfig();
 const { $toast, $trpc } = useNuxtApp();
-
-// const user = useSupabaseUser();
 
 const route = useRoute();
 const task = ref<Task>();
 const project = ref<Project>();
+
+const download_progress = ref<{ current: number; total: number; loading: boolean; message: string }>({
+  current: 0,
+  total: 0,
+  loading: false,
+  message: ""
+});
+
+// options
+const loading_options = ref(false);
+
+const labelsOptions = reactive<{ name: string, color: string }[]>([]);
+const selectedLabel = ref<string>();
 
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
 const selectedDocumentsOrEmpty = ref<string[]>([]);
@@ -251,48 +193,27 @@ const selectedDocumentsOrEmpty = ref<string[]>([]);
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotatorsOrEmpty = ref<string[]>([]);
 
-const labelsOptions = reactive<string[]>([]);
-const selectedLabel = ref<string>();
-
 const tolerance = ref<number>(0);
 
-const loading_annotations = ref(false);
-const loading_options = ref(false);
-const download_progress = ref<{ current: number; total: number; loading: boolean; message: string }>({
-  current: 0,
-  total: 0,
-  loading: false,
-  message: ""
-});
-const downloadAllPromises = [];
-const downloadAllResults = [];
 const separate_into_words = ref(false);
-const hideNonText = ref(true);
 const contained = ref(false);
+const hideNonText = ref(true);
 
-const annotations_limit = 10 ** 3;
-const annotations_length = ref(0);
+// annotations
+const annotations_limit = 10 ** 4;
+const loading_annotations = ref(false);
 const annotations = reactive<RichAnnotation[]>([]);
-const metrics_result = ref<{
-  loading: Boolean;
-  krippendorff: MetricResult | undefined;
-  fleiss_kappa: MetricResult | undefined;
-  cohens_kappa: MetricResult | undefined;
-  difficulty: DifficultyMetricResult | undefined;
-}>({
-  krippendorff: undefined,
-  fleiss_kappa: undefined,
-  cohens_kappa: undefined,
-  difficulty: undefined,
-  loading: false,
-});
+
+// metrics
+const metricsModalVisible = ref<boolean>(false);
+const metricsResult = ref<MetricResultsTable>({} as any);
 
 const documentsData = ref<any>({});
 
 const loading = computed((): boolean => {
   return (loading_annotations.value ||
     download_progress.value.loading ||
-    metrics_result.value?.loading ||
+    metricsResult.value?.loading ||
     loading_options.value) as boolean;
 });
 
@@ -307,15 +228,6 @@ const selectedDocuments = computed((): string[] => {
     ? selectedDocumentsOrEmpty.value
     : documentsOptions.map((d) => d.value);
 });
-
-function getBase64(file: File) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
-  });
-}
 
 const selectLabel = (value: string) => {
   selectedLabel.value = value;
@@ -365,13 +277,6 @@ const getAnnotations = async (
 
 const updateAnnotations = async () => {
   loading_annotations.value = true;
-  metrics_result.value = {
-    krippendorff: undefined,
-    fleiss_kappa: undefined,
-    cohens_kappa: undefined,
-    difficulty: undefined,
-    loading: false,
-  };
   try {
     annotations.splice(0);
     const anns = await getAnnotations(
@@ -383,12 +288,21 @@ const updateAnnotations = async () => {
       hideNonText.value
     );
 
-    annotations_length.value = anns.length;
     if (anns.length < annotations_limit) annotations.push(...anns);
     loading_annotations.value = false;
   } catch (error) {
     loading_annotations.value = false;
   }
+};
+
+const updateMetrics = (metrics: MetricResult[], confidenceMetric: ConfidenceMetricResult) => {
+
+  metricsResult.value = {} as any;
+  metrics.map((m) => {
+    (metricsResult.value as any)[m.name] = m;
+  });
+  metricsResult.value.confidence = confidenceMetric;
+  metricsResult.value.loading = false;
 };
 
 const compute_metrics = async (
@@ -426,22 +340,11 @@ const compute_metrics = async (
   });
 };
 
-const updateMetrics = (metrics: MetricResult[]) => {
-  metrics.map((m) => {
-    (metrics_result.value as any)[m.name] = m;
-  });
-};
-
 const clickComputeMetrics = async () => {
   if (!selectedLabel.value) return;
-  metrics_result.value = {
-    krippendorff: undefined,
-    fleiss_kappa: undefined,
-    cohens_kappa: undefined,
-    difficulty: metrics_result.value?.difficulty ?? undefined,
-    loading: true,
-  };
+  metricsModalVisible.value = true;
   try {
+    // agreement metrics
     const metrics = await compute_metrics(
       task.value?.id.toString()!,
       selectedLabel.value,
@@ -456,41 +359,28 @@ const clickComputeMetrics = async () => {
       documentsOptions.map((d) => d.value),
       annotations && annotations.length ? annotations : []
     );
-    updateMetrics(metrics);
-    metrics_result.value.loading = false;
-  } catch (error) {
-    metrics_result.value.loading = false;
-  }
-};
 
-const clickComputeDifficultyMetrics = async () => {
-  metrics_result.value = {
-    krippendorff: metrics_result.value?.krippendorff ?? undefined,
-    fleiss_kappa: metrics_result.value?.fleiss_kappa ?? undefined,
-    cohens_kappa: metrics_result.value?.cohens_kappa ?? undefined,
-    difficulty: undefined,
-    loading: true,
-  };
-  try {
-    const metric = await computeDifficultyMetrics(
+    // confidence metrics
+    const confidenceMetric = await computeConfidenceMetrics(
       task.value?.id.toString()!,
       selectedAnnotators.value.length,
       selectedAnnotatorsOrEmpty.value,
       selectedDocumentsOrEmpty.value
     );
-    metrics_result.value.difficulty = metric;
-    metrics_result.value.loading = false;
+
+    updateMetrics(metrics, confidenceMetric);
+
   } catch (error) {
-    metrics_result.value.loading = false;
+    metricsResult.value!.loading = false;
   }
 };
 
-const computeDifficultyMetrics = async (
+const computeConfidenceMetrics = async (
   task_id: string,
   annotators_length: number,
   annotators: string[],
   documents: string[]
-): Promise<DifficultyMetricResult> => {
+): Promise<ConfidenceMetricResult> => {
   const body = JSON.stringify({
     annotators_length: annotators_length,
     task_id: task_id,
@@ -498,7 +388,7 @@ const computeDifficultyMetrics = async (
     documents: documents,
   });
 
-  return $fetch(`/api/metrics/difficulty`, {
+  return $fetch(`/api/metrics/confidence`, {
     method: "POST",
     body: body,
   });
@@ -509,7 +399,7 @@ const clickDownloadAll = async () => {
   try {
     const blobs = await download_all({
       task_id: task.value?.id.toString()!,
-      labelsOptions: labelsOptions,
+      labelsOptions: labelsOptions.map((l) => l.name),
       documents: selectedDocuments.value,
       documentsOrEmpty: selectedDocumentsOrEmpty.value,
       annotators: selectedAnnotators.value,
@@ -611,7 +501,7 @@ async function createWorkBooks(data: any, document?: any) {
   const workbookAnnotations = XLSX.utils.book_new();
   const workbookDescriptive = XLSX.utils.book_new();
   for (let i = 0; i < data.labelsOptions.length; i++) {
-    const label = data.labelsOptions[i];
+    const label = data.labelsOptions[i].name;
 
     const annotations = await getAnnotations(
       data.task_id,
@@ -857,50 +747,6 @@ function getZippeableBlob(workBook: XLSX.WorkBook) {
   return `data:${contentType};base64,${b64Data}`;
 }
 
-const canMergeUp = (index: number): Boolean => {
-  return (
-    index > 0 &&
-    annotations[index - 1].doc_id == annotations[index].doc_id &&
-    annotations[index - 1].ann_id == annotations[index].ann_id
-  );
-};
-
-const canMergeDown = (index: number): Boolean => {
-  return (
-    index < annotations.length - 1 &&
-    annotations[index + 1].doc_id == annotations[index].doc_id &&
-    annotations[index + 1].ann_id == annotations[index].ann_id
-  );
-};
-
-const isNewDoc = (index: number): Boolean => {
-  return (
-    index == 0 ||
-    (index > 0 && annotations[index - 1].doc_id != annotations[index].doc_id)
-  );
-};
-
-const emitSeparate = (ann_index: number, split_pos: number) => {
-  loading_annotations.value = true;
-  const current = _.clone(annotations[ann_index]);
-
-  annotations[ann_index].end = current.start + split_pos;
-  annotations[ann_index].text = current.text.substring(0, split_pos);
-
-  annotations.splice(ann_index + 1, 0, {
-    start: current.start + split_pos,
-    end: current.end,
-    label: current.label,
-    text: current.text.substring(split_pos, current.end),
-    annotator: current.annotator,
-    hidden: false,
-    ann_id: current.ann_id,
-    doc_id: current.doc_id,
-    doc_name: current.doc_name,
-  });
-  loading_annotations.value = false;
-};
-
 const modeToggle = (value: boolean) => {
   separate_into_words.value = value;
   if (!task.value) {
@@ -912,43 +758,9 @@ const modeToggle = (value: boolean) => {
   updateAnnotations();
 };
 
-const emitMergeUp = (ann_index: number): void => {
-  loading_annotations.value = true;
-  const current = _.clone(annotations[ann_index]);
-  const previous = _.clone(annotations[ann_index - 1]);
-
-  annotations[ann_index - 1].end = current.end;
-  annotations[ann_index - 1].text = documentsData.value[
-    current.doc_id
-  ].full_text.substring(previous.start, current.end);
-
-  annotations[ann_index].hidden = false;
-  annotations.splice(ann_index, 1);
-  loading_annotations.value = false;
-};
-
-const emitMergeDown = (ann_index: number): void => {
-  loading_annotations.value = true;
-  const current = _.clone(annotations[ann_index]);
-  const next = _.clone(annotations[ann_index + 1]);
-
-  annotations[ann_index + 1].start = current.start;
-  annotations[ann_index + 1].text = documentsData.value[
-    current.doc_id
-  ].full_text.substring(current.start, next.end);
-
-  annotations[ann_index].hidden = false;
-  annotations.splice(ann_index, 1);
-  loading_annotations.value = false;
-};
-
 const toggleTextToHidden = (value: boolean): RichAnnotation[] => {
   hideNonText.value = value;
   return setTextToHidden(annotations, value);
-};
-
-const emitSetHidden = (ann_index: number, hidden: boolean): void => {
-  annotations[ann_index].hidden = hidden;
 };
 
 onMounted(async () => {
@@ -961,9 +773,7 @@ onMounted(async () => {
   project.value = await $trpc.project.findById.query(+route.params.project_id);
 
   labelsOptions.push(
-    ...(await $trpc.labelset.findById.query(+task.value.labelset_id)).labels.map(
-      (l) => l.name
-    )
+    ...(await $trpc.labelset.findById.query(+task.value.labelset_id)).labels
   );
 
   documentsOptions.push(

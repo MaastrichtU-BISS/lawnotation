@@ -354,6 +354,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import Dialog from "primevue/dialog"
 import type { ExportTaskOptions } from "~/utils/io";
 import type { Publication } from "~/types";
 const formValues = defineModel<{

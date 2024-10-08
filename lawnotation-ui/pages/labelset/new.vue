@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import Labelset from "~/components/Labelset.vue";
+import Labelset from "~/components/labels/Labelset.vue";
 const user = useSupabaseUser();
 
 const labelset = ref({
