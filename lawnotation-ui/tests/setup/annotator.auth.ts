@@ -20,7 +20,8 @@ setup('Authenticate as annotator', async ({ context, page }) => {
 
   await page.getByRole("textbox").first().fill(magicCode);
   await page.getByTestId('verify-button').click();
-  await delay(3000);
+  await page.getByText('Create new project').waitFor();
+  await page.getByText('Create new project').isVisible();
 
   await page.context().storageState({ path: annotatorFile });
 });
