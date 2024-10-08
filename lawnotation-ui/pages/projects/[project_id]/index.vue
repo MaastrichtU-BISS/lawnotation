@@ -295,7 +295,7 @@ import type {
 import type { Doc } from "~/types/archive";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";
-import Labelset from "~/components/Labelset.vue";
+import Labelset from "~/components/labels/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";

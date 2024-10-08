@@ -1,6 +1,17 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  app: {
+    head: {
+      script: [{
+        defer: true,
+        src: "https://umami-biss-um.vercel.app/script.js",
+        "data-website-id": "0d643ede-ed67-4311-a8c0-6db0edc96f64",
+        "data-domains": "app.lawnotation.org"
+      }]
+    }
+  },
   devtools: { enabled: false },
+
   runtimeConfig: {
     mailtrapToken: process.env.MAILTRAP_TOKEN,
     public: {
@@ -11,17 +22,22 @@ export default defineNuxtConfig({
           : "http://localhost:3000",
     },
   },
+
   modules: ["@nuxtjs/supabase", "@nuxtjs/tailwindcss", 'nuxt-primevue'],
+
   primevue: {
     options: {
       unstyled: true
     },
     importPT: { as: "Lara", from: "@/presets/lara" }
   },
+
   build: {
     transpile: ['trpc-nuxt'],
   },
-  css: ["@/assets/styles/main.scss", "@vueform/multiselect/themes/default.css", 'primeicons/primeicons.css'],
+
+  css: ["@/assets/styles/main.scss", 'primeicons/primeicons.css'],
+
   supabase: {
     redirect: false,
     // redirectOptions: {
@@ -36,6 +52,7 @@ export default defineNuxtConfig({
       }
     }
   },
+
   vite: {
     optimizeDeps: { exclude: ["/lawnotation-ui/utils/enums.ts", "/lawnotation-ui/utils/guidance.ts"] },
     vue: {
@@ -44,5 +61,7 @@ export default defineNuxtConfig({
         propsDestructure: true,
       },
     },
-  }
+  },
+
+  compatibilityDate: "2024-10-01"
 });

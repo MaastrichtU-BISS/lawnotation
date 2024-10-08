@@ -67,12 +67,7 @@
             />
           </svg>
         </button>
-        <span
-          class="px-3 py-1 rounded label"
-          :style="{ backgroundColor: `${label.color}26`, borderLeft: `4px solid ${label.color}` }"
-          data-test="label"
-          >{{ label.name }}</span
-        >
+        <LabelCmpt :label="label"></LabelCmpt>
       </div>
     </div>
   </div>
@@ -80,6 +75,7 @@
 
 <script setup lang="ts">
 import type { Labelset } from "~/types";
+import LabelCmpt from "~/components/labels/Label.vue";
 import type { Optional } from "utility-types";
 
 const { $toast, $trpc } = useNuxtApp();

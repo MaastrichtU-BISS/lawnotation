@@ -1,5 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
-import type { DifficultyMetricResult, MetricResult } from "~/utils/metrics";
+import type { ConfidenceMetricResult, MetricResult } from "~/utils/metrics";
 import { newEmptyMetricResult } from "~/utils/metrics";
 
 export default eventHandler(async (event) => {
@@ -39,7 +39,7 @@ function computeMetric(
   ratings: number[],
   m: number,
   q: number
-): DifficultyMetricResult {
+): ConfidenceMetricResult {
   let result = {
     average: 0,
     min: 10 ** 6,
@@ -50,7 +50,7 @@ function computeMetric(
     krippendorff: undefined,
     values: new Array(q + 1).fill(0),
     table: [],
-  } as DifficultyMetricResult;
+  } as ConfidenceMetricResult;
 
   let sum: number = 0;
   ratings.map((r) => {

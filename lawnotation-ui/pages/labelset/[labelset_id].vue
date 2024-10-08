@@ -22,7 +22,7 @@
 <script setup lang="ts">
 import type { Labelset as LabelsetType } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
-import Labelset from "~/components/Labelset.vue";
+import Labelset from "~/components/labels/Labelset.vue";
 
 const route = useRoute();
 const { $trpc } = useNuxtApp();
