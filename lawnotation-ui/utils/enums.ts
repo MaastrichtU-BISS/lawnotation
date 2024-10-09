@@ -28,3 +28,9 @@ export enum Origins {
   IMPORTED = "imported",
   MODEL = "model"
 }
+
+export enum Direction {
+  PREVIOUS = "previous",
+  CURRENT = "current",
+  NEXT = "next"
+}
