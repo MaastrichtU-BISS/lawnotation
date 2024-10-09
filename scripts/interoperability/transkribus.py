@@ -17,7 +17,7 @@ def random_string(length):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
-def text_line_annotations(custom_attr):
+def text_line_annotations(custom_attr, line_text):
   pattern = r'(\w+)\s*\{([^}]+)\}'
 
   annotations = []
@@ -37,12 +37,17 @@ def text_line_annotations(custom_attr):
 
     start = int(attr_dict['offset'])
     end = start + int(attr_dict['length'])
+    continued = 'continued' in attr_dict
 
     annotations.append({
       'label': label,
       'start' : start,
-      'end': end
+      'end': end,
+      'continued': continued,
+      'text': line_text[start:end]
     })
+
+    annotations.sort(key=lambda x: x['start'])
 
   return annotations
 
@@ -73,6 +78,7 @@ class TranskribusConverter(Converter):
     for text_region in root.findall('.//page:TextRegion', ns):
       # print(text_region.tag)
 
+      continuing_ann = None
       for text_line in text_region.findall('page:TextLine', ns):
         
         line_text = ''
@@ -82,14 +88,27 @@ class TranskribusConverter(Converter):
               line_text += content_el.text
 
         pre_doc_length = len(document_text)
-        line_annotations = text_line_annotations(text_line.get('custom'))
+        line_annotations = text_line_annotations(text_line.get('custom'), line_text)
+      
         if len(line_annotations) > 0:
+          if continuing_ann is not None and \
+            line_annotations[0]['continued'] and \
+            line_annotations[0]['start'] == 0:
+              # combine last annotations
+              line_annotations[0]['start'] = 0 - len(continuing_ann['text']) - 1
+              line_annotations[0]['text'] = continuing_ann['text'] + '\n' + line_text[0:line_annotations[0]['end']]
+              continuing_ann = None
+
+          if line_annotations[-1]['continued'] and \
+            line_annotations[-1]['end'] == len(line_text):
+              continuing_ann = line_annotations.pop()
+
           annotations.extend([
             {
               'label': ann['label'],
               'start': pre_doc_length + ann['start'],
               'end': pre_doc_length + ann['end'],
-              'text': line_text[ann['start']:ann['end']],
+              'text': ann['text'],
               'ls_id': random_string(10),
               'relations': [],
               'confidence_rating': 0
@@ -97,7 +116,7 @@ class TranskribusConverter(Converter):
           ])
         
         # put every textline on new line
-        document_text += content_el.text + '\n'
+        document_text += line_text + '\n'
       
       # split text regions by extra newline
       document_text += '\n'
@@ -160,6 +179,6 @@ class TranskribusConverter(Converter):
       'annotation_level': 'symbol'
     }
 
-    task_json = json.dumps(task)
+    task_json = json.dumps(task, indent=2)
 
     return task_json
