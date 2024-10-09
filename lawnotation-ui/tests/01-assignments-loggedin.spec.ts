@@ -37,7 +37,7 @@ test('Annotator creates project, task, uploads document and assigns task', async
     const fileChooserPromise = editorPage.waitForEvent('filechooser');
     await editorPage.getByText("Select", { exact: true }).click();
     const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles(path.join(__dirname, 'input', 'Test.txt'));
+    await fileChooser.setFiles(path.join(__dirname, 'input', 'lorem-ipsum.txt'));
     await editorPage.getByTestId('upload-documents').click();
 
     // Editor creates task
