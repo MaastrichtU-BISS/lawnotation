@@ -11,7 +11,6 @@ test('Not logged in user goes to documentation and downloads an ECLI', async ({ 
     await eclisInput.press('Enter');
 
     await page.getByTestId('download-button').click();
-    await page.getByRole("alert").waitFor();
     await expect(page.getByRole("alert")).toContainText("One .zip file containing 1 documents has been downloaded!");
 });
 
