@@ -7,7 +7,7 @@ test('editor creates project, task, a new labelset and edits project and task', 
     test.setTimeout(120000);
     const editorContext = await browser.newContext({ storageState: 'playwright/.auth/annotator.json' });
     const editorPage = await editorContext.newPage();
-    await editorPage.goto('localhost:3000');
+    await editorPage.goto('/');
 
 
     // Editor creates project

@@ -7,7 +7,7 @@ test('Annotator creates project, task, uploads document and assigns task', async
     test.setTimeout(240000);
     const annotatorContext = await browser.newContext({ storageState: 'playwright/.auth/annotator.json' });
     const annotatorPage = await annotatorContext.newPage();
-    await annotatorPage.goto('localhost:3000');
+    await annotatorPage.goto('/');
 
     // Annotator assert if there are no assignments
     await annotatorPage.getByTestId('assigned-tasks-menu-item').waitFor();
@@ -17,7 +17,7 @@ test('Annotator creates project, task, uploads document and assigns task', async
     // Editor creates a project
     const editorContext = await browser.newContext({ storageState: 'playwright/.auth/editor.json' });
     const editorPage = await editorContext.newPage();
-    await editorPage.goto('localhost:3000');
+    await editorPage.goto('/');
     await editorPage.getByTestId('projects-link').click();
     await editorPage.getByText("Don't show again", { exact: true }).waitFor();
     await editorPage.getByTestId('open-projects-modal').click();
