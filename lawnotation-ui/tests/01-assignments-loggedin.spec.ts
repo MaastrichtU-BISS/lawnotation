@@ -73,7 +73,6 @@ test('Annotator creates project, task, uploads document and assigns task', async
     await projectRow.getByRole("checkbox").click();
     await editorPage.getByTestId("remove-selected-rows").click();
     await editorPage.getByRole('button', { name: 'Confirm' }).click();
-    await editorPage.getByRole("alert").waitFor();
-    await expect(editorPage.getByRole("alert")).toHaveText("Items succesfully removed");
+    await expect(editorPage.getByRole("alert").getByText("Items succesfully removed")).toBeVisible();
 });
 
