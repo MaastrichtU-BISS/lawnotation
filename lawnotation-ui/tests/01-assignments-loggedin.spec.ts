@@ -70,12 +70,10 @@ test('Annotator creates project, task, uploads document and assigns task', async
 
     // Editor deletes project
     await editorPage.getByTestId('projects-link').click();
-    const projecteditRow = editorPage.getByRole('table').locator('tbody').locator('tr').first();
-    const editButton = projecteditRow.getByLabel('Edit');
-    await expect(editButton).toBeVisible();
-    await editButton.click();
-    await editorPage.getByLabel('Remove').click();
-    await editorPage.getByLabel("Save", { exact: true }).click();
-    await delay(3000);
+    await projectRow.getByRole("checkbox").click();
+    await editorPage.getByTestId("remove-selected-rows").click();
+    await editorPage.getByRole('button', { name: 'Confirm' }).click();
+    await editorPage.getByRole("alert").waitFor();
+    await expect(editorPage.getByRole("alert")).toHaveText("Items succesfully removed");
 });
 

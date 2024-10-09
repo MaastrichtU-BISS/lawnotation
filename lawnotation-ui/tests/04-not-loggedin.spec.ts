@@ -9,8 +9,9 @@ test('Not logged in user goes to documentation and downloads an ECLI', async ({ 
     const eclisInput = page.getByTestId('eclis');
     await eclisInput.pressSequentially('ECLI:NL:RBLIM:2023:7197', { delay: 100 });
     await eclisInput.press('Enter');
-    
+
     await page.getByTestId('download-button').click();
-    await delay(3000);
+    await page.getByRole("alert").waitFor();
+    await expect(page.getByRole("alert")).toContainText("One .zip file containing 1 documents has been downloaded!");
 });
 
