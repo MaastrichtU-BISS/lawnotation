@@ -11,21 +11,15 @@
   ]" />
 
   <div v-if="task">
-    <div class="max-w-screen-md w-full mx-auto" v-if="assignmentCounts">
-      <div class="flex justify-between mb-1">
-        <span class="text-base font-medium text-gray-500 text-muted">Assignment</span>
-        <span class="text-sm font-medium text-blue-700" data-test="progress">{{ assignmentCounts.next - 1 }} / {{ assignmentCounts.total
-        }}</span>
-      </div>
-      <div class="w-full bg-gray-200 rounded-full h-2.5">
-        <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" :style="{
-            width: `${((assignmentCounts.next - 1) / assignmentCounts.total) * 100}%`,
-          }"></div>
-      </div>
+    <div class="flex items-center mx-auto w-1/2" v-if="totalCount">
+        <span class="font-semibold mr-2">{{ previousCount }}/{{ totalCount }}</span>
+        <span class="w-full">
+          <ProgressBar :value="Math.round((previousCount / totalCount) * 100)"> {{ Math.round(previousCount / totalCount * 100)}}% </ProgressBar>
+        </span>
     </div>
     <div class="text-center my-10">
-      <div v-if="assignmentCounts && assignmentCounts.next <= assignmentCounts.total">
-        <NuxtLink :to="`/annotate/${task.id}?seq=${assignmentCounts?.next}`">
+      <div v-if="nextAssignment && totalCount <= totalCount">
+        <NuxtLink :to="`/annotate/${task.id}?seq=${nextAssignment.seq_pos}`">
           <button class="base btn-primary" data-test="annotate-next-assignment-button">Annotate Next Assignment</button>
         </NuxtLink>
       </div>
@@ -64,7 +58,10 @@ const user = useSupabaseUser();
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
 
-const assignmentCounts = ref<{ next: number; total: number }>();
+const nextAssignment = await $trpc.assignment.findNextAssignmentsByUserAndTask.query({ annotator_id: user.value?.id!, task_id: task.id });
+
+const previousCount = ref<number>(0);
+const totalCount = ref<number>(0);
 
 const loadCounters = async () => {
   try {
@@ -73,10 +70,11 @@ const loadCounters = async () => {
 
     const counts = await $trpc.assignment.countAssignmentsByUserAndTask.query({
       annotator_id: user.value.id,
-      task_id: task.id,
+      task_id: task.id
     });
 
-    assignmentCounts.value = counts;
+    previousCount.value = counts.previous;
+    totalCount.value = counts.total;
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Problem loading counters: ${error.message}`);
@@ -84,7 +82,6 @@ const loadCounters = async () => {
 };
 
 onMounted(async () => {
-  // task.value = await $trpc.task.findById.query(+route.params.task_id);
   await loadCounters();
 });
 

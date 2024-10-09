@@ -8,15 +8,15 @@
         <Badge :value="assignment.status" :severity="assignment.status == AssignmentStatuses.DONE ? 'success' : 'danger'"
           class="capitalize px-2" />
       </div>
-      <div v-if="!isEditor && assignmentsTotal" class="flex items-center w-1/3">
-        <span class="font-semibold mr-2">{{ assignment.seq_pos }}/{{ assignmentsTotal }}</span>
+      <div v-if="!isEditor && previousCount != undefined && totalCount" class="flex items-center w-1/3">
+        <span class="font-semibold mr-2">{{ previousCount }}/{{ totalCount }}</span>
         <span class="w-full">
-          <ProgressBar :value="Math.round((assignment.seq_pos / assignmentsTotal) * 100)"> {{ Math.round(assignment.seq_pos / assignmentsTotal * 100)}}% </ProgressBar>
+          <ProgressBar :value="Math.round((previousCount / totalCount) * 100)"> {{ Math.round(previousCount / totalCount * 100)}}% </ProgressBar>
         </span>
       </div>
-      <div v-if="!isEditor && assignmentsTotal">
-        <Button :disabled="assignment.seq_pos == 1" label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
-        <Button :label="assignment.seq_pos < assignmentsTotal ? 'Next' : 'Finish'" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
+      <div v-if="!isEditor && totalCount && previousCount != undefined">
+        <Button :disabled="previousCount <= 1" label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
+        <Button :label="previousCount < totalCount ? 'Next' : 'Finish'" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
       </div>
       <div v-else>
         <Button label="Save" icon="pi pi-check" @click="clickNext" icon-pos="right" />
@@ -44,7 +44,8 @@ const emit = defineEmits(["previousAssignment", "nextAssignment"]);
 const props = defineProps<{
   user: any;
   assignment: Assignment | undefined;
-  assignmentsTotal: number | undefined;
+  totalCount: number | undefined;
+  previousCount: number | undefined;
   annotations: LSSerializedAnnotations | undefined;
   relations: LSSerializedRelation[] | undefined;
   text: string | undefined;

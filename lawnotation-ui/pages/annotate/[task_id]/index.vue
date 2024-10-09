@@ -14,11 +14,11 @@
     },
   ]" />
 
-  <template v-if="task && assignmentCounts">
+  <template v-if="task && totalCount">
     <div class="dimmer-wrapper min-h-0">
       <Dimmer v-model="loading" />
       <div class="dimmer-content h-full">
-        <LabelStudio v-if="loadedData" :assignment="assignment" :assignmentsTotal="assignmentCounts.total" :user="user" :isEditor="isEditor" :text="doc?.full_text"
+        <LabelStudio v-if="loadedData" :assignment="assignment" :previousCount="previousCount" :totalCount="totalCount" :user="user" :isEditor="isEditor" :text="doc?.full_text"
           :annotations="ls_annotations" :relations="ls_relations" :labels="labels" :guidelines="task?.ann_guidelines"
           :annotation_level="task.annotation_level" :isHtml="isHtml" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
         </LabelStudio>
@@ -37,6 +37,7 @@ import type {
   AnnotationRelation,
   LSSerializedRelation,
 } from "~/types";
+import { Direction } from "~/utils/enums";
 import Breadcrumb from "~/components/Breadcrumb.vue";
 import { isDocumentLevel, getDocFormat } from "~/utils/levels";
 import { authorizeClient } from "~/utils/authorize.client";
@@ -54,13 +55,12 @@ const task = ref<Task>();
 const doc = ref<Document>();
 const loadedData = ref(false);
 
-// const annotations = reactive<Annotation[]>([]);
-// const relations = reactive<AnnotationRelation[]>([]);
 const ls_annotations = reactive<LSSerializedAnnotations>([]);
 const ls_relations = reactive<LSSerializedRelation[]>([]);
 const labels = reactive<LsLabels>([]);
 const isEditor = ref<boolean>();
-const assignmentCounts = ref<{ next: number; total: number }>();
+const previousCount = ref<number>(0);
+const totalCount = ref<number>(0);
 
 const loading = ref(false);
 const key = ref("ls-default");
@@ -69,10 +69,9 @@ const isHtml = computed(() => {
   return getDocFormat(doc?.value?.name!) == 'html';
 });
 
-// const seq_pos = ref(assignment.value?.seq_pos ?? 1);
 const seq_pos = ref<number>(assignment.value?.seq_pos ?? 0);
 watch(seq_pos, (val) => {
-  if (!Array.isArray(route.query.seq) && route.query.seq == val.toString()) return;
+  if (!Array.isArray(route.query.seq) && route.query.seq == val?.toString()) return;
 
   router.replace({
     path: route.path,
@@ -83,28 +82,26 @@ watch(seq_pos, (val) => {
 const loadPrevious = async () => {
   if (!assignment.value) throw Error("Assignment not found");
 
-  if (assignment.value.seq_pos <= 1) throw Error("Already at first item");
-
-  seq_pos.value -= 1;
-
-  await loadData();
+  if (previousCount.value < 1) throw Error("Already at first item");
+  previousCount.value--;
+  await loadData(Direction.PREVIOUS);
 };
 
 const loadNext = async () => {
   if (!assignment.value) throw Error("Assignment not found");
+  if (!totalCount.value) throw Error("Assignment Counts not found");
 
-  if (assignmentCounts.value && seq_pos.value + 1 > assignmentCounts.value.total) {
-    // TODO: go to page /done
+  if (previousCount.value >= totalCount.value) {
     $toast.success(`All assignments were completed!`);
     if (task.value)
       navigateTo(`/tasks/${task.value.id}`)
   } else {
-    seq_pos.value++;
-    await loadData();
+    previousCount.value++;
+    await loadData(Direction.NEXT);
   }
 };
 
-const loadData = async () => {
+const loadData = async (dir: Direction = Direction.CURRENT) => {
   try {
     if (!user.value) throw new Error("Must be logged in");
 
@@ -115,7 +112,10 @@ const loadData = async () => {
       annotator_id: user.value.id,
       task_id: +route.params.task_id,
       seq_pos: seq_pos.value,
+      dir: dir
     });
+
+    seq_pos.value = assignment?.value?.seq_pos!;
 
     if (!assignment.value) throw Error("Assignment not found");
 
@@ -174,25 +174,27 @@ const loadCounters = async () => {
     const counts = await $trpc.assignment.countAssignmentsByUserAndTask.query({
       annotator_id: user.value.id,
       task_id: +route.params.task_id,
+      seq_pos: seq_pos.value
     });
 
-    assignmentCounts.value = counts;
-  } catch (error) {
+    totalCount.value = counts.total;
+    previousCount.value = counts.previous + 1;
 
+  } catch (error) {
+    throw new Error(error.message);
   }
 };
 
 const init = async () => {
-  await loadCounters();
   if (
     route.query.seq &&
     !Array.isArray(route.query.seq) &&
-    parseInt(route.query.seq) > 0 &&
-    parseInt(route.query.seq) <= assignmentCounts.value!.total
+    parseInt(route.query.seq) > 0
   ) {
     seq_pos.value = parseInt(route.query.seq);
   }
-  loadData();
+  await loadCounters();
+  loadData(Direction.CURRENT);
 };
 
 onMounted(async () => {
