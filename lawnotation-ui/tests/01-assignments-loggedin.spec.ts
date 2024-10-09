@@ -3,7 +3,7 @@ import { delay } from './utils';
 import path from 'node:path';
 
 
-test('Annotator creates project, task, uploads document and assigns task', async ({ browser }) => {
+test('Editor creates project, task, uploads document and assigns task', async ({ browser }) => {
     test.setTimeout(240000);
     const annotatorContext = await browser.newContext({ storageState: 'playwright/.auth/annotator.json' });
     const annotatorPage = await annotatorContext.newPage();
