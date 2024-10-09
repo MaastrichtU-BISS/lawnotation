@@ -1,13 +1,20 @@
 import { TRPCError } from "@trpc/server";
 import { number, z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Assignment, User, Document, MlModel, Annotation, Labelset } from "~/types";
+import type {
+  Assignment,
+  User,
+  Document,
+  MlModel,
+  Annotation,
+  Labelset,
+} from "~/types";
 import type { Context } from "../context";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
-import { MailtrapClient } from "mailtrap"
+import { MailtrapClient } from "mailtrap";
 import postgres from "postgres";
-import { Origins, AssignmentStatuses } from "~/utils/enums";
+import { Origins, AssignmentStatuses, Direction } from "~/utils/enums";
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string().nullable(),
@@ -56,11 +63,18 @@ export const assignmentRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const email_found = await ctx.supabase.from('users').select().eq('email', input.email).maybeSingle();
-      let user_id: User['id'] | null = null;
+      const email_found = await ctx.supabase
+        .from("users")
+        .select()
+        .eq("email", input.email)
+        .maybeSingle();
+      let user_id: User["id"] | null = null;
       if (!email_found.data) {
         // email is a new user.
-        const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, { data: { assigned_task_id: input.task_id } })
+        const invite = await ctx.supabase.auth.admin.inviteUserByEmail(
+          input.email,
+          { data: { assigned_task_id: input.task_id } }
+        );
 
         if (invite.error)
           throw new TRPCError({
@@ -74,30 +88,39 @@ export const assignmentRouter = router({
         user_id = email_found.data.id as string;
         const user_email = email_found.data.email as string;
 
-        await ctx.supabase.auth.admin.updateUserById(user_id, { user_metadata: { assigned_task_id: input.task_id } })
+        await ctx.supabase.auth.admin.updateUserById(user_id, {
+          user_metadata: { assigned_task_id: input.task_id },
+        });
 
         if (process.env.NODE_ENV !== "development") {
           const config = useRuntimeConfig();
           // send email to existing user
-          if (!config.mailtrapToken)
-            throw Error("Mailtrap API token not set")
-  
-          const mailClient = new MailtrapClient({ token: config.mailtrapToken });
-  
+          if (!config.mailtrapToken) throw Error("Mailtrap API token not set");
+
+          const mailClient = new MailtrapClient({
+            token: config.mailtrapToken,
+          });
+
           const body = `Hello ${user_email},<br />
           You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
-  
-          const mail = await mailClient.send({
-            from: { email: 'no-reply@login.lawnotation.org', name: 'Lawnotation' },
-            to: [{ email: user_email }],
-            subject: 'Assigned to new task',
-            html: body
-          })
-  
-          if (!mail.success)
-            throw new TRPCError({ message: 'There was an error sending an email to the invited user.', code: 'INTERNAL_SERVER_ERROR' })
-        }
 
+          const mail = await mailClient.send({
+            from: {
+              email: "no-reply@login.lawnotation.org",
+              name: "Lawnotation",
+            },
+            to: [{ email: user_email }],
+            subject: "Assigned to new task",
+            html: body,
+          });
+
+          if (!mail.success)
+            throw new TRPCError({
+              message:
+                "There was an error sending an email to the invited user.",
+              code: "INTERNAL_SERVER_ERROR",
+            });
+        }
       }
 
       if (!user_id)
@@ -117,7 +140,10 @@ export const assignmentRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const invite = await ctx.supabase.auth.admin.inviteUserByEmail(input.email, { data: { invited_task_id: input.task_id } })
+      const invite = await ctx.supabase.auth.admin.inviteUserByEmail(
+        input.email,
+        { data: { invited_task_id: input.task_id } }
+      );
 
       if (invite.error)
         throw new TRPCError({
@@ -155,8 +181,7 @@ export const assignmentRouter = router({
             annotator_id: z.string().optional(),
             task_id: z.number().int(),
             document_id: z.number().int(),
-            status: z.nativeEnum(AssignmentStatuses)
-              .optional(),
+            status: z.nativeEnum(AssignmentStatuses).optional(),
             seq_pos: z.number().int().optional(),
             difficulty_rating: z.number().int().optional(),
             annotator_number: z.number().int().optional(),
@@ -431,6 +456,32 @@ export const assignmentRouter = router({
         });
       return data as Assignment[];
     }),
+  
+  findNextAssignmentsByUserAndTask: protectedProcedure
+    .input(
+      z.object({
+        annotator_id: z.string(),
+        task_id: z.number().int(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { data, error } = await ctx.supabase
+        .from("assignments")
+        .select()
+        .eq("annotator_id", input.annotator_id)
+        .eq("task_id", input.task_id)
+        .neq("status", AssignmentStatuses.DONE)
+        .order("seq_pos", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findNextAssignmentsByUserAndTask: ${error.message}`,
+        });
+      return data as Assignment;
+    }),
 
   findAssignmentsByUserTaskSeq: protectedProcedure
     .input(
@@ -438,23 +489,60 @@ export const assignmentRouter = router({
         annotator_id: z.string(),
         task_id: z.number().int(),
         seq_pos: z.number().int(),
+        dir: z.nativeEnum(Direction)
       })
     )
     .query(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .select()
-        .eq("task_id", input.task_id)
-        .eq("annotator_id", input.annotator_id)
-        .eq("seq_pos", input.seq_pos)
-        .single();
 
-      if (error)
+      let response;
+
+      switch (input.dir) {
+        case Direction.PREVIOUS:
+          response = await ctx.supabase
+            .from("assignments")
+            .select()
+            .eq("task_id", input.task_id)
+            .eq("annotator_id", input.annotator_id)
+            .lt("seq_pos", input.seq_pos)
+            .order("seq_pos", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          break;
+        case Direction.CURRENT:
+          response = await ctx.supabase
+            .from("assignments")
+            .select()
+            .eq("task_id", input.task_id)
+            .eq("annotator_id", input.annotator_id)
+            .eq("seq_pos", input.seq_pos)
+            .maybeSingle();
+          break;
+        case Direction.NEXT:
+          response = await ctx.supabase
+            .from("assignments")
+            .select()
+            .eq("task_id", input.task_id)
+            .eq("annotator_id", input.annotator_id)
+            .gt("seq_pos", input.seq_pos)
+            .order("seq_pos", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          break;
+        default:
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Error in findAssignmentsByUserTaskSeq: Direction value was not provided`,
+          });
+      }
+
+      if (response.error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findAssignmentsByUserTaskSeq: ${error.message}`,
+          message: `Error in findAssignmentsByUserTaskSeq: ${response.error.message}`,
         });
-      return data as Assignment;
+      }
+
+      return response.data as Assignment;
     }),
 
   findAssignmentsByUser: protectedProcedure
@@ -473,29 +561,6 @@ export const assignmentRouter = router({
       return data as Assignment[];
     }),
 
-  findNextAssignmentsByUserAndTask: protectedProcedure
-    .input(
-      z.object({
-        annotator_id: z.string(),
-        task_id: z.number().int(),
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase
-        .rpc("next_random_assignment", {
-          a_id: input.annotator_id,
-          t_id: input.task_id,
-        })
-        .single();
-
-      if (error)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findNextAssignmentsByUserAndTask: ${error.message}`,
-        });
-      return data as Assignment;
-    }),
-
   findNextAssignmentByUser: protectedProcedure
     .input(z.string())
     .query(async ({ ctx, input: user_id }) => {
@@ -503,7 +568,11 @@ export const assignmentRouter = router({
         .from("assignments")
         .select()
         .eq("annotator_id", user_id)
-        .in("status", [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED])
+        .in("status", [
+          AssignmentStatuses.PENDING,
+          AssignmentStatuses.PREANNOTATED,
+          AssignmentStatuses.FAILED,
+        ])
         .order("task_id", { ascending: false })
         .order("seq_pos", { ascending: true })
         .limit(1)
@@ -522,47 +591,37 @@ export const assignmentRouter = router({
       z.object({
         annotator_id: z.string(),
         task_id: z.number().int(),
+        seq_pos: z.number().int().optional().default(0),
       })
     )
     .query(async ({ ctx, input }) => {
-      const { data: next, error: error_next } = await ctx.supabase
+      const query = ctx.supabase
         .from("assignments")
-        .select("seq_pos")
-        .eq("annotator_id", input.annotator_id)
-        .eq("task_id", input.task_id)
-        .or("status.eq.pending,status.eq.failed,status.eq.pre-annotated")
-        .order("seq_pos", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      // const { data: total, error: error_total } = await ctx.supabase
-      const { error: error_total, count } = await ctx.supabase
-        .from("assignments")
-        // .select("count")
         .select("*", { count: "exact", head: true })
         .eq("annotator_id", input.annotator_id)
         .eq("task_id", input.task_id);
-      // .single();
 
-      if (error_next) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error in 1 countAssignmentsByUserAndTask: ${error_next.message}`,
-        });
-      } else if (error_total) {
+      const { count: total_count, error: error_total } = await query;
+
+      if (error_total) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in 2 countAssignmentsByUserAndTask: ${error_total.message}`,
         });
-        // return {
-        //   next: next?.seq_pos ?? total?.count! + 1, // TODO: need to check if this actually works
-        //   total: total?.count ?? 0,
-        // };
-      } else {
-        return {
-          next: next?.seq_pos ?? count! + 1, // TODO: need to check if this actually works
-          total: count ?? 0,
-        };
       }
+
+      let previous_count = 0;
+
+      if (input.seq_pos > 0) {
+        previous_count = (await query.lt("seq_pos", input.seq_pos)).count ?? 0;
+      } else {
+        previous_count = (await query.eq("status", "done")).count ?? 0;
+      }
+
+      return {
+        previous: previous_count,
+        total: total_count ?? 0,
+      };
     }),
 
   deleteAllFromTask: protectedProcedure
@@ -608,68 +667,78 @@ export const assignmentRouter = router({
           message: `Error in countMLStatus: ${error}`,
         });
       return {
-        predicting: count ?? 0
+        predicting: count ?? 0,
       };
     }),
 
   getGroupByAnnotators: protectedProcedure
-    .input(z.object({
-      task_id: z.number().int(),
-      page: z.number().int(),
-      filter: z.object({
-        name: z.string()
+    .input(
+      z.object({
+        task_id: z.number().int(),
+        page: z.number().int(),
+        filter: z.object({
+          name: z.string(),
+        }),
       })
-    }))
+    )
     .query(async ({ ctx, input }) => {
       const rowsPerPage = 10;
 
       type TreeItem = {
-        type: 'annotator',
-        key: string,
+        type: "annotator";
+        key: string;
         data: {
-          name: string,
-          amount_done: number,
-          amount_total: number,
-          next_seq_pos: number
-        },
+          name: string;
+          amount_done: number;
+          amount_total: number;
+          next_seq_pos: number;
+        };
         children: {
-          type: 'document',
-          key: string,
+          type: "document";
+          key: string;
           data: {
-            assignment_id: number,
-            seq_pos: number,
-            document_id: number,
-            document_name: string,
-            annotator_name: string,
-            difficulty_rating: number,
-            status: string
-          }
-        }[]
+            assignment_id: number;
+            seq_pos: number;
+            document_id: number;
+            document_name: string;
+            annotator_name: string;
+            difficulty_rating: number;
+            status: string;
+          };
+        }[];
       };
 
-      const grouped: TreeItem[] = []
+      const grouped: TreeItem[] = [];
 
-      const count = (await ctx.sql`SELECT DISTINCT annotator_number FROM assignments WHERE task_id = ${input.task_id}`).count
+      const count = (
+        await ctx.sql`SELECT DISTINCT annotator_number FROM assignments WHERE task_id = ${input.task_id}`
+      ).count;
 
-      const sanitizedFilter = input.filter.name.replace(/[%_]/g, '')
-      const annotatorNameComputation = ctx.sql.unsafe("COALESCE(u.email, CONCAT('annotator ', a.annotator_number))")
+      const sanitizedFilter = input.filter.name.replace(/[%_]/g, "");
+      const annotatorNameComputation = ctx.sql.unsafe(
+        "COALESCE(u.email, CONCAT('annotator ', a.annotator_number))"
+      );
 
-      const queryAnnotators = ctx.sql<{ annotator_number: number, email?: string, annotator_name: string }[]>`
+      const queryAnnotators = ctx.sql<
+        { annotator_number: number; email?: string; annotator_name: string }[]
+      >`
           SELECT DISTINCT a.annotator_number, u.email, ${annotatorNameComputation} as annotator_name
           FROM assignments AS a
           LEFT JOIN users AS u
             ON (a.annotator_id = u.id)
           WHERE a.task_id = ${input.task_id}
-          ${sanitizedFilter
-          ? ctx.sql`AND ${annotatorNameComputation} ILIKE ${'%' + sanitizedFilter + '%'}`
-          : ctx.sql``
-        }
+          ${
+            sanitizedFilter
+              ? ctx.sql`AND ${annotatorNameComputation} ILIKE ${
+                  "%" + sanitizedFilter + "%"
+                }`
+              : ctx.sql``
+          }
           ORDER BY annotator_number
           LIMIT ${rowsPerPage} OFFSET ${(input.page - 1) * rowsPerPage}
-        `
+        `;
 
       await queryAnnotators.cursor(async ([dbAnnotator]) => {
-
         const dbAssignments = await ctx.sql`
               SELECT a.*, u.email, d.name AS document_name
               FROM assignments AS a
@@ -680,13 +749,13 @@ export const assignmentRouter = router({
               WHERE annotator_number = ${dbAnnotator.annotator_number}
               AND a.task_id = ${input.task_id}
               ORDER BY a.seq_pos
-            `
+            `;
 
-        const children: TreeItem['children'] = []
+        const children: TreeItem["children"] = [];
 
         for (const dbAssignment of dbAssignments) {
           children.push({
-            type: 'document',
+            type: "document",
             key: `ass-${dbAssignment.id}`,
             data: {
               assignment_id: dbAssignment.id,
@@ -695,41 +764,55 @@ export const assignmentRouter = router({
               document_name: dbAssignment.document_name,
               annotator_name: dbAnnotator.annotator_name,
               difficulty_rating: dbAssignment.difficulty_rating,
-              status: dbAssignment.status
+              status: dbAssignment.status,
             },
-          })
+          });
         }
 
         grouped.push({
-          type: 'annotator',
+          type: "annotator",
           key: `ann-${dbAnnotator.annotator_number}`,
           data: {
             name: dbAnnotator.annotator_name, // dbAnnotator.email ?? `annotator ${dbAnnotator.annotator_number}`,
-            amount_done: dbAssignments.filter(ass => ass.status == AssignmentStatuses.DONE).length,
+            amount_done: dbAssignments.filter(
+              (ass) => ass.status == AssignmentStatuses.DONE
+            ).length,
             amount_total: dbAssignments.length,
-            next_seq_pos: Math.min(...dbAssignments.filter(ass => [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED].includes(ass.status)).map(ass => ass.seq_pos!))
+            next_seq_pos: Math.min(
+              ...dbAssignments
+                .filter((ass) =>
+                  [
+                    AssignmentStatuses.PENDING,
+                    AssignmentStatuses.PREANNOTATED,
+                    AssignmentStatuses.FAILED,
+                  ].includes(ass.status)
+                )
+                .map((ass) => ass.seq_pos!)
+            ),
           },
-          children
-        })
-      })
+          children,
+        });
+      });
 
       return { data: grouped ?? [], total: count ?? 0 };
     }),
 
   getGroupByDocuments: protectedProcedure
-    .input(z.object({
-      task_id: z.number().int(),
-      page: z.number().int(),
-      filter: z.object({
-        document: z.string()
-      }),
-      // sort: z.object({
-      //   field: z.union([
-      //     z.literal('name'),
-      //     z.literal('progress')
-      //   ])
-      // })
-    }))
+    .input(
+      z.object({
+        task_id: z.number().int(),
+        page: z.number().int(),
+        filter: z.object({
+          document: z.string(),
+        }),
+        // sort: z.object({
+        //   field: z.union([
+        //     z.literal('name'),
+        //     z.literal('progress')
+        //   ])
+        // })
+      })
+    )
     .query(async ({ ctx, input }) => {
       const rowsPerPage = 10;
 
@@ -741,12 +824,12 @@ export const assignmentRouter = router({
         )
         .eq("assignments.task_id", input.task_id)
         .order("seq_pos", { referencedTable: "assignments", ascending: true })
-        .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage)
+        .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage);
 
       if (input.filter.document.length)
-        query.ilike("name", `%${input.filter.document}%`)
+        query.ilike("name", `%${input.filter.document}%`);
 
-      const { data, error, count } = await query
+      const { data, error, count } = await query;
 
       if (error)
         throw new TRPCError({
@@ -754,33 +837,43 @@ export const assignmentRouter = router({
           message: `Error in getGroupByAnnotators: ${error.message}`,
         });
 
-      const grouped = data
-        .map(doc => ({
-          type: 'document',
-          key: `doc-${doc.id}`,
+      const grouped = data.map((doc) => ({
+        type: "document",
+        key: `doc-${doc.id}`,
+        data: {
+          document_id: doc!.id,
+          document_name: doc!.name,
+          amount_done: doc.assignments.filter(
+            (ass) => ass.status == AssignmentStatuses.DONE
+          ).length,
+          amount_total: doc.assignments.length,
+          next_seq_pos: Math.min(
+            ...doc.assignments
+              .filter((doc) =>
+                [
+                  AssignmentStatuses.PENDING,
+                  AssignmentStatuses.PREANNOTATED,
+                  AssignmentStatuses.FAILED,
+                ].includes(doc.status)
+              )
+              .map((ass) => ass.seq_pos!)
+          ),
+        },
+        children: doc.assignments!.map((ass) => ({
+          type: "annotator",
+          key: `ass-${ass.id}`,
           data: {
-            document_id: doc!.id,
-            document_name: doc!.name,
-            amount_done: doc.assignments.filter(ass => ass.status == AssignmentStatuses.DONE).length,
-            amount_total: doc.assignments.length,
-            next_seq_pos: Math.min(...doc.assignments.filter(doc => [AssignmentStatuses.PENDING, AssignmentStatuses.PREANNOTATED, AssignmentStatuses.FAILED].includes(doc.status)).map(ass => ass.seq_pos!))
+            assignment_id: ass.id,
+            name: ass.user?.email ?? `annotator ${ass.annotator_number}`,
+            seq_pos: ass.seq_pos,
+            difficulty_rating: ass.difficulty_rating,
+            status: ass.status,
           },
-          children: doc.assignments!.map(ass => ({
-            type: 'annotator',
-            key: `ass-${ass.id}`,
-            data: {
-              assignment_id: ass.id,
-              name: ass.user?.email ?? `annotator ${ass.annotator_number}`,
-              seq_pos: ass.seq_pos,
-              difficulty_rating: ass.difficulty_rating,
-              status: ass.status
-            }
-          }))
-        }))
+        })),
+      }));
 
       return { data: grouped ?? [], total: count ?? 0 };
-    })
-
+    }),
 });
 
 export type AssignmentRouter = typeof assignmentRouter;
