@@ -7,7 +7,7 @@
                 <h3 class="my-3 text-sm font-semibold">
                     ECLIs provided: {{ eclis.length }}
                 </h3>
-                <Chips v-model="eclis" separator="," addOnBlur :pt="{
+                <Chips v-model="eclis" separator="," addOnBlur @add="addedEclis" :pt="{
                     input: {
                         'data-test': 'eclis'
                     },
@@ -57,6 +57,13 @@ const getText = (node: any): string => {
 
     return acc;
 }
+
+const addedEclis = ($event: any) => {
+    eclis.value = [];
+    $event.value.map((s: string) => {
+        eclis.value.push(...s.split(/,|\n| /));
+    });
+};
 
 const fetchDocuments = async () => {
     loading.value = true;
