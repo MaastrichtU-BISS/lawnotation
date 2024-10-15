@@ -61,8 +61,14 @@ const getText = (node: any): string => {
 const addedEclis = ($event: any) => {
     eclis.value = [];
     $event.value.map((s: string) => {
-        eclis.value.push(...s.split(/,|\n| /));
+        const splitted = s.split(/,|\n/);
+        splitted.map((ecli: string) => {
+            eclis.value.push(ecli.replace(' ', ''));
+            // eclis.value.push(ecli);
+        }) ;
     });
+
+    console.log(eclis.value);
 };
 
 const fetchDocuments = async () => {
