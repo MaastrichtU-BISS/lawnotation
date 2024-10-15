@@ -59,13 +59,13 @@ const getText = (node: any): string => {
 }
 
 const addedEclis = ($event: any) => {
+    const pattern = /(\r\n|\r|\n)/gi;
     eclis.value = [];
     $event.value.map((s: string) => {
-        const splitted = s.split(/,|\n/);
-        splitted.map((ecli: string) => {
-            eclis.value.push(ecli.replace(' ', ''));
-            // eclis.value.push(ecli);
-        }) ;
+        let formatted = s.replaceAll(pattern, ',');
+        formatted = formatted.replaceAll(/\s/gi, '');
+        console.log(formatted);
+        eclis.value.push(...formatted.split(','));
     });
 
     console.log(eclis.value);
