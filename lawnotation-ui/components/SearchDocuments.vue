@@ -62,11 +62,10 @@ const addedEclis = ($event: any) => {
     const pattern = /(\r\n|\r|\n)/gi;
     eclis.value = [];
     $event.value.map((s: string) => {
-        if(s && s.length) {
-            let formatted = s.replaceAll(pattern, ',');
-            formatted = formatted.replaceAll(/\s/gi, '');
-            eclis.value.push(...formatted.split(','));
-        }
+        let formatted = s.replaceAll(pattern, ',');
+        formatted = formatted.replaceAll(/\s/gi, '');
+        const splitted = formatted.split(',');
+        eclis.value.push(...splitted.filter((s: string) => s.length > 0));
     });
 };
 
