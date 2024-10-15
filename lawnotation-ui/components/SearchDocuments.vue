@@ -62,13 +62,12 @@ const addedEclis = ($event: any) => {
     const pattern = /(\r\n|\r|\n)/gi;
     eclis.value = [];
     $event.value.map((s: string) => {
-        let formatted = s.replaceAll(pattern, ',');
-        formatted = formatted.replaceAll(/\s/gi, '');
-        console.log(formatted);
-        eclis.value.push(...formatted.split(','));
+        if(s && s.length) {
+            let formatted = s.replaceAll(pattern, ',');
+            formatted = formatted.replaceAll(/\s/gi, '');
+            eclis.value.push(...formatted.split(','));
+        }
     });
-
-    console.log(eclis.value);
 };
 
 const fetchDocuments = async () => {
