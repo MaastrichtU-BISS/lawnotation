@@ -9,7 +9,7 @@
             <NuxtLink v-if="i < props.crumbs.length-1" :to="crumb.link" class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-primary-high">
               {{ crumb.name }}
             </NuxtLink>
-            <span v-else class="ml-1 text-sm font-medium text-gray-700 select-none md:ml-2">
+            <span v-else class="ml-1 text-sm font-medium text-gray-700 md:ml-2">
               {{ crumb.name }}
             </span>
           </li>
