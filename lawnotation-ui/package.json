@@ -7,6 +7,8 @@
     "dev": "nuxt dev",
     "e2e": "node e2e-run-tests.js",
     "generate": "nuxt generate",
+    "playwright": "pnpm exec playwright test",
+    "playwright-ui": "pnpm exec playwright test --ui",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "supabase-studio": "open-cli http://localhost:54323",
@@ -17,7 +19,9 @@
   "devDependencies": {
     "@nuxtjs/supabase": "^1.2.1",
     "@nuxtjs/tailwindcss": "^6.12.0",
+    "@playwright/test": "^1.46.1",
     "@types/lodash": "^4.17.0",
+    "@types/node": "^22.5.2",
     "autoprefixer": "^10.4.19",
     "cypress": "^13.13.3",
     "nuxt": "^3.13.2",

@@ -15,3 +15,8 @@ cypress/downloads
 cypress/screenshots
 cypress/videos
 test-results.xml
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+playwright/.auth
