@@ -101,8 +101,11 @@
                       <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
                         data-test='create-new-labelset' />
                     </div>
-                    <div class="flex items-center pb-4">
-                      <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
+                    <div class="flex items-center flex-col pb-4">
+                      <div class="w-full text-left bg-yellow-50 p-2 mb-2 rounded-md border border-yellow-200">
+                        <p class="text-xs text-yellow-500 m-0">This feature is currently disabled, we are working on making it better</p>
+                      </div>
+                      <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter disabled
                         optionLabel="name" option-value="id" placeholder="Select Model (Optional)" class="w-full"
                         @update:model-value="modelSelected($event)" :show-clear="true" />
                     </div>
