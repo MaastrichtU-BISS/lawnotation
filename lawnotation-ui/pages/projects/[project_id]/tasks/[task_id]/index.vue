@@ -17,7 +17,7 @@
     <Dimmer v-model="loading" />
     <div class="dimmer-content">
       <div v-if="task">
-        <div v-if="totalAssignments.data.value?.total">
+        <div v-if="totalAssignments.data.value?.total && groupByAnnotators.data.value?.total">
           <div class="pb-4" v-if="showPredictionProgressBar">
             <div class="flex justify-center items-center">
               <h3 class="my-3 text-lg text-center font-semibold">Generating pre-annotations:</h3>
