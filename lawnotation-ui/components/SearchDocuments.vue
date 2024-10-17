@@ -39,24 +39,24 @@ const { addDocumentsToProject = false } =
 const emit = defineEmits(["onDocumentsFetched"]);
 
 const eclis = ref<string[]>([]);
-const format = ref<DocFormat>("text/plain");
+// const format = ref<DocFormat>("text/plain");
 const loading = ref<boolean>(false);
 
-// ECLI:NL:RBLIM:2023:7197,ECLI:NL:OGEAC:2021:280,ECLI:NL:RVS:2011:BU7101
+// ECLI:NL:RBLIM:2023:7197,ECLI:NL:OGEAC:2021:280,ECLI:NL:RVS:2011:BU7101,ECLI:NL:GHAMS:2013:4690,ECLI:NL:GHAMS:1997:AA4158
 
 // Recursively gets the text from the xml
-const getText = (node: any): string => {
-    if (node.nodeType === 3) {
-        return node.nodeValue;
-    }
+// const getText = (node: any): string => {
+//     if (node.nodeType === 3) {
+//         return node.nodeValue;
+//     }
 
-    let acc = "";
+//     let acc = "";
 
-    for (let child of node.childNodes)
-        acc += getText(child);
+//     for (let child of node.childNodes)
+//         acc += getText(child);
 
-    return acc;
-}
+//     return acc;
+// }
 
 const addedEclis = ($event: any) => {
     const pattern = /(\r\n|\r|\n)/gi;
@@ -75,22 +75,27 @@ const fetchDocuments = async () => {
     let docs: Doc[] = [];
 
     try {
-        const xmls = await $trpc.archive.getXMLFromRechtspraak.query({ eclis: eclis.value });
+        docs = await $trpc.archive.getFullTextFromRechtspraakDynamoDB.query({ eclis: eclis.value });
 
-        docs = xmls.map((xml: string, index: number) => {
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xml, "text/xml");
-            const text = getText(xmlDoc);
-            return {
-                name: `${eclis.value[index]}.${format.value == "text/plain" ? "txt" : ""}`,
-                content: text ?? "",
-                format: format.value
-            }
-        });
+        console.log(docs)
+
+        // const xmls = await $trpc.archive.getXMLFromRechtspraak.query({ eclis: eclis.value });
+
+        // docs = xmls.map((xml: string, index: number) => {
+        //     const parser = new DOMParser();
+        //     const xmlDoc = parser.parseFromString(xml, "text/xml");
+        //     const text = getText(xmlDoc);
+        //     return {
+        //         name: `${eclis.value[index]}.${format.value == "text/plain" ? "txt" : ""}`,
+        //         content: text ?? "",
+        //         format: format.value
+        //     }
+        // });
 
     } catch (error) {
-        loading.value = false;
         $toast.error(error as string);
+    } finally {
+        loading.value = false;
     }
 
     if (addDocumentsToProject) {

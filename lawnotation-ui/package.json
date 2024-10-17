@@ -29,6 +29,8 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.670.0",
+    "@aws-sdk/lib-dynamodb": "^3.670.0",
     "@heartexlabs/label-studio": "~1.4.0",
     "@supabase/supabase-js": "^2.42.4",
     "@trpc/client": "^10.45.2",

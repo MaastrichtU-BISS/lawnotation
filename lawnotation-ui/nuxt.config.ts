@@ -16,6 +16,8 @@ export default defineNuxtConfig({
     mailtrapToken: process.env.MAILTRAP_TOKEN,
     public: {
       mlBackendURL: process.env.MLBACKEND_URL,
+      awsRechtspraakTableName: process.env.AWS_RECHSTPRAAK_TABLE_NAME,
+      awsRechtspraakRegion: process.env.AWS_REGION,
       baseURL:
         process.env.NODE_ENV === "production"
           ? "https://app.lawnotation.org"
