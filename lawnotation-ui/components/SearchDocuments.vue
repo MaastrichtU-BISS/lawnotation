@@ -77,8 +77,6 @@ const fetchDocuments = async () => {
     try {
         docs = await $trpc.archive.getFullTextFromRechtspraakDynamoDB.query({ eclis: eclis.value });
 
-        console.log(docs)
-
         // const xmls = await $trpc.archive.getXMLFromRechtspraak.query({ eclis: eclis.value });
 
         // docs = xmls.map((xml: string, index: number) => {
