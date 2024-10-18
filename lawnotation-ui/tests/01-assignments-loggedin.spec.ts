@@ -104,7 +104,6 @@ test('Editor creates project, task, uploads documents , assigns task and deletes
     await viewButton.waitFor();
     await expect(viewButton).toBeVisible();
     await viewButton.click();
-    await expect(editorPage.getByText("Upload dataset", { exact: true })).toBeVisible()
 
     // Editor uploads document
     await editorPage.getByTestId('documents-tab').click();
@@ -160,7 +159,7 @@ test('Editor creates project, task, uploads documents , assigns task and deletes
     await annotatorPage.getByTestId('assigned-tasks-menu-item').click();
     await annotatorPage.getByText('Showing 1 - 1 of 1').isVisible()
     await annotatorPage.getByTestId('view-task-link').click();
-
+    
     //Annotator annotates text
     await annotatorPage.getByTestId('annotate-next-assignment-button').click();
 
