@@ -34,3 +34,9 @@ export enum Direction {
   CURRENT = "current",
   NEXT = "next"
 }
+
+export enum RandomizationOptions {
+  FULL = "full",
+  PARTIAL = "partial",
+  NONE = "none"
+}
