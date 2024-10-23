@@ -8,7 +8,3 @@
     <ReportProblem />
   </div>
 </template>
-
-<script setup lang="ts">
-import ReportProblem from "~/components/ReportProblem.vue";
-</script>
