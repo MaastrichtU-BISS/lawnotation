@@ -46,8 +46,8 @@ const openPopup = (event) => {
     </Button>
 </template>
 
-<style>
-.fixed{
+<style scoped>
+.fixed {
     position: fixed;
     right: 10px;
     bottom: 10px;
