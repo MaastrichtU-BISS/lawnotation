@@ -267,7 +267,8 @@ const getAnnotations = async (
   documents: string[],
   annotators: string[],
   byWords: boolean,
-  hideNonText: boolean
+  hideNonText: boolean,
+  documentLevel: boolean = false
 ) => {
   const body = JSON.stringify({
     task_id: task_id,
@@ -276,6 +277,7 @@ const getAnnotations = async (
     annotators: annotators,
     byWords: byWords,
     hideNonText: hideNonText,
+    documentLevel: documentLevel
   });
 
   return $fetch("/api/metrics/get_annotations", {
@@ -285,6 +287,11 @@ const getAnnotations = async (
 };
 
 const updateAnnotations = async () => {
+  if(!task.value) {
+    $toast.error("Task does not exist");
+    throw new Error("Task does not exist");
+  }
+
   loading_annotations.value = true;
   try {
     annotations.splice(0);
@@ -294,7 +301,8 @@ const updateAnnotations = async () => {
       selectedDocumentsOrEmpty.value!,
       selectedAnnotatorsOrEmpty.value!,
       separate_into_words.value,
-      hideNonText.value
+      hideNonText.value,
+      isDocumentLevel(task.value)
     );
 
     if (anns.length < annotations_limit) annotations.push(...anns);
@@ -324,6 +332,7 @@ const compute_metrics = async (
   byWords: boolean,
   hideNonText: boolean,
   contained: boolean,
+  documentLevel: boolean,
   documentsData: any,
   documentsOptions: string[],
   annotations: RichAnnotation[] = []
@@ -338,6 +347,7 @@ const compute_metrics = async (
     byWords: byWords,
     hideNonText: hideNonText,
     contained: contained,
+    documentLevel: documentLevel,
     documentsData: documentsData,
     documentsOptions: documentsOptions,
     annotations: annotations,
@@ -404,6 +414,11 @@ const computeConfidenceMetrics = async (
 };
 
 const clickDownloadAll = async () => {
+  if(!task.value) {
+    $toast.error("Task does not exist");
+    throw new Error("Task does not exist");
+  }
+
   download_progress.value.loading = true;
   try {
     const blobs = await download_all({
@@ -417,6 +432,7 @@ const clickDownloadAll = async () => {
       byWords: separate_into_words.value,
       hideNonText: hideNonText.value,
       contained: contained.value,
+      documentLevel: isDocumentLevel(task.value),
       documentsData: documentsData.value,
       documentsOptions: documentsOptions.map((d) => d.value),
     });
@@ -519,6 +535,7 @@ async function createWorkBooks(data: any, document?: any) {
       data.annotators,
       data.byWords,
       data.hideNonText,
+      data.documentLevel
     );
 
     const metrics = await compute_metrics(
@@ -531,6 +548,7 @@ async function createWorkBooks(data: any, document?: any) {
       data.byWords,
       data.hideNonText,
       data.contained,
+      data.documentLevel,
       data.documentsData,
       data.documentsOptions,
       annotations
@@ -610,6 +628,7 @@ async function getMetricsSheet(
           data.byWords,
           data.hideNonText,
           data.contained,
+          data.documentLevel,
           data.documentsData,
           data.documentsOptions
         );
