@@ -445,6 +445,7 @@ async function download_all(data: any) {
   download_progress.value.total =
     (selectedDocuments.value.length + 1) * labelsOptions.length * 3 +
     (selectedDocuments.value.length + 1);
+
   try {
     if (data.documents.length > 1) {
       const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data);
@@ -514,7 +515,7 @@ async function createWorkBooks(data: any, document?: any) {
   const workbookAnnotations = XLSX.utils.book_new();
   const workbookDescriptive = XLSX.utils.book_new();
   for (let i = 0; i < data.labelsOptions.length; i++) {
-    const label = data.labelsOptions[i].name;
+    const label = data.labelsOptions[i];
 
     const annotations = await getAnnotations(
       data.task_id,
@@ -650,7 +651,7 @@ async function getAnnotationsSheet(table: RangeLabel[]) {
           annotator: k,
           start: r.start,
           end: r.end,
-          text: r.text.length <= 1000 ? r.text : `${r.text.substring(0, 100)} ... ${r.text.substring(900, 1000)}`,
+          text: r.text?.length ? (r.text.length <= 1000 ? r.text : `${r.text.substring(0, 100)} ... ${r.text.substring(900, 1000)}`) : "",
           confidence: r.confidences[k],
           value: v,
         });
@@ -697,7 +698,7 @@ async function getConfidenceSheet(
   annotators: string[],
   documents: string[]
 ) {
-  const workbookDifficulty = XLSX.utils.book_new();
+  const workbookConfidence = XLSX.utils.book_new();
   const diff_metric_body = JSON.stringify({
     task_id: task_id,
     annotators_length: annotators_length,
@@ -705,12 +706,12 @@ async function getConfidenceSheet(
     documents: documents,
   });
 
-  const dm = await $fetch("/api/metrics/difficulty", {
+  const dm = await $fetch("/api/metrics/confidence", {
     method: "POST",
     body: diff_metric_body,
   });
 
-  const worksheetDifficulty = XLSX.utils.json_to_sheet([
+  const worksheetConfidence = XLSX.utils.json_to_sheet([
     {
       total: dm.total,
       rated: dm.rated,
@@ -726,7 +727,7 @@ async function getConfidenceSheet(
     },
   ]);
 
-  const worksheetDifficultyAnnotator = XLSX.utils.json_to_sheet(
+  const worksheetConfidenceAnnotator = XLSX.utils.json_to_sheet(
     dm.table.map((r) => {
       return {
         annotator: r.annotator,
@@ -738,17 +739,17 @@ async function getConfidenceSheet(
   );
 
   XLSX.utils.book_append_sheet(
-    workbookDifficulty,
-    worksheetDifficulty,
+    workbookConfidence,
+    worksheetConfidence,
     "Confidence Metrics"
   );
 
   XLSX.utils.book_append_sheet(
-    workbookDifficulty,
-    worksheetDifficultyAnnotator,
+    workbookConfidence,
+    worksheetConfidenceAnnotator,
     "Annotators "
   );
-  return workbookDifficulty;
+  return workbookConfidence;
 }
 
 function getZippeableBlob(workBook: XLSX.WorkBook) {
