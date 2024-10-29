@@ -450,7 +450,6 @@ async function download_all(data: any) {
   download_progress.value.total =
     (selectedDocuments.value.length + 1) * labelsOptions.length * 3 +
     (selectedDocuments.value.length + 1);
-
   try {
     if (data.documents.length > 1) {
       const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data);
@@ -597,7 +596,7 @@ async function getMetricsSheet(
   let rows: any[] = [];
 
   metrics.map((m) => {
-    if (m.result !== undefined)
+    if (m.result !== undefined) {
       rows.push({
         metric: m.name,
         annotators: data.annotators.join(","),
@@ -606,12 +605,13 @@ async function getMetricsSheet(
         pe: m.pe
       });
 
-    if (!isDocumentLevel(task.value!)) {
-      Object.assign(rows.at(-1),
-        {
-          tolerance: data.tolerance,
-          consider_contained: data.contained ? "yes" : "no"
-        })
+      if (!isDocumentLevel(task.value!)) {
+        Object.assign(rows.at(-1),
+          {
+            tolerance: data.tolerance,
+            consider_contained: data.contained ? "yes" : "no"
+          })
+      }
     }
   });
 
@@ -634,7 +634,7 @@ async function getMetricsSheet(
         );
 
         metrics.map((m) => {
-          if (m.result !== undefined)
+          if (m.result !== undefined) {
             rows.push({
               metric: m.name,
               annotators: data.annotators[i] + "," + data.annotators[j],
@@ -643,13 +643,15 @@ async function getMetricsSheet(
               pe: m.pe
             });
 
-          if (!isDocumentLevel(task.value!)) {
-            Object.assign(rows.at(-1),
-              {
-                tolerance: data.tolerance,
-                consider_contained: data.contained ? "yes" : "no"
-              })
+            if (!isDocumentLevel(task.value!)) {
+              Object.assign(rows.at(-1),
+                {
+                  tolerance: data.tolerance,
+                  consider_contained: data.contained ? "yes" : "no"
+                })
+            }
           }
+
         });
       }
     }
@@ -710,11 +712,11 @@ async function getDescriptiveAnnotatorSheet(table: RangeLabel[], annotators: str
       });
 
       if (!isDocumentLevel(task.value!)) {
-          Object.assign(rows.at(-1),
-            {
-              non_annotations: nanns,
-            })
-        }
+        Object.assign(rows.at(-1),
+          {
+            non_annotations: nanns,
+          })
+      }
     });
   }
 
