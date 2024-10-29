@@ -140,7 +140,7 @@
                 <Button class="w-full mt-4" label="Compute Metrics" size="small" @click="clickComputeMetrics" />
                 </li>
                 <li>
-                  <Button class="w-full" label="Download All" outlined size="small" @click="clickDownloadAll" />
+                  <Button class="w-full mt-4" label="Download All" outlined size="small" @click="clickDownloadAll" />
                 </li>
               </template>
             </ul>
