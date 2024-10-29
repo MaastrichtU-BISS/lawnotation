@@ -42,7 +42,11 @@ const eclis = ref<string[]>([]);
 // const format = ref<DocFormat>("text/plain");
 const loading = ref<boolean>(false);
 
+// rechtspraak
 // ECLI:NL:RBLIM:2023:7197,ECLI:NL:OGEAC:2021:280,ECLI:NL:RVS:2011:BU7101,ECLI:NL:GHAMS:2013:4690,ECLI:NL:GHAMS:1997:AA4158
+
+//echr
+// ECLI:CE:ECHR:2012:0131JUD002499605,ECLI:CE:ECHR:2005:0705JUD005619500
 
 // Recursively gets the text from the xml
 // const getText = (node: any): string => {
@@ -76,6 +80,10 @@ const fetchDocuments = async () => {
 
     try {
         docs = await $trpc.archive.getFullTextFromRechtspraakDynamoDB.query({ eclis: eclis.value });
+
+        // docs = await $trpc.archive.getFullTextFromECHRDynamoDB.query({ eclis: eclis.value });
+
+        console.log(docs)
 
         // const xmls = await $trpc.archive.getXMLFromRechtspraak.query({ eclis: eclis.value });
 
