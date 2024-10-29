@@ -189,7 +189,7 @@ const clickNext = async () => {
     return;
   }
 
-  await updateAnnotationsAndRelations(serializedAnnotations);
+  await updateAnnotationsAndRelations(serializedAnnotations, rating);
   await $trpc.assignment.update.mutate({
     id: props.assignment.id,
     updates: {
@@ -205,7 +205,7 @@ const clickNext = async () => {
   }
 };
 
-const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
+const updateAnnotationsAndRelations = async (serializedAnnotations: any[], assignmentRating: number) => {
   if (!props.assignment) return;
 
   // create annotations
@@ -221,6 +221,8 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
         if (ann.id == ls_anns[ls_anns.length - 1].id) {
           ls_anns[ls_anns.length - 1].value.confidence_rating = ann.value.rating;
         }
+      } else if(props.annotation_level == AnnotationLevels.DOCUMENT) {
+        ls_anns[ls_anns.length - 1].value.confidence_rating = assignmentRating;
       }
     }
   }
