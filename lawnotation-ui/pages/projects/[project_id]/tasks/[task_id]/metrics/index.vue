@@ -27,16 +27,18 @@
           aria-label="Sidebar" style="margin-top: inherit">
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 text-sm">
-              <li>
+              <template>
+                <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label</label>
-                <Dropdown v-model="selectedLabel" :options="labelsOptions" optionLabel="name"
-                  placeholder="Select a Label" class="w-full" @change="selectLabel($event.value?.name)"
-                  :panel-style="{ width: '295px'}" :pt="{
+                <Dropdown v-model="selectedLabel" :options="labelsOptions" optionLabel="name" placeholder="Select a Label"
+                  class="w-full" @change="selectLabel($event.value?.name)" :panel-style="{ width: '295px' }" :pt="{
                     item: '!py-2'
                   }" :ptOptions="{ mergeProps: true }">
                   <template #value="slotProps">
                     <div v-if="slotProps.value">
-                      <LabelCmpt :label="{color: labelsOptions.find((l) => l.name == slotProps.value)?.color!, name: slotProps.value}"></LabelCmpt>
+                      <LabelCmpt
+                        :label="{ color: labelsOptions.find((l) => l.name == slotProps.value)?.color!, name: slotProps.value }">
+                      </LabelCmpt>
                     </div>
                     <span v-else>
                       {{ slotProps.placeholder }}
@@ -46,95 +48,101 @@
                     <LabelCmpt :label="slotProps.option"></LabelCmpt>
                   </template>
                 </Dropdown>
-              </li>
-              <li>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Document(s)</label>
-                <Multiselect v-model="selectedDocumentsOrEmpty" class="w-full" optionLabel="label" optionValue="value"
-                  :options="documentsOptions" placeholder="All" @change="selectDocument" />
-              </li>
-              <li>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Annotators</label>
-                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions"
-                 placeholder="All" class="w-full" @change="selectAnnotators" />
-              </li>
-              <li>
-                <div>
-                  <div class="flex justify-between">
-                    <label for="small-input"
-                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tolerance</label>
-                    <InfoToolTip :id="'tooltip_tolerance'"
-                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'" />
+                </li>
+                <li>
+                  <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Document(s)</label>
+                  <Multiselect v-model="selectedDocumentsOrEmpty" class="w-full" optionLabel="label" optionValue="value"
+                    :options="documentsOptions" placeholder="All" @change="selectDocument" />
+                </li>
+                <li>
+                  <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Annotators</label>
+                  <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions" placeholder="All"
+                    class="w-full" @change="selectAnnotators" />
+                </li>
+              </template>
+              <template v-if="task && !isDocumentLevel(task)">
+                <li>
+                  <div>
+                    <div class="flex justify-between">
+                      <label for="small-input"
+                        class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tolerance</label>
+                      <InfoToolTip :id="'tooltip_tolerance'"
+                        :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'" />
+                    </div>
+                    <input type="number" id="small-input" v-model="tolerance" min="0" :max="10" step="1"
+                      class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
                   </div>
-                  <input type="number" id="small-input" v-model="tolerance" min="0" :max="10" step="1"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
-                </div>
-              </li>
-              <li>
-                <div class="flex justify-between my-4">
-                  <span>&nbsp;</span>
-                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
-                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Annotation</span>
-                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
-                      modeToggle($event.target.checked);
-                    }
-                      " />
-                    <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
-                    </div>
-                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
-                  </label>
-                  <InfoToolTip :id="'tooltip_annotation_word'"
-                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
-                </div>
-              </li>
-              <li>
-                <div class="flex justify-between my-4">
-                  <span>&nbsp;</span>
-                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
-                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Equal</span>
-                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
-                      contained = !contained;
-                      tolerance = 0;
-                    }
-                      " />
+                </li>
+                <li>
+                  <div class="flex justify-between my-4">
+                    <span>&nbsp;</span>
+                    <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                      <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Annotation</span>
+                      <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
+                        modeToggle($event.target.checked);
+                      }
+                        " />
+                      <div
+                        class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                      </div>
+                      <span
+                        class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
+                    </label>
+                    <InfoToolTip :id="'tooltip_annotation_word'"
+                      :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
+                  </div>
+                </li>
+                <li>
+                  <div class="flex justify-between my-4">
+                    <span>&nbsp;</span>
+                    <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                      <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Equal</span>
+                      <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
+                        contained = !contained;
+                        tolerance = 0;
+                      }
+                        " />
 
-                    <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
-                    </div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Overlap</span>
-                  </label>
-                  <InfoToolTip :id="'tooltip_equal_overlap'"
-                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`" />
-                </div>
-              </li>
-              <li>
-                <div class="flex justify-between my-4">
-                  <span>&nbsp;</span>
-                  <label class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
-                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Include NTA</span>
-                    <input type="checkbox" value="" :checked="hideNonText" class="sr-only peer" @input="($event: Event) => {
-                      toggleTextToHidden($event?.target?.checked);
-                    }
-                      " />
+                      <div
+                        class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                      </div>
+                      <span
+                        class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Overlap</span>
+                    </label>
+                    <InfoToolTip :id="'tooltip_equal_overlap'"
+                      :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`" />
+                  </div>
+                </li>
+                <li>
+                  <div class="flex justify-between mt-4">
+                    <span>&nbsp;</span>
+                    <label class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
+                      <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Include NTA</span>
+                      <input type="checkbox" value="" :checked="hideNonText" class="sr-only peer" @input="($event: Event) => {
+                        toggleTextToHidden($event?.target?.checked);
+                      }
+                        " />
 
-                    <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
-                    </div>
-                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Exclude
-                      NTA</span>
-                  </label>
+                      <div
+                        class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                      </div>
+                      <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Exclude
+                        NTA</span>
+                    </label>
 
-                  <InfoToolTip :id="'tooltip_nta'"
-                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'" />
-                </div>
-              </li>
-              <li>
-                <Button class="w-full" label="Compute Metrics" size="small" @click="clickComputeMetrics" />
-              </li>
-              <li>
-                <Button class="w-full" label="Download All" outlined size="small" @click="clickDownloadAll" />
-              </li>
+                    <InfoToolTip :id="'tooltip_nta'"
+                      :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'" />
+                  </div>
+                </li>
+              </template>
+              <template>
+                <li>
+                <Button class="w-full mt-4" label="Compute Metrics" size="small" @click="clickComputeMetrics" />
+                </li>
+                <li>
+                  <Button class="w-full" label="Download All" outlined size="small" @click="clickDownloadAll" />
+                </li>
+              </template>
             </ul>
           </div>
         </aside>
@@ -160,6 +168,7 @@ import type {
   MetricResultsTable,
   ConfidenceMetricResult,
 } from "~/utils/metrics";
+import { isDocumentLevel } from "~/utils/levels";
 import { initFlowbite } from "flowbite";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
