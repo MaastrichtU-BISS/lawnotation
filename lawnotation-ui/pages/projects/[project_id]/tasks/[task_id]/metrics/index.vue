@@ -59,7 +59,7 @@
                   class="w-full" @change="selectAnnotators" />
               </li>
               <li v-if="task && !isDocumentLevel(task)">
-              <!-- Only for span annotations -->
+                <!-- Only for span annotations -->
                 <div>
                   <div class="flex justify-between">
                     <label for="small-input"
@@ -349,6 +349,10 @@ const compute_metrics = async (
 
 const clickComputeMetrics = async () => {
   if (!selectedLabel.value) return;
+  if (!task.value) {
+    $toast.error("Task does not exist");
+    throw new Error("Task does not exist");
+  }
   metricsModalVisible.value = true;
   try {
     // agreement metrics
@@ -362,6 +366,7 @@ const clickComputeMetrics = async () => {
       separate_into_words.value,
       hideNonText.value,
       contained.value,
+      isDocumentLevel(task.value),
       documentsData.value,
       documentsOptions.map((d) => d.value),
       annotations && annotations.length ? annotations : []
@@ -598,10 +603,16 @@ async function getMetricsSheet(
         annotators: data.annotators.join(","),
         value: m.result,
         p0: m.po,
-        pe: m.pe,
-        tolerance: data.tolerance,
-        consider_contained: data.contained ? "yes" : "no",
+        pe: m.pe
       });
+
+    if (!isDocumentLevel(task.value!)) {
+      Object.assign(rows.at(-1),
+        {
+          tolerance: data.tolerance,
+          consider_contained: data.contained ? "yes" : "no"
+        })
+    }
   });
 
   if (data.annotators.length > 2) {
@@ -629,10 +640,16 @@ async function getMetricsSheet(
               annotators: data.annotators[i] + "," + data.annotators[j],
               value: m.result,
               p0: m.po,
-              pe: m.pe,
-              tolerance: data.tolerance,
-              consider_contained: data.contained ? "yes" : "no",
+              pe: m.pe
             });
+
+          if (!isDocumentLevel(task.value!)) {
+            Object.assign(rows.at(-1),
+              {
+                tolerance: data.tolerance,
+                consider_contained: data.contained ? "yes" : "no"
+              })
+          }
         });
       }
     }
@@ -649,12 +666,18 @@ async function getAnnotationsSheet(table: RangeLabel[]) {
         rows.push({
           document: r.doc_id + "-" + r.doc_name,
           annotator: k,
-          start: r.start,
-          end: r.end,
-          text: r.text?.length ? (r.text.length <= 1000 ? r.text : `${r.text.substring(0, 100)} ... ${r.text.substring(900, 1000)}`) : "",
-          confidence: r.confidences[k],
           value: v,
+          confidence: r.confidences[k],
         });
+
+        if (!isDocumentLevel(task.value!)) {
+          Object.assign(rows.at(-1),
+            {
+              start: r.start,
+              end: r.end,
+              text: r.text?.length ? (r.text.length <= 1000 ? r.text : `${r.text.substring(0, 100)} ... ${r.text.substring(900, 1000)}`) : "",
+            })
+        }
       });
     });
   }
@@ -683,9 +706,15 @@ async function getDescriptiveAnnotatorSheet(table: RangeLabel[], annotators: str
     Object.entries(dic).forEach(([k, v]) => {
       rows.push({
         annotator: k,
-        annotations: dic[k]["amount"],
-        non_annotations: nanns,
+        annotations: dic[k]["amount"]
       });
+
+      if (!isDocumentLevel(task.value!)) {
+          Object.assign(rows.at(-1),
+            {
+              non_annotations: nanns,
+            })
+        }
     });
   }
 
