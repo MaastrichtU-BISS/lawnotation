@@ -215,14 +215,19 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[], assig
     if (ann.from_name == "label") {
       ls_anns.push(ann);
     } else {
-      // assumes each confidence comes right after their respective labeled annotation
-      // (so far it seems correct to assume this, based on LS sorting the annotations by Id)
-      if (ls_anns.length > 0 && ann.from_name == "ann_confidence") {
-        if (ann.id == ls_anns[ls_anns.length - 1].id) {
-          ls_anns[ls_anns.length - 1].value.confidence_rating = ann.value.rating;
+      if (ls_anns.length > 0) {
+        if(props.annotation_level != AnnotationLevels.DOCUMENT) {
+          // assumes each confidence comes right after their respective labeled annotation
+          // (so far it seems correct to assume this, based on LS sorting the annotations by Id)
+          if (ann.from_name == "ann_confidence") {
+            if (ann.id == ls_anns[ls_anns.length - 1].id) {
+              ls_anns[ls_anns.length - 1].value.confidence_rating = ann.value.rating;
+            }
+          } 
         }
-      } else if(props.annotation_level == AnnotationLevels.DOCUMENT) {
-        ls_anns[ls_anns.length - 1].value.confidence_rating = assignmentRating;
+        else {
+          ls_anns[ls_anns.length - 1].value.confidence_rating = assignmentRating;
+        }
       }
     }
   }
