@@ -25,7 +25,7 @@ export const archiveRouter = router({
     .query(async ({ ctx, input }) => {
       
       try {
-        const response = await fetch(`${config.public.mlBackendURL}/archives/search/rechtspraak/`, {
+        const response = await fetch(`${config.public.mlBackendURL}/archives/search/rechtspraak`, {
           method: "POST",
           body: JSON.stringify(input)
         });
