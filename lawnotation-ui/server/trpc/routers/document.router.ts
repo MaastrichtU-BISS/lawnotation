@@ -259,16 +259,14 @@ export const documentRouter = router({
             })
           ).data as number[];
         } else {
-          // using raw query to circumvent the 1000 row-limit of the supabase client
           data = (
-            await ctx.sql<{ id: string }[]>`
-              SELECT id
-              FROM documents
-              WHERE project_id = ${input.project_id}
-              ORDER BY id  
-              LIMIT ${input.n}
-            `
-          ).map((x) => +x.id);
+            await ctx.supabase
+              .from("documents")
+              .select("id")
+              .eq("project_id", input.project_id)
+              .order("id")
+              .limit(input.n)
+          ).data?.map((x) => +x.id) as number[];
         }
 
         return data as number[];
