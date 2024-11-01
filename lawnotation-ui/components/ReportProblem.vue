@@ -11,13 +11,12 @@
                     </svg>
                 </button>
 
-                <div class="text-center">
-                    <p>Please add an issue to
+                <div>
+                    <p class="mb-2">Please add an issue to
                         <a href="https://github.com/MaastrichtU-BISS/lawnotation/issues" target="_blank"
-                            class="text-blue-600 underline hover:text-blue-800">our GitHub</a>
+                            class="text-blue-600 underline hover:text-blue-800">our GitHub</a> or
                     </p>
-                    <p>or</p>
-                    <p>Send us an email at
+                    <p class="mb-0">send us an email at
                         <a href="mailto:biss-devs@maastrichtuniversity.nl"
                             class="text-blue-600 underline hover:text-blue-800">biss-devs@maastrichtuniversity.nl</a>
                     </p>
