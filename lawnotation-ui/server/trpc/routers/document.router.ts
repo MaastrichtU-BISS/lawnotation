@@ -91,8 +91,7 @@ export const documentRouter = router({
   create: protectedProcedure
     .input(ZDocumentFields)
     .mutation(async ({ ctx, input }) => {
-      if (input.name.split('.').pop() == 'html')
-        sanitizeFullText(input);
+      if (input.name.split(".").pop() == "html") sanitizeFullText(input);
 
       const { data, error } = await ctx.supabase
         .from("documents")
@@ -112,8 +111,7 @@ export const documentRouter = router({
     .input(z.array(ZDocumentFields))
     .mutation(async ({ ctx, input }) => {
       input.forEach((doc) => {
-        if (doc.name.split('.').pop() == 'html')
-          sanitizeFullText(doc);
+        if (doc.name.split(".").pop() == "html") sanitizeFullText(doc);
       });
 
       const { data, error } = await ctx.supabase
@@ -246,20 +244,32 @@ export const documentRouter = router({
       z.object({
         project_id: z.number().int(),
         n: z.number().int(),
+        randomOrder: z.boolean().default(true),
       })
     )
     .query(async ({ ctx, input }) => {
       try {
+        let data = [];
+
         // using raw query to circumvent the 1000 row-limit of the supabase client
-        const data = (
-          await ctx.sql<{id: string}[]>`
-            SELECT id
-            FROM documents
-            WHERE project_id = ${input.project_id}
-            ORDER BY Random()
-            LIMIT ${input.n}
-          `
-        ).map(x => +x.id)
+        if (input.randomOrder) {
+          data = (
+            await ctx.supabase.rpc("random_sample", {
+              n: input.n,
+              pid: input.project_id,
+            })
+          ).data as number[];
+        } else {
+          data = (
+            await ctx.sql<{ id: string }[]>`
+              SELECT id
+              FROM documents
+              WHERE project_id = ${input.project_id}
+              ORDER BY id  
+              LIMIT ${input.n}
+            `
+          ).map((x) => +x.id);
+        }
 
         return data as number[];
       } catch {

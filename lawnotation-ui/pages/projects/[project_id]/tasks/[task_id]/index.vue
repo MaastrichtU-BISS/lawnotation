@@ -627,6 +627,7 @@ const createAssignments = async () => {
     const docs = await $trpc.document.takeUpToNRandomDocuments.query({
       project_id: task.project_id,
       n: number_of_docs.value,
+      randomOrder: randomizationSelected.value != RandomizationOptions.NONE
     });
 
     const new_assignments: Pick<Assignment, "task_id" | "document_id" | "origin" | "status">[] = [];
@@ -675,17 +676,23 @@ const createAssignments = async () => {
 
     const permutations = [];
     for (let i = 0; i < annotators_id.length; ++i) {
-      permutations.push(_.shuffle(_.clone(unshuffled)));
+      if(randomizationSelected.value == RandomizationOptions.FULL) {
+        permutations.push(_.shuffle(_.clone(unshuffled)));
+      } else {
+        permutations.push(_.clone(unshuffled));
+      }
     }
 
     for (let i = 0; i < new_assignments.length; ++i) {
       // @ts-expect-error
       new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
       // @ts-expect-error
-      new_assignments[i].annotator_number = (i % annotators_id.length) + 1
+      new_assignments[i].annotator_number = (i % annotators_id.length) + 1;
+
+      const newSeqPos = permutations[i % annotators_id.length].shift();
       // @ts-expect-error
       new_assignments[i].seq_pos =
-        (permutations[i % annotators_id.length].pop() ?? Math.floor(i / annotators_id.length)) + 1;
+        (newSeqPos ?? Math.floor(i / annotators_id.length)) + 1;
     }
 
     //create MlModel assignments
