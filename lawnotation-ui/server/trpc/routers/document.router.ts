@@ -251,22 +251,22 @@ export const documentRouter = router({
       try {
         let data = [];
 
-        // using raw query to circumvent the 1000 row-limit of the supabase client
         if (input.randomOrder) {
-          data = (
-            await ctx.supabase.rpc("random_sample", {
-              n: input.n,
-              pid: input.project_id,
-            })
-          ).data as number[];
+          // data = (
+          //   await ctx.supabase.rpc("random_sample", {
+          //     n: input.n,
+          //     pid: input.project_id,
+          //   })
+          // ).data as number[];
+          data = (await ctx.supabase.from("documents").select("id").limit(1001)).data;
         } else {
+          // using raw query to circumvent the 1000 row-limit of the supabase client
           data = (
             await ctx.sql<{ id: string }[]>`
               SELECT id
               FROM documents
-              WHERE project_id = ${input.project_id}
               ORDER BY id  
-              LIMIT ${input.n}
+              LIMIT ${1001}
             `
           ).map((x) => +x.id);
         }

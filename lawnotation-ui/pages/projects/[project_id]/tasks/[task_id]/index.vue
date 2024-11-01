@@ -630,6 +630,8 @@ const createAssignments = async () => {
       randomOrder: randomizationSelected.value != RandomizationOptions.NONE
     });
 
+    console.log(docs)
+
     const new_assignments: Pick<Assignment, "task_id" | "document_id" | "origin" | "status">[] = [];
 
     // Create shared assignments (only with docs info)
