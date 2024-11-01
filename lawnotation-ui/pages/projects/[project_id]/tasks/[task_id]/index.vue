@@ -17,7 +17,7 @@
     <Dimmer v-model="loading" />
     <div class="dimmer-content">
       <div v-if="task">
-        <div v-if="totalAssignments.data.value?.total">
+        <div v-if="totalAssignments.data.value?.total && groupByAnnotators.data.value?.total">
           <div class="pb-4" v-if="showPredictionProgressBar">
             <div class="flex justify-center items-center">
               <h3 class="my-3 text-lg text-center font-semibold">Generating pre-annotations:</h3>
@@ -33,10 +33,12 @@
               <Button type="button" label="Analyze Agreement Metrics"
                 data-test="metrics-button" />
             </NuxtLink>
-            <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true" data-test="export-publish-button" />
-            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => optionsMenu.toggle(event)" aria-haspopup="true" aria-controls="options-menu" data-test="options-menu-button" />
-            <Menu ref="optionsMenu" id="options-menu" :model="[{label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask}]" :popup="true"
-              :pt="{
+            <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true"
+              data-test="export-publish-button" />
+            <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => optionsMenu.toggle(event)"
+              aria-haspopup="true" aria-controls="options-menu" data-test="options-menu-button" />
+            <Menu ref="optionsMenu" id="options-menu"
+              :model="[{ label: 'Duplicate Task', icon: 'pi pi-clone', command: replicateTask }]" :popup="true" :pt="{
                 content: {
                   'data-test': 'duplicate-task'
                 }
@@ -47,103 +49,72 @@
 
           <TabView @tab-change="tabChangeEvent">
             <TabPanel header="Annotators">
-              
+
               <div class="mb-2 flex items-center">
-                <Button 
-                  v-if="groupByAnnotators.data.value?.total"
-                  type="button" 
-                  icon="pi pi-ellipsis-v" 
-                  text 
-                  @click="(event) => annotatorsSelectionMenu.toggle(event)" 
-                  aria-haspopup="true" 
-                  aria-controls="remove-all-menu" 
-                  data-test="remove-all-menu-button" 
-                />
+                <Button v-if="groupByAnnotators.data.value?.total" type="button" icon="pi pi-ellipsis-v" text
+                  @click="(event) => annotatorsSelectionMenu.toggle(event)" aria-haspopup="true"
+                  aria-controls="remove-all-menu" data-test="remove-all-menu-button" />
                 <Menu ref="annotatorsSelectionMenu" id="remove-all-menu" :popup="true" :model="[{
-                    label: `Remove all (${ groupByAnnotators.data.value?.total })`,
-                    command: () => removeAllAssignments(refreshGroupByAnnotators)
-                  }]"
-                  :pt="{
+                  label: `Remove all (${groupByAnnotators.data.value?.total})`,
+                  command: () => removeAllAssignments(refreshGroupByAnnotators)
+                                  }]" :pt="{
                     label: 'text-[#f05252]',
                     content: {
                       'data-test': 'remove-all'
                     }
-                  }"
-                  :ptOptions="{ mergeProps: true }"
-                />
-                <Button
-                  v-if="groupByAnnotatorsSelectedAssignmentIds.length"
+                  }" :ptOptions="{ mergeProps: true }" />
+                <Button v-if="groupByAnnotatorsSelectedAssignmentIds.length"
                   @click="removeAssignments(groupByAnnotatorsSelectedAssignmentIds, refreshGroupByAnnotators)"
-                  severity="danger"
-                  outlined
-                  :pt="{ label: 'text-xs' }"
-                  :ptOptions="{ mergeProps: true }"
-                  data-test="remove-selected-rows"
-                  class="ml-3"
-                  size="small"
-                >
+                  severity="danger" outlined :pt="{ label: 'text-xs' }" :ptOptions="{ mergeProps: true }"
+                  data-test="remove-selected-rows" class="ml-3" size="small">
                   Remove selected assignments ({{ groupByAnnotatorsSelectedAssignmentIds.length }})
                 </Button>
               </div>
 
-              <span
-                v-if="groupByAnnotators.status.value == 'error'"
-                class="block p-3 bg-red-200 border border-red-300"
-              >An error occured when loading the assignments.{{ groupByAnnotators.error.value }}</span>
-              <TreeTable
-                v-else
-                :value="groupByAnnotators.data.value!.data"
-                :totalRecords="groupByAnnotators.data.value!.total"
-                :pt="{
+              <span v-if="groupByAnnotators.status.value == 'error'" class="block p-3 bg-red-200 border border-red-300">An
+                error occured when loading the assignments.{{ groupByAnnotators.error.value }}</span>
+              <TreeTable v-else :value="groupByAnnotators.data.value!.data"
+                :totalRecords="groupByAnnotators.data.value!.total" :pt="{
                   table: {
                     class: 'border-collapse w-full'
                   }
-                }"
-                v-model:selection-keys="groupByAnnotatorsSelection"
-                selectionMode="checkbox"
-                id="tableGroupByAnnotators"
-                :lazy="true"
-                :paginator="true"
-                :rows="10"
-                :loading="groupByAnnotatorsLoading"
-                @page="groupByAnnotatorsPaginate"
-              >
+                }" v-model:selection-keys="groupByAnnotatorsSelection" selectionMode="checkbox"
+                id="tableGroupByAnnotators" :lazy="true" :paginator="true" :rows="10" :loading="groupByAnnotatorsLoading"
+                @page="groupByAnnotatorsPaginate">
                 <Column columnKey="name" header="Name" expander style="white-space: nowrap; padding-right: 3rem">
                   <template #filter>
-                    <InputText v-model="groupByAnnotatorsArgs.filter.name" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by email" />
+                    <InputText v-model="groupByAnnotatorsArgs.filter.name" size="small" type="text"
+                      class="p-column-filter font-medium" placeholder="Filter by email" />
                   </template>
-                  <template #body="{node}">
+                  <template #body="{ node }">
                     <template v-if="node.type == 'annotator' && node.data.name == user!.email">
                       <i class="pi pi-user mr-3 ml-2"></i>
-                      <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.name }}</span>
+                      <span
+                        class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{
+                          node.data.name }}</span>
                     </template>
                     <template v-else-if="node.type == 'annotator'">
                       <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.name }}
                     </template>
                     <template v-else-if="node.type == 'document'">
-                      <i class="pi pi-file mr-3 ml-2" /><Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name }}
+                      <i class="pi pi-file mr-3 ml-2" />
+                      <Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name }}
                     </template>
                   </template>
                 </Column>
                 <Column columnKey="progress" header="Progress" style="width: 99%;">
-                  <template #body="{node}">
+                  <template #body="{ node }">
                     <template v-if="node.type == 'annotator'">
                       <div class="flex justify-between items-center">
                         <div class="flex">
                           <span class="whitespace-nowrap mr-4">
-                          {{ node.data.amount_done }} / {{ node.data.amount_total }}
-                        </span>
-                        <ProgressBar
-                          class="w-80"
-                          :showValue="false"
-                          :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
-                        />
+                            {{ node.data.amount_done }} / {{ node.data.amount_total }}
+                          </span>
+                          <ProgressBar class="w-80" :showValue="false"
+                            :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)" />
                         </div>
-                        <NuxtLink
-                          v-if="node.data.amount_done < node.data.amount_total && node.data.name == user!.email"
-                          class="ml-5"
-                          :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`"
-                        >
+                        <NuxtLink v-if="node.data.amount_done < node.data.amount_total && node.data.name == user!.email"
+                          class="ml-5" :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`">
                           <Button label="Annotate Next" size="small" icon="pi pi-pencil" />
                         </NuxtLink>
                       </div>
@@ -151,19 +122,20 @@
                     <template v-else-if="node.type == 'document'">
                       <div class="flex justify-between items-center">
                         <div class="space-x-3">
-                          <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
+                          <Badge :value="node.data.status" :severity="node.data.status == 'done' ? 'success' : 'danger'"
+                            class="capitalize px-2" />
                           <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
                             <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                          <NuxtLink 
-                            v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
-                            :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`"
-                          >
+                          <NuxtLink v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
+                            :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
                             <Button label="Annotate" size="small" icon="pi pi-pencil" />
                           </NuxtLink>
-                          <NuxtLink v-else-if="(node.data.status == AssignmentStatuses.DONE && !(node.data.name == user?.email)) || (node.data.status != AssignmentStatuses.DONE && user?.id == project.editor_id)" :to="`/assignments/${node.data.assignment_id}`">
+                          <NuxtLink
+                            v-else-if="(node.data.status == AssignmentStatuses.DONE && !(node.data.name == user?.email)) || (node.data.status != AssignmentStatuses.DONE && user?.id == project.editor_id)"
+                            :to="`/assignments/${node.data.assignment_id}`">
                             <Button label="View" size="small" icon="pi pi-eye" />
                           </NuxtLink>
                         </div>
@@ -176,76 +148,49 @@
 
             <TabPanel header="Documents">
               <div class="mb-2 flex items-center">
-                <Button 
-                  v-if="groupByDocuments.data.value?.total"
-                  type="button" 
-                  icon="pi pi-ellipsis-v" 
-                  text 
-                  @click="(event) => documentsSelectionMenu.toggle(event)" 
-                  aria-haspopup="true" 
-                  aria-controls="remove-all-menu" 
-                  data-test="remove-all-menu-button" 
-                />
+                <Button v-if="groupByDocuments.data.value?.total" type="button" icon="pi pi-ellipsis-v" text
+                  @click="(event) => documentsSelectionMenu.toggle(event)" aria-haspopup="true"
+                  aria-controls="remove-all-menu" data-test="remove-all-menu-button" />
                 <Menu ref="documentsSelectionMenu" id="remove-all-menu" :popup="true" :model="[{
-                    label: `Remove all (${ groupByDocuments.data.value?.total })`,
-                    command: () => removeAllAssignments(refreshGroupByDocuments)
-                  }]"
-                  :pt="{
+                  label: `Remove all (${groupByDocuments.data.value?.total})`,
+                  command: () => removeAllAssignments(refreshGroupByDocuments)
+                                  }]" :pt="{
                     label: 'text-[#f05252]',
                     content: {
                       'data-test': 'remove-all'
                     }
-                  }"
-                  :ptOptions="{ mergeProps: true }"
-                />
-                <Button
-                  v-if="groupByDocumentsSelectedAssignmentIds.length"
+                  }" :ptOptions="{ mergeProps: true }" />
+                <Button v-if="groupByDocumentsSelectedAssignmentIds.length"
                   @click="removeAssignments(groupByDocumentsSelectedAssignmentIds, refreshGroupByDocuments)"
-                  severity="danger"
-                  outlined
-                  :pt="{ label: 'text-xs' }"
-                  :ptOptions="{ mergeProps: true }"
-                  data-test="remove-selected-rows"
-                  class="ml-3"
-                  size="small"
-                >
+                  severity="danger" outlined :pt="{ label: 'text-xs' }" :ptOptions="{ mergeProps: true }"
+                  data-test="remove-selected-rows" class="ml-3" size="small">
                   Remove selected assignments ({{ groupByDocumentsSelectedAssignmentIds.length }})
                 </Button>
               </div>
-              
-              <span
-                v-if="groupByDocuments.status.value == 'error'"
-                class="block p-3 bg-red-200 border border-red-300"
-              >
+
+              <span v-if="groupByDocuments.status.value == 'error'" class="block p-3 bg-red-200 border border-red-300">
                 An error occured when loading the assignments.{{ groupByDocuments.error.value }}
                 <Button label="retry" @click="refreshGroupByDocuments" />
               </span>
-              <TreeTable
-                v-else
-                :value="groupByDocuments.data.value!.data"
-                :totalRecords="groupByDocuments.data.value!.total"
-                :pt="{
+              <TreeTable v-else :value="groupByDocuments.data.value!.data"
+                :totalRecords="groupByDocuments.data.value!.total" :pt="{
                   table: {
                     class: 'border-collapse w-full'
                   }
-                }"
-                v-model:selection-keys="groupByDocumentsSelection"
-                selectionMode="checkbox"
-                id="tableGroupByDocuments"
-                :lazy="true"
-                :paginator="true"
-                :rows="10"
-                :loading="groupByDocumentsLoading"
-                @page="groupByDocumentsPaginate"
-              >
+                }" v-model:selection-keys="groupByDocumentsSelection" selectionMode="checkbox"
+                id="tableGroupByDocuments" :lazy="true" :paginator="true" :rows="10" :loading="groupByDocumentsLoading"
+                @page="groupByDocumentsPaginate">
                 <Column columnKey="name" header="Name" sortable expander style="white-space: nowrap; padding-right: 3rem">
                   <template #filter>
-                    <InputText v-model="groupByDocumentsArgs.filter.document" size="small" type="text" class="p-column-filter font-medium" placeholder="Filter by document" />
+                    <InputText v-model="groupByDocumentsArgs.filter.document" size="small" type="text"
+                      class="p-column-filter font-medium" placeholder="Filter by document" />
                   </template>
-                  <template #body="{node}">
+                  <template #body="{ node }">
                     <template v-if="node.type == 'annotator' && node.data.name == user!.email">
                       <i class="pi pi-user mr-3 ml-2"></i>
-                      <span class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{ node.data.name }}</span>
+                      <span
+                        class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{
+                          node.data.name }}</span>
                     </template>
                     <template v-else-if="node.type == 'annotator'">
                       <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.name }}
@@ -256,17 +201,14 @@
                   </template>
                 </Column>
                 <Column columnKey="progress" header="Progress" sortable style="width: 99%;">
-                  <template #body="{node}">
+                  <template #body="{ node }">
                     <template v-if="node.type == 'document'">
                       <div class="flex items-center">
                         <span class="whitespace-nowrap mr-4">
                           {{ node.data.amount_done }} / {{ node.data.amount_total }}
                         </span>
-                        <ProgressBar
-                          class="w-full"
-                          :showValue="false"
-                          :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)"
-                        />
+                        <ProgressBar class="w-full" :showValue="false"
+                          :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)" />
                         <!-- <NuxtLink
                           v-if="node.data.amount_done > 1"
                           class="ml-5"
@@ -279,19 +221,21 @@
                     <template v-else-if="node.type == 'annotator'">
                       <div class="flex justify-between items-center">
                         <div class="space-x-3">
-                          <Badge :value="node.data.status" :severity="node.data.status == AssignmentStatuses.DONE ? 'success' : 'danger'" class="capitalize px-2" />
+                          <Badge :value="node.data.status"
+                            :severity="node.data.status == AssignmentStatuses.DONE ? 'success' : 'danger'"
+                            class="capitalize px-2" />
                           <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
                             <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
                           </Badge>
                         </div>
                         <div class="space-x-3">
-                          <NuxtLink 
-                            v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
-                            :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`"
-                          >
+                          <NuxtLink v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
+                            :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
                             <Button label="Annotate" size="small" icon="pi pi-pencil" />
                           </NuxtLink>
-                          <NuxtLink v-else-if="(node.data.status == AssignmentStatuses.DONE && !(node.data.name == user?.email)) || (node.data.status != AssignmentStatuses.DONE && user?.id == project.editor_id)" :to="`/assignments/${node.data.assignment_id}`">
+                          <NuxtLink
+                            v-else-if="(node.data.status == AssignmentStatuses.DONE && !(node.data.name == user?.email)) || (node.data.status != AssignmentStatuses.DONE && user?.id == project.editor_id)"
+                            :to="`/assignments/${node.data.assignment_id}`">
                             <Button label="View" size="small" icon="pi pi-eye" />
                           </NuxtLink>
                         </div>
@@ -321,7 +265,7 @@
                 root: {
                   class: 'p-0 text-xs text-primary-600 disabled:text-gray-400 underline cursor-pointer disabled:no-underline disabled:pointer-events-none'
                 }
-              }"/>
+              }" />
             </div>
             <Accordion>
               <AccordionTab header="Advanced Settings">
@@ -367,18 +311,21 @@
                         <td>{{ number_of_fixed_docs }}</td>
                         <template v-if="(number_of_docs - number_of_fixed_docs) % annotatorEmails.length == 0">
                           <td>{{ (number_of_docs - number_of_fixed_docs) / annotatorEmails.length }}</td>
-                          <td>{{ (number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs)) / annotatorEmails.length }}</td>
+                          <td>{{ (number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs))
+                            / annotatorEmails.length }}</td>
                         </template>
                         <template v-else>
                           <td>{{
-                              Math.floor((number_of_docs - number_of_fixed_docs) / annotatorEmails.length) 
+                            Math.floor((number_of_docs - number_of_fixed_docs) / annotatorEmails.length)
                           }} <i class="text-gray-500">or</i> {{
-                              Math.ceil((number_of_docs - number_of_fixed_docs) / annotatorEmails.length)
+                            Math.ceil((number_of_docs - number_of_fixed_docs) / annotatorEmails.length)
                           }}</td>
                           <td>{{
-                            Math.floor((number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs)) / annotatorEmails.length)
+                            Math.floor((number_of_fixed_docs * annotatorEmails.length + (number_of_docs -
+                              number_of_fixed_docs)) / annotatorEmails.length)
                           }} <i class="text-gray-500">or</i> {{
-                            Math.ceil((number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs)) / annotatorEmails.length)
+                            Math.ceil((number_of_fixed_docs * annotatorEmails.length + (number_of_docs -
+                              number_of_fixed_docs)) / annotatorEmails.length)
                           }}</td>
                         </template>
                       </tr>
@@ -386,11 +333,21 @@
                         <th>Total</th>
                         <td>{{ number_of_fixed_docs * annotatorEmails.length }}</td>
                         <td>{{ number_of_docs - number_of_fixed_docs }}</td>
-                        <td>{{ number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs) }}</td>
+                        <td>{{ number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs) }}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
                 </template>
+                <div class="text-center mt-5">
+                  <h6 class="py-4 text-xl text-bold">
+                    Randomization Options
+                  </h6>
+                  <SelectButton v-model="randomizationSelected" :options="Object.values(RandomizationOptions)" aria-labelledby="basic" class="capitalize" />
+                  <p class="pt-4 text-start text-xs text-gray-500 min-h-[48px]">
+                    {{ randomizationMessage }}
+                  </p>
+                </div>
               </AccordionTab>
             </Accordion>
             <div class="text-center pt-6">
@@ -400,7 +357,8 @@
             </div>
           </div>
         </div>
-        <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible" @export="exportTask" />
+        <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible"
+          @export="exportTask" />
       </div>
     </div>
   </div>
@@ -425,7 +383,7 @@ import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
 import type { TabViewChangeEvent } from "primevue/tabview";
-import { Origins, AssignmentStatuses } from "~/utils/enums";
+import { Origins, AssignmentStatuses, RandomizationOptions } from "~/utils/enums";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -442,7 +400,22 @@ const number_of_docs = ref<number>(total_docs);
 const number_of_fixed_docs = ref<number>(total_docs);
 const optionsMenu = ref()
 
+const randomizationSelected = ref(RandomizationOptions.FULL);
+
 const labels = await $trpc.labelset.findById.query(+task.labelset_id);
+
+const randomizationMessage = computed(() => {
+  switch (randomizationSelected.value) {
+    case RandomizationOptions.FULL:
+      return "The documents will be shuffled and each annotator will get a different random order.";
+    case RandomizationOptions.PARTIAL:
+      return "The documents will be shuffled and all the annotators will get the same random order.";
+    case RandomizationOptions.NONE:
+      return "The documents will not be shuffled and all the annotators will get the same order.";
+    default:
+      return "Something went wrong";
+  }
+});
 
 //#region  ml variables
 const mlIntervalId = ref();
@@ -491,14 +464,14 @@ watch(showPredictionProgressBar, (new_value) => {
 // start definitions related to treeview grouped by annotators
 
 const annotatorsSelectionMenu = ref();
-const groupByAnnotatorsSelection = ref<Record<string, {checked: boolean, partialChecked: boolean}>>({});
+const groupByAnnotatorsSelection = ref<Record<string, { checked: boolean, partialChecked: boolean }>>({});
 const groupByAnnotatorsSelectedAssignmentIds = computed(() => {
   return Object
     .entries(groupByAnnotatorsSelection.value)
     .filter(x => x[0].startsWith('ass-') && x[1].checked)
     .map(x => x[0].replace('ass-', ''))
 })
-const groupByAnnotatorsArgs = reactive({task_id: task.id, page: 1, filter: {name: ''}});
+const groupByAnnotatorsArgs = reactive({ task_id: task.id, page: 1, filter: { name: '' } });
 const groupByAnnotators = await $trpc.assignment.getGroupByAnnotators.useQuery(groupByAnnotatorsArgs);
 const groupByAnnotatorsLoading = ref(false);
 const refreshGroupByAnnotators = () => {
@@ -506,7 +479,7 @@ const refreshGroupByAnnotators = () => {
   groupByAnnotatorsLoading.value = true;
   groupByAnnotators.refresh().finally(() => groupByAnnotatorsLoading.value = false)
 }
-const groupByAnnotatorsPaginate = ({page}: {page: number}) => {
+const groupByAnnotatorsPaginate = ({ page }: { page: number }) => {
   groupByAnnotatorsArgs.page = page + 1;
   refreshGroupByAnnotators()
 }
@@ -518,7 +491,7 @@ watch(() => groupByAnnotatorsArgs.filter.name, refreshGroupByAnnotators)
 
 const documentsSelectionMenu = ref();
 
-const groupByDocumentsSelection = ref<Record<string, {checked: boolean, partialChecked: boolean}>>({});
+const groupByDocumentsSelection = ref<Record<string, { checked: boolean, partialChecked: boolean }>>({});
 const groupByDocumentsSelectedAssignmentIds = computed(() => {
   return Object
     .entries(groupByDocumentsSelection.value)
@@ -528,7 +501,7 @@ const groupByDocumentsSelectedAssignmentIds = computed(() => {
 const groupByDocumentsArgs = reactive({
   task_id: task.id,
   page: 1,
-  filter: {document: ''}
+  filter: { document: '' }
 });
 const groupByDocuments = await $trpc.assignment.getGroupByDocuments.useQuery(groupByDocumentsArgs);
 const groupByDocumentsLoading = ref(false);
@@ -537,7 +510,7 @@ const refreshGroupByDocuments = () => {
   groupByDocumentsLoading.value = true;
   groupByDocuments.refresh().finally(() => groupByDocumentsLoading.value = false)
 }
-const groupByDocumentsPaginate = ({page}: {page: number}) => {
+const groupByDocumentsPaginate = ({ page }: { page: number }) => {
   groupByDocumentsArgs.page = page + 1;
   refreshGroupByDocuments()
 }
@@ -545,7 +518,7 @@ watch(() => groupByDocumentsArgs.filter.document, refreshGroupByDocuments)
 
 // end
 
-const tabChangeEvent = ({index}: TabViewChangeEvent) => {
+const tabChangeEvent = ({ index }: TabViewChangeEvent) => {
   if (index === 0) refreshGroupByAnnotators()
   else if (index === 1) refreshGroupByDocuments()
 }
@@ -634,7 +607,7 @@ watch(annotatorEmails, (new_val) => {
 });
 
 const addMyself = () => {
-  if(!isMyselfAdded.value) {
+  if (!isMyselfAdded.value) {
     annotatorEmails.value.push(user.value?.email!);
   } else {
     $toast.error("You have been already added!")
@@ -654,6 +627,7 @@ const createAssignments = async () => {
     const docs = await $trpc.document.takeUpToNRandomDocuments.query({
       project_id: task.project_id,
       n: number_of_docs.value,
+      randomOrder: randomizationSelected.value != RandomizationOptions.NONE
     });
 
     const new_assignments: Pick<Assignment, "task_id" | "document_id" | "origin" | "status">[] = [];
@@ -702,17 +676,23 @@ const createAssignments = async () => {
 
     const permutations = [];
     for (let i = 0; i < annotators_id.length; ++i) {
-      permutations.push(_.shuffle(_.clone(unshuffled)));
+      if(randomizationSelected.value == RandomizationOptions.FULL) {
+        permutations.push(_.shuffle(_.clone(unshuffled)));
+      } else {
+        permutations.push(_.clone(unshuffled));
+      }
     }
 
     for (let i = 0; i < new_assignments.length; ++i) {
       // @ts-expect-error
       new_assignments[i].annotator_id = annotators_id[i % annotators_id.length];
       // @ts-expect-error
-      new_assignments[i].annotator_number = (i % annotators_id.length) + 1
+      new_assignments[i].annotator_number = (i % annotators_id.length) + 1;
+
+      const newSeqPos = permutations[i % annotators_id.length].shift();
       // @ts-expect-error
       new_assignments[i].seq_pos =
-        (permutations[i % annotators_id.length].pop() ?? Math.floor(i / annotators_id.length)) + 1;
+        (newSeqPos ?? Math.floor(i / annotators_id.length)) + 1;
     }
 
     //create MlModel assignments
@@ -734,15 +714,15 @@ const createAssignments = async () => {
         assignments: new_assignments,
         pre_annotations: task.ml_model_id ?
           {
-            ml_model_id: task.ml_model_id, 
+            ml_model_id: task.ml_model_id,
             labelset_id: task.labelset_id,
             reveal: true
           } :
           undefined
       }
     );
-   
-    if(task.ml_model_id) {
+
+    if (task.ml_model_id) {
       startQueryingMlBackend();
     }
 
@@ -847,7 +827,7 @@ const exportTask = async () => {
       annotations.map((a) => {
         const doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
         ann_pos[a.id] = doc_anns.length
-        
+
         doc_anns.push({
           start: a.start_index,
           end: a.end_index,
@@ -893,7 +873,7 @@ const resetForm = () => {
 
 onMounted(async () => {
 
-  if(showPredictionProgressBar.value && !mlIntervalId.value) {
+  if (showPredictionProgressBar.value && !mlIntervalId.value) {
     startQueryingMlBackend();
   }
 
@@ -910,11 +890,13 @@ definePageMeta({
 
 <style lang="scss">
 /* hide the header columns, but not the filter column (https://stackoverflow.com/a/57236693/17864167) */
-#tableGroupByAnnotators table thead, #tableGroupByDocuments table thead {
+#tableGroupByAnnotators table thead,
+#tableGroupByDocuments table thead {
   tr {
     display: none;
   }
-  tr ~ tr {
+
+  tr~tr {
     display: table-row;
   }
 }
