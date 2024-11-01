@@ -189,7 +189,7 @@ const clickNext = async () => {
     return;
   }
 
-  await updateAnnotationsAndRelations(serializedAnnotations);
+  await updateAnnotationsAndRelations(serializedAnnotations, rating);
   await $trpc.assignment.update.mutate({
     id: props.assignment.id,
     updates: {
@@ -205,7 +205,7 @@ const clickNext = async () => {
   }
 };
 
-const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
+const updateAnnotationsAndRelations = async (serializedAnnotations: any[], assignmentRating: number) => {
   if (!props.assignment) return;
 
   // create annotations
@@ -215,11 +215,18 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[]) => {
     if (ann.from_name == "label") {
       ls_anns.push(ann);
     } else {
-      // assumes each confidence comes right after their respective labeled annotation
-      // (so far it seems correct to assume this, based on LS sorting the annotations by Id)
-      if (ls_anns.length > 0 && ann.from_name == "ann_confidence") {
-        if (ann.id == ls_anns[ls_anns.length - 1].id) {
-          ls_anns[ls_anns.length - 1].value.confidence_rating = ann.value.rating;
+      if (ls_anns.length > 0) {
+        if(props.annotation_level != AnnotationLevels.DOCUMENT) {
+          // assumes each confidence comes right after their respective labeled annotation
+          // (so far it seems correct to assume this, based on LS sorting the annotations by Id)
+          if (ann.from_name == "ann_confidence") {
+            if (ann.id == ls_anns[ls_anns.length - 1].id) {
+              ls_anns[ls_anns.length - 1].value.confidence_rating = ann.value.rating;
+            }
+          } 
+        }
+        else {
+          ls_anns[ls_anns.length - 1].value.confidence_rating = assignmentRating;
         }
       }
     }

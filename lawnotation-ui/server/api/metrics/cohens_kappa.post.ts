@@ -53,7 +53,12 @@ function computeCohensKappa(table: RangeLabel[]): MetricResult {
 
   const po = (agree_1_1 + agree_0_0) / N;
 
-  const result: number = (po - pe) / (1 - pe);
+  let result: number = (po - pe) / (1 - pe);
+
+  // Perfect agreement
+  // if (isNaN(result)) {
+  //   result = 1;
+  // }
 
   return {
     name: "cohens_kappa",

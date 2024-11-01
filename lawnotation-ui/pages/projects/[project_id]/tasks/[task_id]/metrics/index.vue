@@ -29,14 +29,15 @@
             <ul class="space-y-2 text-sm">
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label</label>
-                <Dropdown v-model="selectedLabel" :options="labelsOptions" optionLabel="name"
-                  placeholder="Select a Label" class="w-full" @change="selectLabel($event.value?.name)"
-                  :panel-style="{ width: '295px'}" :pt="{
+                <Dropdown v-model="selectedLabel" :options="labelsOptions" optionLabel="name" placeholder="Select a Label"
+                  class="w-full" @change="selectLabel($event.value?.name)" :panel-style="{ width: '295px' }" :pt="{
                     item: '!py-2'
                   }" :ptOptions="{ mergeProps: true }">
                   <template #value="slotProps">
                     <div v-if="slotProps.value">
-                      <LabelCmpt :label="{color: labelsOptions.find((l) => l.name == slotProps.value)?.color!, name: slotProps.value}"></LabelCmpt>
+                      <LabelCmpt
+                        :label="{ color: labelsOptions.find((l) => l.name == slotProps.value)?.color!, name: slotProps.value }">
+                      </LabelCmpt>
                     </div>
                     <span v-else>
                       {{ slotProps.placeholder }}
@@ -54,10 +55,11 @@
               </li>
               <li>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Annotators</label>
-                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions"
-                 placeholder="All" class="w-full" @change="selectAnnotators" />
+                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions" placeholder="All"
+                  class="w-full" @change="selectAnnotators" />
               </li>
-              <li>
+              <li v-if="task && !isDocumentLevel(task)">
+                <!-- Only for span annotations -->
                 <div>
                   <div class="flex justify-between">
                     <label for="small-input"
@@ -68,8 +70,6 @@
                   <input type="number" id="small-input" v-model="tolerance" min="0" :max="10" step="1"
                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
                 </div>
-              </li>
-              <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
                   <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
@@ -86,8 +86,6 @@
                   <InfoToolTip :id="'tooltip_annotation_word'"
                     :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
                 </div>
-              </li>
-              <li>
                 <div class="flex justify-between my-4">
                   <span>&nbsp;</span>
                   <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
@@ -107,9 +105,7 @@
                   <InfoToolTip :id="'tooltip_equal_overlap'"
                     :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`" />
                 </div>
-              </li>
-              <li>
-                <div class="flex justify-between my-4">
+                <div class="flex justify-between mt-4">
                   <span>&nbsp;</span>
                   <label class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
                     <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Include NTA</span>
@@ -130,7 +126,7 @@
                 </div>
               </li>
               <li>
-                <Button class="w-full" label="Compute Metrics" size="small" @click="clickComputeMetrics" />
+                <Button class="w-full mt-4" label="Compute Metrics" size="small" @click="clickComputeMetrics" />
               </li>
               <li>
                 <Button class="w-full" label="Download All" outlined size="small" @click="clickDownloadAll" />
@@ -160,6 +156,7 @@ import type {
   MetricResultsTable,
   ConfidenceMetricResult,
 } from "~/utils/metrics";
+import { isDocumentLevel } from "~/utils/levels";
 import { initFlowbite } from "flowbite";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
@@ -258,7 +255,8 @@ const getAnnotations = async (
   documents: string[],
   annotators: string[],
   byWords: boolean,
-  hideNonText: boolean
+  hideNonText: boolean,
+  documentLevel: boolean = false
 ) => {
   const body = JSON.stringify({
     task_id: task_id,
@@ -267,6 +265,7 @@ const getAnnotations = async (
     annotators: annotators,
     byWords: byWords,
     hideNonText: hideNonText,
+    documentLevel: documentLevel
   });
 
   return $fetch("/api/metrics/get_annotations", {
@@ -276,6 +275,11 @@ const getAnnotations = async (
 };
 
 const updateAnnotations = async () => {
+  if (!task.value) {
+    $toast.error("Task does not exist");
+    throw new Error("Task does not exist");
+  }
+
   loading_annotations.value = true;
   try {
     annotations.splice(0);
@@ -285,7 +289,8 @@ const updateAnnotations = async () => {
       selectedDocumentsOrEmpty.value!,
       selectedAnnotatorsOrEmpty.value!,
       separate_into_words.value,
-      hideNonText.value
+      hideNonText.value,
+      isDocumentLevel(task.value)
     );
 
     if (anns.length < annotations_limit) annotations.push(...anns);
@@ -315,6 +320,7 @@ const compute_metrics = async (
   byWords: boolean,
   hideNonText: boolean,
   contained: boolean,
+  documentLevel: boolean,
   documentsData: any,
   documentsOptions: string[],
   annotations: RichAnnotation[] = []
@@ -329,6 +335,7 @@ const compute_metrics = async (
     byWords: byWords,
     hideNonText: hideNonText,
     contained: contained,
+    documentLevel: documentLevel,
     documentsData: documentsData,
     documentsOptions: documentsOptions,
     annotations: annotations,
@@ -342,6 +349,10 @@ const compute_metrics = async (
 
 const clickComputeMetrics = async () => {
   if (!selectedLabel.value) return;
+  if (!task.value) {
+    $toast.error("Task does not exist");
+    throw new Error("Task does not exist");
+  }
   metricsModalVisible.value = true;
   try {
     // agreement metrics
@@ -355,6 +366,7 @@ const clickComputeMetrics = async () => {
       separate_into_words.value,
       hideNonText.value,
       contained.value,
+      isDocumentLevel(task.value),
       documentsData.value,
       documentsOptions.map((d) => d.value),
       annotations && annotations.length ? annotations : []
@@ -395,6 +407,11 @@ const computeConfidenceMetrics = async (
 };
 
 const clickDownloadAll = async () => {
+  if (!task.value) {
+    $toast.error("Task does not exist");
+    throw new Error("Task does not exist");
+  }
+
   download_progress.value.loading = true;
   try {
     const blobs = await download_all({
@@ -408,6 +425,7 @@ const clickDownloadAll = async () => {
       byWords: separate_into_words.value,
       hideNonText: hideNonText.value,
       contained: contained.value,
+      documentLevel: isDocumentLevel(task.value),
       documentsData: documentsData.value,
       documentsOptions: documentsOptions.map((d) => d.value),
     });
@@ -501,7 +519,7 @@ async function createWorkBooks(data: any, document?: any) {
   const workbookAnnotations = XLSX.utils.book_new();
   const workbookDescriptive = XLSX.utils.book_new();
   for (let i = 0; i < data.labelsOptions.length; i++) {
-    const label = data.labelsOptions[i].name;
+    const label = data.labelsOptions[i];
 
     const annotations = await getAnnotations(
       data.task_id,
@@ -510,6 +528,7 @@ async function createWorkBooks(data: any, document?: any) {
       data.annotators,
       data.byWords,
       data.hideNonText,
+      data.documentLevel
     );
 
     const metrics = await compute_metrics(
@@ -522,6 +541,7 @@ async function createWorkBooks(data: any, document?: any) {
       data.byWords,
       data.hideNonText,
       data.contained,
+      data.documentLevel,
       data.documentsData,
       data.documentsOptions,
       annotations
@@ -576,16 +596,23 @@ async function getMetricsSheet(
   let rows: any[] = [];
 
   metrics.map((m) => {
-    if (m.result !== undefined)
+    if (m.result !== undefined) {
       rows.push({
         metric: m.name,
         annotators: data.annotators.join(","),
         value: m.result,
         p0: m.po,
-        pe: m.pe,
-        tolerance: data.tolerance,
-        consider_contained: data.contained ? "yes" : "no",
+        pe: m.pe
       });
+
+      if (!isDocumentLevel(task.value!)) {
+        Object.assign(rows.at(-1),
+          {
+            tolerance: data.tolerance,
+            consider_contained: data.contained ? "yes" : "no"
+          })
+      }
+    }
   });
 
   if (data.annotators.length > 2) {
@@ -601,21 +628,30 @@ async function getMetricsSheet(
           data.byWords,
           data.hideNonText,
           data.contained,
+          data.documentLevel,
           data.documentsData,
           data.documentsOptions
         );
 
         metrics.map((m) => {
-          if (m.result !== undefined)
+          if (m.result !== undefined) {
             rows.push({
               metric: m.name,
               annotators: data.annotators[i] + "," + data.annotators[j],
               value: m.result,
               p0: m.po,
-              pe: m.pe,
-              tolerance: data.tolerance,
-              consider_contained: data.contained ? "yes" : "no",
+              pe: m.pe
             });
+
+            if (!isDocumentLevel(task.value!)) {
+              Object.assign(rows.at(-1),
+                {
+                  tolerance: data.tolerance,
+                  consider_contained: data.contained ? "yes" : "no"
+                })
+            }
+          }
+
         });
       }
     }
@@ -632,12 +668,18 @@ async function getAnnotationsSheet(table: RangeLabel[]) {
         rows.push({
           document: r.doc_id + "-" + r.doc_name,
           annotator: k,
-          start: r.start,
-          end: r.end,
-          text: r.text.length <= 1000 ? r.text : `${r.text.substring(0, 100)} ... ${r.text.substring(900, 1000)}`,
-          confidence: r.confidences[k],
           value: v,
+          confidence: r.confidences[k],
         });
+
+        if (!isDocumentLevel(task.value!)) {
+          Object.assign(rows.at(-1),
+            {
+              start: r.start,
+              end: r.end,
+              text: r.text?.length ? (r.text.length <= 1000 ? r.text : `${r.text.substring(0, 100)} ... ${r.text.substring(900, 1000)}`) : "",
+            })
+        }
       });
     });
   }
@@ -666,9 +708,15 @@ async function getDescriptiveAnnotatorSheet(table: RangeLabel[], annotators: str
     Object.entries(dic).forEach(([k, v]) => {
       rows.push({
         annotator: k,
-        annotations: dic[k]["amount"],
-        non_annotations: nanns,
+        annotations: dic[k]["amount"]
       });
+
+      if (!isDocumentLevel(task.value!)) {
+        Object.assign(rows.at(-1),
+          {
+            non_annotations: nanns,
+          })
+      }
     });
   }
 
@@ -681,7 +729,7 @@ async function getConfidenceSheet(
   annotators: string[],
   documents: string[]
 ) {
-  const workbookDifficulty = XLSX.utils.book_new();
+  const workbookConfidence = XLSX.utils.book_new();
   const diff_metric_body = JSON.stringify({
     task_id: task_id,
     annotators_length: annotators_length,
@@ -689,12 +737,12 @@ async function getConfidenceSheet(
     documents: documents,
   });
 
-  const dm = await $fetch("/api/metrics/difficulty", {
+  const dm = await $fetch("/api/metrics/confidence", {
     method: "POST",
     body: diff_metric_body,
   });
 
-  const worksheetDifficulty = XLSX.utils.json_to_sheet([
+  const worksheetConfidence = XLSX.utils.json_to_sheet([
     {
       total: dm.total,
       rated: dm.rated,
@@ -710,7 +758,7 @@ async function getConfidenceSheet(
     },
   ]);
 
-  const worksheetDifficultyAnnotator = XLSX.utils.json_to_sheet(
+  const worksheetConfidenceAnnotator = XLSX.utils.json_to_sheet(
     dm.table.map((r) => {
       return {
         annotator: r.annotator,
@@ -722,17 +770,17 @@ async function getConfidenceSheet(
   );
 
   XLSX.utils.book_append_sheet(
-    workbookDifficulty,
-    worksheetDifficulty,
+    workbookConfidence,
+    worksheetConfidence,
     "Confidence Metrics"
   );
 
   XLSX.utils.book_append_sheet(
-    workbookDifficulty,
-    worksheetDifficultyAnnotator,
+    workbookConfidence,
+    worksheetConfidenceAnnotator,
     "Annotators "
   );
-  return workbookDifficulty;
+  return workbookConfidence;
 }
 
 function getZippeableBlob(workBook: XLSX.WorkBook) {

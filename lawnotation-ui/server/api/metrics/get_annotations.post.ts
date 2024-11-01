@@ -30,13 +30,17 @@ export default eventHandler(async (event) => {
     );
 
   const annotations = await annotationsPromise;
+  sortByDocumentAndRange(annotations);
   const documentsData = await documentsDataPromise;
+  let result = annotations;
 
-  let result = await getNonAnnotations(
-    annotations,
-    documentsData[0],
-    documentsData[1]
-  );
+  if (!data.documentLevel) {
+    result = await getNonAnnotations(
+      annotations,
+      documentsData[0],
+      documentsData[1]
+    );
+  }
 
   if (data.byWords) {
     result = separateIntoWords(result);
@@ -55,7 +59,6 @@ async function getNonAnnotations(
   documentsOptions: number[]
 ) {
   if (!annotations || !annotations.length) return [];
-  sortByDocumentAndRange(annotations);
   var new_annotations: RichAnnotation[] = [];
   var last_end: number = 0;
   var docs_index: number = 0;

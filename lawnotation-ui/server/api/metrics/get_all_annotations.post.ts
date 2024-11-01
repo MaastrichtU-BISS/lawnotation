@@ -15,6 +15,7 @@ export default eventHandler(async (event) => {
           annotators: data.annotators,
           byWords: data.byWords,
           hideNonText: data.hideNonText,
+          documentLevel: data.documentLevel
         }),
       })
     );

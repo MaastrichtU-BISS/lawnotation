@@ -1,4 +1,3 @@
-
 export type RangeLabel = {
   start: number;
   end: number;
