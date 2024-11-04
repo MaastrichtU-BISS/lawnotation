@@ -51,7 +51,6 @@
       <div
         class="flex items-center gap-3 mb-2 label-holder"
         v-for="(label, i) of labelset.labels"
-        :key="label.name"
       >
         <button class="base btn-secondary" @click="labelset.labels.splice(i, 1)" data-test="delete-label">
           <svg
@@ -69,14 +68,14 @@
             />
           </svg>
         </button>
-        <LabelCmpt :label="label"></LabelCmpt>
+        <LabelCmpt :label="label" @validate-label="validateLabel(label, i)"></LabelCmpt>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Labelset } from "~/types";
+import type { Labelset, Label } from "~/types";
 import LabelCmpt from "~/components/labels/Label.vue";
 import type { Optional } from "utility-types";
 
@@ -90,7 +89,7 @@ const labelset = defineModel<Optional<Labelset, "id" | "editor_id">>({ required:
 
 const addLabel = () => {
   try {
-    validateNewLabel();
+    validateLabel(newLabel);
     labelset.value.labels.push({
       name: newLabel.name,
       color: newLabel.color,
@@ -101,15 +100,28 @@ const addLabel = () => {
   }
 };
 
-const validateNewLabel = () => {
-  if (!/^\#[a-zA-Z0-9]{6}$/.test(newLabel.color)) throw new Error("Invalid label color");
-  if (!/^[a-zA-Z0-9 \- \_]+$/.test(newLabel.name)) throw new Error("Invalid label name");
-  if (
-    labelset.value.labels.some(
-      (x) => x.name.toLocaleLowerCase() === newLabel.name.toLocaleLowerCase()
-    )
-  )
-    throw new Error("A label with this name already exists");
+const validateLabel = (label: Label, index?: number) => {
+  if (!/^\#[a-zA-Z0-9]{6}$/.test(label.color)) throw new Error("Invalid label color");
+  if (!/^[a-zA-Z0-9 \- \_]+$/.test(label.name)) throw new Error("Special character are not allowed");
+  if (index?.toString()) {
+    if (
+      labelset.value.labels
+        .filter((x, i) => i !== index)
+        .some(
+          (x) => x.name.toLocaleLowerCase() === label.name.toLocaleLowerCase()
+        )
+    ) {
+      throw new Error("A label with this name already exists");
+    }
+  } else {
+    if (
+      labelset.value.labels.some(
+        (x) => x.name.toLocaleLowerCase() === label.name.toLocaleLowerCase()
+      )
+    ) {
+      throw new Error("A label with this name already exists");
+    }
+  }
 };
 
 function getDefaultLabel() {
