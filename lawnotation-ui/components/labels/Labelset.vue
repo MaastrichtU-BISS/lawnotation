@@ -52,7 +52,11 @@
         class="flex items-center gap-3 mb-2 label-holder"
         v-for="(label, i) of labelset.labels"
       >
-        <button class="base btn-secondary" @click="labelset.labels.splice(i, 1)" data-test="delete-label">
+        <button
+          class="base btn-secondary"
+          @click="labelset.labels.splice(i, 1)"
+          data-test="delete-label"
+        >
           <svg
             style="width: 1rem"
             xmlns="http://www.w3.org/2000/svg"
@@ -68,7 +72,10 @@
             />
           </svg>
         </button>
-        <LabelCmpt :label="label" @validate-label="validateLabel(label, i)"></LabelCmpt>
+        <LabelCmpt
+          :label="label"
+          @validate-label="validateLabel(label, i)"
+        ></LabelCmpt>
       </div>
     </div>
   </div>
@@ -85,7 +92,9 @@ const newLabel = reactive(getDefaultLabel());
 
 const emit = defineEmits(["labelsetCreated", "labelsetPersisted"]);
 
-const labelset = defineModel<Optional<Labelset, "id" | "editor_id">>({ required: true });
+const labelset = defineModel<Optional<Labelset, "id" | "editor_id">>({
+  required: true,
+});
 
 const addLabel = () => {
   try {
@@ -96,13 +105,16 @@ const addLabel = () => {
     });
     Object.assign(newLabel, getDefaultLabel());
   } catch (error) {
-    if (error instanceof Error) $toast.error(`Error adding label: ${error.message}`);
+    if (error instanceof Error)
+      $toast.error(`Error adding label: ${error.message}`);
   }
 };
 
 const validateLabel = (label: Label, index?: number) => {
-  if (!/^\#[a-zA-Z0-9]{6}$/.test(label.color)) throw new Error("Invalid label color");
-  if (!/^[a-zA-Z0-9 \- \_]+$/.test(label.name)) throw new Error("Special character are not allowed");
+  if (!/^\#[a-zA-Z0-9]{6}$/.test(label.color))
+    throw new Error("Invalid label color");
+  if (!/^[a-zA-Z0-9 \- \_]+$/.test(label.name))
+    throw new Error("Special character are not allowed");
   if (index?.toString()) {
     if (
       labelset.value.labels
@@ -110,17 +122,15 @@ const validateLabel = (label: Label, index?: number) => {
         .some(
           (x) => x.name.toLocaleLowerCase() === label.name.toLocaleLowerCase()
         )
-    ) {
+    )
       throw new Error("A label with this name already exists");
-    }
   } else {
     if (
       labelset.value.labels.some(
         (x) => x.name.toLocaleLowerCase() === label.name.toLocaleLowerCase()
       )
-    ) {
+    )
       throw new Error("A label with this name already exists");
-    }
   }
 };
 
@@ -164,7 +174,6 @@ const persistLabelset = async () => {
       $toast.success(`Labelset "${labelset.value.name}" created`);
     }
     emit("labelsetPersisted");
-
   } catch (error) {
     if (error instanceof Error)
       $toast.error(`Error creating new labelset: ${error.message}`);
