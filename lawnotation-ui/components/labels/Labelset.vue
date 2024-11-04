@@ -18,6 +18,7 @@
         v-model="labelset.name"
         placeholder="Labelset name"
         data-test="labelset-name"
+        required
       />
       <textarea
         class="base"
@@ -25,6 +26,7 @@
         @input="labelset.desc = ($event.target as HTMLTextAreaElement)?.value"
         placeholder="Labelset description"
         data-test="labelset-description"
+        required
       ></textarea>
     </div>
     <hr class="my-3" />
