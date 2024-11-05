@@ -1,7 +1,6 @@
 <template>
-  <button
+  <p
     v-if="!editing"
-    @click="editing = true"
     class="px-3 py-1 mb-0 rounded label whitespace-pre-line inline-block"
     :style="{
       backgroundColor: `${label.color}26`,
@@ -10,7 +9,7 @@
     data-test="label"
   >
     {{ label.name }}
-  </button>
+  </p>
   <form v-else @submit.prevent="saveLabel" class="flex gap-2">
     <input v-model="label.color" type="color" class="self-center base" />
     <input type="text" v-model="label.name" ref="labelInput" class="base" />
