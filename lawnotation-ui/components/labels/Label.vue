@@ -25,6 +25,8 @@ const { label } = defineProps<{
   label: Label;
 }>();
 
+const labelInput = ref(null);
+
 const editing = ref(false);
 const emit = defineEmits(["validateLabel"]);
 
@@ -37,4 +39,10 @@ const saveLabel = () => {
       $toast.error(`Error adding label: ${error.message}`);
   }
 };
+
+watch(labelInput, (newValue) => {
+  if (newValue) {
+    labelInput.value?.focus();
+  }
+});
 </script>
