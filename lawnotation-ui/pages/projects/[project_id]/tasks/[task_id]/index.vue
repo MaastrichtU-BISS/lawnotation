@@ -384,6 +384,7 @@ import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
 import type { TabViewChangeEvent } from "primevue/tabview";
 import { Origins, AssignmentStatuses, RandomizationOptions } from "~/utils/enums";
+import { watch } from 'vue';
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -414,6 +415,17 @@ const randomizationMessage = computed(() => {
       return "The documents will not be shuffled and all the annotators will get the same order.";
     default:
       return "Something went wrong";
+  }
+});
+
+watch(number_of_docs, (newTotalDocs) => {
+
+  if (number_of_fixed_docs.value > newTotalDocs) {
+    number_of_fixed_docs.value = newTotalDocs; 
+  }
+
+  if (number_of_fixed_docs.value > number_of_docs.value) {
+    number_of_fixed_docs.value = number_of_docs.value;
   }
 });
 
