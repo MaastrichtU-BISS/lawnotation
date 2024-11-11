@@ -20,22 +20,22 @@
     <div v-if="task" class="dimmer-wrapper pt-2">
         <Dimmer v-model="loading" />
         <div class="dimmer-content">
-            <div class="text-center justify-center">
-                <div class="flex flex-col w-1/2 mx-auto space-y-6 border-neutral-300 mx-3">
-                    <h3 class="text-lg mt-8">Edit Task</h3>
-                    <input class="base mb-6" type="text" placeholder="Task name" v-model="new_task.name" data-test="task-name" />
-                    <textarea class="base mb-6" placeholder="Task description" v-model="new_task.desc" data-test="task-description"></textarea>
-                    <textarea class="base mb-6" placeholder="Annotation Guidelines"
+            <div class="justify-center">
+                <div class="flex flex-col w-1/2 mx-auto mt-8 space-y-6 border-neutral-300">
+                    <h3 class="text-lg font-semibold">Edit Task</h3>
+                    <input class="base" type="text" placeholder="Task name" v-model="new_task.name" data-test="task-name" />
+                    <textarea class="base" placeholder="Task description" v-model="new_task.desc" data-test="task-description"></textarea>
+                    <textarea class="base" placeholder="Annotation Guidelines"
                         v-model="new_task.ann_guidelines" data-test="annotation-guidelines"></textarea>
                     <Dropdown disabled v-model="labelset!.name" :options="[labelset!.name]" class="w-full text-left" />
-                    <button class="base btn-primary" @click="editTask" data-test="save-changes-button">Save Changes</button>
+                    <Button @click="editTask" label="Save Changes" data-test="save-changes-button" />
                 </div>
                 <div v-if="new_emails && new_emails.length"
-                    class="flex flex-col my-5 w-1/2 mx-auto space-y-2 border-neutral-300 mt-3 pt-3 mx-3">
-                    <h3 class="text-lg mt-8">Replace Annotators</h3>
+                    class="flex flex-col my-5 w-1/2 mx-auto mt-8 space-y-2 border-neutral-300 pt-3">
+                    <h3 class="text-lg font-semibold">Replace Annotators</h3>
                     <ul class="">
                         <li v-for="(email, index) in new_emails" class="">
-                            <div class="relative mb-6">
+                            <div class="relative mb-2">
                                 <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
                                     <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
                                         xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 16">
@@ -51,7 +51,7 @@
                             </div>
                         </li>
                     </ul>
-                    <button class="base btn-primary" @click="replaceAnnotators">Replace</button>
+                    <Button @click="replaceAnnotators" label="Replace" outlined />
                 </div>
             </div>
         </div>
@@ -62,6 +62,7 @@
 import type { Task, Project, Annotator, Assignment, Labelset } from "~/types";
 import Dimmer from "~/components/Dimmer.vue";
 import Dropdown from "primevue/dropdown";
+import Button from 'primevue/button';
 import { authorizeClient } from "~/utils/authorize.client";
 
 const { $toast, $trpc } = useNuxtApp();
