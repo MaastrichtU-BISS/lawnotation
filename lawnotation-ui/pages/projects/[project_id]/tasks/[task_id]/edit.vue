@@ -27,6 +27,7 @@
                     <textarea class="base mb-6" placeholder="Task description" v-model="new_task.desc" data-test="task-description"></textarea>
                     <textarea class="base mb-6" placeholder="Annotation Guidelines"
                         v-model="new_task.ann_guidelines" data-test="annotation-guidelines"></textarea>
+                    <Dropdown disabled v-model="labelset!.name" :options="[labelset!.name]" class="w-full text-left" />
                     <button class="base btn-primary" @click="editTask" data-test="save-changes-button">Save Changes</button>
                 </div>
                 <div v-if="new_emails && new_emails.length"
@@ -56,9 +57,11 @@
         </div>
     </div>
 </template>
+
 <script setup lang="ts">
-import type { Task, Project, Annotator, Assignment } from "~/types";
+import type { Task, Project, Annotator, Assignment, Labelset } from "~/types";
 import Dimmer from "~/components/Dimmer.vue";
+import Dropdown from "primevue/dropdown";
 import { authorizeClient } from "~/utils/authorize.client";
 
 const { $toast, $trpc } = useNuxtApp();
@@ -70,6 +73,7 @@ const route = useRoute();
 
 const task = ref<Task>();
 const project = ref<Project>();
+const labelset = ref<Labelset>();
 
 const loading = ref(false);
 
@@ -159,6 +163,9 @@ const replaceAnnotators = async () => {
 onMounted(async () => {
     task.value = await $trpc.task.findById.query(+route.params.task_id);
     project.value = await $trpc.project.findById.query(+route.params.project_id);
+    console.log(task.value.labelset_id)
+    labelset.value = await $trpc.labelset.findById.query(task.value.labelset_id);
+    console.log(labelset.value)
 
     new_task.value = { ...task.value };
 
