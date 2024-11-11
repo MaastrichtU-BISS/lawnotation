@@ -2,6 +2,7 @@
   <button
     v-if="!editing"
     @click="editing = true"
+    :disabled="!!numberOfTasks"
     class="px-3 py-1 mb-0 rounded label whitespace-pre-line inline-block"
     :style="{
       backgroundColor: `${label.color}26`,
@@ -21,8 +22,9 @@
 import { type Label } from "~/types";
 const { $toast } = useNuxtApp();
 
-const { label } = defineProps<{
+const { label, numberOfTasks } = defineProps<{
   label: Label;
+  numberOfTasks: number;
 }>();
 
 const labelInput = ref(null);

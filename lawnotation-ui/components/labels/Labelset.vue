@@ -3,7 +3,7 @@
     <Button
       type="button"
       :label="labelset.id ? 'Save' : 'Create'"
-      @click="persistLabelset"
+      @click.prevent="persistLabelset"
       :outlined="!labelset.labels.length"
       :disabled="!labelset.labels.length || !labelset.name || !labelset.desc"
       data-test="save-labelset"
@@ -30,7 +30,25 @@
       ></textarea>
     </div>
     <hr class="my-3" />
-    <form @submit.prevent="addLabel" class="flex space-x-4">
+    <p v-if="numberOfTasksWithThisLabelset" class="flex gap-1 text-gray-700"
+      ><svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+        class="size-6"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+        />
+      </svg>
+      You can no longer add, remove and/or edit labels, since this labelset has
+      already been assigned to one or more task(s)</p
+    >
+    <form v-else @submit.prevent="addLabel" class="flex space-x-4">
       <input v-model="newLabel.color" type="color" class="self-center base" />
       <input
         class="base grow"
@@ -53,6 +71,7 @@
         v-for="(label, i) of labelset.labels"
       >
         <button
+          v-if="!numberOfTasksWithThisLabelset"
           class="base btn-secondary"
           @click="labelset.labels.splice(i, 1)"
           data-test="delete-label"
@@ -74,6 +93,7 @@
         </button>
         <LabelCmpt
           :label="label"
+          :numberOfTasks="numberOfTasksWithThisLabelset"
           @validate-label="validateLabel(label, i)"
         ></LabelCmpt>
       </div>
@@ -94,6 +114,14 @@ const emit = defineEmits(["labelsetCreated", "labelsetPersisted"]);
 
 const labelset = defineModel<Optional<Labelset, "id" | "editor_id">>({
   required: true,
+});
+const numberOfTasksWithThisLabelset = ref(0);
+
+onMounted(async () => {
+  if (labelset.value.id) {
+    numberOfTasksWithThisLabelset.value =
+      await $trpc.task.getCountByLabelset.query(labelset.value.id);
+  }
 });
 
 const addLabel = () => {
@@ -176,7 +204,7 @@ const persistLabelset = async () => {
     emit("labelsetPersisted");
   } catch (error) {
     if (error instanceof Error)
-      $toast.error(`Error creating new labelset: ${error.message}`);
+      $toast.error(`Error creating labelset: ${error.message}`);
   }
 };
 </script>
