@@ -91,7 +91,7 @@ const initLS = async () => {
                             </${props.isHtml ? "HyperTextLabels" : "Labels"}>`
                           :
                           `<Choices name="label" toName="text" choice="multiple">
-                            ${props.labels?.map((l) => (`<Choice value="${l.name}"/>`)).join("\n")}
+                            ${props.labels?.map((l) => (`<Choice value="${l.name}" style="background-color: ${l.color}26; border-left:4px solid ${l.color}; padding-left: .25rem; border-radius: .25rem; width: min-content;" />`)).join("\n")}
                           </Choices>`
                         }
                         <View style="border-top: 1px solid rgba(0,0,0,.1); padding: 10px 5px; margin-top: auto">
