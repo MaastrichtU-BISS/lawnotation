@@ -12,8 +12,14 @@
 
 The project assumes you have the following installed on your system for development:
 
-- Docker
-- pnpm
+- The docker engine running
+- [pnpm](https://pnpm.io/)
+- Node JS equal or higher than 18.12
+
+
+The project assumes you also have the following external dependencies:
+- Supabase
+- Mailtrap
 
 Additionally, for testing:
 
@@ -21,6 +27,8 @@ Additionally, for testing:
   - https://docs.cypress.io/guides/getting-started/installing-cypress#System-requirements
 
 ### 1. Install the required packages
+
+Make sure you run these commands in the folder containing this file, `./lawnotation-ui`
 
 ```
 pnpm install
@@ -34,13 +42,13 @@ pnpm exec supabase start
 
 ### 3. Setup the .env file
 
-First, copy the `.env.example` to `.env`
+Copy the `.env.example` to a new `.env` file
 
 ```
 cp .env.example .env
 ```
 
-Next, fill in the values.
+Fill in this information with the remote database
 
 #### Supabase
 
@@ -58,6 +66,14 @@ Supabase should still be running in the background from the previous command (st
 
 ```
 pnpm exec supabase status
+```
+
+#### 4.2 Mailtrap
+
+Copy the API Token from the Mailtrap in the `.env` file
+
+```
+MAILTRAP_TOKEN="<Your Mailtrap token>"
 ```
 
 #### 4.2 Nuxt
@@ -78,7 +94,7 @@ pnpm cypress
 
 Pro tip: use a different browser than your default to test. E.g. test with Firefox if your default is Chrome. This helps to also cover browser dependant bugs.
 
-### Manual testing
+### Access the local application for manual testing
 
 1. Open http://localhost:3000/
 2. On the login page, fill in editor@example.com or annotator@example.com
