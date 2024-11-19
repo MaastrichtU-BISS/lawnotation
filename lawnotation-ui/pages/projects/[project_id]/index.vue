@@ -218,7 +218,7 @@
               </div>
             </div>
             <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
-              :selectable="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
+              :selectable="true" :skipConfirmDialog="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
               <template #row="{ item }: { item: Document }">
                 <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
                   {{ item.id }}
