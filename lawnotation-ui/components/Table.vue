@@ -340,7 +340,6 @@
 </template>
 
 <script setup lang="ts">
-import { confirmBox } from "~/utils/confirmBox";
 import { useConfirm } from "primevue/useconfirm";
 import ConfirmBox from "~/components/ConfirmBox.vue";
 import type { AppRouter } from "~/server/trpc/routers";
@@ -553,38 +552,6 @@ const deleteAll = () => {
         },
         reject: () => { }
     });
-};
-
-const removeSelected = async (ids: string[]) => {
-  confirmBox(
-    `Are you sure you want to delete ${ids.length} row${ids.length > 1 ? "s" : ""}?`,
-    "You won't be able to revert this!",
-    "warning"
-  ).then((result) => {
-    if (result.isConfirmed) {
-      emit("removeRows", ids, async (promises) => {
-        await Promise.all(promises);
-        await refresh();
-        $toast.success(`Item${promises.length > 0 ? 's' : ''} succesfully removed`)
-      }); 
-    }
-  });
-};
-
-const removeAll = () => {
-  confirmBox(
-    "Are you sure you want to delete all the rows?",
-    "You won't be able to revert this!",
-    "warning"
-  ).then((result) => {
-    if (result.isConfirmed) {
-      emit("removeAllRows", async (promise) => {
-        await promise;
-        await refresh();
-        $toast.success("All items succesfully removed")
-      });
-    }
-  });
 };
 </script>
 
