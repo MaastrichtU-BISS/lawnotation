@@ -58,7 +58,7 @@
             :ptOptions="{ mergeProps: true }"
             data-test="remove-selected-rows" 
           />
-          <ConfirmBox />
+          <ConfirmBox v-if="!skipConfirmDialog" />
         </span>
         <span
           class="flex"
@@ -362,6 +362,7 @@ const props = withDefaults(
     sort?: boolean;
     search?: boolean;
     filter?: Record<string, any>;
+    skipConfirmDialog?: boolean;
     // name?: string,
 
     endpoint: keyof AppRouter["table"]["_def"]["procedures"];
@@ -371,6 +372,7 @@ const props = withDefaults(
     sort: false,
     search: false,
     selectable: false,
+    skipConfirmDialog: false,
     name: "1",
   }
 );
@@ -538,7 +540,7 @@ const deleteSelected = (selectedIds: string[]) => {
 };
 
 const deleteAll = () => {
-    confirm.require({
+  confirm.require({
         group: 'headless',
         header: "Are you sure?",
         message: "You are about to delete all rows, you won't be able to revert this",
