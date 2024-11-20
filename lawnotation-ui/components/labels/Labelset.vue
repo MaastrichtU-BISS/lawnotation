@@ -34,8 +34,8 @@
       v-if="numberOfTasksWithThisLabelset"
       severity="warn"
       :closable="false"
-      >You can no longer add, remove and/or edit labels, since this labelset has
-      already been assigned to {{ numberOfTasksWithThisLabelset }} task{{ numberOfTasksWithThisLabelset > 1 ? 's' : '' }}</Message
+      ><p class="m-0">You can no longer add, remove and/or edit labels, since this labelset has
+      already been assigned to {{ numberOfTasksWithThisLabelset }} task{{ numberOfTasksWithThisLabelset > 1 ? 's' : '' }}. You can still drag to re-order.</p></Message
     >
     <form v-else @submit.prevent="addLabel" class="flex space-x-4">
       <input v-model="newLabel.color" type="color" class="self-center base" />
