@@ -34,8 +34,12 @@
       v-if="numberOfTasksWithThisLabelset"
       severity="warn"
       :closable="false"
-      ><p class="m-0">You can no longer add, remove and/or edit labels, since this labelset has
-      already been assigned to {{ numberOfTasksWithThisLabelset }} task{{ numberOfTasksWithThisLabelset > 1 ? 's' : '' }}. You can still drag to re-order.</p></Message
+      ><p class="m-0">
+        You can no longer add, remove and/or edit labels, since this labelset
+        has already been assigned to {{ numberOfTasksWithThisLabelset }} task{{
+          numberOfTasksWithThisLabelset > 1 ? "s" : ""
+        }}. You can still drag to re-order.
+      </p></Message
     >
     <form v-else @submit.prevent="addLabel" class="flex space-x-4">
       <input v-model="newLabel.color" type="color" class="self-center base" />
@@ -54,7 +58,28 @@
       />
     </form>
     <hr class="my-3" />
-    <div class="col">
+    <div class="col relative">
+      <button
+        v-if="showResetButton"
+        @click="labelset.labels = JSON.parse(JSON.stringify(originalLabels))"
+        class="flex gap-1 absolute right-0 text-primary"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1"
+          stroke="currentColor"
+          class="size-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+          />
+        </svg>
+        Reset
+      </button>
       <VueDraggable v-model="labelset.labels" handle=".handle">
         <div
           class="flex items-center gap-3 mb-2 label-holder"
@@ -132,8 +157,15 @@ const emit = defineEmits(["labelsetCreated", "labelsetPersisted"]);
 const labelset = defineModel<Optional<Labelset, "id" | "editor_id">>({
   required: true,
 });
+const originalLabels = JSON.parse(JSON.stringify(labelset.value.labels));
 const numberOfTasksWithThisLabelset = ref(0);
 const handles = ref([]);
+
+const showResetButton = computed(
+  () =>
+    originalLabels.length &&
+    JSON.stringify(labelset.value.labels) !== JSON.stringify(originalLabels)
+);
 
 onMounted(async () => {
   if (labelset.value.id) {
@@ -194,14 +226,22 @@ function getDefaultLabel() {
 }
 
 const moveDown = (index: number) => {
-  labelset.value.labels = arrayMoveImmutable(labelset.value.labels, index, index + 1);
+  labelset.value.labels = arrayMoveImmutable(
+    labelset.value.labels,
+    index,
+    index + 1
+  );
   handles.value[index + 1].focus();
-}
+};
 
 const moveUp = (index: number) => {
-  labelset.value.labels = arrayMoveImmutable(labelset.value.labels, index, index - 1);
+  labelset.value.labels = arrayMoveImmutable(
+    labelset.value.labels,
+    index,
+    index - 1
+  );
   handles.value[index - 1].focus();
-}
+};
 
 const persistLabelset = async () => {
   try {
