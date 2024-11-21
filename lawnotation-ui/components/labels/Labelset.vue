@@ -3,7 +3,7 @@
     <Button
       type="button"
       :label="labelset.id ? 'Save' : 'Create'"
-      @click="persistLabelset"
+      @click.prevent="persistLabelset"
       :outlined="!labelset.labels.length"
       :disabled="!labelset.labels.length || !labelset.name || !labelset.desc"
       data-test="save-labelset"
@@ -30,7 +30,18 @@
       ></textarea>
     </div>
     <hr class="my-3" />
-    <form @submit.prevent="addLabel" class="flex space-x-4">
+    <Message
+      v-if="numberOfTasksWithThisLabelset"
+      severity="warn"
+      :closable="false"
+      ><p class="m-0">
+        You can no longer add, remove and/or edit labels, since this labelset
+        has already been assigned to {{ numberOfTasksWithThisLabelset }} task{{
+          numberOfTasksWithThisLabelset > 1 ? "s" : ""
+        }}. You can still drag to re-order.
+      </p></Message
+    >
+    <form v-else @submit.prevent="addLabel" class="flex space-x-4">
       <input v-model="newLabel.color" type="color" class="self-center base" />
       <input
         class="base grow"
@@ -47,42 +58,93 @@
       />
     </form>
     <hr class="my-3" />
-    <div class="col">
-      <div
-        class="flex items-center gap-3 mb-2 label-holder"
-        v-for="(label, i) of labelset.labels"
+    <div class="col relative">
+      <button
+        v-if="showResetButton"
+        @click="labelset.labels = JSON.parse(JSON.stringify(originalLabels))"
+        class="flex gap-1 absolute right-0 text-primary"
       >
-        <button
-          class="base btn-secondary"
-          @click="labelset.labels.splice(i, 1)"
-          data-test="delete-label"
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1"
+          stroke="currentColor"
+          class="size-6"
         >
-          <svg
-            style="width: 1rem"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+          />
+        </svg>
+        Reset
+      </button>
+      <VueDraggable v-model="labelset.labels" handle=".handle">
+        <div
+          class="flex items-center gap-3 mb-2 label-holder"
+          v-for="(label, index) in labelset.labels"
+        >
+          <button
+            class="handle"
+            @keyup.down="moveDown(index)"
+            @keyup.up="moveUp(index)"
+            ref="handles"
+            title="Drag to re-order label"
+            data-test="reorder"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-            />
-          </svg>
-        </button>
-        <LabelCmpt
-          :label="label"
-          @validate-label="validateLabel(label, i)"
-        ></LabelCmpt>
-      </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1"
+              stroke="currentColor"
+              class="size-6"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+              />
+            </svg>
+          </button>
+          <LabelCmpt
+            :label="label"
+            :title="numberOfTasksWithThisLabelset ? '' : 'Click to edit label'"
+            :numberOfTasks="numberOfTasksWithThisLabelset"
+            @validate-label="validateLabel(label, index)"
+          ></LabelCmpt>
+          <button
+            v-if="!numberOfTasksWithThisLabelset"
+            @click="labelset.labels.splice(index, 1)"
+            title="Click to delete label"
+            data-test="delete-label"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1"
+              stroke="currentColor"
+              class="size-6"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18 18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      </VueDraggable>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Labelset, Label } from "~/types";
+import { VueDraggable } from "vue-draggable-plus";
+import { arrayMoveImmutable } from "array-move";
 import LabelCmpt from "~/components/labels/Label.vue";
 import type { Optional } from "utility-types";
 
@@ -94,6 +156,22 @@ const emit = defineEmits(["labelsetCreated", "labelsetPersisted"]);
 
 const labelset = defineModel<Optional<Labelset, "id" | "editor_id">>({
   required: true,
+});
+const originalLabels = JSON.parse(JSON.stringify(labelset.value.labels));
+const numberOfTasksWithThisLabelset = ref(0);
+const handles = ref([]);
+
+const showResetButton = computed(
+  () =>
+    originalLabels.length &&
+    JSON.stringify(labelset.value.labels) !== JSON.stringify(originalLabels)
+);
+
+onMounted(async () => {
+  if (labelset.value.id) {
+    numberOfTasksWithThisLabelset.value =
+      await $trpc.task.getCountByLabelset.query(labelset.value.id);
+  }
 });
 
 const addLabel = () => {
@@ -147,6 +225,24 @@ function getDefaultLabel() {
   };
 }
 
+const moveDown = (index: number) => {
+  labelset.value.labels = arrayMoveImmutable(
+    labelset.value.labels,
+    index,
+    index + 1
+  );
+  handles.value[index + 1].focus();
+};
+
+const moveUp = (index: number) => {
+  labelset.value.labels = arrayMoveImmutable(
+    labelset.value.labels,
+    index,
+    index - 1
+  );
+  handles.value[index - 1].focus();
+};
+
 const persistLabelset = async () => {
   try {
     if (!user.value) throw new Error("Invalid user");
@@ -176,7 +272,7 @@ const persistLabelset = async () => {
     emit("labelsetPersisted");
   } catch (error) {
     if (error instanceof Error)
-      $toast.error(`Error creating new labelset: ${error.message}`);
+      $toast.error(`Error creating labelset: ${error.message}`);
   }
 };
 </script>

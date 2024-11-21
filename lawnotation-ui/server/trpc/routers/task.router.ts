@@ -250,6 +250,24 @@ export const taskRouter = router({
       return data as number;
     }),
 
+  getCountByLabelset: protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: labelset_id }) => {
+      const { error, count } = await ctx.supabase
+        .from("tasks")
+        .select("*", {
+          count: "exact"
+        })
+        .eq("labelset_id", labelset_id);
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in tasks.findById: ${error.message}`,
+        });
+      return count as number;
+    }),
+
   getAllAnnotatorTasks: protectedProcedure
     .input(z.string())
     .query(async ({ ctx, input: annotator_id }) => {

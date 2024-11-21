@@ -1,7 +1,9 @@
 <template>
-  <p
+  <button
     v-if="!editing"
-    class="px-3 py-1 mb-0 rounded label whitespace-pre-line inline-block"
+    @click="editing = true"
+    :disabled="!!numberOfTasks"
+    class="px-3 py-1 mb-0 rounded break-all text-left"
     :style="{
       backgroundColor: `${label.color}26`,
       borderLeft: `4px solid ${label.color}`,
@@ -9,7 +11,7 @@
     data-test="label"
   >
     {{ label.name }}
-  </p>
+  </button>
   <form v-else @submit.prevent="saveLabel" class="flex gap-2">
     <input v-model="label.color" type="color" class="self-center base" />
     <input type="text" v-model="label.name" ref="labelInput" class="base" />
@@ -20,8 +22,9 @@
 import { type Label } from "~/types";
 const { $toast } = useNuxtApp();
 
-const { label } = defineProps<{
+const { label, numberOfTasks } = defineProps<{
   label: Label;
+  numberOfTasks: number;
 }>();
 
 const labelInput = ref(null);
