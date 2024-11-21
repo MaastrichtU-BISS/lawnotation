@@ -36,8 +36,8 @@
             data-test="remove-all-menu-button" 
           />
           <Menu ref="removeAllMenu" id="remove-all-menu" :popup="true" :model="[{
-              label: `Remove all (${ total })`,
-              command: removeAll
+              label: `Delete all (${ total })`,
+              command: deleteAll
             }]"
             :pt="{
               label: 'text-[#f05252]',
@@ -50,14 +50,15 @@
           <Button 
             v-show="checkedIds.length"
             type="button"
-            :label="`Remove selected rows (${ checkedIds.length })`"
+            :label="`Delete selected row${checkedIds.length > 1 ? 's' : ''} (${ checkedIds.length })`"
             severity="danger"
             outlined
-            @click="removeSelected(checkedIds)"
+            @click="deleteSelected(checkedIds)"
             :pt="{ label: 'text-xs' }"
             :ptOptions="{ mergeProps: true }"
             data-test="remove-selected-rows" 
           />
+          <ConfirmBox v-if="!skipConfirmDialog" />
         </span>
         <span
           class="flex"
@@ -339,7 +340,8 @@
 </template>
 
 <script setup lang="ts">
-import { confirmBox } from "~/utils/confirmBox";
+import { useConfirm } from "primevue/useconfirm";
+import ConfirmBox from "~/components/ConfirmBox.vue";
 import type { AppRouter } from "~/server/trpc/routers";
 import { tableColumns } from "~/constants/tableColumns";
 
@@ -359,6 +361,7 @@ const props = withDefaults(
     sort?: boolean;
     search?: boolean;
     filter?: Record<string, any>;
+    skipConfirmDialog?: boolean;
     // name?: string,
 
     endpoint: keyof AppRouter["table"]["_def"]["procedures"];
@@ -368,6 +371,7 @@ const props = withDefaults(
     sort: false,
     search: false,
     selectable: false,
+    skipConfirmDialog: false,
     name: "1",
   }
 );
@@ -516,36 +520,38 @@ const allCheckbox = computed({
   },
 });
 
-const removeSelected = async (ids: string[]) => {
-  confirmBox(
-    `Are you sure you want to delete ${ids.length} row${ids.length > 1 ? "s" : ""}?`,
-    "You won't be able to revert this!",
-    "warning"
-  ).then((result) => {
-    if (result.isConfirmed) {
-      emit("removeRows", ids, async (promises) => {
-        await Promise.all(promises);
-        await refresh();
-        $toast.success(`Item${promises.length > 0 ? 's' : ''} succesfully removed`)
-      }); 
-    }
+const confirm = useConfirm();
+const deleteSelected = (selectedIds: string[]) => {
+  const numberOfRows = selectedIds.length;
+  confirm.require({
+      group: 'headless',
+      header: "Are you sure?",
+      message: `You are about to delete ${numberOfRows} row${numberOfRows > 1 ? 's' : ''}`,
+      accept: () => {
+        emit("removeRows", selectedIds, async (promises) => {
+          await Promise.all(promises);
+          await refresh();
+          $toast.success(`Item${promises.length > 0 ? 's' : ''} succesfully removed`)
+        }); 
+      },
+      reject: () => { }
   });
 };
 
-const removeAll = () => {
-  confirmBox(
-    "Are you sure you want to delete all the rows?",
-    "You won't be able to revert this!",
-    "warning"
-  ).then((result) => {
-    if (result.isConfirmed) {
-      emit("removeAllRows", async (promise) => {
-        await promise;
-        await refresh();
-        $toast.success("All items succesfully removed")
-      });
-    }
-  });
+const deleteAll = () => {
+  confirm.require({
+        group: 'headless',
+        header: "Are you sure?",
+        message: "You are about to delete all rows, you won't be able to revert this",
+        accept: () => {
+          emit("removeAllRows", async (promise) => {
+            await promise;
+            await refresh();
+            $toast.success("All items succesfully removed")
+          });
+        },
+        reject: () => { }
+    });
 };
 </script>
 

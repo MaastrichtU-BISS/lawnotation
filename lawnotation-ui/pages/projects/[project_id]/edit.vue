@@ -37,9 +37,6 @@
         <div class="flex justify-center mb-5">
             <Button label="Save Changes" @click="editProject" data-test="save-changes-button" />
         </div>
-        <div class="text-end mb-5">
-            <ConfirmBox @onConfirm="confirmDelete" />
-        </div>
     </div>
 </template>
 <script setup lang="ts">
@@ -47,7 +44,6 @@ import type {
     Project
 } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
-import ConfirmBox from "~/components/ConfirmBox.vue";
 
 const { $toast, $trpc } = useNuxtApp();
 const route = useRoute();
@@ -71,19 +67,6 @@ const editProject = async () => {
     }
 };
 
-const confirmDelete = async () => {
-    loading.value = true;
-    try {
-        await $trpc.project.delete.mutate(project.id);
-        $toast.success(`Project was deleted successfully`);
-        navigateTo('/projects');
-    } catch(error) {
-        $toast.error(`Project could not be deleted: ${error}`);
-    } finally {
-        loading.value = false;
-    }
-};
-
 definePageMeta({
     middleware: [
         "auth",
@@ -91,5 +74,3 @@ definePageMeta({
     ],
 });
 </script>
-  
-  
