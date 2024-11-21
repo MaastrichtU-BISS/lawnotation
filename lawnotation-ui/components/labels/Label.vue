@@ -3,7 +3,7 @@
     v-if="!editing"
     @click="editing = true"
     :disabled="!!numberOfTasks"
-    class="px-3 py-1 mb-0 rounded label whitespace-pre-line inline-block"
+    class="px-3 py-1 mb-0 rounded break-all text-left"
     :style="{
       backgroundColor: `${label.color}26`,
       borderLeft: `4px solid ${label.color}`,
