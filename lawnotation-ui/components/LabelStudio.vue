@@ -1,6 +1,6 @@
 <template>
-  <div v-if="assignment" id="label-studio-container" class="h-full p-4 pt-0">
-    <div class="my-2 flex items-center justify-between">
+  <div v-if="assignment" id="label-studio-container" class="h-full">
+    <div class="px-4 my-2 flex items-center justify-between">
       <div class="flex items-center">
         <NuxtLink v-if="guidelines" :to="guidelines" target="_blank" class="mr-3">
           <Button label="See Annotation Guidelines" size="small" outlined />
