@@ -65,7 +65,7 @@
             @keyup.down="moveDown(index)"
             @keyup.up="moveUp(index)"
             ref="handles"
-            title="Drag to re-order"
+            title="Drag to re-order label"
             data-test="reorder"
           >
             <svg
@@ -85,13 +85,14 @@
           </button>
           <LabelCmpt
             :label="label"
-            :title="numberOfTasksWithThisLabelset ? '' : 'Click to edit'"
+            :title="numberOfTasksWithThisLabelset ? '' : 'Click to edit label'"
             :numberOfTasks="numberOfTasksWithThisLabelset"
             @validate-label="validateLabel(label, index)"
           ></LabelCmpt>
           <button
             v-if="!numberOfTasksWithThisLabelset"
             @click="labelset.labels.splice(index, 1)"
+            title="Click to delete label"
             data-test="delete-label"
           >
             <svg
