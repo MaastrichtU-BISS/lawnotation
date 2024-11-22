@@ -192,7 +192,7 @@ const validateLabel = (label: Label, index?: number) => {
   if (!/^\#[a-zA-Z0-9]{6}$/.test(label.color))
     throw new Error("Invalid label color");
   if (!/^[a-zA-Z0-9 \- \_]+$/.test(label.name))
-    throw new Error("Special character are not allowed");
+    throw new Error("Special characters are not allowed");
   if (index?.toString()) {
     if (
       labelset.value.labels
