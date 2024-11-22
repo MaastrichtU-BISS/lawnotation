@@ -17,40 +17,6 @@ def random_string(length):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
-def text_line_annotations(custom_attr, line_text, pre_length):
-  pattern = r'(\w+)\s*\{([^}]+)\}'
-
-  annotations = []
-  matches = re.findall(pattern, custom_attr)
-  # print(matches)
-  for label, attributes in matches:
-    if label == 'readingOrder':
-      continue
-    attr_dict = {}
-    for attr in attributes.split(';'):
-      if ':' in attr:
-        attr_key, attr_value = attr.split(':')
-        attr_dict[attr_key.strip()] = attr_value.strip()
-    
-    if 'offset' not in attr_dict or 'length' not in attr_dict:
-      continue
-
-    start = int(attr_dict['offset'])
-    end = start + int(attr_dict['length'])
-    continued = 'continued' in attr_dict
-
-    annotations.append({
-      'label': label,
-      'start' : start + pre_length,
-      'end': end + pre_length,
-      'continued': continued,
-      'text': line_text[start:end]
-    })
-
-    # annotations.sort(key=lambda x: x['start'])
-
-  return annotations
-
 class TranskribusConverter(Converter):
 
   # class Task(TypedDict):
@@ -75,23 +41,27 @@ class TranskribusConverter(Converter):
     root = tree.getroot()
     ns = {'page': 'http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15'}
 
-    def parse_custom(custom):
+    def parse_custom(custom, text):
       # Extract annotations from the 'custom' attribute
       annotations = []
       for match in re.finditer(r"(\w+)\s*\{offset:(\d+); length:(\d+);?( continued:true;?)?\}", custom):
         label, offset, length, continued = match.groups()
+        offset = int(offset)
+        length = int(length)
+        continued = bool(continued)
         annotations.append({
           "label": label,
-          "offset": int(offset),
-          "length": int(length),
-          "continued": bool(continued)
+          "offset": offset,
+          "length": length,
+          "continued": continued,
+          "text": text[offset:offset+length]
         })
       return annotations
 
     # root = ET.fromstring(xml_string)
-    lines = []
+    result = []
     complete_text = ""
-    ongoing_annotations = {}
+    cont_annotations = {}
 
     for region in root.findall(".//page:TextRegion", ns):
       for line in region.findall("page:TextLine", ns):
@@ -100,7 +70,10 @@ class TranskribusConverter(Converter):
         text = textequiv.find("page:Unicode", ns).text.strip()
         
         custom = line.get("custom", "")
-        annotations = parse_custom(custom)
+        annotations = parse_custom(custom, text)
+
+        # print(text)
+        # print(annotations)
 
         # Record the line's start and end offsets relative to the complete text
         line_start_offset = len(complete_text)
@@ -114,32 +87,40 @@ class TranskribusConverter(Converter):
           end_offset = start_offset + annotation["length"]
           is_continued = annotation["continued"]
 
-          if label in ongoing_annotations:
-            # If continuing an annotation, extend it
-            ongoing_annotations[label]["end"] = end_offset
-            ongoing_annotations[label]["text"] += " " + text[annotation["offset"]:annotation["offset"] + annotation["length"]]
+          if is_continued:
+            if annotation['offset'] == 0 and label in cont_annotations:
+              # Continuing previous line, adding to cont_
+              cont_annotations[label]['text'] += '\n' + annotation['text']
+              cont_annotations[label]['end'] += annotation['length'] + 1
             
-            if not is_continued:
-              # If continuation ends here, finalize and save
-              lines.append(ongoing_annotations.pop(label))
+            if end_offset == line_end_offset and label not in cont_annotations:
+              # Continuing to next line
+              cont_annotations[label] = {
+                'label': label,
+                'text': annotation['text'],
+                'start': start_offset,
+                'end': end_offset
+              }
+
+            elif end_offset < line_end_offset and label in cont_annotations:
+              # Continued until this line
+
+              result.append(cont_annotations.pop(label))
+
           else:
-            # Start a new annotation
-            ongoing_annotations[label] = {
-              "label": label,
-              "start": start_offset,
-              "end": end_offset,
-              "text": text[annotation["offset"]:annotation["offset"] + annotation["length"]]
-            }
-            if not is_continued:
-              # Finalize immediately if not continued
-              lines.append(ongoing_annotations.pop(label))
-
-        # Append any remaining ongoing annotations
-        for annotation in ongoing_annotations.values():
-          lines.append(annotation)
+            result.append({
+              'label': label,
+              'text': annotation['text'],
+              'start': start_offset,
+              'end': end_offset
+            })
         
-        complete_text += "\n"
-
+        # Append any remaining ongoing annotations
+        # for annotation in cont_annotations.values():
+        #   result.append(annotation)
+        
+      complete_text += "\n"
+    
     annotations = [
       {
         'label': ann['label'],
@@ -149,14 +130,14 @@ class TranskribusConverter(Converter):
         'ls_id': random_string(10),
         'relations': [],
         'confidence_rating': 0
-      } for ann in lines
+      } for ann in result
     ]
 
     annotations.sort(key=lambda x: x['start'])
 
     return {
       'name': str('.'.join(os.path.basename(file.name).split('.')[:-1])) + '.txt',
-      'full_text': document_text,
+      'full_text': complete_text,
       'assignments': [{
         'annotator': 1,
         'order': doc_num + 1,
