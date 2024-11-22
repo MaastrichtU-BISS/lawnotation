@@ -15,11 +15,11 @@
         </span>
       </div>
       <div v-if="!isEditor && totalCount && previousCount != undefined">
-        <Button :disabled="previousCount <= 1" label="Back" class="mr-3" icon="pi pi-arrow-left" @click="clickPrevious" icon-pos="left" outlined />
-        <Button :label="previousCount < totalCount ? 'Next' : 'Finish'" icon="pi pi-arrow-right" @click="clickNext" icon-pos="right" />
+        <Button :disabled="previousCount <= 1" label="Back" class="mr-3" icon="pi pi-arrow-left" @click="Done(Direction.PREVIOUS)" icon-pos="left" outlined />
+        <Button :label="previousCount < totalCount ? 'Next' : 'Finish'" icon="pi pi-arrow-right" @click="Done(Direction.NEXT)" icon-pos="right" />
       </div>
       <div v-else>
-        <Button label="Save" icon="pi pi-check" @click="clickNext" icon-pos="right" />
+        <Button label="Save" icon="pi pi-check" @click="Done(Direction.CURRENT)" icon-pos="right" />
       </div>
     </div>
     <div id="label-studio" class="h-full"></div>
@@ -33,7 +33,7 @@ import type {
   LsLabels,
   LSSerializedAnnotations,
 } from "~/types";
-import { AnnotationLevels, AssignmentStatuses } from "~/utils/enums";
+import { AnnotationLevels, AssignmentStatuses, Direction } from "~/utils/enums";
 
 const { $trpc, $toast } = useNuxtApp();
 
@@ -162,14 +162,42 @@ const serializeLSAnnotations = () => {
   )[0];
 };
 
-const clickPrevious = async () => {
-  emit("previousAssignment");
+const Done = async (dir: Direction) => {
+  if(await save(dir)) {
+    if(props.totalCount) {
+      switch (dir) {
+        case Direction.PREVIOUS:
+          emit("previousAssignment");
+          break;
+        case Direction.NEXT:
+          emit("nextAssignment");
+          break;
+        default:
+          break;
+      }
+    } else {
+      $toast.success("Changes were successfully saved!");
+    }
+  }
 };
 
-const clickNext = async () => {
-  if (!props.assignment) return;
+const save = async (dir: Direction) :Promise<boolean> => {
+  if (!props.assignment) return false;
 
   const serializedAnnotations: any[] = serializeLSAnnotations();
+
+  // serializedAnnotations.length === 1 because the document rating will always be there. (default=0)
+  if (
+    dir == Direction.NEXT &&
+    !props.isEditor &&
+    props.assignment.status !== "done" &&
+    serializedAnnotations.length === 1 &&
+    !confirm(
+      "No annotations were made in this document.\nAre you sure you want to continue?"
+    )
+  ) {
+    return false;
+  }
 
   const pos_rating: number = serializedAnnotations.findIndex((x) => x.from_name == "doc_confidence");
   let rating: number = props.assignment.difficulty_rating;
@@ -177,32 +205,19 @@ const clickNext = async () => {
     rating = serializedAnnotations[pos_rating].value.rating;
   }
 
-
-  if (
-    !props.isEditor &&
-    props.assignment.status !== "done" &&
-    serializedAnnotations.length === 0 &&
-    !confirm(
-      "No annotations were made in this document.\nAre you sure you want to continue?"
-    )
-  ) {
-    return;
-  }
-
   await updateAnnotationsAndRelations(serializedAnnotations, rating);
-  await $trpc.assignment.update.mutate({
-    id: props.assignment.id,
-    updates: {
-      status: AssignmentStatuses.DONE,
-      difficulty_rating: rating,
-    },
-  });
 
-  if(!props.isEditor) {
-    emit("nextAssignment");
-  } else {
-    $toast.success("Changes were successfully saved!");
+  if(dir != Direction.PREVIOUS) {
+    await $trpc.assignment.update.mutate({
+      id: props.assignment.id,
+      updates: {
+        status: AssignmentStatuses.DONE,
+        difficulty_rating: rating,
+      },
+    });
   }
+
+  return true;
 };
 
 const updateAnnotationsAndRelations = async (serializedAnnotations: any[], assignmentRating: number) => {
