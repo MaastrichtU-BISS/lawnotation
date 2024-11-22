@@ -80,6 +80,15 @@ class TranskribusConverter(Converter):
         line_end_offset = line_start_offset + len(text)
         complete_text += text + "\n"  # Add newline to separate lines in the full text
 
+        ## TRAILING (check 13 and 18)
+        for cont_ann in cont_annotations.copy().values():
+          label_found = False
+          for ann in annotations:
+            if ann['label'] == cont_ann['label']: label_found = True
+          if not label_found:
+            result.append(cont_annotations.pop(cont_ann['label']))
+        ## END TRAILING
+
         # Process annotations on this line
         for annotation in annotations:
           label = annotation["label"]
