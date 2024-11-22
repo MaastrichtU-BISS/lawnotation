@@ -64,6 +64,7 @@ class TranskribusConverter(Converter):
     cont_annotations = {}
 
     for region in root.findall(".//page:TextRegion", ns):
+
       for line in region.findall("page:TextLine", ns):
         # Extract text content and annotations
         textequiv = line.find("page:TextEquiv", ns)
@@ -124,11 +125,13 @@ class TranskribusConverter(Converter):
               'end': end_offset
             })
         
-        # Append any remaining ongoing annotations
-        # for annotation in cont_annotations.values():
-        #   result.append(annotation)
-        
+      # Append any remaining ongoing annotations
+      # for annotation in cont_annotations.values():
+      #   result.append(annotation)
+      
       complete_text += "\n"
+      # for annotations spanning multiple textregions:
+      for label in cont_annotations.keys(): cont_annotations[label]['end'] += 1
     
     annotations = [
       {
