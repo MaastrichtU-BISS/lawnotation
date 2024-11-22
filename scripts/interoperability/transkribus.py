@@ -69,89 +69,93 @@ class TranskribusConverter(Converter):
   def process_document(self, file, doc_num) -> Document:
     
     document_text = ''
-    annotations = []
+    # annotations = []
 
     tree = ET.parse(file)
     root = tree.getroot()
     ns = {'page': 'http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15'}
 
-    for text_region in root.findall('.//page:TextRegion', ns):
-      
-      cont_annotations = [] # continuing annotations
-      line_annotations = []
+    def parse_custom(custom):
+      # Extract annotations from the 'custom' attribute
+      annotations = []
+      for match in re.finditer(r"(\w+)\s*\{offset:(\d+); length:(\d+);?( continued:true;?)?\}", custom):
+        label, offset, length, continued = match.groups()
+        annotations.append({
+          "label": label,
+          "offset": int(offset),
+          "length": int(length),
+          "continued": bool(continued)
+        })
+      return annotations
 
-      for text_line in text_region.findall('page:TextLine', ns):
+    # root = ET.fromstring(xml_string)
+    lines = []
+    complete_text = ""
+    ongoing_annotations = {}
+
+    for region in root.findall(".//page:TextRegion", ns):
+      for line in region.findall("page:TextLine", ns):
+        # Extract text content and annotations
+        textequiv = line.find("page:TextEquiv", ns)
+        text = textequiv.find("page:Unicode", ns).text.strip()
         
-        line_text = ''
-        for text_equiv in text_line:
-          if element_tag(text_equiv) == 'TextEquiv':
-            for content_el in text_equiv.findall('page:Unicode', ns):
-              line_text += content_el.text
+        custom = line.get("custom", "")
+        annotations = parse_custom(custom)
 
-        pre_doc_length = len(document_text)
-        new_line_annotations = text_line_annotations(text_line.get('custom'), line_text, pre_doc_length)
-        
+        # Record the line's start and end offsets relative to the complete text
+        line_start_offset = len(complete_text)
+        line_end_offset = line_start_offset + len(text)
+        complete_text += text + "\n"  # Add newline to separate lines in the full text
 
-        for line_ann_i in range(len(new_line_annotations)):
-          line_ann = new_line_annotations[line_ann_i]
-          if line_ann['continued']:
-            if line_ann['start'] == pre_doc_length:
-              # start == 0: a continued annotation from previous line, or an annotation that spans to the next line
+        # Process annotations on this line
+        for annotation in annotations:
+          label = annotation["label"]
+          start_offset = line_start_offset + annotation["offset"]
+          end_offset = start_offset + annotation["length"]
+          is_continued = annotation["continued"]
 
-              # the continuing annotation for this iteration is the one in the stack with the same label
-              cont_ann_id, cont_ann = next((id, x) for id, x in enumerate(cont_annotations) if x['label'] == line_ann['label'])
-
-              if cont_ann and not line_ann['end'] == pre_doc_length + len(line_text):
-                del cont_annotations[cont_ann_id]
-                # combine last annotations
-                # line_ann['start'] = 0 - len(continuing_ann['text']) - 1
-                line_ann['text'] = cont_ann['text'] + '\n' + line_text[0:line_ann['end']]
-                # line_annotations.append()
-                # if line_ann['end'] == len(line_text):
-                #   del continuing_annotations[continuing_ann_id]
-                line_annotations.append({
-                  'start': cont_ann['start'],
-                  'end': line_ann['end'],
-                  'text': 'AGGR'+line_ann['text'],
-                  'label': cont_ann['label']
-                })
-
-            if line_ann['end'] == pre_doc_length + len(line_text):
-              # end == length: a continued annotation that spans until the next line
-              cont_annotations.append(line_ann)
-              
+          if label in ongoing_annotations:
+            # If continuing an annotation, extend it
+            ongoing_annotations[label]["end"] = end_offset
+            ongoing_annotations[label]["text"] += " " + text[annotation["offset"]:annotation["offset"] + annotation["length"]]
+            
+            if not is_continued:
+              # If continuation ends here, finalize and save
+              lines.append(ongoing_annotations.pop(label))
           else:
-            line_annotations.append(line_ann)
+            # Start a new annotation
+            ongoing_annotations[label] = {
+              "label": label,
+              "start": start_offset,
+              "end": end_offset,
+              "text": text[annotation["offset"]:annotation["offset"] + annotation["length"]]
+            }
+            if not is_continued:
+              # Finalize immediately if not continued
+              lines.append(ongoing_annotations.pop(label))
 
-
-        # put every textline on new line
-        document_text += line_text + '\n'
+        # Append any remaining ongoing annotations
+        for annotation in ongoing_annotations.values():
+          lines.append(annotation)
         
-        # split text regions by extra newline
-        document_text += '\n'
-      
+        complete_text += "\n"
 
-      # if line_annotations[-1]['continued'] and \
-      #   line_annotations[-1]['end'] == len(line_text):
-      #     continuing_ann = line_annotations.pop()
+    annotations = [
+      {
+        'label': ann['label'],
+        'start': ann['start'],
+        'end': ann['end'],
+        'text': ann['text'],
+        'ls_id': random_string(10),
+        'relations': [],
+        'confidence_rating': 0
+      } for ann in lines
+    ]
 
-      annotations.extend([
-        {
-          'label': ann['label'],
-          'start': ann['start'],
-          'end': ann['end'],
-          'text': ann['text'],
-          'ls_id': random_string(10),
-          'relations': [],
-          'confidence_rating': 0
-        } for ann in line_annotations if ann is not None
-      ])
+    annotations.sort(key=lambda x: x['start'])
 
-      annotations.sort(key=lambda x: x['start'])
-    
     return {
       'name': str('.'.join(os.path.basename(file.name).split('.')[:-1])) + '.txt',
-      # 'name': os.path.basename(file.name),
       'full_text': document_text,
       'assignments': [{
         'annotator': 1,
