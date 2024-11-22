@@ -19,6 +19,7 @@ export type Annotation = {
       end: number;
     }
   },
+  metadata?: string,
   confidence_rating: number;
 };
 
@@ -28,6 +29,9 @@ export type LSSerializedAnnotation = {
   to_name: string;
   origin: "manual" | "imported" | "model";
   type: "labels" | "choices" | "hypertextlabels" | "rating";
+  meta?: {
+    text?: string[]
+  },
   value: {
     start?: number | string;
     end?: number | string;

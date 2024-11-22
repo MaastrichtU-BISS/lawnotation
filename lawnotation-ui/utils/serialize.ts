@@ -17,6 +17,7 @@ export const convert_annotation_ls2db = (
     let start = 0;
     let end = 0;
     let html_metadata = undefined;
+    let metadata = undefined;
 
     switch (ann.type) {
       case "labels":
@@ -24,12 +25,14 @@ export const convert_annotation_ls2db = (
         start = +ann.value?.start!;
         end = +ann.value?.end!;
         text = ann.value?.text!;
+        metadata = ann.meta?.text?.join();
         break;
       case "hypertextlabels":
         labels = ann.value?.hypertextlabels!;
         start = ann.value?.globalOffsets?.start!;
         end = ann.value?.globalOffsets?.end!;
         text = ann.value?.text!;
+        metadata = ann.meta?.text?.join();
         html_metadata = {
           start: ann.value.start?.toString()!,
           end: ann.value.end?.toString()!,
@@ -59,6 +62,7 @@ export const convert_annotation_ls2db = (
           label: label,
           assignment_id: assignment_id,
           html_metadata: html_metadata,
+          metadata: metadata,
           confidence_rating: ann.value.confidence_rating ?? 0
         };
       })
@@ -76,7 +80,7 @@ export const convert_annotation_db2ls = (
   if (isSpanLevel) {
     if(isHtml) {
       const base_anns = anns.map((a) => {
-        return {
+        const baseAnn: any = {
           id: a.ls_id,
           origin: "manual",
           from_name: "label",
@@ -94,7 +98,15 @@ export const convert_annotation_db2ls = (
               end: a.html_metadata?.globalOffsets.end!
             }
           },
-        } as LSSerializedAnnotation;
+        }
+
+        if(a.metadata) {
+          baseAnn.meta = {
+            text: [a.metadata]
+          };
+        }
+        
+        return baseAnn as LSSerializedAnnotation;
       });
 
       const confidence_anns = anns.map((a) => {
@@ -122,7 +134,7 @@ export const convert_annotation_db2ls = (
       return base_anns.concat(confidence_anns);
     } else {
       const base_anns = anns.map((a) => {
-        return {
+        let baseAnn: any = {
           id: a.ls_id,
           origin: "manual",
           from_name: "label",
@@ -134,7 +146,15 @@ export const convert_annotation_db2ls = (
             text: a.text,
             labels: [a.label],
           },
-        } as LSSerializedAnnotation;
+        }
+
+        if(a.metadata) {
+          baseAnn.meta = {
+            text: [a.metadata]
+          }
+        }
+
+        return baseAnn as LSSerializedAnnotation;
       });
 
       const confidence_anns = anns.map((a) => { 
