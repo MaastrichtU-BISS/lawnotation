@@ -17,7 +17,7 @@ def random_string(length):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
-def text_line_annotations(custom_attr, line_text):
+def text_line_annotations(custom_attr, line_text, pre_length):
   pattern = r'(\w+)\s*\{([^}]+)\}'
 
   annotations = []
@@ -41,13 +41,13 @@ def text_line_annotations(custom_attr, line_text):
 
     annotations.append({
       'label': label,
-      'start' : start,
-      'end': end,
+      'start' : start + pre_length,
+      'end': end + pre_length,
       'continued': continued,
       'text': line_text[start:end]
     })
 
-    annotations.sort(key=lambda x: x['start'])
+    # annotations.sort(key=lambda x: x['start'])
 
   return annotations
 
@@ -76,9 +76,10 @@ class TranskribusConverter(Converter):
     ns = {'page': 'http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15'}
 
     for text_region in root.findall('.//page:TextRegion', ns):
-      # print(text_region.tag)
+      
+      cont_annotations = [] # continuing annotations
+      line_annotations = []
 
-      continuing_ann = None
       for text_line in text_region.findall('page:TextLine', ns):
         
         line_text = ''
@@ -88,38 +89,65 @@ class TranskribusConverter(Converter):
               line_text += content_el.text
 
         pre_doc_length = len(document_text)
-        line_annotations = text_line_annotations(text_line.get('custom'), line_text)
-      
-        if len(line_annotations) > 0:
-          if continuing_ann is not None and \
-            line_annotations[0]['continued'] and \
-            line_annotations[0]['start'] == 0:
-              # combine last annotations
-              line_annotations[0]['start'] = 0 - len(continuing_ann['text']) - 1
-              line_annotations[0]['text'] = continuing_ann['text'] + '\n' + line_text[0:line_annotations[0]['end']]
-              continuing_ann = None
-
-          if line_annotations[-1]['continued'] and \
-            line_annotations[-1]['end'] == len(line_text):
-              continuing_ann = line_annotations.pop()
-
-          annotations.extend([
-            {
-              'label': ann['label'],
-              'start': pre_doc_length + ann['start'],
-              'end': pre_doc_length + ann['end'],
-              'text': ann['text'],
-              'ls_id': random_string(10),
-              'relations': [],
-              'confidence_rating': 0
-            } for ann in line_annotations
-          ])
+        new_line_annotations = text_line_annotations(text_line.get('custom'), line_text, pre_doc_length)
         
+
+        for line_ann_i in range(len(new_line_annotations)):
+          line_ann = new_line_annotations[line_ann_i]
+          if line_ann['continued']:
+            if line_ann['start'] == pre_doc_length:
+              # start == 0: a continued annotation from previous line, or an annotation that spans to the next line
+
+              # the continuing annotation for this iteration is the one in the stack with the same label
+              cont_ann_id, cont_ann = next((id, x) for id, x in enumerate(cont_annotations) if x['label'] == line_ann['label'])
+
+              if cont_ann and not line_ann['end'] == pre_doc_length + len(line_text):
+                del cont_annotations[cont_ann_id]
+                # combine last annotations
+                # line_ann['start'] = 0 - len(continuing_ann['text']) - 1
+                line_ann['text'] = cont_ann['text'] + '\n' + line_text[0:line_ann['end']]
+                # line_annotations.append()
+                # if line_ann['end'] == len(line_text):
+                #   del continuing_annotations[continuing_ann_id]
+                line_annotations.append({
+                  'start': cont_ann['start'],
+                  'end': line_ann['end'],
+                  'text': 'AGGR'+line_ann['text'],
+                  'label': cont_ann['label']
+                })
+
+            if line_ann['end'] == pre_doc_length + len(line_text):
+              # end == length: a continued annotation that spans until the next line
+              cont_annotations.append(line_ann)
+              
+          else:
+            line_annotations.append(line_ann)
+
+
         # put every textline on new line
         document_text += line_text + '\n'
+        
+        # split text regions by extra newline
+        document_text += '\n'
       
-      # split text regions by extra newline
-      document_text += '\n'
+
+      # if line_annotations[-1]['continued'] and \
+      #   line_annotations[-1]['end'] == len(line_text):
+      #     continuing_ann = line_annotations.pop()
+
+      annotations.extend([
+        {
+          'label': ann['label'],
+          'start': ann['start'],
+          'end': ann['end'],
+          'text': ann['text'],
+          'ls_id': random_string(10),
+          'relations': [],
+          'confidence_rating': 0
+        } for ann in line_annotations if ann is not None
+      ])
+
+      annotations.sort(key=lambda x: x['start'])
     
     return {
       'name': str('.'.join(os.path.basename(file.name).split('.')[:-1])) + '.txt',
