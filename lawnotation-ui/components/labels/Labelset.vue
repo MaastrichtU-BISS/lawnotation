@@ -2,7 +2,7 @@
   <div class="flex flex-row justify-end">
     <Button
       type="button"
-      :label="labelset.id ? 'Save' : 'Create'"
+      :label="labelset.id ? 'Update' : 'Create'"
       @click.prevent="persistLabelset"
       :outlined="!labelset.labels.length"
       :disabled="!labelset.labels.length || !labelset.name || !labelset.desc"
@@ -192,7 +192,7 @@ const validateLabel = (label: Label, index?: number) => {
   if (!/^\#[a-zA-Z0-9]{6}$/.test(label.color))
     throw new Error("Invalid label color");
   if (!/^[a-zA-Z0-9 \- \_]+$/.test(label.name))
-    throw new Error("Special character are not allowed");
+    throw new Error("Special characters are not allowed");
   if (index?.toString()) {
     if (
       labelset.value.labels
