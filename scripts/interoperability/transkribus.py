@@ -87,7 +87,11 @@ class TranskribusConverter(Converter):
           for ann in annotations:
             if ann['label'] == cont_ann['label']: label_found = True
           if not label_found:
-            result.append(cont_annotations.pop(cont_ann['label']))
+            pop_ann = cont_annotations.pop(cont_ann['label'])
+            if 'multiregion' in pop_ann and pop_ann['multiregion'] == True:
+              pop_ann['end'] -= 1
+              pop_ann['text'] = pop_ann['text'][:-1]
+            result.append(pop_ann)
         ## END TRAILING
 
         # Process annotations on this line
@@ -131,7 +135,9 @@ class TranskribusConverter(Converter):
       
       complete_text += "\n"
       # for annotations spanning multiple textregions:
+      for label in cont_annotations.keys(): cont_annotations[label]['text'] += '\n'
       for label in cont_annotations.keys(): cont_annotations[label]['end'] += 1
+      for label in cont_annotations.keys(): cont_annotations[label]['multiregion'] = True
     
     annotations = [
       {
