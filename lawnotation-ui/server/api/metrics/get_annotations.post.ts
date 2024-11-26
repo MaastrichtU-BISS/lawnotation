@@ -70,7 +70,7 @@ async function getNonAnnotations(
       docs_index++;
       if (
         documentsData[current_ann.doc_id] &&
-        last_end < documentsData[previous_ann.doc_id].full_text.length
+        last_end < documentsData[previous_ann.doc_id]?.full_text.length
       ) {
         new_annotations.push({
           start: last_end,
@@ -85,6 +85,7 @@ async function getNonAnnotations(
           ann_id: -1,
           doc_id: previous_ann.doc_id,
           doc_name: previous_ann.doc_name,
+          confidence: 0
         });
       }
       last_end = 0;
@@ -103,6 +104,7 @@ async function getNonAnnotations(
         ann_id: -1,
         doc_id: next_doc_id,
         doc_name: documentsData[next_doc_id].name,
+        confidence: 0
       });
       next_doc_id = documentsOptions[++docs_index];
     }
