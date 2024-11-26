@@ -1,5 +1,6 @@
 from io import TextIOWrapper
 import json
+from typing import List
 from converter import Converter
 from interface import Task
 
@@ -25,7 +26,9 @@ This hypothesis is confirmed by producing an export, which results in a file for
 
 class DoccanoConverter(Converter):
 
-  def convert_to(self, input: TextIOWrapper):
+  def convert_to(self, input: List[TextIOWrapper]):
+    if len(input) > 1: raise Exception("Max one input file supported for this converter")
+    input = input[0]
     task = json.load(input)
 
     out_datasets = {}
