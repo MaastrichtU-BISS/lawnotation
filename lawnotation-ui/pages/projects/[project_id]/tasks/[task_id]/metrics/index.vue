@@ -474,7 +474,7 @@ async function download_all(data: any) {
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
-      const filename = document + "-" + data.documentsData[document].name.split(".")[0];
+      const filename = document + "-" + data.documentsData[document].name.split(".")[0] + "-" + data.documentsData[document].id;
 
       const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data, document);
 
@@ -577,9 +577,17 @@ async function createWorkBooks(data: any, document?: any) {
       data.annotators
     );
 
-    XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, label.substring(0, 31));
-    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, label.substring(0, 31));
-    XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, label.substring(0, 31));
+    let sheetName = label.substring(0, 31);
+
+    // works as long as there are less than 100 labels
+    if(label.length > 31) {
+      const range = i + 1 > 9 ? 12 : 13;
+      sheetName = `${i+1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+    }
+
+    XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, sheetName);
+    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
+    XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, sheetName);
 
     download_progress.value.current += 3;
   }
