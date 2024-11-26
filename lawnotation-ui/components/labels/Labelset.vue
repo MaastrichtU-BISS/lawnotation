@@ -2,7 +2,7 @@
   <div class="flex flex-row justify-end">
     <Button
       type="button"
-      :label="labelset.id ? 'Save' : 'Create'"
+      :label="labelset.id ? 'Update' : 'Create'"
       @click.prevent="persistLabelset"
       :outlined="!labelset.labels.length"
       :disabled="!labelset.labels.length || !labelset.name || !labelset.desc"
