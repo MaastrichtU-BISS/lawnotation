@@ -23,10 +23,19 @@
             <div class="justify-center">
                 <div class="flex flex-col w-1/2 mx-auto mt-8 space-y-6 border-neutral-300">
                     <h3 class="text-lg font-semibold">Edit Task</h3>
-                    <input class="base" type="text" placeholder="Task name" v-model="new_task.name" data-test="task-name" />
-                    <textarea class="base" placeholder="Task description" v-model="new_task.desc" data-test="task-description"></textarea>
-                    <textarea class="base" placeholder="Annotation Guidelines"
-                        v-model="new_task.ann_guidelines" data-test="annotation-guidelines"></textarea>
+                    <FloatLabel>
+                        <InputText class="w-full" id="task-name" v-model="new_task.name" data-test="task-name" />
+                        <label for="task-name">Task Name</label>
+                    </FloatLabel>
+                    <FloatLabel>
+                        <Textarea class="w-full" v-model="new_task.desc" rows="5" cols="30" data-test="task-description" />
+                        <label>Task description</label>
+                    </FloatLabel>
+                    <FloatLabel>
+                        <Textarea class="w-full" v-model="new_task.ann_guidelines" rows="5" cols="30" data-test="annotation-guidelines" />
+                        <label>Annotation guidelines</label>
+                    </FloatLabel>
+
                     <Dropdown disabled v-model="labelset!.name" :options="[labelset!.name]" class="w-full text-left" />
                     <Button @click="editTask" label="Save Changes" data-test="save-changes-button" />
                 </div>
@@ -64,6 +73,8 @@ import Dimmer from "~/components/Dimmer.vue";
 import Dropdown from "primevue/dropdown";
 import Button from 'primevue/button';
 import { authorizeClient } from "~/utils/authorize.client";
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
 
 const { $toast, $trpc } = useNuxtApp();
 
