@@ -11,7 +11,7 @@
       :disabled="!!numberOfTasks"
       class="px-3 py-1 mb-0 rounded break-all text-left"
       :style="{
-        backgroundColor: `${label.color}26`,
+        backgroundColor: `${label.color}26 !important`,
         borderLeft: `4px solid ${label.color}`,
       }"
       data-test="label"
