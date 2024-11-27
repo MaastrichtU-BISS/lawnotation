@@ -586,6 +586,22 @@ export const assignmentRouter = router({
       return data as Assignment | null;
     }),
 
+  getCountByTask: protectedProcedure
+    .input(z.number().int())
+    .query(async ({ ctx, input: task_id }) => {
+      const { count, error } = await ctx.supabase
+        .from("assignments")
+        .select("*", { count: "exact", head: true })
+        .eq("task_id", task_id);
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findAssignmentsByTask: ${error.message}`,
+        });
+      return count as number;
+    }),
+
   countAssignmentsByUserAndTask: protectedProcedure
     .input(
       z.object({

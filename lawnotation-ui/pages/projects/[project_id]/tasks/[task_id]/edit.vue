@@ -27,7 +27,7 @@
                     <textarea class="base" placeholder="Task description" v-model="new_task.desc" data-test="task-description"></textarea>
                     <textarea class="base" placeholder="Annotation Guidelines"
                         v-model="new_task.ann_guidelines" data-test="annotation-guidelines"></textarea>
-                    <Dropdown disabled v-model="labelset!.name" :options="[labelset!.name]" class="w-full text-left" />
+                    <Dropdown :disabled="hasAssignments" v-model="labelset!.name" :options="labelsets.map(ls => ls.name)" class="w-full text-left" />
                     <Button @click="editTask" label="Save Changes" data-test="save-changes-button" />
                 </div>
                 <div v-if="new_emails && new_emails.length"
@@ -75,6 +75,9 @@ const route = useRoute();
 const task = ref<Task>();
 const project = ref<Project>();
 const labelset = ref<Labelset>();
+const labelsets = ref<Labelset[]>();
+const numberOfAssignments = ref<number>();
+const hasAssignments = computed(() => !!numberOfAssignments.value);
 
 const loading = ref(false);
 
@@ -164,9 +167,9 @@ const replaceAnnotators = async () => {
 onMounted(async () => {
     task.value = await $trpc.task.findById.query(+route.params.task_id);
     project.value = await $trpc.project.findById.query(+route.params.project_id);
-    console.log(task.value.labelset_id)
     labelset.value = await $trpc.labelset.findById.query(task.value.labelset_id);
-    console.log(labelset.value)
+    labelsets.value = await $trpc.labelset.find.query({});
+    numberOfAssignments.value = await $trpc.assignment.getCountByTask.query(task.value.id);
 
     new_task.value = { ...task.value };
 
