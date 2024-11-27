@@ -110,8 +110,9 @@
           </button>
           <LabelCmpt
             :label="label"
-            :title="numberOfTasksWithThisLabelset ? '' : 'Click to edit label'"
             :numberOfTasks="numberOfTasksWithThisLabelset"
+            :editable="true"
+            :title="numberOfTasksWithThisLabelset ? '' : 'Click to edit label'"
             @validate-label="validateLabel(label, index)"
           ></LabelCmpt>
           <button
