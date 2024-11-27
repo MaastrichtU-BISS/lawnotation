@@ -160,10 +160,12 @@ import { isDocumentLevel } from "~/utils/levels";
 import { initFlowbite } from "flowbite";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
-import { saveAs } from "file-saver";
+import fileSaver from "file-saver";
 import JSZip, { file } from "jszip";
 import type { RangeLabel } from "~/utils/metrics";
 import { authorizeClient } from "~/utils/authorize.client";
+
+const saveAs = fileSaver.saveAs;
 
 const { $toast, $trpc } = useNuxtApp();
 
