@@ -35,9 +35,9 @@
 import { type Label } from "~/types";
 const { $toast } = useNuxtApp();
 
-const { label, numberOfTasks, editable = false } = defineProps<{
+const { label, numberOfTasks = 0, editable = false } = defineProps<{
   label: Label;
-  numberOfTasks: number;
+  numberOfTasks?: number;
   editable?: boolean;
 }>();
 
