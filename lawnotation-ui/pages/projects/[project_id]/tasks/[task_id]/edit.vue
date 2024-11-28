@@ -27,7 +27,7 @@
                     <textarea class="base" placeholder="Task description" v-model="new_task.desc" data-test="task-description"></textarea>
                     <textarea class="base" placeholder="Annotation Guidelines"
                         v-model="new_task.ann_guidelines" data-test="annotation-guidelines"></textarea>
-                    <Dropdown :disabled="hasAssignments" v-model="labelset!.name" :options="labelsets.map(ls => ls.name)" class="w-full text-left" />
+                    <Dropdown :disabled="hasAssignments" v-model="new_task.labelset_id" :options="labelsets" optionLabel="name" optionValue="id" filter class="w-full text-left" />
                     <Button @click="editTask" label="Save Changes" data-test="save-changes-button" />
                 </div>
                 <div v-if="new_emails && new_emails.length"
