@@ -22,16 +22,18 @@
         <td class="px-6 py-2">
           {{ item.desc }}
         </td>
-        <td class="px-6 py-2 flex">
-          <div class="relative mr-2">
-            <NuxtLink data-test="view-project-link" :to="`/projects/${item.id}`">
-              <Button label="View" size="small" />
+        <td class="px-6 py-2">
+          <div class="flex gap-2">
+            <div class="relative">
+              <NuxtLink data-test="view-project-link" :to="`/projects/${item.id}`">
+                <Button label="View" size="small" />
+              </NuxtLink>
+              <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.VIEW_PROJECT" />
+            </div>
+            <NuxtLink :to="`/projects/${item.id}/edit`" data-test="edit-project-link">
+              <Button label="Edit" size="small" link />
             </NuxtLink>
-            <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.VIEW_PROJECT" />
           </div>
-          <NuxtLink :to="`/projects/${item.id}/edit`" data-test="edit-project-link">
-            <Button label="Edit" size="small" link />
-          </NuxtLink>
         </td>
       </template>
     </Table>
