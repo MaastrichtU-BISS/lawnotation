@@ -48,7 +48,7 @@
                     {{ item.annotation_level }}
                   </td>
                   <td class="px-6 py-2">
-                    <span class="flex gap-2">
+                    <div class="flex gap-2">
                       <div class="relative">
                         <NuxtLink class="base" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
                           data-test="view-task-link">
@@ -61,7 +61,7 @@
                         data-test="edit-task-link">
                         <Button label="Edit" size="small" link />
                       </NuxtLink>
-                    </span>
+                    </div>
                   </td>
                 </template>
               </Table>
