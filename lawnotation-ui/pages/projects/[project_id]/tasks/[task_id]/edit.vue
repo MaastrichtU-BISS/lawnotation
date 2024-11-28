@@ -81,7 +81,7 @@ const hasAssignments = computed(() => !!numberOfAssignments.value);
 
 const loading = ref(false);
 
-const new_task = ref<any>({
+const new_task = ref<Omit<Task, "id" | "annotation_level">>({
     name: "",
     desc: "",
     ann_guidelines: "",
