@@ -37,7 +37,7 @@
         </td>
       </template>
     </Table>
-    <Dialog v-model:visible="showCreateModal" modal header="Create new project">
+    <Dialog v-model:visible="showCreateModal" :draggable="false" modal header="Create new project">
       <div class="flex justify-center mb-4">
         <span class="relative w-full">
           <InputText v-model="new_project.name" data-test="project-name" id="project_name" autocomplete="off" ulk-
