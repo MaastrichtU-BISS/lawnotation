@@ -4,9 +4,9 @@ import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Document } from "~/types";
 import type { Context } from "../context";
 import sanitizeHtml from "sanitize-html";
-// import {readPdfText} from 'pdf-text-reader';
-import  * as pdfjs from "pdfjs-dist/build/pdf.mjs";
-pdfjs.GlobalWorkerOptions.workerSrc = "pdfjs-dist/build/pdf.worker.mjs";
+// import  * as pdfjs from "pdfjs-dist/build/pdf.mjs";
+// pdfjs.GlobalWorkerOptions.workerSrc = "pdfjs-dist/build/pdf.worker.mjs";
+
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -362,9 +362,8 @@ export const documentRouter = router({
 });
 
 async function getPdfText(data) {
-  console.log(pdfjs);
+  const pdfjs = await import("pdfjs-dist");
   let doc = await pdfjs.getDocument({data}).promise;
-  console.log(doc)
   let pageTexts = Array.from({length: doc.numPages}, async (v,i) => {
       return (await (await doc.getPage(i+1)).getTextContent()).items.map(token => token.str).join('');
   });
