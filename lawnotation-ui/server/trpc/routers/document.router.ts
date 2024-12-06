@@ -5,7 +5,6 @@ import type { Document } from "~/types";
 import type { Context } from "../context";
 import sanitizeHtml from "sanitize-html";
 import {readPdfText} from 'pdf-text-reader';
-import * as pdfjsLib from 'pdfjs-dist/build/pdf'
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -97,6 +96,11 @@ export const documentRouter = router({
       const format = input.name.split('.').pop();
 
       if(format == 'pdf') {
+        // const pdfjs = await import("../../../public/pdf.worker.min.mjs") as any;
+        // console.log(pdfjs);
+        // pdfjs.GlobalWorkerOptions.workerSrc = new URL( 'pdfjs-dist/legacy/build/pdf.worker.js', import.meta.url, ).toString();
+        // console.log(pdfjs)
+
         const binary = atob(input.full_text.replace("data:application/pdf;base64,", ""));
         const pdfText: string = await readPdfText({ data: binary });
         input.full_text = pdfText;
