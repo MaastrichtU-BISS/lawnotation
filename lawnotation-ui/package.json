@@ -46,6 +46,7 @@
     "flowbite": "^1.8.1",
     "jszip": "^3.10.1",
     "mailtrap": "^3.3.0",
+    "pdf-text-reader": "^5.1.0",
     "postgres": "^3.4.4",
     "primeicons": "^6.0.1",
     "primevue": "^3.51.0",

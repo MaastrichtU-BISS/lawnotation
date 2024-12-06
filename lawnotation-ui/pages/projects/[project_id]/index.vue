@@ -247,7 +247,7 @@
           <TabView v-model:activeIndex="activeTabDocumentsModal" class="min-h-[565px]">
             <TabPanel header="Upload" :pt="{ headerAction: { 'data-test': 'upload-documents-tab' } }">
               <div class="pt-6">
-                <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html"
+                <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html,.pdf"
                   chooseLabel="Select" :pt="{
                     input: {
                       'data-test': 'choose-documents'
@@ -267,7 +267,7 @@
                       <i
                         class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
                       <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                      <p class="text-gray-400 text-xs">.txt .html file(s)</p>
+                      <p class="text-gray-400 text-xs">.txt .html .pdf file(s)</p>
                     </div>
                   </template>
                 </FileUpload>
@@ -303,7 +303,7 @@ import { authorizeClient } from "~/utils/authorize.client";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
 import { AnnotationLevels, GuidanceSteps } from "~/utils/enums";
-import SearchDocuments from "~/components/SearchDocuments.vue"
+import SearchDocuments from "~/components/SearchDocuments.vue";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -464,16 +464,32 @@ const uploadDocuments = async (event: { files: FileList }) => {
   showUploadDocumentsModal.value = false;
 
   for (const file of event.files ?? []) {
+    var full_text = "";
+    const format = file.name.split('.').pop();
+    if(format == 'pdf') {
+      full_text = await getBase64(file) as string;
+    } else {
+      full_text = await file.text();
+    }
     new_docs.push({
       name: file.name,
       source: "local_upload",
-      full_text: await file.text(),
+      full_text: full_text,
       project_id: +route.params.project_id,
     });
   };
   
   saveDocuments(new_docs);
 };
+
+function getBase64(file: File) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
 
 const onDocumentsFetched = (docs: Doc[]) => {
   var new_docs: Omit<Document, "id">[] = [];
