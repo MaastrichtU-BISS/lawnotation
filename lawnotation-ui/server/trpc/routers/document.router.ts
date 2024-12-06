@@ -4,6 +4,7 @@ import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Document } from "~/types";
 import type { Context } from "../context";
 import sanitizeHtml from "sanitize-html";
+import {readPdfText} from 'pdf-text-reader';
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -91,7 +92,16 @@ export const documentRouter = router({
   create: protectedProcedure
     .input(ZDocumentFields)
     .mutation(async ({ ctx, input }) => {
-      if (input.name.split(".").pop() == "html") sanitizeFullText(input);
+
+      const format = input.name.split('.').pop();
+
+      if(format == 'pdf') {
+        const binary = atob(input.full_text.replace("data:application/pdf;base64,", ""));
+        const pdfText: string = await readPdfText({ data: binary });
+        input.full_text = pdfText;
+      } else if(format == 'html') {
+        sanitizeFullText(input);
+      }
 
       const { data, error } = await ctx.supabase
         .from("documents")
