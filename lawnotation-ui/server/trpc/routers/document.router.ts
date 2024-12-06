@@ -5,6 +5,7 @@ import type { Document } from "~/types";
 import type { Context } from "../context";
 import sanitizeHtml from "sanitize-html";
 import {readPdfText} from 'pdf-text-reader';
+import * as pdfjsLib from 'pdfjs-dist/build/pdf'
 
 const ZDocumentFields = z.object({
   name: z.string(),
