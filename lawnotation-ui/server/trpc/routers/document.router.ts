@@ -96,10 +96,10 @@ export const documentRouter = router({
       const format = input.name.split('.').pop();
 
       if(format == 'pdf') {
-        // const pdfjs = await import("../../../public/pdf.worker.min.mjs") as any;
-        // console.log(pdfjs);
-        // pdfjs.GlobalWorkerOptions.workerSrc = new URL( 'pdfjs-dist/legacy/build/pdf.worker.js', import.meta.url, ).toString();
-        // console.log(pdfjs)
+        const pdfjs = await import("pdfjs-dist/build/pdf.mjs") as any;
+        console.log(pdfjs);
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL( '../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', import.meta.url + '/lawnotation-ui', ).toString();
+        console.log(pdfjs)
 
         const binary = atob(input.full_text.replace("data:application/pdf;base64,", ""));
         const pdfText: string = await readPdfText({ data: binary });
