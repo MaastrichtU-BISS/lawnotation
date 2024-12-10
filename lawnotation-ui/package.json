@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
+    "now-build": "node build.js",
     "cypress": "npx cypress open",
     "dev": "nuxt dev",
     "e2e": "node e2e-run-tests.js",
