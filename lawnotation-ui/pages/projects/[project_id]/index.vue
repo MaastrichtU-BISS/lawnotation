@@ -114,7 +114,7 @@
                     <div class="mb-4 flex justify-between items-center">
                       <div>
                         <p class="font-bold mb-4">Annotation level</p>
-                        <SelectButton :options="['span', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel"
+                        <SelectButton :options="['text', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel"
                           @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
                           aria-labelledby="basic" data-test="select-annotation-level" :pt="{
                             label: {
@@ -122,7 +122,7 @@
                             }
                           }" />
                       </div>
-                      <div v-if="selectedAnnotationLevel == 'span'">
+                      <div v-if="selectedAnnotationLevel == 'text'">
                         <p class="font-bold mb-4">Granularity</p>
                         <SelectButton v-model="new_task.annotation_level"
                           :options="Object.values(AnnotationLevels).filter(level => level != AnnotationLevels.DOCUMENT)"
@@ -329,7 +329,7 @@ const activeTabDocumentsModal = ref<number>(0);
 const showUploadDocumentsModal = ref<boolean>(false);
 
 const labelsets = ref(await $trpc.labelset.find.query({}));
-const selectedAnnotationLevel = ref<'span' | AnnotationLevels.DOCUMENT>();
+const selectedAnnotationLevel = ref<'text' | AnnotationLevels.DOCUMENT>();
 
 const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
   id: undefined,
