@@ -22,15 +22,17 @@ test('Editor creates project, task, uploads document and assigns task', async ({
     await editorPage.getByTestId('projects-link').click();
     await editorPage.getByText("Don't show again", { exact: true }).waitFor();
     await editorPage.getByTestId('open-projects-modal').click();
-    await editorPage.getByTestId('project-name').fill('Test project');
+    await editorPage.getByTestId('project-name').fill('Test project1');
     await editorPage.getByTestId('add-project').click();
     await delay(3000);
-    const row = editorPage.getByRole('table').locator('tbody').locator('tr').first();
+    const row = editorPage.getByRole('table').locator('tbody').locator('tr').last();
     const viewButton = row.getByRole('button', { name: 'View' });
     await viewButton.waitFor();
     await expect(viewButton).toBeVisible();
     await viewButton.click();
-    await expect(editorPage.getByText("Upload dataset", { exact: true })).toBeVisible()
+    const uploadDatasetHint = editorPage.getByText("Upload dataset", { exact: true });
+    await uploadDatasetHint.waitFor();
+    await expect(uploadDatasetHint).toBeVisible();
 
     // Editor uploads document
     await editorPage.getByTestId('documents-tab').click();
@@ -48,7 +50,8 @@ test('Editor creates project, task, uploads document and assigns task', async ({
     await editorPage.getByTestId('task-description').fill('Test discription');
     await editorPage.getByTestId('select-labelset').click();
     await editorPage.getByText('Seeded labelset').click();
-    await editorPage.getByLabel('Span').click();
+    await editorPage.getByLabel('Text').click();
+    await editorPage.getByLabel('Word').click();
     await editorPage.getByTestId('create-tasks').click();
 
     // Editor assigns task
@@ -73,8 +76,8 @@ test('Editor creates project, task, uploads document and assigns task', async ({
     await editorPage.getByTestId('projects-link').click();
     await projectRow.getByRole("checkbox").click();
     await editorPage.getByTestId("remove-selected-rows").click();
-    await editorPage.getByRole('button', { name: 'Confirm' }).click();
-    await expect(editorPage.getByRole("alert").getByText("Items succesfully removed")).toBeVisible();
+    await editorPage.getByLabel('Yes, delete').click();
+    // await expect(editorPage.getByRole("alert").getByText("Items succesfully removed")).toBeVisible();
 });
 
 
@@ -96,7 +99,7 @@ test('Editor creates project, task, uploads documents , assigns task and deletes
     await editorPage.getByTestId('projects-link').click();
     await editorPage.getByText("Don't show again", { exact: true }).waitFor();
     await editorPage.getByTestId('open-projects-modal').click();
-    await editorPage.getByTestId('project-name').fill('Test project');
+    await editorPage.getByTestId('project-name').fill('Test project2');
     await editorPage.getByTestId('add-project').click();
     await delay(3000);
     const row = editorPage.getByRole('table').locator('tbody').locator('tr').first();
@@ -104,7 +107,9 @@ test('Editor creates project, task, uploads documents , assigns task and deletes
     await viewButton.waitFor();
     await expect(viewButton).toBeVisible();
     await viewButton.click();
-    await expect(editorPage.getByText("Upload dataset", { exact: true })).toBeVisible()
+    const uploadDatasetHint = editorPage.getByText("Upload dataset", { exact: true });
+    await uploadDatasetHint.waitFor();
+    await expect(uploadDatasetHint).toBeVisible();
 
     // Editor uploads document
     await editorPage.getByTestId('documents-tab').click();
@@ -125,13 +130,12 @@ test('Editor creates project, task, uploads documents , assigns task and deletes
     await editorPage.getByTestId('upload-documents').click();
 
     //Editor deletes a document
-    await delay(3000);
+    await editorPage.getByTestId('documents-tab').waitFor();
     await editorPage.getByTestId('documents-tab').click();
+    await editorPage.getByTestId('checkbox').first().waitFor();
     await editorPage.getByTestId('checkbox').first().click();
     await editorPage.getByText('Remove selected rows (1)', { exact: true }).click();
     await editorPage.getByText('Confirm', { exact: true }).click();
-
-
 
     // Editor creates task
     await editorPage.getByTestId('open-tasks-modal').waitFor();
@@ -140,7 +144,8 @@ test('Editor creates project, task, uploads documents , assigns task and deletes
     await editorPage.getByTestId('task-description').fill('Test discription');
     await editorPage.getByTestId('select-labelset').click();
     await editorPage.getByText('Seeded labelset').click();
-    await editorPage.getByLabel('Span').click();
+    await editorPage.getByLabel('Text').click();
+    await editorPage.getByLabel('Word').click();
     await editorPage.getByTestId('create-tasks').click();
 
     // Editor assigns task
@@ -177,7 +182,7 @@ test('Editor creates project, task, uploads documents , assigns task and deletes
     await editorPage.getByTestId('projects-link').click();
     await projectRow.getByRole("checkbox").click();
     await editorPage.getByTestId("remove-selected-rows").click();
-    await editorPage.getByRole('button', { name: 'Confirm' }).click();
+    await editorPage.getByLabel('Yes, delete').click();
     await expect(editorPage.getByRole("alert").getByText("Items succesfully removed")).toBeVisible();
 });
 

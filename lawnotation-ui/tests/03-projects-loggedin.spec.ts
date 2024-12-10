@@ -29,7 +29,8 @@ test('editor creates project, task, a new labelset and edits project and task', 
     await editorPage.getByTestId('open-tasks-modal').click();
     await editorPage.getByTestId('task-name').fill('Test');
     await editorPage.getByTestId('task-description').fill('This is a test description');
-    await editorPage.getByLabel('Span').click();
+    await editorPage.getByLabel('Text').click();
+    await editorPage.getByLabel('Symbol').click();
 
     // Editor creates labelset
     await editorPage.getByTestId('create-new-labelset').click();
@@ -67,12 +68,8 @@ test('editor creates project, task, a new labelset and edits project and task', 
     await delay(3000);
 
     // Editor deletes project
-    const deleteRow = editorPage.getByRole('table').locator('tbody').locator('tr').first();
-    const deleteButton = deleteRow.getByLabel('Edit');
-    await expect(deleteButton).toBeVisible();
-    await deleteButton.click();
-    await editorPage.getByLabel('Remove').click();
-    await editorPage.getByLabel("Save", { exact: true }).click();
-    await delay(3000);
-
+    await editorPage.getByTestId('checkbox').first().check();
+    await editorPage.getByTestId('remove-selected-rows').click();
+    await editorPage.getByLabel('Yes, delete').click();
+    await expect(editorPage.getByRole("alert").getByText("Items succesfully removed")).toBeVisible();
 });
