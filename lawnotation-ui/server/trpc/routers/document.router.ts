@@ -4,7 +4,6 @@ import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Document } from "~/types";
 import type { Context } from "../context";
 import sanitizeHtml from "sanitize-html";
-// import * as pdfjs from "pdfjs-dist";
 import {readPdfText} from 'pdf-text-reader';
 
 const ZDocumentFields = z.object({
