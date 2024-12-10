@@ -5,7 +5,7 @@ import type { Document } from "~/types";
 import type { Context } from "../context";
 import sanitizeHtml from "sanitize-html";
 import  * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
-pdfjs.GlobalWorkerOptions.workerSrc = "pdfjs-dist/legacy/build/pdf.worker.mjs";
+// pdfjs.GlobalWorkerOptions.workerSrc = "pdfjs-dist/legacy/build/pdf.worker.mjs";
 
 
 const ZDocumentFields = z.object({
@@ -100,7 +100,6 @@ export const documentRouter = router({
       if(format == 'pdf') {
         const binary = atob(input.full_text.replace("data:application/pdf;base64,", ""));
         const pdfText = await getPdfText(binary);
-        console.log(pdfText);
         input.full_text = pdfText;
       } else if(format == 'html') {
         sanitizeFullText(input);
@@ -363,6 +362,8 @@ export const documentRouter = router({
 
 async function getPdfText(data) {
   // const pdfjs = await import("pdfjs-dist");
+  const worker = await import('pdfjs-dist/build/pdf.worker.mjs');
+  console.log(worker);
   let doc = await pdfjs.getDocument({data}).promise;
   let pageTexts = Array.from({length: doc.numPages}, async (v,i) => {
       return (await (await doc.getPage(i+1)).getTextContent()).items.map(token => token.str).join('');
