@@ -4,6 +4,9 @@ import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Document } from "~/types";
 import type { Context } from "../context";
 import sanitizeHtml from "sanitize-html";
+// import {readPdfText} from 'pdf-text-reader';
+import  * as pdfjs from "pdfjs-dist/build/pdf.mjs";
+pdfjs.GlobalWorkerOptions.workerSrc = "pdfjs-dist/build/pdf.worker.mjs";
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -91,7 +94,17 @@ export const documentRouter = router({
   create: protectedProcedure
     .input(ZDocumentFields)
     .mutation(async ({ ctx, input }) => {
-      if (input.name.split(".").pop() == "html") sanitizeFullText(input);
+
+      const format = input.name.split('.').pop();
+
+      if(format == 'pdf') {
+        const binary = atob(input.full_text.replace("data:application/pdf;base64,", ""));
+        const pdfText = await getPdfText(binary);
+        console.log(pdfText);
+        input.full_text = pdfText;
+      } else if(format == 'html') {
+        sanitizeFullText(input);
+      }
 
       const { data, error } = await ctx.supabase
         .from("documents")
@@ -347,6 +360,17 @@ export const documentRouter = router({
       return true;
     }),
 });
+
+async function getPdfText(data) {
+  console.log(pdfjs);
+  let doc = await pdfjs.getDocument({data}).promise;
+  console.log(doc)
+  let pageTexts = Array.from({length: doc.numPages}, async (v,i) => {
+      return (await (await doc.getPage(i+1)).getTextContent()).items.map(token => token.str).join('');
+  });
+  return (await Promise.all(pageTexts)).join('');
+}
+
 
 function sanitizeFullText(doc: { full_text: string }) {
   doc.full_text = sanitizeHtml(doc.full_text, {
