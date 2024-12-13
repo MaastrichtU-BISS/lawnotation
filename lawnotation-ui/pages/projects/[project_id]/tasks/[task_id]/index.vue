@@ -29,10 +29,8 @@
             <ProgressBar :value="Math.floor((mlProccessed / totalAssignments.data?.value?.total) * 100)"></ProgressBar>
           </div>
           <div class="flex justify-center gap-6 my-3">
-            <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
-              <Button type="button" label="Analyze Metrics"
-                data-test="metrics-button" icon="pi pi-chart-bar" iconPos="right" />
-            </NuxtLink>
+            <Button type="button" label="Analyze Metrics" data-test="metrics-button" icon="pi pi-chart-bar"
+              iconPos="right" @click="selectMetricModalVisible = true" />
             <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true"
               data-test="export-publish-button" icon="pi pi-file-export" iconPos="right" />
             <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => optionsMenu.toggle(event)"
@@ -57,12 +55,12 @@
                 <Menu ref="annotatorsSelectionMenu" id="remove-all-menu" :popup="true" :model="[{
                   label: `Remove all (${groupByAnnotators.data.value?.total})`,
                   command: () => removeAllAssignments(refreshGroupByAnnotators)
-                                  }]" :pt="{
-                    label: 'text-[#f05252]',
-                    content: {
-                      'data-test': 'remove-all'
-                    }
-                  }" :ptOptions="{ mergeProps: true }" />
+                }]" :pt="{
+  label: 'text-[#f05252]',
+  content: {
+    'data-test': 'remove-all'
+  }
+}" :ptOptions="{ mergeProps: true }" />
                 <Button v-if="groupByAnnotatorsSelectedAssignmentIds.length"
                   @click="removeAssignments(groupByAnnotatorsSelectedAssignmentIds, refreshGroupByAnnotators)"
                   severity="danger" outlined :pt="{ label: 'text-xs' }" :ptOptions="{ mergeProps: true }"
@@ -154,12 +152,12 @@
                 <Menu ref="documentsSelectionMenu" id="remove-all-menu" :popup="true" :model="[{
                   label: `Remove all (${groupByDocuments.data.value?.total})`,
                   command: () => removeAllAssignments(refreshGroupByDocuments)
-                                  }]" :pt="{
-                    label: 'text-[#f05252]',
-                    content: {
-                      'data-test': 'remove-all'
-                    }
-                  }" :ptOptions="{ mergeProps: true }" />
+                }]" :pt="{
+  label: 'text-[#f05252]',
+  content: {
+    'data-test': 'remove-all'
+  }
+}" :ptOptions="{ mergeProps: true }" />
                 <Button v-if="groupByDocumentsSelectedAssignmentIds.length"
                   @click="removeAssignments(groupByDocumentsSelectedAssignmentIds, refreshGroupByDocuments)"
                   severity="danger" outlined :pt="{ label: 'text-xs' }" :ptOptions="{ mergeProps: true }"
@@ -318,15 +316,15 @@
                           <td>{{
                             Math.floor((number_of_docs - number_of_fixed_docs) / annotatorEmails.length)
                           }} <i class="text-gray-500">or</i> {{
-                            Math.ceil((number_of_docs - number_of_fixed_docs) / annotatorEmails.length)
-                          }}</td>
+  Math.ceil((number_of_docs - number_of_fixed_docs) / annotatorEmails.length)
+}}</td>
                           <td>{{
                             Math.floor((number_of_fixed_docs * annotatorEmails.length + (number_of_docs -
                               number_of_fixed_docs)) / annotatorEmails.length)
                           }} <i class="text-gray-500">or</i> {{
-                            Math.ceil((number_of_fixed_docs * annotatorEmails.length + (number_of_docs -
-                              number_of_fixed_docs)) / annotatorEmails.length)
-                          }}</td>
+  Math.ceil((number_of_fixed_docs * annotatorEmails.length + (number_of_docs -
+    number_of_fixed_docs)) / annotatorEmails.length)
+}}</td>
                         </template>
                       </tr>
                       <tr>
@@ -343,7 +341,8 @@
                   <h6 class="py-4 text-xl text-bold">
                     Randomization Options
                   </h6>
-                  <SelectButton v-model="randomizationSelected" :options="Object.values(RandomizationOptions)" aria-labelledby="basic" class="capitalize" />
+                  <SelectButton v-model="randomizationSelected" :options="Object.values(RandomizationOptions)"
+                    aria-labelledby="basic" class="capitalize" />
                   <p class="pt-4 text-start text-xs text-gray-500 min-h-[48px]">
                     {{ randomizationMessage }}
                   </p>
@@ -359,6 +358,7 @@
         </div>
         <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible"
           @export="exportTask" />
+        <SelectMetricModal v-model:visible="selectMetricModalVisible" :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`"/>
       </div>
     </div>
   </div>
@@ -384,6 +384,8 @@ import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
 import type { TabViewChangeEvent } from "primevue/tabview";
 import { Origins, AssignmentStatuses, RandomizationOptions } from "~/utils/enums";
+import ExportTaskModal from "~/components/tasks/ExportTaskModal.vue";
+import SelectMetricModal from "~/components/tasks/SelectMetricModal.vue";
 import { watch } from 'vue';
 
 const { $toast, $trpc } = useNuxtApp();
@@ -400,6 +402,8 @@ const total_docs = totalAmountOfDocs ?? 0;
 const number_of_docs = ref<number>(total_docs);
 const number_of_fixed_docs = ref<number>(total_docs);
 const optionsMenu = ref()
+
+const selectMetricModalVisible = ref(false);
 
 const randomizationSelected = ref(RandomizationOptions.FULL);
 
@@ -421,7 +425,7 @@ const randomizationMessage = computed(() => {
 watch(number_of_docs, (newTotalDocs) => {
 
   if (number_of_fixed_docs.value > newTotalDocs) {
-    number_of_fixed_docs.value = newTotalDocs; 
+    number_of_fixed_docs.value = newTotalDocs;
   }
 
   if (number_of_fixed_docs.value > number_of_docs.value) {
@@ -688,7 +692,7 @@ const createAssignments = async () => {
 
     const permutations = [];
     for (let i = 0; i < annotators_id.length; ++i) {
-      if(randomizationSelected.value == RandomizationOptions.FULL) {
+      if (randomizationSelected.value == RandomizationOptions.FULL) {
         permutations.push(_.shuffle(_.clone(unshuffled)));
       } else {
         permutations.push(_.clone(unshuffled));
