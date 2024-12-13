@@ -34,7 +34,7 @@
                 data-test="metrics-button" icon="pi pi-chart-bar" iconPos="right" />
             </NuxtLink>
             <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true"
-              data-test="export-publish-button" />
+              data-test="export-publish-button" icon="pi pi-file-export" iconPos="right" />
             <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => optionsMenu.toggle(event)"
               aria-haspopup="true" aria-controls="options-menu" data-test="options-menu-button" />
             <Menu ref="optionsMenu" id="options-menu"
