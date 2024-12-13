@@ -4,7 +4,8 @@
             <IndexCard :url="`${baseUrl}?descriptive`" title="Descriptive" icon="pi pi-tags"
                 description="Dive into the annotations in an interactive way and export usefull data and metrics." />
             <IndexCard :url="`${baseUrl}?agreement`" title="Agreement" icon="pi pi-users"
-                :description="`Assess how good the consensus is among the annotators and export different Intercoder Reliability metrics.${disableAgreement ? ' (A task must have more than 1 annotator to analyze the agreement)' : ''}`"
+                :description="!disableAgreement ? 'Asses the consensus among the annotators using different Intercoder Reliability metrics.' 
+                    : 'A task must have more than 1 annotator to compute Intercoder Reliability metrics.'"
                 :disabled="disableAgreement" />
         </section>
     </Dialog>

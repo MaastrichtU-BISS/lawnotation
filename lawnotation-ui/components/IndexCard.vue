@@ -15,6 +15,6 @@ const props = defineProps<{
     url: string;
     icon: string;
     description?: string;
-    disabled?: boolean
+    disabled?: boolean;
 }>();
 </script>
