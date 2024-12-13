@@ -358,7 +358,9 @@
         </div>
         <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible"
           @export="exportTask" />
-        <SelectMetricModal v-model:visible="selectMetricModalVisible" :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`"/>
+        <SelectMetricModal v-model:visible="selectMetricModalVisible" 
+          :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`" 
+          :disable-agreement="groupByAnnotators.data.value?.total! < 2"/>
       </div>
     </div>
   </div>
