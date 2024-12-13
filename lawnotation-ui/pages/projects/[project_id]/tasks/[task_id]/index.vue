@@ -31,7 +31,7 @@
           <div class="flex justify-center gap-6 my-3">
             <NuxtLink :to="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`">
               <Button type="button" label="Analyze Metrics"
-                data-test="metrics-button" />
+                data-test="metrics-button" icon="pi pi-chart-bar" iconPos="right" />
             </NuxtLink>
             <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true"
               data-test="export-publish-button" />
