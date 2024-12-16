@@ -1,9 +1,9 @@
 <template>
     <Dialog modal header="Select what kind of metrics you want to analyze" v-model:visible="visible" class="min-w-[750px]">
         <section class="flex justify-center p-6 bg-blue-50 border border-gray-200 rounded-lg shadow gap-10">
-            <IndexCard :url="`${baseUrl}?descriptive`" title="Descriptive" icon="pi pi-tags"
+            <IndexCard :url="`${baseUrl}#descriptive`" title="Descriptive" icon="pi pi-tags"
                 description="Dive into the annotations in an interactive way and export usefull data and metrics." />
-            <IndexCard :url="`${baseUrl}?agreement`" title="Agreement" icon="pi pi-users"
+            <IndexCard :url="`${baseUrl}#agreement`" title="Agreement" icon="pi pi-users"
                 :description="!disableAgreement ? 'Asses the consensus among the annotators using different Intercoder Reliability metrics.' 
                     : 'A task must have more than 1 annotator to compute Intercoder Reliability metrics.'"
                 :disabled="disableAgreement" />
