@@ -40,3 +40,8 @@ export enum RandomizationOptions {
   PARTIAL = "partial",
   NONE = "none"
 }
+
+export enum MetricTypes {
+  DESCRIPTIVE = 'descriptive',
+  AGREEMENT = 'agreement'
+}

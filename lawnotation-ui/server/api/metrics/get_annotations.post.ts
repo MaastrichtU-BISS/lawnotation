@@ -6,6 +6,7 @@ import {
 } from "~/utils/metrics";
 import { type RichAnnotation } from "~/utils/metrics";
 import type { Database } from "~/types/supabase";
+import { MetricTypes } from "~/utils/enums";
 import { H3Event } from "h3";
 
 type DocDic = Record<number, { full_text: string; name: string }>;
@@ -24,7 +25,7 @@ export default eventHandler(async (event) => {
     findAnnotationsByTaskLabelDocumentsAnnotators(
       event,
       data.task_id,
-      data.label,
+      data.labels,
       data.documents,
       data.annotators
     );
@@ -34,16 +35,18 @@ export default eventHandler(async (event) => {
   const documentsData = await documentsDataPromise;
   let result = annotations;
 
-  if (!data.documentLevel) {
-    result = await getNonAnnotations(
-      annotations,
-      documentsData[0],
-      documentsData[1]
-    );
-  }
+  if(data.metricType == MetricTypes.AGREEMENT) { 
+    if (!data.documentLevel) {
+      result = await getNonAnnotations(
+        annotations,
+        documentsData[0],
+        documentsData[1]
+      );
+    }
 
-  if (data.byWords) {
-    result = separateIntoWords(result);
+    if (data.byWords) {
+      result = separateIntoWords(result);
+    }
   }
 
   if (data.hideNonText) {
@@ -128,8 +131,6 @@ async function getNonAnnotations(
       });
     }
 
-    
-
     new_annotations.push(current_ann);
     last_end = Math.max(last_end, current_ann.end);
     previous_ann = current_ann;
@@ -162,7 +163,7 @@ async function getNonAnnotations(
 async function findAnnotationsByTaskLabelDocumentsAnnotators(
   event: any,
   task_id: string,
-  label: string,
+  labels: string[] | undefined,
   documents: string[] | undefined,
   annotators: string[] | undefined
 ): Promise<RichAnnotation[]> {
@@ -173,7 +174,9 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
       "id, start_index, end_index, label, text, confidence_rating, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
     )
     .eq("assignments.task_id", task_id)
-    .eq("label", label);
+  
+  if (labels && labels.length > 0)
+    query = query.in("label", labels);
 
   if (documents && documents.length > 0)
     query = query.in("assignments.document_id", documents);

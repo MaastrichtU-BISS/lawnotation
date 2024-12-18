@@ -15,11 +15,11 @@
             </div>
         </template>
         <div class="flex items-start justify-between">
-            <div contenteditable @keydown="onkeydown($event)" :class="_hidden ? 'text-gray-500' : ''"
+            <div :contenteditable="metricType == MetricTypes.AGREEMENT" @keydown="onkeydown($event)" :class="_hidden ? 'text-gray-300' : ''"
                 class="px-1 py-1 whitespace-pre-wrap" style="word-break: break-word;">
                 {{ annotation.text }}
             </div>
-            <div class="flex items-start">
+            <div v-if="metricType == MetricTypes.AGREEMENT" class="flex items-start">
                 <button v-if="canMergeUp" @click="emit('mergeUp', index)"
                     class="ml-1 text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 mr-1 mb-2 text-xs">
                     &#8593;
@@ -41,22 +41,25 @@
 import Panel from 'primevue/panel';
 import type { RichAnnotation } from "~/utils/metrics";
 import LabelCmpt from "~/components/labels/Label.vue";
+import { MetricTypes } from "~/utils/enums";
 
 const emit = defineEmits(["separate", "mergeUp", "mergeDown", "setHidden"]);
 const _hidden = ref<Boolean>();
 const annotated = ref<Boolean>();
 
 const onkeydown = (e: KeyboardEvent) => {
-    if (e.key == "Enter") {
-        const position = window.getSelection()!.getRangeAt(0).startOffset;
-        emit("separate", props.index, position);
-    } else if (
-        e.key == "ArrowRight" ||
-        e.key == "ArrowLeft" ||
-        e.key == "ArrowUp" ||
-        e.key == "ArrowDown"
-    ) {
-        return true;
+    if(props.metricType == MetricTypes.AGREEMENT) {
+        if (e.key == "Enter") {
+            const position = window.getSelection()!.getRangeAt(0).startOffset;
+            emit("separate", props.index, position);
+        } else if (
+            e.key == "ArrowRight" ||
+            e.key == "ArrowLeft" ||
+            e.key == "ArrowUp" ||
+            e.key == "ArrowDown"
+        ) {
+            return true;
+        }
     }
     e.preventDefault();
     e.stopPropagation;
@@ -74,25 +77,12 @@ const props = defineProps<{
     canMergeDown: Boolean;
     isNewDoc: Boolean;
     labelColor: string;
+    metricType: MetricTypes;
 }>();
 
 watch(props.annotation, (new_val) => {
     _hidden.value = new_val.hidden;
 });
-
-// const shortText = computed(() => {
-//     const length = props.annotation.text.length;
-//     const text = props.annotation.text;
-//     let limit = 1000;
-//     let endsAt1 = 200;
-//     let startsAt2 = 800;
-//     if (!annotated.value) {
-//         limit = 100;
-//         endsAt1 = 20;
-//         startsAt2 = 80;
-//     }
-//     return length <= limit ? text : `${text.substring(0, endsAt1)} ... ${text.substring(startsAt2, limit)}`;
-// })
 
 onMounted(async () => {
     _hidden.value = props.annotation.hidden;

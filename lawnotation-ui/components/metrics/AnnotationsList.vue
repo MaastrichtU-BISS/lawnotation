@@ -2,14 +2,16 @@
   <div class="px-4 sm:ml-64 side-panel-h overflow-auto" style="margin-left: 20rem">
     <div id="annotations_list">
       <div v-if="!loading">
-        <span class="text-2xl font-bold text-center flex justify-center">
+        <span class="text-2xl font-bold text-center flex justify-center pt-2">
           Annotations: {{ annotations.length }}
         </span>
-        <DynamicScroller :items="mappedAnnotations" :min-item-size="153" keyField="id" class="scroller">
+        <DynamicScroller v-if="annotations.length" page-mode :items="mappedAnnotations" :min-item-size="153" keyField="id" class="h-full">
           <template v-slot="{ item, index, active }">
             <DynamicScrollerItem :item="item" :active="active" :size-dependencies="[
               item.id,
-              item.label
+              item.label,
+              item.hidden,
+              item.text
             ]" :data-index="index">
               <h5 v-show="isNewDoc(index)" class="text-lg font-semibold py-5 ml-1">
                 <i class="pi pi-file mr-1" />
@@ -18,7 +20,7 @@
               <AnnotationComponent :annotation="item" :labelColor="labelColor(item.label)" :index="index"
                 :is-new-doc="isNewDoc(index)" :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)"
                 @separate="emitSeparate" @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
-                :key="item.id">
+                :key="item.id" :metricType="metricType">
               </AnnotationComponent>
             </DynamicScrollerItem>
           </template>
@@ -40,18 +42,20 @@
 import _ from "lodash";
 import type { RichAnnotation } from "~/utils/metrics";
 import AnnotationComponent from "./Annotation.vue";
+import { MetricTypes } from "~/utils/enums";
 
 const props = defineProps<{
   labels: { name: string, color: string }[];
   loading: boolean;
   documentsData: any;
+  metricType: MetricTypes
 }>();
 
 const annotations = defineModel<RichAnnotation[]>('annotations', { required: true });
 const loading_annotations = defineModel('loading_annotations', { type: Boolean, required: true });
 
 const mappedAnnotations = computed(() => annotations.value.map((item) => (
-  { ...item, id: `${item.ann_id}_${item.start}_${item.end}_${item.text}` }
+  { ...item, id: `${item.ann_id}_${item.start}_${item.end}_${item.text}_${item.hidden}` }
   )));
 
 const emitMergeDown = (ann_index: number): void => {
