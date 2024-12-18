@@ -1,5 +1,5 @@
 <template>
-    <Panel toggleable :collapsed="!annotated" class="pb-2">
+    <Panel :toggleable="!isDocumentLevel" :collapsed="!annotated || isDocumentLevel" class="pb-2">
         <template #header>
             <div>
                 <template v-if="annotated">
@@ -14,7 +14,7 @@
                 </template>
             </div>
         </template>
-        <div class="flex items-start justify-between">
+        <div v-if="!isDocumentLevel" class="flex items-start justify-between">
             <div :contenteditable="metricType == MetricTypes.AGREEMENT" @keydown="onkeydown($event)" :class="_hidden ? 'text-gray-300' : ''"
                 class="px-1 py-1 whitespace-pre-wrap" style="word-break: break-word;">
                 {{ annotation.text }}
@@ -46,6 +46,7 @@ import { MetricTypes } from "~/utils/enums";
 const emit = defineEmits(["separate", "mergeUp", "mergeDown", "setHidden"]);
 const _hidden = ref<Boolean>();
 const annotated = ref<Boolean>();
+const isDocumentLevel = ref<Boolean>();
 
 const onkeydown = (e: KeyboardEvent) => {
     if(props.metricType == MetricTypes.AGREEMENT) {
@@ -87,5 +88,6 @@ watch(props.annotation, (new_val) => {
 onMounted(async () => {
     _hidden.value = props.annotation.hidden;
     annotated.value = props.annotation.label != "NOT ANNOTATED";
+    isDocumentLevel.value = props.annotation.start == 0 && props.annotation.end == 0;
 });
 </script>
