@@ -39,7 +39,7 @@
                   @update-annotations="updateAnnotations">
                 </ParametersColumn>
               </TabPanel>
-              <TabPanel header="Agreement" :pt="{
+              <TabPanel header="Agreement" :disabled="annotatorsOptions.length < 2" :pt="{
                 headerAction: '!py-3',
               }" :ptOptions="{ mergeProps: true }">
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
