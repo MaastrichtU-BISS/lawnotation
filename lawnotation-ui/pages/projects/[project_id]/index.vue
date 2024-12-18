@@ -304,7 +304,7 @@ import Labelset from "~/components/labels/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
-import { AnnotationLevels, GuidanceSteps } from "~/utils/enums";
+import { AnnotationLevels, GuidanceSteps, AssignmentStatuses, Origins } from "~/utils/enums";
 import SearchDocuments from "~/components/SearchDocuments.vue";
 
 const { $toast, $trpc } = useNuxtApp();
@@ -701,6 +701,8 @@ const importTask = async () => {
         import_progress.value.message = "Creating Assignments";
         let new_assignments: Omit<Assignment, "id">[] = [];
 
+        const assignmentStatus = import_json.value.counts?.annotations ? AssignmentStatuses.DONE : AssignmentStatuses.PENDING;
+
         import_json.value.documents.map((d: any, i: number) => {
           d.assignments.map((ass: any) => {
             let ann_id: string | null = annotator_ids[ass.annotator - 1];
@@ -710,9 +712,9 @@ const importTask = async () => {
               document_id: documentIds[i],
               difficulty_rating: ass.difficulty_rating,
               seq_pos: ass.order,
-              status: "pending",
+              status: assignmentStatus,
               annotator_number: ass.annotator,
-              origin: "imported"
+              origin: Origins.IMPORTED
             };
 
             if (ann_id) {
