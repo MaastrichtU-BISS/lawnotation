@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <Breadcrumb v-if="task && project" :crumbs="[
+  <div v-if="task && project">
+    <Breadcrumb :crumbs="[
       {
         name: 'Projects',
         link: '/projects',
@@ -56,7 +56,7 @@
           </div>
         </aside>
         <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations"
-          :labels="labelsOptions" :loading="loading" :documentsData="documentsData" :metricType="metricType"></AnnotationsList>
+          :labels="labelsOptions" :loading="loading" :documentsData="documentsData" :metricType="metricType" :documentUrl="`/projects/${project.id}/tasks/${task.id}/documents`"></AnnotationsList>
       </div>
     </div>
     <ResultsModal v-if="metricsResult?.confidence" v-model:visible="metricsModalVisible" :metricResults="metricsResult"

@@ -194,7 +194,10 @@
                       <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.name }}
                     </template>
                     <template v-else-if="node.type == 'document'">
-                      <i class="pi pi-file mr-3 ml-2" />{{ node.data.document_name }}
+                      <i class="pi pi-file mr-2 ml-2" />{{ node.data.document_name }}
+                      <NuxtLink v-if="user?.id == project.editor_id" :to="`/projects/${project.id}/tasks/${task.id}/documents/${node.data.document_id}`">
+                        <Button label="annotations" link class="text-xs underline" icon=""></Button>
+                      </NuxtLink>
                     </template>
                   </template>
                 </Column>

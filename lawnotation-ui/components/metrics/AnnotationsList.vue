@@ -5,7 +5,8 @@
         <span class="text-2xl font-bold text-center flex justify-center pt-2">
           Annotations: {{ annotations.length }}
         </span>
-        <DynamicScroller v-if="annotations.length" page-mode :items="mappedAnnotations" :min-item-size="153" keyField="id" class="h-full">
+        <DynamicScroller v-if="annotations.length" page-mode :items="mappedAnnotations" :min-item-size="153" keyField="id"
+          class="h-full">
           <template v-slot="{ item, index, active }">
             <DynamicScrollerItem :item="item" :active="active" :size-dependencies="[
               item.id,
@@ -13,10 +14,10 @@
               item.hidden,
               item.text
             ]" :data-index="index">
-              <h5 v-show="isNewDoc(index)" class="text-lg font-semibold py-5 ml-1">
-                <i class="pi pi-file mr-1" />
-                {{ item.doc_name?.substring(0, item.doc_name.length - 4) }}
-              </h5>
+              <NuxtLink v-if="isNewDoc(index)" :to="`${documentUrl}/${item.doc_id}`">
+                <Button :label="item.doc_name?.split('.')[0]" outlined
+                  icon="pi pi-file" class="mb-2"></Button>
+              </NuxtLink>
               <AnnotationComponent :annotation="item" :labelColor="labelColor(item.label)" :index="index"
                 :is-new-doc="isNewDoc(index)" :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)"
                 @separate="emitSeparate" @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
@@ -48,7 +49,8 @@ const props = defineProps<{
   labels: { name: string, color: string }[];
   loading: boolean;
   documentsData: any;
-  metricType: MetricTypes
+  metricType: MetricTypes;
+  documentUrl: string;
 }>();
 
 const annotations = defineModel<RichAnnotation[]>('annotations', { required: true });
@@ -56,7 +58,7 @@ const loading_annotations = defineModel('loading_annotations', { type: Boolean, 
 
 const mappedAnnotations = computed(() => annotations.value.map((item) => (
   { ...item, id: `${item.ann_id}_${item.start}_${item.end}_${item.text}_${item.hidden}` }
-  )));
+)));
 
 const emitMergeDown = (ann_index: number): void => {
   loading_annotations.value = true;

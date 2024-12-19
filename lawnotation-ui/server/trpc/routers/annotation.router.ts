@@ -161,79 +161,32 @@ export const annotationRouter = router({
 
   /* Specific Implementations */
 
-  findAnnotationsByTaskLabelDocumentsAnnotators: protectedProcedure
+  findAnnotationsByTaskAndDocument: protectedProcedure
     .input(
       z.object({
-        task_id: z.string(),
-        label: z.string(),
-        documents: z.array(z.string()),
-        annotators: z.array(z.string()),
+        task_id: z.number(),
+        document_id: z.number(),
       })
     )
     .query(async ({ ctx, input }) => {
       let query = ctx.supabase
         .from("annotations")
         .select(
-          "id, start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
+          "*, assignment:assignments!inner(task_id, document_id)"
         )
         .eq("assignments.task_id", input.task_id)
-        .eq("label", input.label);
-
-      if (input.documents.length > 0)
-        query = query.in("assignments.document_id", input.documents);
-
-      if (input.annotators.length > 0)
-        query = query.in("assignments.users.email", input.annotators);
+        .eq("assignments.document_id", input.document_id);
 
       const { data, error } = await query;
+      console.log(data)
       if (error)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`,
         });
       else {
-        return data.map((ann) => {
-          return {
-            start: ann.start_index,
-            end: ann.end_index,
-            text: ann.text ? ann.text.replaceAll("\\n", "") : ann.text,
-            label: ann.label,
-            annotator: ann.assignment?.annotator?.email,
-            hidden: false,
-            ann_id: ann.id,
-            doc_id: ann.assignment?.document_id,
-            doc_name: ann.assignment?.document?.name,
-          };
-        });
+        return data;
       }
-    }),
-
-  findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators: protectedProcedure
-    .input(
-      z.object({
-        task_id: z.number().int(),
-        document_id: z.number().int(),
-        label: z.string(),
-        annotators: z.array(z.string()),
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase
-        .from("annotations")
-        .select(
-          "start_index, end_index, label, text, assignment:assignments!inner(task_id, document_id, annotator:users!inner(email))"
-        )
-        .eq("assignments.task_id", input.task_id)
-        .eq("assignments.document_id", input.document_id)
-        .eq("label", input.label)
-        .in("assignments.users.email", input.annotators);
-
-      if (error)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findAnnotationsByTaskAndDocumentAndLabel: ${error.message}`,
-        });
-      return data as Annotation[];
     }),
 
   findAnnotationsByTask: protectedProcedure
