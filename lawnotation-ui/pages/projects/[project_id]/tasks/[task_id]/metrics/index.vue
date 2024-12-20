@@ -34,7 +34,7 @@
                 <ParametersColumn :metric-type="MetricTypes.DESCRIPTIVE" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="allDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="false" v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
-                  v-model:selectedDocumentsOrEmpty="selectedDocumentsOrEmpty"
+                  v-model:selectedDocumentsOrEmpty="allSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" @click-download-all="clickDownloadAll"
                   @update-annotations="updateAnnotations">
                 </ParametersColumn>
@@ -45,7 +45,8 @@
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="sharedDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)"
-                  v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty" v-model:selectedDocumentsOrEmpty="selectedDocumentsOrEmpty"
+                  v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
+                  v-model:selectedDocumentsOrEmpty="sharedSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" v-model:tolerance="tolerance"
                   v-model:contained="contained" v-model:separate_into_words="separate_into_words"
                   v-model:hideNonText="hideNonText" @click-compute-metrics="clickComputeMetrics"
@@ -56,7 +57,8 @@
           </div>
         </aside>
         <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations"
-          :labels="labelsOptions" :loading="loading" :documentsData="documentsData" :metricType="metricType" :documentUrl="`/projects/${project.id}/tasks/${task.id}/documents`"></AnnotationsList>
+          :labels="labelsOptions" :loading="loading" :documentsData="documentsData" :metricType="metricType"
+          :documentUrl="`/projects/${project.id}/tasks/${task.id}/documents`"></AnnotationsList>
       </div>
     </div>
     <ResultsModal v-if="metricsResult?.confidence" v-model:visible="metricsModalVisible" :metricResults="metricsResult"
@@ -83,6 +85,7 @@ import fileSaver from "file-saver";
 import JSZip, { file } from "jszip";
 import type { RangeLabel } from "~/utils/metrics";
 import { authorizeClient } from "~/utils/authorize.client";
+// import { mkConfig, generateCsv, asBlob } from "export-to-csv";
 
 const saveAs = fileSaver.saveAs;
 
@@ -131,24 +134,28 @@ const selectedLabels = computed((): string[] => {
     : labelsOptions.map((l => l.name));
 });
 
-const sharedDocumentsOptions = reactive<{ value: string; label: string }[]>([]);
 const allDocumentsOptions = reactive<{ value: string; label: string }[]>([]);
+const sharedDocumentsOptions = reactive<{ value: string; label: string }[]>([]);
 const documentsOptions = computed(() => {
   return metricsTypeActiveTab.value == 0 ? allDocumentsOptions : sharedDocumentsOptions;
 });
-const selectedDocumentsOrEmpty = ref<string[]>([]);
+const allSelectedDocumentsOrEmpty = ref<string[]>([]);
+const sharedSelectedDocumentsOrEmpty = ref<string[]>([]);
+const selectedDocumentsOrEmpty = computed(() => {
+  return metricType.value == MetricTypes.AGREEMENT ? sharedSelectedDocumentsOrEmpty.value : allSelectedDocumentsOrEmpty.value;
+});
 const selectedDocuments = computed((): string[] => {
-  if (selectedDocumentsOrEmpty.value?.length) {
-    // filter documents based on user input
-    return selectedDocumentsOrEmpty.value;
-  } else {
-    if (metricType.value == MetricTypes.AGREEMENT && sharedDocumentsOptions.length < allDocumentsOptions.length) {
-      // filter documents based on shared
-      return documentsOptions.value.map((d) => d.value);
-    }
+  return selectedDocumentsOrEmpty.value && selectedDocumentsOrEmpty.value.length
+    ? selectedDocumentsOrEmpty.value
+    : documentsOptions.value.map(d => d.value);
+});
+const selectedDocumentsOptQuery = computed((): string[] => {
+  if (metricType.value == MetricTypes.AGREEMENT &&
+    !sharedSelectedDocumentsOrEmpty.value?.length &&
+    sharedDocumentsOptions.length < allDocumentsOptions.length) {
+    return sharedDocumentsOptions.map(d => d.value);
   }
-  // either Descriptuve or agreement where all documents are shared so we don't need to filter (faster sql querys)
-  return [];
+  return selectedDocumentsOrEmpty.value;
 });
 
 const annotatorsOptions = reactive<string[]>([]);
@@ -169,6 +176,7 @@ const annotations_limit = 10 ** 6;
 const loading_annotations = ref(false);
 const annotations = reactive<RichAnnotation[]>([]);
 const documentsData = ref<any>({});
+const documentsNames = ref<any>({});
 
 const loading = computed((): boolean => {
   return (loading_annotations.value ||
@@ -211,21 +219,20 @@ const updateAnnotations = async () => {
   }
 
   // only allow multiple labels when descriptive
-  if(metricType.value == MetricTypes.DESCRIPTIVE || selectedLabelsOrEmpty.value.length == 1) {
+  if (metricType.value == MetricTypes.DESCRIPTIVE || selectedLabelsOrEmpty.value.length == 1) {
     loading_annotations.value = true;
     try {
       annotations.splice(0);
       const anns = await getAnnotations(
         task.value?.id.toString()!,
         selectedLabelsOrEmpty.value!,
-        selectedDocuments.value!,
+        selectedDocumentsOptQuery.value!,
         selectedAnnotatorsOrEmpty.value!,
         separate_into_words.value,
         hideNonText.value,
         isDocumentLevel(task.value),
         metricType.value
       );
-
       if (anns.length < annotations_limit) annotations.push(...anns);
       loading_annotations.value = false;
     } catch (error) {
@@ -293,7 +300,7 @@ const clickComputeMetrics = async () => {
     const metrics = await compute_metrics(
       task.value?.id.toString()!,
       selectedLabels.value[0],
-      selectedDocuments.value,
+      selectedDocumentsOptQuery.value,
       selectedAnnotators.value,
       selectedAnnotatorsOrEmpty.value,
       tolerance.value,
@@ -311,7 +318,7 @@ const clickComputeMetrics = async () => {
       task.value?.id.toString()!,
       selectedAnnotators.value.length,
       selectedAnnotatorsOrEmpty.value,
-      selectedDocuments.value
+      selectedDocumentsOptQuery.value
     );
 
     updateMetrics(metrics, confidenceMetric);
@@ -352,7 +359,7 @@ const clickDownloadAll = async () => {
       task_id: task.value?.id.toString()!,
       labelsOptions: labelsOptions.map((l) => l.name),
       documents: selectedDocuments.value,
-      documentsOrEmpty: selectedDocuments.value,
+      documentsOrEmpty: selectedDocumentsOptQuery.value,
       annotators: selectedAnnotators.value,
       annotatorsOrEmpty: selectedAnnotatorsOrEmpty.value,
       tolerance: tolerance.value,
@@ -366,7 +373,7 @@ const clickDownloadAll = async () => {
 
     const zip = JSZip();
     for (let i = 0; i < blobs.length; i++) {
-      const b = await (await fetch(blobs[i].wb)).blob();
+      const b = await (await fetch(blobs[i].data)).blob();
       zip.file(`${blobs[i].name}`, b);
     }
     const blob_zip = await zip.generateAsync({ type: "blob" });
@@ -379,7 +386,94 @@ const clickDownloadAll = async () => {
 };
 
 async function download_all(data: any) {
-  let results: { wb: string; name: string }[] = [];
+  if (metricType.value == MetricTypes.AGREEMENT) {
+    return download_all_xlsl(data);
+  }
+  return download_all_csv(data);
+}
+
+//#region CSV
+
+async function download_all_csv(data: any) {
+  let results: { data: string; name: string }[] = [];
+  download_progress.value.current = 0;
+  download_progress.value.total =
+    (selectedDocuments.value.length + 1) * labelsOptions.length;
+  try {
+    if (data.documents.length > 1) {
+      const { workbookAnnotations } = await createBlobs(data);
+      results.push({
+        data: getZippeableBlob(workbookAnnotations),
+        name: `_annotations.xlsx`,
+      });
+    }
+
+    // Per document
+    for (let i = 0; i < data.documents.length; i++) {
+      const document = data.documents[i];
+      const filename = `${document}-${documentsNames.value[document].split('.')[0]}`;
+      const { workbookAnnotations } = await createBlobs(data, document);
+      results.push({
+        data: getZippeableBlob(workbookAnnotations),
+        name: `${filename}_annotations.xlsx`,
+      });
+    }
+
+    return results;
+  } catch (error) { console.error(error) }
+  return [];
+}
+
+async function createBlobs(data: any, document?: any) {
+  const workbookAnnotations = XLSX.utils.book_new();
+  for (let i = 0; i < data.labelsOptions.length; i++) {
+    const label = data.labelsOptions[i];
+
+    const annotations = await getAnnotations(
+      data.task_id,
+      [label],
+      document ? [document] : data.documentsOrEmpty,
+      data.annotators,
+      data.byWords,
+      data.hideNonText,
+      data.documentLevel,
+      MetricTypes.DESCRIPTIVE
+    );
+
+    const annotations_sheet = XLSX.utils.json_to_sheet(annotations.filter(a => a.label !== "NOT ANNOTATED").map(annotation => {
+      return {
+        start: annotation.start,
+        end: annotation.end,
+        label: annotation.label,
+        text: annotation.text,
+        annotator: annotation.annotator,
+        doc_id: annotation.doc_id.toString(),
+        doc_name: annotation?.doc_name!,
+        confidence: annotation.confidence
+      }
+    }));
+
+    let sheetName = label.substring(0, 31);
+
+    // works as long as there are less than 100 labels
+    if (label.length > 31) {
+      const range = i + 1 > 9 ? 12 : 13;
+      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+    }
+
+    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
+
+    download_progress.value.current += 1;
+  }
+
+  return { workbookAnnotations };
+}
+
+//#endregion
+
+//#region EXCEL
+async function download_all_xlsl(data: any) {
+  let results: { data: string; name: string }[] = [];
   download_progress.value.current = 0;
   download_progress.value.total =
     (selectedDocuments.value.length + 1) * labelsOptions.length * 3 +
@@ -388,19 +482,19 @@ async function download_all(data: any) {
     if (data.documents.length > 1) {
       const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data);
       results.push({
-        wb: getZippeableBlob(workBookConfidence),
+        data: getZippeableBlob(workBookConfidence),
         name: `_confidence.xlsx`,
       });
       results.push({
-        wb: getZippeableBlob(workbookMetrics),
+        data: getZippeableBlob(workbookMetrics),
         name: `_metrics.xlsx`,
       });
       results.push({
-        wb: getZippeableBlob(workbookAnnotations),
+        data: getZippeableBlob(workbookAnnotations),
         name: `_annotations.xlsx`,
       });
       results.push({
-        wb: getZippeableBlob(workbookDescriptive),
+        data: getZippeableBlob(workbookDescriptive),
         name: `_descriptive.xlsx`,
       });
     }
@@ -408,27 +502,27 @@ async function download_all(data: any) {
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
-      const filename = document + "-" + data.documentsData[document].name.split(".")[0] + "-" + data.documentsData[document].id;
+      const filename = document + "-" + data.documentsData[document].name.split(".")[0];
 
       const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data, document);
 
       results.push({
-        wb: getZippeableBlob(workBookConfidence),
+        data: getZippeableBlob(workBookConfidence),
         name: `${filename}_confidence.xlsx`,
       });
 
       results.push({
-        wb: getZippeableBlob(workbookMetrics),
+        data: getZippeableBlob(workbookMetrics),
         name: `${filename}_metrics.xlsx`,
       });
 
       results.push({
-        wb: getZippeableBlob(workbookAnnotations),
+        data: getZippeableBlob(workbookAnnotations),
         name: `${filename}_annotations.xlsx`,
       });
 
       results.push({
-        wb: getZippeableBlob(workbookDescriptive),
+        data: getZippeableBlob(workbookDescriptive),
         name: `${filename}_descriptive.xlsx`,
       });
     }
@@ -444,7 +538,7 @@ async function createWorkBooks(data: any, document?: any) {
     data.task_id,
     data.annotators.length,
     data.annotatorOrEmpty,
-    document ? [document] : data.documentsOrEmpty
+    document ? [document] : data.documentsOptQuery
   );
   download_progress.value.current++;
 
@@ -457,8 +551,8 @@ async function createWorkBooks(data: any, document?: any) {
 
     const annotations = await getAnnotations(
       data.task_id,
-      label,
-      data.documents,
+      [label],
+      document ? [document] : data.documentsOptQuery,
       data.annotators,
       data.byWords,
       data.hideNonText,
@@ -468,7 +562,7 @@ async function createWorkBooks(data: any, document?: any) {
     const metrics = await compute_metrics(
       data.task_id,
       label,
-      document ? [document] : data.documentsOrEmpty,
+      document ? [document] : data.documentsOptQuery,
       data.annotators,
       data.annotatorsOrEmpty,
       data.tolerance,
@@ -484,10 +578,12 @@ async function createWorkBooks(data: any, document?: any) {
     const metrics_sheet = await getMetricsSheet(
       metrics,
       label,
-      data.documentsOrEmpty,
+      document ? [document] : data.documentsOptQuery,
       data
     );
+
     const metrics_sample = metrics[0].table ?? metrics[2].table!;
+
     const annotations_sheet = await getAnnotationsSheet(metrics_sample?.length ?
       metrics_sample :
       annotations.map(annotation => {
@@ -505,7 +601,8 @@ async function createWorkBooks(data: any, document?: any) {
             [annotation.annotator]: annotation.confidence
           }
         }
-      }));
+    }));
+
     const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
       metrics_sample,
       data.annotators
@@ -625,7 +722,6 @@ async function getAnnotationsSheet(table: RangeLabel[]) {
       });
     });
   }
-
   return XLSX.utils.json_to_sheet(rows);
 }
 
@@ -736,6 +832,7 @@ function getZippeableBlob(workBook: XLSX.WorkBook) {
 
   return `data:${contentType};base64,${b64Data}`;
 }
+//#endregion
 
 onMounted(async () => {
   const urlHash = route.hash.substring(1);
@@ -757,6 +854,9 @@ onMounted(async () => {
 
   allDocumentsOptions.push(
     ...(await $trpc.document.findDocumentsByTask.query(+task.value.id)).map((d) => {
+      if (!(d.id in documentsNames.value)) {
+        documentsNames.value[d.id] = d.name;
+      }
       return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
     })
   );

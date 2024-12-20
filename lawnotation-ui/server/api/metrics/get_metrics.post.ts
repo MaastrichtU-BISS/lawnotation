@@ -12,7 +12,7 @@ export default eventHandler(async (event) => {
   if (!annotations.length) {
     const ann_body = JSON.stringify({
       task_id: data.task_id,
-      label: data.label,
+      labels: [data.label],
       documents: data.documents,
       annotators: data.annotatorsOrEmpty,
       byWords: data.byWords,

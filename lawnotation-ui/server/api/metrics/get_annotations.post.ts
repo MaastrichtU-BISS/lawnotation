@@ -53,6 +53,8 @@ export default eventHandler(async (event) => {
     result = setTextToHidden(result, data.hideNonText);
   }
 
+  console.log(result.length)
+
   return result;
 });
 
@@ -131,13 +133,15 @@ async function getNonAnnotations(
       });
     }
 
-    new_annotations.push(current_ann);
+    if(current_ann.doc_id in documentsData) {
+      new_annotations.push(current_ann);
+    }
     last_end = Math.max(last_end, current_ann.end);
     previous_ann = current_ann;
   }
 
   if (
-    documentsData[previous_ann.doc_id] &&
+    previous_ann.doc_id in documentsData &&
     last_end < documentsData[previous_ann.doc_id].full_text.length
   ) {
     new_annotations.push({

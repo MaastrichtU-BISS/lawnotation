@@ -31,6 +31,9 @@ dependencies:
   epic-spinners:
     specifier: ^2.0.0
     version: 2.0.0(vue@3.5.13)
+  export-to-csv:
+    specifier: ^1.4.0
+    version: 1.4.0
   file-saver:
     specifier: ^2.0.5
     version: 2.0.5
@@ -5808,6 +5811,11 @@ packages:
     dependencies:
       pify: 2.3.0
     dev: true
+
+  /export-to-csv@1.4.0:
+    resolution: {integrity: sha512-6CX17Cu+rC2Fi2CyZ4CkgVG3hLl6BFsdAxfXiZkmDFIDY4mRx2y2spdeH6dqPHI9rP+AsHEfGeKz84Uuw7+Pmg==}
+    engines: {node: ^v12.20.0 || >=v14.13.0}
+    dev: false
 
   /extend@3.0.2:
     resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
