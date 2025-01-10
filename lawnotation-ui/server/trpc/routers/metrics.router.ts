@@ -1,9 +1,10 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
-import { protectedProcedure, router } from '~/server/trpc'
+import { protectedProcedure, disabledProcedure, router, authorizer } from '~/server/trpc'
 import type { RichAnnotation } from '~/utils/metrics';
 import type { Context } from '../context';
 import { appRouter } from '.';
+import { taskEditorAuthorizer } from '../authorizers';
 
 // NOTE: this specific router serves as a boilerplate/starting point for a migration
 // and is not used yet. To enable, uncomment in ./index.ts 
@@ -207,7 +208,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
 export const metricsRouter = router({
   /* General Crud Definitions */
 
-  'get_metrics': protectedProcedure
+  'get_metrics': disabledProcedure
     .input(
       z.object({
         task_id: z.number(),
@@ -289,6 +290,11 @@ export const metricsRouter = router({
         documentsOptions: z.array(z.number())
       })
     )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .query(async ({ctx, input}) => {
       
       //   const documentsData = await findSharedDocumentsByTask(event, data.task_id);
@@ -319,15 +325,15 @@ export const metricsRouter = router({
       return result;
     }),
 
-  'krippendorff': protectedProcedure
+  'krippendorff': disabledProcedure
     .input(ZMetricInput)
     .output(ZMetricResult)
     .query(() => { return {} as z.infer<typeof ZMetricResult>}),
-  'fleiss_kappa': protectedProcedure
+  'fleiss_kappa': disabledProcedure
     .input(ZMetricInput)
     .output(ZMetricResult)
     .query(() => { return {} as z.infer<typeof ZMetricResult>}),
-  'cohens_kappa': protectedProcedure
+  'cohens_kappa': disabledProcedure
     .input(ZMetricInput)
     .output(ZMetricResult)
     .query(() => { return {} as z.infer<typeof ZMetricResult>}),

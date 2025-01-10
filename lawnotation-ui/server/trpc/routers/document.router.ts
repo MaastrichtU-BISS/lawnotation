@@ -1,9 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { authorizer, protectedProcedure, router } from "~/server/trpc";
+import { authorizer, protectedProcedure, disabledProcedure, router } from "~/server/trpc";
 import type { Document } from "~/types";
 import type { Context } from "../context";
 import sanitizeHtml from "sanitize-html";
+import { documentEditorAuthorizer, documentEditorOrAnnotatorAuthorizer, projectEditorAuthorizer, taskEditorAuthorizer } from "../authorizers";
 import {readPdfText} from 'pdf-text-reader';
 
 const ZDocumentFields = z.object({
@@ -13,64 +14,35 @@ const ZDocumentFields = z.object({
   full_text: z.string(),
 });
 
-const documentAuthorizer = async (
-  document_id: number,
-  user_id: string,
-  ctx: Context
-) => {
-  const editor = await ctx.supabase
-    .from("documents")
-    .select("*, project:projects!inner(editor_id)", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", document_id)
-    .eq("projects.editor_id", user_id);
-
-  if (editor.count) return true;
-
-  const annotator = await ctx.supabase
-    .from("assignments")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("document_id", document_id)
-    .eq("annotator_id", user_id);
-
-  return annotator.count! > 0;
-  // return true;
-};
-
 export const documentRouter = router({
   /* General Crud Definitions */
-  // find: protectedProcedure
-  //   .input(
-  //     z.object({
-  //       range: z.tuple([z.number().int(), z.number().int()]).optional(),
-  //       filter: ZDocumentFields.partial().optional(),
-  //     })
-  //   )
-  //   .query(async ({ ctx, input }) => {
-  //     let query = ctx.supabase.from("documents").select();
-  //     if (input.range) query = query.range(input.range[0], input.range[1]);
-  //     if (input.filter) query = query.match(input.filter);
+  find: disabledProcedure
+    .input(
+      z.object({
+        range: z.tuple([z.number().int(), z.number().int()]).optional(),
+        filter: ZDocumentFields.partial().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      let query = ctx.supabase.from("documents").select();
+      if (input.range) query = query.range(input.range[0], input.range[1]);
+      if (input.filter) query = query.match(input.filter);
 
-  //     const { data, error } = await query;
+      const { data, error } = await query;
 
-  //     if (error)
-  //       throw new TRPCError({
-  //         code: "INTERNAL_SERVER_ERROR",
-  //         message: `Error in documents.find: ${error.message}`,
-  //       });
-  //     return data as Document[];
-  //   }),
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in documents.find: ${error.message}`,
+        });
+      return data as Document[];
+    }),
 
   findById: protectedProcedure
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        documentAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+        documentEditorOrAnnotatorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
       )
     )
     .query(async ({ ctx, input: id }) => {
@@ -91,6 +63,11 @@ export const documentRouter = router({
 
   create: protectedProcedure
     .input(ZDocumentFields)
+    .use((opts) =>
+      authorizer(opts, () =>
+        projectEditorAuthorizer(opts.input.project_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .mutation(async ({ ctx, input }) => {
       const format = input.name.split(".").pop();
 
@@ -118,7 +95,7 @@ export const documentRouter = router({
       return data as Document;
     }),
 
-  createMany: protectedProcedure
+  createMany: disabledProcedure
     .input(z.array(ZDocumentFields))
     .mutation(async ({ ctx, input }) => {
       input.forEach((doc) => {
@@ -138,7 +115,7 @@ export const documentRouter = router({
       return data as Document[];
     }),
 
-  update: protectedProcedure
+  update: disabledProcedure
     .input(
       z.object({
         id: z.number().int(),
@@ -163,6 +140,11 @@ export const documentRouter = router({
 
   delete: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        documentEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase
         .from("documents")
@@ -177,7 +159,7 @@ export const documentRouter = router({
       return true;
     }),
 
-  table: protectedProcedure
+  table: disabledProcedure
     .input(
       z.object({
         project_id: z.number().int(),
@@ -202,7 +184,7 @@ export const documentRouter = router({
 
   // Extra implementations
 
-  findByProject: protectedProcedure
+  findByProject: disabledProcedure
     .input(z.number().int())
     .query(async ({ ctx, input: project_id }) => {
       const { data, error } = await ctx.supabase
@@ -221,6 +203,11 @@ export const documentRouter = router({
 
   findDocumentsByTask: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase.rpc("get_all_docs_from_task", {
         t_id: task_id,
@@ -236,6 +223,11 @@ export const documentRouter = router({
 
   findSharedDocumentsByTask: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase.rpc(
         "get_all_shared_docs_from_task",
@@ -257,6 +249,11 @@ export const documentRouter = router({
         n: z.number().int(),
         randomOrder: z.boolean().default(true),
       })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        projectEditorAuthorizer(opts.input.project_id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .query(async ({ ctx, input }) => {
       try {
@@ -291,6 +288,11 @@ export const documentRouter = router({
 
   totalAmountOfDocs: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        projectEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .query(async ({ ctx, input: project_id }) => {
       const { data, error, count } = await ctx.supabase
         .from("documents")
@@ -306,23 +308,22 @@ export const documentRouter = router({
     }),
 
   getCountByUser: protectedProcedure
-    .input(z.string())
-    .query(async ({ ctx, input: editor_id }) => {
+    .query(async ({ ctx }) => {
       const { data, error, count } = await ctx.supabase
         .from("documents")
         .select("*, project:projects!inner(id, editor_id)", { count: "exact" })
-        .eq("projects.editor_id", editor_id);
+        .eq("projects.editor_id", ctx.user.id);
 
       if (error)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in projects.getCountByUser: ${error.message}`,
+          message: `Error in document.getCountByUser: ${error.message}`,
         });
       return count;
     }),
 
   // TODO: replace with just get whole doc and get name property from there?
-  getName: protectedProcedure
+  getName: disabledProcedure
     .input(z.number().int())
     .query(async ({ ctx, input: id }) => {
       const { data, error } = await ctx.supabase
@@ -344,6 +345,11 @@ export const documentRouter = router({
 
   deleteAllFromProject: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        projectEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .mutation(async ({ ctx, input: project_id }) => {
       const { data, error } = await ctx.supabase
         .from("documents")

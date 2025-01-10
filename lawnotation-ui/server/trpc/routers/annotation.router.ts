@@ -1,8 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { protectedProcedure, router } from "~/server/trpc";
+import { protectedProcedure, disabledProcedure, router, authorizer } from "~/server/trpc";
 import type { Annotation } from "~/types";
 import { Origins } from "~/utils/enums";
+import { assignmentEditorOrAnnotatorAuthorizer, taskEditorAuthorizer } from "../authorizers";
+import { TRPCForbidden } from "../errors"
 
 const ZAnnotationFields = z.object({
   label: z.string(),
@@ -31,7 +33,7 @@ const ZAnnotationFields = z.object({
 
 export const annotationRouter = router({
   /* General Crud Definitions */
-  find: protectedProcedure
+  find: disabledProcedure
     .input(
       z.object({
         range: z.tuple([z.number().int(), z.number().int()]).optional(),
@@ -53,7 +55,7 @@ export const annotationRouter = router({
       return data as Annotation[];
     }),
 
-  findById: protectedProcedure
+  findById: disabledProcedure
     .input(z.number().int())
     .query(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
@@ -72,6 +74,11 @@ export const annotationRouter = router({
 
   findByAssignment: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentEditorOrAnnotatorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .query(async ({ ctx, input: assignment_id }) => {
       const { data, error } = await ctx.supabase
         .from("annotations")
@@ -86,7 +93,7 @@ export const annotationRouter = router({
       return data as Annotation[];
     }),
 
-  create: protectedProcedure
+  create: disabledProcedure
     .input(ZAnnotationFields)
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
@@ -107,6 +114,14 @@ export const annotationRouter = router({
     .input(z.array(ZAnnotationFields))
     .mutation(async ({ ctx, input }) => {
 
+      const assignmentIds = [...new Set(input.map(x => x.assignment_id))];
+      for (let assId of assignmentIds) {
+        const access = await assignmentEditorOrAnnotatorAuthorizer(assId, ctx.user.id, ctx)
+        if (!access) {
+          throw TRPCForbidden()
+        }
+      }
+
       const { data, error } = await ctx.supabase
         .from("annotations")
         .insert(input)
@@ -115,12 +130,12 @@ export const annotationRouter = router({
       if (error)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in annotation.create: ${error.message}`,
+          message: `Error in annotation.createMany: ${error.message}`,
         });
       return data as Annotation[];
     }),
 
-  update: protectedProcedure
+  update: disabledProcedure
     .input(
       z.object({
         id: z.number().int(),
@@ -143,7 +158,7 @@ export const annotationRouter = router({
       return data as Annotation;
     }),
 
-  delete: protectedProcedure
+  delete: disabledProcedure
     .input(z.number().int())
     .query(async ({ ctx, input }) => {
       const { error } = await ctx.supabase
@@ -161,7 +176,7 @@ export const annotationRouter = router({
 
   /* Specific Implementations */
 
-  findAnnotationsByTaskLabelDocumentsAnnotators: protectedProcedure
+  findAnnotationsByTaskLabelDocumentsAnnotators: disabledProcedure
     .input(
       z.object({
         task_id: z.string(),
@@ -208,7 +223,7 @@ export const annotationRouter = router({
       }
     }),
 
-  findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators: protectedProcedure
+  findAnnotationsByTaskAndDocumentAndLabelsAndAnnotators: disabledProcedure
     .input(
       z.object({
         task_id: z.number().int(),
@@ -238,6 +253,11 @@ export const annotationRouter = router({
 
   findAnnotationsByTask: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase
         .from("annotations")
@@ -261,6 +281,11 @@ export const annotationRouter = router({
         assignment_id: z.number().int(),
         annotations: z.array(ZAnnotationFields),
       })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentEditorOrAnnotatorAuthorizer(opts.input.assignment_id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const query_delete = await ctx.supabase

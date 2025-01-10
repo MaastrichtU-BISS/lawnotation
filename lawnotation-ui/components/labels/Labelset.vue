@@ -264,8 +264,7 @@ const persistLabelset = async () => {
       $toast.success(`Labelset "${labelset.value.name}" saved`);
     } else {
       const create = await $trpc.labelset.create.mutate({
-        ...labelset.value,
-        editor_id: user.value.id,
+        ...labelset.value
       });
       labelset.value.id = create.id;
       $toast.success(`Labelset "${labelset.value.name}" created`);

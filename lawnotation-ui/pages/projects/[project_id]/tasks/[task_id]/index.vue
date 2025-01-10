@@ -642,13 +642,12 @@ const createAssignments = async () => {
       randomOrder: randomizationSelected.value != RandomizationOptions.NONE
     });
 
-    const new_assignments: Pick<Assignment, "task_id" | "document_id" | "origin" | "status">[] = [];
+    const new_assignments: Pick<Assignment, "document_id" | "origin" | "status">[] = [];
 
     // Create shared assignments (only with docs info)
     for (let i = 0; i < number_of_fixed_docs.value; ++i) {
       for (let j = 0; j < annotatorEmails.value.length; ++j) {
-        const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
-          task_id: task.id,
+        const new_assignment: Pick<Assignment, "document_id" | "origin" | "status"> = {
           document_id: docs[i],
           status: task.ml_model_id ? AssignmentStatuses.PREDICTING : AssignmentStatuses.PENDING,
           origin: Origins.MANUAL
@@ -659,8 +658,7 @@ const createAssignments = async () => {
 
     // Create unique assignments (only with docs info)
     for (let i = number_of_fixed_docs.value; i < number_of_docs.value; ++i) {
-      const new_assignment: Pick<Assignment, "task_id" | "document_id" | "origin" | "status"> = {
-        task_id: task.id,
+      const new_assignment: Pick<Assignment, "document_id" | "origin" | "status"> = {
         document_id: docs[i],
         status: task.ml_model_id ? AssignmentStatuses.PREDICTING : AssignmentStatuses.PENDING,
         origin: Origins.MANUAL
@@ -723,6 +721,7 @@ const createAssignments = async () => {
 
     const created_assignments: Assignment[] = await $trpc.assignment.createMany.mutate(
       {
+        task_id: task.id,
         assignments: new_assignments,
         pre_annotations: task.ml_model_id ?
           {

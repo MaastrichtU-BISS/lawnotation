@@ -708,7 +708,6 @@ const importTask = async () => {
             let ann_id: string | null = annotator_ids[ass.annotator - 1];
 
             let new_ass: any = {
-              task_id: task.id,
               document_id: documentIds[i],
               difficulty_rating: ass.difficulty_rating,
               seq_pos: ass.order,
@@ -725,7 +724,7 @@ const importTask = async () => {
           });
         });
 
-        const assignments = await $trpc.assignment.createMany.mutate({ assignments: new_assignments });
+        const assignments = await $trpc.assignment.createMany.mutate({ task_id: task.id, assignments: new_assignments });
 
         if (import_json.value.counts?.annotations) {
           // Creating annotations

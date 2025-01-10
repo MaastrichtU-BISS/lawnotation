@@ -2,20 +2,33 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
 import type { Context } from '~/server/trpc/context';
+import { projectEditorAuthorizer, taskEditorAuthorizer, type AuthorizerDefinition } from '../authorizers';
+import type { Database } from '~/types/supabase';
+import { TRPCForbidden } from '../errors';
 
-export type SupabaseDataSource = {
-      type: "supabase_table";
-      select?: string;
-      from: string;
-      search_columns?: Record<string, string[]>
-      // filter can be defined on server (like user_id) and on client (like project_id)
-      filter?: object | (( { ctx }: { ctx: Context } ) => object);
-      or?: string;
+type SupabaseDataSource = {
+    type: "supabase_table",
+    select?: string,
+    from: keyof Database['public']['Tables'],
+    search_columns?: Record<string, string[]>,
+    // filter can be defined on server (like user_id) and on client (like project_id)
+    filter?: object | (( { ctx }: { ctx: Context } ) => object),
+    or?: string,
+    
+    authorizer?: {
+      filter_key: string,
+      resolver: AuthorizerDefinition
     }
+  }
 
+// type SqlDataSource = {
+//   type: "sql_table",
+//   select?: string,
+//   from: string,
+//   filter?: object | (( { ctx }: { ctx: Context } ) => object),
+// }
 
-export type TableDataSource = 
-  // TableDataSourceColumns
+type TableDataSource = 
   & SupabaseDataSource;
   // | {
   //     type: "supabase_rpc";
@@ -60,6 +73,18 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
     // let total;
     switch (source.type) {
       case "supabase_table": {
+
+        if (source.authorizer != undefined) {
+          if (!input.filter)
+            throw Error("Table uses authorization but no filter is provided")
+          if (!(source.authorizer.filter_key in input.filter))
+            throw Error("Table requires authorization but key is not found in filter")
+
+          const authorizerResult = await source.authorizer.resolver(input.filter[source.authorizer.filter_key], ctx.user.id, ctx)
+          if (!authorizerResult)
+            throw TRPCForbidden()
+        }
+        
         const filter: object = {
           ...input.filter,                          // first, lower prioirity, is the input filter
           ...(typeof source.filter === "function"   // secondly, the server-configured filter is merged
@@ -115,8 +140,6 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
 
         const { data, error, count } = await query;
 
-        // console.log(filter)
-
         if (error)
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
@@ -155,28 +178,36 @@ export const tableRouter = router({
   'documents': createTableProcedure({
     type: 'supabase_table',
     from: 'documents',
-    // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
+    authorizer: {
+      filter_key: 'project_id',
+      resolver: projectEditorAuthorizer
+    }
   }),
 
   'tasks': createTableProcedure({
     type: 'supabase_table',
     from: 'tasks',
-    select: '*, assignments:assignments(count)'
-    // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
+    select: '*, assignments:assignments(count)',
+    authorizer: {
+      filter_key: 'project_id',
+      resolver: projectEditorAuthorizer
+    }
   }),
 
   'publications': createTableProcedure({
     type: 'supabase_table',
     from: 'publications',
     search_columns: {flat: ['author','task_name', 'task_description', 'labels_name', 'labels_description', 'contact']}
-    // filter: ({ctx, input}) => ({ project_id: project.value?.id }),
   }),
 
   'assignments': createTableProcedure({
     type: 'supabase_table',
     from: 'assignments',
     select: 'id, task_id, status, difficulty_rating, seq_pos, annotator_number, origin, annotator:users(id, email), document:documents!inner(id, name, source)',
-    // or: "origin.neq.model",
+    authorizer: {
+      filter_key: 'task_id',
+      resolver: taskEditorAuthorizer
+    }
   }),
 
   'assignedTasks': createTableProcedure({

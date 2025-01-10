@@ -29,6 +29,7 @@
   </template>
 </template>
 <script setup lang="ts">
+import type { AppRouter } from "~/server/trpc/routers";
 import type {
   Assignment,
   LSSerializedAnnotations,
@@ -46,12 +47,12 @@ import { isDocumentLevel, getDocFormat } from "~/utils/levels";
 
 const user = useSupabaseUser();
 
-const { $toast, $trpc } = useNuxtApp();
+const { $trpc } = useNuxtApp();
 
 type Id = number;
 
 const route = useRoute();
-const assignment = ref<Assignment>();
+const assignment = ref<AppRouter['assignment']['findById']['_def']['_output_out']>();
 const task = ref<Task>();
 const project = ref<Project>();
 const doc = ref<Document>();
@@ -77,13 +78,13 @@ const loadData = async () => {
 
     if (!assignment.value) throw Error("Assignment not found");
 
-    if(assignment.value.annotator_id) {
-      annotator_email.value = (await $trpc.user.findById.query(assignment.value.annotator_id)).email
+    if(assignment.value.annotator.email) {
+      annotator_email.value = assignment.value.annotator.email
     } else {
       annotator_email.value = `annotator ${assignment.value.annotator_number}`;
     }
 
-    doc.value = await $trpc.document.findById.query(+assignment.value.document_id);
+    doc.value = await $trpc.document.findById.query(+assignment.value.document_id!);
     if (!doc.value) throw Error("Document not found");
 
     if (!assignment.value.task_id) throw Error("Task not found");

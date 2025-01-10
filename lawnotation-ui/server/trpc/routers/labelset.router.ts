@@ -2,12 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Labelset } from "~/types";
-import type { Context } from "../context";
+import { labelsetEditorOrAnnotatorAuthorizer } from "../authorizers";
 
 const ZLabelsetFields = z.object({
   name: z.string(),
   desc: z.string(),
-  editor_id: z.string(),
+  // editor_id: z.string(),
   labels: z.array(
     z.object({
       name: z.string(),
@@ -15,35 +15,6 @@ const ZLabelsetFields = z.object({
     })
   ),
 });
-
-const labelsetAuthorizer = async (
-  labelset_id: number,
-  user_id: string,
-  ctx: Context
-) => {
-  const editor = await ctx.supabase
-    .from("labelsets")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", labelset_id)
-    .or(`editor_id.eq.${user_id},editor_id.is.null`);
-
-  if (editor.count) return true;
-
-  const annotator = await ctx.supabase
-    .from("assignments")
-    .select("*, task:tasks!inner(labelset_id)", {
-      count: "exact",
-      head: true,
-    })
-    .eq("tasks.labelset_id", labelset_id)
-    .eq("annotator_id", user_id);
-
-  return annotator.count! > 0;
-  // return true;
-};
 
 export const labelsetRouter = router({
   /* General Crud Definitions */
@@ -73,7 +44,7 @@ export const labelsetRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        labelsetAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+        labelsetEditorOrAnnotatorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
       )
     )
     .query(async ({ ctx, input: id }) => {
@@ -97,7 +68,7 @@ export const labelsetRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
         .from("labelsets")
-        .insert(input)
+        .insert({...input, editor_id: ctx.user.id})
         .select()
         .single();
 
@@ -121,6 +92,7 @@ export const labelsetRouter = router({
         .from("labelsets")
         .update(input.updates)
         .eq("id", input.id)
+        .eq("editor_id", ctx.user.id)
         .select()
         .single();
 
@@ -138,7 +110,8 @@ export const labelsetRouter = router({
       const { error } = await ctx.supabase
         .from("labelsets")
         .delete()
-        .eq("id", input);
+        .eq("id", input)
+        .eq("editor_id", ctx.user.id);
 
       if (error)
         throw new TRPCError({
