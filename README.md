@@ -3,7 +3,7 @@
 ![Lawnotation](https://www.lawnotation.org/assets/lawnotation_logo_v2-17f3df90.svg)
 
 Lawnotation is a legal text annotation platform for researchers, legal practioners and more.
-Some of the most significant features are: assignment allocation, annotation metrics, discovery of published annotation tasks, 
+Some of the most significant features are: assignment allocation, annotation metrics, discovery of published annotation tasks.
 
 ## Features
 - PDF, HTML and TXT documents,
@@ -11,7 +11,7 @@ Some of the most significant features are: assignment allocation, annotation met
 - Advanced annotation insights and metrics,
 - JSON import- and export,
 - Publishing data,
-- Document discovery,
+- Document discovery.
 
 ## Quick Start
 The easiest and quickest way to get started using Lawnotation is to use the hosted version of the platform. You can sign up for free at [lawnotation.org](lawnotation.org). 
@@ -68,10 +68,8 @@ pnpm install
 - Push the migrations to the remote database using `pnpm supabase db push` command ([reference](https://supabase.com/docs/reference/cli/supabase-db-push))
 
 **6. Start the nuxt server**
-- Preview using `pnpm preview`
-- Build using `pnpm build`. 
-  - The application will be built to the `lawnotation-ui/.output` folder
-  - The application can be ran using `node .output/server/index.mjs`
+- The application can be built using `pnpm build`. 
+- The application can be ran either using `pnpm preview` or `node .output/server/index.mjs`
 
 ## Development
 The setup for developing is equivalent to that of self-hosting. The main difference is that Supabase is ran locally instead of remote, and that Nuxt's development server is started instead of its production server. To do this:
