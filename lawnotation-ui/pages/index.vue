@@ -22,8 +22,8 @@
     </section>
     <section class="flex justify-center p-6 py-16 my-5 bg-blue-50 border border-gray-200 rounded-lg shadow gap-10"
       :class="(!nextAssignment) ? 'mt-12' : ''">
-      <IndexCard url="/projects" title="Create new project" svg-d="M18 9V4a1 1 0 0 0-1-1H8.914a1 1 0 0 0-.707.293L4.293 7.207A1 1 0 0 0 4 7.914V20a1 1 0 0 0 1 1h4M9 3v4a1 1 0 0 1-1 1H4m11 6v4m-2-2h4m3 0a5 5 0 1 1-10 0 5 5 0 0 1 10 0Z" />
-      <IndexCard url="/published" title="Browse published data" svg-d="M10 3v4a1 1 0 0 1-1 1H5m8 7.5 2.5 2.5M19 4v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7.914a1 1 0 0 1 .293-.707l3.914-3.914A1 1 0 0 1 9.914 3H18a1 1 0 0 1 1 1Zm-5 9.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z" />
+      <IndexCard url="/projects" title="Create new project" icon="pi pi-file"/>
+      <IndexCard url="/published" title="Browse published data" icon="pi pi-search" />
     </section>
   </div>
 </template>

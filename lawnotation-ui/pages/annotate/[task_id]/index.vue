@@ -46,8 +46,6 @@ const user = useSupabaseUser();
 
 const { $toast, $trpc } = useNuxtApp();
 
-type Id = number;
-
 const route = useRoute();
 const router = useRouter();
 const assignment = ref<Assignment>();

@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <Breadcrumb v-if="task && project" :crumbs="[
+  <div v-if="task && project">
+    <Breadcrumb :crumbs="[
       {
         name: 'Projects',
         link: '/projects',
@@ -18,124 +18,47 @@
         link: `/projects/${project.id}/tasks/${task.id}/metrics`,
       },
     ]" />
-    <div class="dimmer-wrapper pt-2">
+    <div class="dimmer-wrapper">
       <DimmerProgress v-if="download_progress.loading" v-model="download_progress" />
       <Dimmer v-else v-model="loading" />
       <div class="dimmer-content">
-        <aside id="logo-sidebar"
+        <!-- left column -->
+        <aside
           class="fixed left-0 z-40 w-80 side-panel-h transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
           aria-label="Sidebar" style="margin-top: inherit">
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
-            <ul class="space-y-2 text-sm">
-              <li>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label</label>
-                <Dropdown v-model="selectedLabel" :options="labelsOptions" optionLabel="name" placeholder="Select a Label"
-                  class="w-full" @change="selectLabel($event.value?.name)" :panel-style="{ width: '295px' }" :pt="{
-                    item: '!py-2'
-                  }" :ptOptions="{ mergeProps: true }">
-                  <template #value="slotProps">
-                    <div v-if="slotProps.value">
-                      <LabelCmpt
-                        :label="{ color: labelsOptions.find((l) => l.name == slotProps.value)?.color!, name: slotProps.value }">
-                      </LabelCmpt>
-                    </div>
-                    <span v-else>
-                      {{ slotProps.placeholder }}
-                    </span>
-                  </template>
-                  <template #option="slotProps">
-                    <LabelCmpt :label="slotProps.option"></LabelCmpt>
-                  </template>
-                </Dropdown>
-              </li>
-              <li>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Document(s)</label>
-                <Multiselect v-model="selectedDocumentsOrEmpty" class="w-full" optionLabel="label" optionValue="value"
-                  :options="documentsOptions" placeholder="All" @change="selectDocument" />
-              </li>
-              <li>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Annotators</label>
-                <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions" placeholder="All"
-                  class="w-full" @change="selectAnnotators" />
-              </li>
-              <li v-if="task && !isDocumentLevel(task)">
-                <!-- Only for span annotations -->
-                <div>
-                  <div class="flex justify-between">
-                    <label for="small-input"
-                      class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tolerance</label>
-                    <InfoToolTip :id="'tooltip_tolerance'"
-                      :text="'A tolerance of 1 allows for small differences of one character while still considering them as agreements. Higher tolerance offers more flexibility in matching.'" />
-                  </div>
-                  <input type="number" id="small-input" v-model="tolerance" min="0" :max="10" step="1"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
-                </div>
-                <div class="flex justify-between my-4">
-                  <span>&nbsp;</span>
-                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
-                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Annotation</span>
-                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
-                      modeToggle($event.target.checked);
-                    }
-                      " />
-                    <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
-                    </div>
-                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Word</span>
-                  </label>
-                  <InfoToolTip :id="'tooltip_annotation_word'"
-                    :text="'Choose between comparing entire chunks with annotations or individual words\' annotations.'" />
-                </div>
-                <div class="flex justify-between my-4">
-                  <span>&nbsp;</span>
-                  <label class="relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
-                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Equal</span>
-                    <input type="checkbox" value="" class="sr-only peer" @input="($event: Event) => {
-                      contained = !contained;
-                      tolerance = 0;
-                    }
-                      " />
-
-                    <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
-                    </div>
-                    <span
-                      class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Overlap</span>
-                  </label>
-                  <InfoToolTip :id="'tooltip_equal_overlap'"
-                    :text="`With \'Equal Overlap\', annotations must match exactly. With \'Overlapping Annotations\', any degree of overlap counts as agreement.`" />
-                </div>
-                <div class="flex justify-between mt-4">
-                  <span>&nbsp;</span>
-                  <label class="h-full relative grid grid-cols-[1fr_min-content_1fr] items-center cursor-pointer">
-                    <span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">Include NTA</span>
-                    <input type="checkbox" value="" :checked="hideNonText" class="sr-only peer" @input="($event: Event) => {
-                      toggleTextToHidden($event?.target?.checked);
-                    }
-                      " />
-
-                    <div
-                      class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
-                    </div>
-                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 justify-self-start">Exclude
-                      NTA</span>
-                  </label>
-
-                  <InfoToolTip :id="'tooltip_nta'"
-                    :text="'Decide whether to factor in non-text annotations (NTA) (e.g., \'. 2.\') that do not consist of regular text. When \'Include\' is chosen, these annotations contribute to agreement calculations. When \'Ignore\' is chosen, they are excluded from calculations.'" />
-                </div>
-              </li>
-              <li>
-                <Button class="w-full mt-4" label="Compute Metrics" size="small" @click="clickComputeMetrics" />
-              </li>
-              <li>
-                <Button class="w-full" label="Download All" outlined size="small" @click="clickDownloadAll" />
-              </li>
-            </ul>
+            <TabView v-model:activeIndex="metricsTypeActiveTab" v-on:update:active-index="updateUrl($event)">
+              <TabPanel header="Descriptive" :pt="{
+                headerAction: '!py-3',
+              }" :ptOptions="{ mergeProps: true }">
+                <ParametersColumn :metric-type="MetricTypes.DESCRIPTIVE" :labels-options="labelsOptions"
+                  :annotators-options="annotatorsOptions" :documents-options="allDocumentsOptions"
+                  :showNonDocumentLevelAgreementParams="false" v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
+                  v-model:selectedDocumentsOrEmpty="allSelectedDocumentsOrEmpty"
+                  v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" @click-download-all="clickDownloadAll"
+                  @update-annotations="updateAnnotations">
+                </ParametersColumn>
+              </TabPanel>
+              <TabPanel header="Agreement" :disabled="annotatorsOptions.length < 2" :pt="{
+                headerAction: '!py-3',
+              }" :ptOptions="{ mergeProps: true }">
+                <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
+                  :annotators-options="annotatorsOptions" :documents-options="sharedDocumentsOptions"
+                  :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)"
+                  v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
+                  v-model:selectedDocumentsOrEmpty="sharedSelectedDocumentsOrEmpty"
+                  v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" v-model:tolerance="tolerance"
+                  v-model:contained="contained" v-model:separate_into_words="separate_into_words"
+                  v-model:hideNonText="hideNonText" @click-compute-metrics="clickComputeMetrics"
+                  @click-download-all="clickDownloadAll" @update-annotations="updateAnnotations">
+                </ParametersColumn>
+              </TabPanel>
+            </TabView>
           </div>
         </aside>
         <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations"
-          :labels="labelsOptions" :loading="loading" :documentsData="documentsData"></AnnotationsList>
+          :labels="labelsOptions" :loading="loading" :documentsData="documentsData" :metricType="metricType"
+          :documentUrl="`/projects/${project.id}/tasks/${task.id}/documents`"></AnnotationsList>
       </div>
     </div>
     <ResultsModal v-if="metricsResult?.confidence" v-model:visible="metricsModalVisible" :metricResults="metricsResult"
@@ -143,11 +66,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import LabelCmpt from "~/components/labels/Label.vue";
-import Dropdown from "primevue/dropdown";
-import Multiselect from "primevue/multiselect";
 import AnnotationsList from "~/components/metrics/AnnotationsList.vue";
 import ResultsModal from "~/components/metrics/ResultsModal.vue";
+import ParametersColumn from "~/components/metrics/ParametersColumn.vue";
 import * as XLSX from "xlsx";
 import type { Task, Project } from "~/types";
 import type { RichAnnotation } from "~/utils/metrics";
@@ -156,19 +77,21 @@ import type {
   MetricResultsTable,
   ConfidenceMetricResult,
 } from "~/utils/metrics";
+import { MetricTypes } from "~/utils/enums";
 import { isDocumentLevel } from "~/utils/levels";
-import { initFlowbite } from "flowbite";
 import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
 import fileSaver from "file-saver";
 import JSZip, { file } from "jszip";
 import type { RangeLabel } from "~/utils/metrics";
 import { authorizeClient } from "~/utils/authorize.client";
+// import { mkConfig, generateCsv, asBlob } from "export-to-csv";
 
 const saveAs = fileSaver.saveAs;
 
 const { $toast, $trpc } = useNuxtApp();
 
+const router = useRouter();
 const route = useRoute();
 const task = ref<Task>();
 const project = ref<Project>();
@@ -180,34 +103,80 @@ const download_progress = ref<{ current: number; total: number; loading: boolean
   message: ""
 });
 
+// metrics
+const metricsTypeActiveTab = ref<number>(0);
+const metricsModalVisible = ref<boolean>(false);
+const metricsResult = ref<MetricResultsTable>({} as any);
+const metricType = computed(() => {
+  return metricsTypeActiveTab.value == 1 ? MetricTypes.AGREEMENT : MetricTypes.DESCRIPTIVE;
+});
+const updateUrl = (activeIndex: number) => {
+  if (activeIndex == 1) {
+    router.push({ hash: '#agreement' });
+  } else {
+    router.push({ hash: '#descriptive' });
+  }
+  selectedLabelsOrEmpty.value.splice(0);
+  selectedDocumentsOrEmpty.value.splice(0);
+  selectedAnnotatorsOrEmpty.value.splice(0);
+  annotations.splice(0);
+  updateAnnotations();
+};
+
 // options
 const loading_options = ref(false);
 
 const labelsOptions = reactive<{ name: string, color: string }[]>([]);
-const selectedLabel = ref<string>();
+const selectedLabelsOrEmpty = ref<string[]>([]);
+const selectedLabels = computed((): string[] => {
+  return selectedLabelsOrEmpty.value && selectedLabelsOrEmpty.value.length
+    ? selectedLabelsOrEmpty.value
+    : labelsOptions.map((l => l.name));
+});
 
-const documentsOptions = reactive<{ value: string; label: string }[]>([]);
-const selectedDocumentsOrEmpty = ref<string[]>([]);
+const allDocumentsOptions = reactive<{ value: string; label: string }[]>([]);
+const sharedDocumentsOptions = reactive<{ value: string; label: string }[]>([]);
+const documentsOptions = computed(() => {
+  return metricsTypeActiveTab.value == 0 ? allDocumentsOptions : sharedDocumentsOptions;
+});
+const allSelectedDocumentsOrEmpty = ref<string[]>([]);
+const sharedSelectedDocumentsOrEmpty = ref<string[]>([]);
+const selectedDocumentsOrEmpty = computed(() => {
+  return metricType.value == MetricTypes.AGREEMENT ? sharedSelectedDocumentsOrEmpty.value : allSelectedDocumentsOrEmpty.value;
+});
+const selectedDocuments = computed((): string[] => {
+  return selectedDocumentsOrEmpty.value && selectedDocumentsOrEmpty.value.length
+    ? selectedDocumentsOrEmpty.value
+    : documentsOptions.value.map(d => d.value);
+});
+const selectedDocumentsOptQuery = computed((): string[] => {
+  if (metricType.value == MetricTypes.AGREEMENT &&
+    !sharedSelectedDocumentsOrEmpty.value?.length &&
+    sharedDocumentsOptions.length < allDocumentsOptions.length) {
+    return sharedDocumentsOptions.map(d => d.value);
+  }
+  return selectedDocumentsOrEmpty.value;
+});
 
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotatorsOrEmpty = ref<string[]>([]);
+const selectedAnnotators = computed((): string[] => {
+  return selectedAnnotatorsOrEmpty.value && selectedAnnotatorsOrEmpty.value.length
+    ? selectedAnnotatorsOrEmpty.value
+    : annotatorsOptions;
+});
 
 const tolerance = ref<number>(0);
-
 const separate_into_words = ref(false);
 const contained = ref(false);
 const hideNonText = ref(true);
 
 // annotations
-const annotations_limit = 10 ** 4;
+const annotations_limit = 10 ** 6;
 const loading_annotations = ref(false);
 const annotations = reactive<RichAnnotation[]>([]);
-
-// metrics
-const metricsModalVisible = ref<boolean>(false);
-const metricsResult = ref<MetricResultsTable>({} as any);
-
 const documentsData = ref<any>({});
+const documentsNames = ref<any>({});
 
 const loading = computed((): boolean => {
   return (loading_annotations.value ||
@@ -216,58 +185,25 @@ const loading = computed((): boolean => {
     loading_options.value) as boolean;
 });
 
-const selectedAnnotators = computed((): string[] => {
-  return selectedAnnotatorsOrEmpty.value && selectedAnnotatorsOrEmpty.value.length
-    ? selectedAnnotatorsOrEmpty.value
-    : annotatorsOptions;
-});
-
-const selectedDocuments = computed((): string[] => {
-  return selectedDocumentsOrEmpty.value && selectedDocumentsOrEmpty.value.length
-    ? selectedDocumentsOrEmpty.value
-    : documentsOptions.map((d) => d.value);
-});
-
-const selectLabel = (value: string) => {
-  selectedLabel.value = value;
-  selectAnnotators();
-};
-
-const selectDocument = () => {
-  selectAnnotators();
-};
-
-const selectAnnotators = async () => {
-  if (!task.value) {
-    $toast.error(`Invalid Task`);
-    return;
-  }
-  if (!selectedLabel.value) {
-    return;
-  }
-
-  nextTick(() => {
-    updateAnnotations();
-  });
-};
-
 const getAnnotations = async (
   task_id: string,
-  label: string,
+  labels: string[],
   documents: string[],
   annotators: string[],
   byWords: boolean,
   hideNonText: boolean,
-  documentLevel: boolean = false
+  documentLevel: boolean = false,
+  metricType: MetricTypes = MetricTypes.AGREEMENT
 ) => {
   const body = JSON.stringify({
     task_id: task_id,
-    label: label,
+    labels: labels,
     documents: documents,
     annotators: annotators,
     byWords: byWords,
     hideNonText: hideNonText,
-    documentLevel: documentLevel
+    documentLevel: documentLevel,
+    metricType: metricType
   });
 
   return $fetch("/api/metrics/get_annotations", {
@@ -282,23 +218,26 @@ const updateAnnotations = async () => {
     throw new Error("Task does not exist");
   }
 
-  loading_annotations.value = true;
-  try {
-    annotations.splice(0);
-    const anns = await getAnnotations(
-      task.value?.id.toString()!,
-      selectedLabel.value!,
-      selectedDocumentsOrEmpty.value!,
-      selectedAnnotatorsOrEmpty.value!,
-      separate_into_words.value,
-      hideNonText.value,
-      isDocumentLevel(task.value)
-    );
-
-    if (anns.length < annotations_limit) annotations.push(...anns);
-    loading_annotations.value = false;
-  } catch (error) {
-    loading_annotations.value = false;
+  // only allow multiple labels when descriptive
+  if (metricType.value == MetricTypes.DESCRIPTIVE || selectedLabelsOrEmpty.value.length == 1) {
+    loading_annotations.value = true;
+    try {
+      annotations.splice(0);
+      const anns = await getAnnotations(
+        task.value?.id.toString()!,
+        selectedLabelsOrEmpty.value!,
+        selectedDocumentsOptQuery.value!,
+        selectedAnnotatorsOrEmpty.value!,
+        separate_into_words.value,
+        hideNonText.value,
+        isDocumentLevel(task.value),
+        metricType.value
+      );
+      if (anns.length < annotations_limit) annotations.push(...anns);
+      loading_annotations.value = false;
+    } catch (error) {
+      loading_annotations.value = false;
+    }
   }
 };
 
@@ -350,7 +289,7 @@ const compute_metrics = async (
 };
 
 const clickComputeMetrics = async () => {
-  if (!selectedLabel.value) return;
+  if (!selectedLabels.value) return;
   if (!task.value) {
     $toast.error("Task does not exist");
     throw new Error("Task does not exist");
@@ -360,8 +299,8 @@ const clickComputeMetrics = async () => {
     // agreement metrics
     const metrics = await compute_metrics(
       task.value?.id.toString()!,
-      selectedLabel.value,
-      selectedDocumentsOrEmpty.value,
+      selectedLabels.value[0],
+      selectedDocumentsOptQuery.value,
       selectedAnnotators.value,
       selectedAnnotatorsOrEmpty.value,
       tolerance.value,
@@ -370,7 +309,7 @@ const clickComputeMetrics = async () => {
       contained.value,
       isDocumentLevel(task.value),
       documentsData.value,
-      documentsOptions.map((d) => d.value),
+      documentsOptions.value.map((d) => d.value),
       annotations && annotations.length ? annotations : []
     );
 
@@ -379,7 +318,7 @@ const clickComputeMetrics = async () => {
       task.value?.id.toString()!,
       selectedAnnotators.value.length,
       selectedAnnotatorsOrEmpty.value,
-      selectedDocumentsOrEmpty.value
+      selectedDocumentsOptQuery.value
     );
 
     updateMetrics(metrics, confidenceMetric);
@@ -420,7 +359,7 @@ const clickDownloadAll = async () => {
       task_id: task.value?.id.toString()!,
       labelsOptions: labelsOptions.map((l) => l.name),
       documents: selectedDocuments.value,
-      documentsOrEmpty: selectedDocumentsOrEmpty.value,
+      documentsOrEmpty: selectedDocumentsOptQuery.value,
       annotators: selectedAnnotators.value,
       annotatorsOrEmpty: selectedAnnotatorsOrEmpty.value,
       tolerance: tolerance.value,
@@ -429,12 +368,12 @@ const clickDownloadAll = async () => {
       contained: contained.value,
       documentLevel: isDocumentLevel(task.value),
       documentsData: documentsData.value,
-      documentsOptions: documentsOptions.map((d) => d.value),
+      documentsOptions: documentsOptions.value.map((d) => d.value),
     });
 
     const zip = JSZip();
     for (let i = 0; i < blobs.length; i++) {
-      const b = await (await fetch(blobs[i].wb)).blob();
+      const b = await (await fetch(blobs[i].data)).blob();
       zip.file(`${blobs[i].name}`, b);
     }
     const blob_zip = await zip.generateAsync({ type: "blob" });
@@ -447,7 +386,94 @@ const clickDownloadAll = async () => {
 };
 
 async function download_all(data: any) {
-  let results: { wb: string; name: string }[] = [];
+  if (metricType.value == MetricTypes.AGREEMENT) {
+    return download_all_xlsl(data);
+  }
+  return download_all_csv(data);
+}
+
+//#region CSV
+
+async function download_all_csv(data: any) {
+  let results: { data: string; name: string }[] = [];
+  download_progress.value.current = 0;
+  download_progress.value.total =
+    (selectedDocuments.value.length + 1) * labelsOptions.length;
+  try {
+    if (data.documents.length > 1) {
+      const { workbookAnnotations } = await createBlobs(data);
+      results.push({
+        data: getZippeableBlob(workbookAnnotations),
+        name: `_annotations.xlsx`,
+      });
+    }
+
+    // Per document
+    for (let i = 0; i < data.documents.length; i++) {
+      const document = data.documents[i];
+      const filename = `${document}-${documentsNames.value[document].split('.')[0]}`;
+      const { workbookAnnotations } = await createBlobs(data, document);
+      results.push({
+        data: getZippeableBlob(workbookAnnotations),
+        name: `${filename}_annotations.xlsx`,
+      });
+    }
+
+    return results;
+  } catch (error) { console.error(error) }
+  return [];
+}
+
+async function createBlobs(data: any, document?: any) {
+  const workbookAnnotations = XLSX.utils.book_new();
+  for (let i = 0; i < data.labelsOptions.length; i++) {
+    const label = data.labelsOptions[i];
+
+    const annotations = await getAnnotations(
+      data.task_id,
+      [label],
+      document ? [document] : data.documentsOrEmpty,
+      data.annotators,
+      data.byWords,
+      data.hideNonText,
+      data.documentLevel,
+      MetricTypes.DESCRIPTIVE
+    );
+
+    const annotations_sheet = XLSX.utils.json_to_sheet(annotations.filter(a => a.label !== "NOT ANNOTATED").map(annotation => {
+      return {
+        start: annotation.start,
+        end: annotation.end,
+        label: annotation.label,
+        text: annotation.text,
+        annotator: annotation.annotator,
+        doc_id: annotation.doc_id.toString(),
+        doc_name: annotation?.doc_name!,
+        confidence: annotation.confidence
+      }
+    }));
+
+    let sheetName = label.substring(0, 31);
+
+    // works as long as there are less than 100 labels
+    if (label.length > 31) {
+      const range = i + 1 > 9 ? 12 : 13;
+      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+    }
+
+    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
+
+    download_progress.value.current += 1;
+  }
+
+  return { workbookAnnotations };
+}
+
+//#endregion
+
+//#region EXCEL
+async function download_all_xlsl(data: any) {
+  let results: { data: string; name: string }[] = [];
   download_progress.value.current = 0;
   download_progress.value.total =
     (selectedDocuments.value.length + 1) * labelsOptions.length * 3 +
@@ -456,19 +482,19 @@ async function download_all(data: any) {
     if (data.documents.length > 1) {
       const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data);
       results.push({
-        wb: getZippeableBlob(workBookConfidence),
+        data: getZippeableBlob(workBookConfidence),
         name: `_confidence.xlsx`,
       });
       results.push({
-        wb: getZippeableBlob(workbookMetrics),
+        data: getZippeableBlob(workbookMetrics),
         name: `_metrics.xlsx`,
       });
       results.push({
-        wb: getZippeableBlob(workbookAnnotations),
+        data: getZippeableBlob(workbookAnnotations),
         name: `_annotations.xlsx`,
       });
       results.push({
-        wb: getZippeableBlob(workbookDescriptive),
+        data: getZippeableBlob(workbookDescriptive),
         name: `_descriptive.xlsx`,
       });
     }
@@ -476,27 +502,27 @@ async function download_all(data: any) {
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
-      const filename = document + "-" + data.documentsData[document].name.split(".")[0] + "-" + data.documentsData[document].id;
+      const filename = document + "-" + data.documentsData[document].name.split(".")[0];
 
       const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data, document);
 
       results.push({
-        wb: getZippeableBlob(workBookConfidence),
+        data: getZippeableBlob(workBookConfidence),
         name: `${filename}_confidence.xlsx`,
       });
 
       results.push({
-        wb: getZippeableBlob(workbookMetrics),
+        data: getZippeableBlob(workbookMetrics),
         name: `${filename}_metrics.xlsx`,
       });
 
       results.push({
-        wb: getZippeableBlob(workbookAnnotations),
+        data: getZippeableBlob(workbookAnnotations),
         name: `${filename}_annotations.xlsx`,
       });
 
       results.push({
-        wb: getZippeableBlob(workbookDescriptive),
+        data: getZippeableBlob(workbookDescriptive),
         name: `${filename}_descriptive.xlsx`,
       });
     }
@@ -512,7 +538,7 @@ async function createWorkBooks(data: any, document?: any) {
     data.task_id,
     data.annotators.length,
     data.annotatorOrEmpty,
-    document ? [document] : data.documentsOrEmpty
+    document ? [document] : data.documentsOptQuery
   );
   download_progress.value.current++;
 
@@ -525,8 +551,8 @@ async function createWorkBooks(data: any, document?: any) {
 
     const annotations = await getAnnotations(
       data.task_id,
-      label,
-      data.documents,
+      [label],
+      document ? [document] : data.documentsOptQuery,
       data.annotators,
       data.byWords,
       data.hideNonText,
@@ -536,7 +562,7 @@ async function createWorkBooks(data: any, document?: any) {
     const metrics = await compute_metrics(
       data.task_id,
       label,
-      document ? [document] : data.documentsOrEmpty,
+      document ? [document] : data.documentsOptQuery,
       data.annotators,
       data.annotatorsOrEmpty,
       data.tolerance,
@@ -552,10 +578,12 @@ async function createWorkBooks(data: any, document?: any) {
     const metrics_sheet = await getMetricsSheet(
       metrics,
       label,
-      data.documentsOrEmpty,
+      document ? [document] : data.documentsOptQuery,
       data
     );
+
     const metrics_sample = metrics[0].table ?? metrics[2].table!;
+
     const annotations_sheet = await getAnnotationsSheet(metrics_sample?.length ?
       metrics_sample :
       annotations.map(annotation => {
@@ -573,7 +601,8 @@ async function createWorkBooks(data: any, document?: any) {
             [annotation.annotator]: annotation.confidence
           }
         }
-      }));
+    }));
+
     const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
       metrics_sample,
       data.annotators
@@ -582,9 +611,9 @@ async function createWorkBooks(data: any, document?: any) {
     let sheetName = label.substring(0, 31);
 
     // works as long as there are less than 100 labels
-    if(label.length > 31) {
+    if (label.length > 31) {
       const range = i + 1 > 9 ? 12 : 13;
-      sheetName = `${i+1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
     }
 
     XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, sheetName);
@@ -693,7 +722,6 @@ async function getAnnotationsSheet(table: RangeLabel[]) {
       });
     });
   }
-
   return XLSX.utils.json_to_sheet(rows);
 }
 
@@ -804,25 +832,11 @@ function getZippeableBlob(workBook: XLSX.WorkBook) {
 
   return `data:${contentType};base64,${b64Data}`;
 }
-
-const modeToggle = (value: boolean) => {
-  separate_into_words.value = value;
-  if (!task.value) {
-    return;
-  }
-  if (!selectedLabel.value) {
-    return;
-  }
-  updateAnnotations();
-};
-
-const toggleTextToHidden = (value: boolean): RichAnnotation[] => {
-  hideNonText.value = value;
-  return setTextToHidden(annotations, value);
-};
+//#endregion
 
 onMounted(async () => {
-  initFlowbite();
+  const urlHash = route.hash.substring(1);
+  metricsTypeActiveTab.value = urlHash == MetricTypes.AGREEMENT ? 1 : 0;
 
   loading_options.value = true;
 
@@ -834,18 +848,31 @@ onMounted(async () => {
     ...(await $trpc.labelset.findById.query(+task.value.labelset_id)).labels
   );
 
-  documentsOptions.push(
-    ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map((d) => {
-      if (!(d.id in documentsData.value)) {
-        documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
+  annotatorsOptions.push(
+    ...(await $trpc.user.findUsersByTask.query(+task.value.id)).map((a) => a.email!)
+  );
+
+  allDocumentsOptions.push(
+    ...(await $trpc.document.findDocumentsByTask.query(+task.value.id)).map((d) => {
+      if (!(d.id in documentsNames.value)) {
+        documentsNames.value[d.id] = d.name;
       }
       return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
     })
   );
 
-  annotatorsOptions.push(
-    ...(await $trpc.user.findUsersByTask.query(+task.value.id)).map((a) => a.email!)
-  );
+  if (annotatorsOptions.length > 1) {
+    sharedDocumentsOptions.push(
+      ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map((d) => {
+        if (!(d.id in documentsData.value)) {
+          documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
+        }
+        return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
+      })
+    );
+  }
+
+  updateUrl(metricsTypeActiveTab.value);
 
   loading_options.value = false;
 });

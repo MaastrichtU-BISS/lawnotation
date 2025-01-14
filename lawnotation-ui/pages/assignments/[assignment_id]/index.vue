@@ -48,8 +48,6 @@ const user = useSupabaseUser();
 
 const { $toast, $trpc } = useNuxtApp();
 
-type Id = number;
-
 const route = useRoute();
 const assignment = ref<Assignment>();
 const task = ref<Task>();
@@ -142,6 +140,6 @@ onMounted(async () => {
 definePageMeta({
   middleware: ["auth",
     async (to) => authorizeClient([["assignment", +to.params.assignment_id]])],
-  layout: "grid-editor",
+  layout: "grid-annotater",
 });
 </script>
