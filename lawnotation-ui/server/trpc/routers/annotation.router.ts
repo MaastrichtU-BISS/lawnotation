@@ -176,7 +176,7 @@ export const annotationRouter = router({
 
   /* Specific Implementations */
 
-  findAnnotationsByTaskLabelDocumentsAnnotators: disabledProcedure
+  findAnnotationsByTaskAndDocument: protectedProcedure
     .input(
       z.object({
         task_id: z.number(),
