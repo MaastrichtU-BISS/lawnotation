@@ -23,7 +23,7 @@ After first sign-in, hints guide you throught the application. Refer to the [doc
 > We're planning to create an easier self-hosting method only using Docker in the future.
 
 It is also possible to install the platform on your own infrastructure. 
-There are some dependencies that have to be resolved in some way or another. Some of these can be self-hosted as well, while others can't. For this section, we only take into account relying on those third parties.
+There are some dependencies that have to be resolved in some way or another. Some of these can be self-hosted as well, while others are exclusively external. For this section, use all services externally.
 
 ### Prerequisites and dependencies
 
@@ -78,7 +78,7 @@ pnpm install
 The setup for developing is equivalent to that of self-hosting. The main difference is that Supabase is ran locally instead of remote, and that Nuxt's development server is started instead of its production server. To do this:
 
 1. If you're on windows, make sure Docker is running by opening Docker Desktop once.
-2. Run the supabase local development environment \
+2. Run the supabase local devWelopment environment \
    `pnpm supabase start`
       - For details, refer to supabase's [local development guide](https://supabase.com/docs/guides/local-development)
 3. Update the values of `.env` the values in the output of the above commands
