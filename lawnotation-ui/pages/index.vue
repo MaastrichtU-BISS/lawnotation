@@ -48,7 +48,7 @@ onMounted(async () => {
     supa.auth.refreshSession()
   }
 
-  $trpc.assignment.findNextAssignmentByUser.query(user.value?.id!).then((result) => {
+  $trpc.assignment.findNextAssignmentByUser.query().then((result) => {
     nextAssignment.value = result;
   });
 })

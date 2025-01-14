@@ -58,7 +58,7 @@ const user = useSupabaseUser();
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);
 
-const nextAssignment = await $trpc.assignment.findNextAssignmentsByUserAndTask.query({ annotator_id: user.value?.id!, task_id: task.id });
+const nextAssignment = await $trpc.assignment.findNextAssignmentsByUserAndTask.query( task.id );
 
 const previousCount = ref<number>(0);
 const totalCount = ref<number>(0);
@@ -69,7 +69,6 @@ const loadCounters = async () => {
     if (!task) throw new Error("Invalid task");
 
     const counts = await $trpc.assignment.countAssignmentsByUserAndTask.query({
-      annotator_id: user.value.id,
       task_id: task.id
     });
 

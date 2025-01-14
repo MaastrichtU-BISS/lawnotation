@@ -136,19 +136,19 @@ const chartCompletionSeriesAnnotator = reactive<number[]>([0, 0]);
 
 onMounted(async () => {
 
-  $trpc.project.getCountByUser.query(user.value?.id!).then((result) => {
+  $trpc.project.getCountByUser.query().then((result) => {
     if (result)
       projectsCount.value = result;
   });
-  $trpc.task.getCountByUser.query(user.value?.id!).then((result) => {
+  $trpc.task.getCountByUser.query().then((result) => {
     tasksCount.value = result;
   });
 
-  $trpc.document.getCountByUser.query(user.value?.id!).then((result) => {
+  $trpc.document.getCountByUser.query().then((result) => {
     documentsCount.value = result!;
   })
 
-  $trpc.assignment.getDifficultiesByEditor.query(user.value?.id!).then((result) => {
+  $trpc.assignment.getDifficultiesByEditor.query().then((result) => {
     result.map((r) => {
       chartDifficultySeries[r.difficulty] += r.count;
       chartDifficultyAverage.value += r.difficulty * r.count;
@@ -165,13 +165,13 @@ onMounted(async () => {
     };
   });
 
-  $trpc.assignment.getCompletionByEditor.query(user.value?.id!).then((result) => {
+  $trpc.assignment.getCompletionByEditor.query().then((result) => {
     for (let i = 0; i < result.length; i++) {
       chartCompletionSeries[i] = result[i].count;
     }
   });
 
-  $trpc.assignment.getCompletionByAnnotator.query(user.value?.id!).then((result) => {
+  $trpc.assignment.getCompletionByAnnotator.query().then((result) => {
     for (let i = 0; i < result.length; i++) {
       chartCompletionSeriesAnnotator[i] = result[i].count;
       assignmentsCount.value += result[i].count;

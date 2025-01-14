@@ -1,12 +1,13 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
-import { authorizer, protectedProcedure, publicProcedure, router } from '~/server/trpc'
+import { authorizer, protectedProcedure, publicProcedure, disabledProcedure, router } from '~/server/trpc'
 import type { User } from '~/types';
 import { zValidEmail } from '~/utils/validators';
+import { taskEditorAuthorizer } from '../authorizers';
 
 export const userRouter = router({
 
-  'clearInviteMetadata': protectedProcedure
+  clearInviteMetadata: protectedProcedure
     .mutation(async ({ ctx }) => {
       const user_metadata = ctx.user.user_metadata;
       
@@ -16,7 +17,7 @@ export const userRouter = router({
       const update = await ctx.supabase.auth.admin.updateUserById(ctx.user.id, {user_metadata});
     }),
 
-    'setGuidance': protectedProcedure
+  setGuidance: protectedProcedure
     .input(
       z.boolean()
     )
@@ -26,7 +27,7 @@ export const userRouter = router({
       const update = await ctx.supabase.auth.admin.updateUserById(ctx.user.id, {user_metadata});
     }),
 
-  'findById': protectedProcedure
+  findById: disabledProcedure
     .input(
       z.string()
     )
@@ -38,7 +39,7 @@ export const userRouter = router({
       return data as User;
     }),
 
-  'findByEmail': protectedProcedure
+  findByEmail: disabledProcedure
     .input(
       zValidEmail
     )
@@ -50,9 +51,13 @@ export const userRouter = router({
       return data as User;
     }),
 
-  'findUsersByTask': protectedProcedure
+  findUsersByTask: protectedProcedure
     .input(
       z.number().int()
+    )
+    .use((opts) => 
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
     )
     .query(async ({ctx, input: task_id}) => {
       const { data, error } = await ctx.supabase
@@ -65,7 +70,7 @@ export const userRouter = router({
       return data;
     }),
   
-  'getName': protectedProcedure
+  getName: disabledProcedure
     .input(
       z.string()
     )
@@ -81,29 +86,29 @@ export const userRouter = router({
       return data.email
     }),
 
-  // TODO: definitely test!
-  // 'inviteUser': protectedProcedure
-  //   .input(
-  //     z.object({
-  //       email: z.string().email(),
-  //       redirectTo: z.string().url()
-  //     })
-  //   )
-  //   .query(async ({ ctx, input }) => {
-  //     const { data, error } = await ctx.supabase.auth.admin.generateLink({
-  //       type: "magiclink",
-  //       email: input.email,
-  //       options: {
-  //         redirectTo: input.redirectTo
-  //       } 
-  //     })
+  inviteUser: disabledProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        redirectTo: z.string().url()
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { data, error } = await ctx.supabase.auth.admin.generateLink({
+        type: "magiclink",
+        email: input.email,
+        options: {
+          redirectTo: input.redirectTo
+        } 
+      })
       
-  //     if (error)
-  //       throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.inviteUser: ${error.message}`});
-  //     return data;
-  //   }),
+      if (error)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.inviteUser: ${error.message}`});
+      return data;
+    }),
   
-  'generateLink': protectedProcedure
+  generateLink: protectedProcedure
+    .use(opts => authorizer(opts, () => Promise.resolve(false)))
     .input(
       zValidEmail
     )
@@ -120,7 +125,7 @@ export const userRouter = router({
       return data.properties;
     }),
 
-  'otpLogin': publicProcedure
+  otpLogin: publicProcedure
     .input(
       zValidEmail
     )

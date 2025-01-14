@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { number, z } from "zod";
-import { authorizer, protectedProcedure, router } from "~/server/trpc";
+import { authorizer, protectedProcedure, disabledProcedure, router } from "~/server/trpc";
 import type {
   Assignment,
   User,
@@ -15,6 +15,7 @@ import { zValidEmail } from "~/utils/validators";
 import { MailtrapClient } from "mailtrap";
 import postgres from "postgres";
 import { Origins, AssignmentStatuses, Direction } from "~/utils/enums";
+import { assignmentEditorAuthorizer, assignmentEditorOrAnnotatorAuthorizer, projectEditorAuthorizer, taskEditorAuthorizer, taskEditorOrAnnotatorAuthorizer } from "../authorizers";
 
 const ZAssignmentFields = z.object({
   annotator_id: z.string().nullable(),
@@ -26,27 +27,6 @@ const ZAssignmentFields = z.object({
   annotator_number: z.number().int(),
   origin: z.nativeEnum(Origins),
 });
-
-const assignmentAuthorizer = async (
-  assignment_id: number,
-  user_id: string,
-  ctx: Context
-) => {
-  const query = ctx.supabase
-    .from("assignments")
-    .select("*, task:tasks!inner(id, project:projects!inner(editor_id))", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", assignment_id);
-
-  const editor = await query.eq("tasks.projects.editor_id", user_id);
-
-  const annotator = await query.eq("annotator_id", user_id);
-
-  return editor.count === 1 || annotator.count === 1;
-  // return true;
-};
 
 export const assignmentRouter = router({
   /**
@@ -61,6 +41,11 @@ export const assignmentRouter = router({
         email: zValidEmail,
         task_id: z.number(),
       })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .query(async ({ ctx, input }) => {
       const email_found = await ctx.supabase
@@ -132,7 +117,7 @@ export const assignmentRouter = router({
       return user_id;
     }),
 
-  importAssignments: protectedProcedure
+  importAssignments: disabledProcedure
     .input(
       z.object({
         email: zValidEmail,
@@ -154,7 +139,7 @@ export const assignmentRouter = router({
       return;
     }),
 
-  create: protectedProcedure
+  create: disabledProcedure
     .input(ZAssignmentFields)
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
@@ -174,12 +159,12 @@ export const assignmentRouter = router({
   createMany: protectedProcedure
     .input(
       z.object({
+        task_id: z.number().int(),
         assignments: z.array(
           // object is equal to ZAssignmentFields, but with optional's, since partial didn't work. check later
           // ZAssignmentFields.optional()
           z.object({
             annotator_id: z.string().optional(),
-            task_id: z.number().int(),
             document_id: z.number().int(),
             status: z.nativeEnum(AssignmentStatuses).optional(),
             seq_pos: z.number().int().optional(),
@@ -197,10 +182,18 @@ export const assignmentRouter = router({
           .optional(),
       })
     )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .mutation(async ({ ctx, input }) => {
+
+      const assignments = input.assignments.map(ass => ({...ass, task_id: input.task_id}))
+
       const { data, error } = await ctx.supabase
         .from("assignments")
-        .insert(input.assignments)
+        .insert(assignments)
         .select();
 
       if (input.pre_annotations) {
@@ -265,13 +258,13 @@ export const assignmentRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        assignmentAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+        assignmentEditorOrAnnotatorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
       )
     )
     .query(async ({ ctx, input: id }) => {
       const { data, error, count } = await ctx.supabase
         .from("assignments")
-        .select()
+        .select("*, annotator:users!inner(id, email)")
         .eq("id", id)
         .single();
 
@@ -281,15 +274,20 @@ export const assignmentRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in find: ${error.message}`,
         });
-      return data as Assignment;
+      return data;
     }),
 
   update: protectedProcedure
     .input(
       z.object({
         id: z.number().int(),
-        updates: ZAssignmentFields.partial(),
+        updates: ZAssignmentFields.omit({'task_id': true}).partial(),
       })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentEditorOrAnnotatorAuthorizer(opts.input.id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
@@ -309,6 +307,11 @@ export const assignmentRouter = router({
 
   delete: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .mutation(async ({ ctx, input: assignment_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
@@ -323,7 +326,7 @@ export const assignmentRouter = router({
       return true;
     }),
 
-  getCountByUser: protectedProcedure
+  getCountByUser: disabledProcedure
     .input(z.string())
     .query(async ({ ctx, input: e_id }) => {
       const { data, error } = await ctx.supabase
@@ -340,6 +343,11 @@ export const assignmentRouter = router({
 
   getCountByProject: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        projectEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .query(async ({ ctx, input: p_id }) => {
       const { data, error, count } = await ctx.supabase
         .from("assignments")
@@ -355,12 +363,11 @@ export const assignmentRouter = router({
     }),
 
   getDifficultiesByEditor: protectedProcedure
-    .input(z.string())
-    .query(async ({ ctx, input: e_id }) => {
+    .query(async ({ ctx }) => {
       const { data, error } = await ctx.supabase.rpc(
         "get_difficulties_by_editor",
         {
-          e_id: e_id,
+          e_id: ctx.user.id,
         }
       );
 
@@ -373,12 +380,11 @@ export const assignmentRouter = router({
     }),
 
   getCompletionByEditor: protectedProcedure
-    .input(z.string())
-    .query(async ({ ctx, input: e_id }) => {
+    .query(async ({ ctx }) => {
       const { data, error } = await ctx.supabase.rpc(
         "get_completion_by_editor",
         {
-          e_id: e_id,
+          e_id: ctx.user.id,
         }
       );
 
@@ -391,12 +397,11 @@ export const assignmentRouter = router({
     }),
 
   getCompletionByAnnotator: protectedProcedure
-    .input(z.string())
-    .query(async ({ ctx, input: a_id }) => {
+    .query(async ({ ctx }) => {
       const { data, error } = await ctx.supabase.rpc(
         "get_completion_by_annotator",
         {
-          a_id: a_id,
+          a_id: ctx.user.id,
         }
       );
 
@@ -410,6 +415,11 @@ export const assignmentRouter = router({
 
   findAssignmentsByTask: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
@@ -432,6 +442,11 @@ export const assignmentRouter = router({
         annotator_number: z.number().int().optional(),
         task_id: z.number().int(),
       })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .query(async ({ ctx, input }) => {
       let query = ctx.supabase
@@ -459,17 +474,19 @@ export const assignmentRouter = router({
   
   findNextAssignmentsByUserAndTask: protectedProcedure
     .input(
-      z.object({
-        annotator_id: z.string(),
-        task_id: z.number().int(),
-      })
+      z.number().int()
     )
-    .query(async ({ ctx, input }) => {
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorOrAnnotatorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
-        .eq("annotator_id", input.annotator_id)
-        .eq("task_id", input.task_id)
+        .eq("annotator_id", ctx.user.id)
+        .eq("task_id", task_id)
         .neq("status", AssignmentStatuses.DONE)
         .order("seq_pos", { ascending: true })
         .limit(1)
@@ -486,11 +503,15 @@ export const assignmentRouter = router({
   findAssignmentsByUserTaskSeq: protectedProcedure
     .input(
       z.object({
-        annotator_id: z.string(),
         task_id: z.number().int(),
         seq_pos: z.number().int(),
         dir: z.nativeEnum(Direction)
       })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorOrAnnotatorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .query(async ({ ctx, input }) => {
 
@@ -502,7 +523,7 @@ export const assignmentRouter = router({
             .from("assignments")
             .select()
             .eq("task_id", input.task_id)
-            .eq("annotator_id", input.annotator_id)
+            .eq("annotator_id", ctx.user.id)
             .lt("seq_pos", input.seq_pos)
             .order("seq_pos", { ascending: false })
             .limit(1)
@@ -513,7 +534,7 @@ export const assignmentRouter = router({
             .from("assignments")
             .select()
             .eq("task_id", input.task_id)
-            .eq("annotator_id", input.annotator_id)
+            .eq("annotator_id", ctx.user.id)
             .eq("seq_pos", input.seq_pos)
             .maybeSingle();
           break;
@@ -522,7 +543,7 @@ export const assignmentRouter = router({
             .from("assignments")
             .select()
             .eq("task_id", input.task_id)
-            .eq("annotator_id", input.annotator_id)
+            .eq("annotator_id", ctx.user.id)
             .gt("seq_pos", input.seq_pos)
             .order("seq_pos", { ascending: true })
             .limit(1)
@@ -545,7 +566,7 @@ export const assignmentRouter = router({
       return response.data as Assignment;
     }),
 
-  findAssignmentsByUser: protectedProcedure
+  findAssignmentsByUser: disabledProcedure
     .input(z.string())
     .query(async ({ ctx, input: user_id }) => {
       const { data, error } = await ctx.supabase
@@ -562,12 +583,11 @@ export const assignmentRouter = router({
     }),
 
   findNextAssignmentByUser: protectedProcedure
-    .input(z.string())
-    .query(async ({ ctx, input: user_id }) => {
+    .query(async ({ ctx }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
         .select()
-        .eq("annotator_id", user_id)
+        .eq("annotator_id", ctx.user.id)
         .in("status", [
           AssignmentStatuses.PENDING,
           AssignmentStatuses.PREANNOTATED,
@@ -605,7 +625,6 @@ export const assignmentRouter = router({
   countAssignmentsByUserAndTask: protectedProcedure
     .input(
       z.object({
-        annotator_id: z.string(),
         task_id: z.number().int(),
         seq_pos: z.number().int().optional().default(0),
       })
@@ -614,7 +633,7 @@ export const assignmentRouter = router({
       const query = ctx.supabase
         .from("assignments")
         .select("*", { count: "exact", head: true })
-        .eq("annotator_id", input.annotator_id)
+        .eq("annotator_id", ctx.user.id)
         .eq("task_id", input.task_id);
 
       const { count: total_count, error: error_total } = await query;
@@ -642,6 +661,11 @@ export const assignmentRouter = router({
 
   deleteAllFromTask: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .mutation(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
@@ -658,6 +682,11 @@ export const assignmentRouter = router({
 
   countMLStatus: protectedProcedure
     .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .query(async ({ ctx, input: task_id }) => {
       // const pre = await ctx.supabase
       //   .from("assignments")
@@ -696,6 +725,11 @@ export const assignmentRouter = router({
           name: z.string(),
         }),
       })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .query(async ({ ctx, input }) => {
       const rowsPerPage = 10;
@@ -828,6 +862,11 @@ export const assignmentRouter = router({
         //   ])
         // })
       })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .query(async ({ ctx, input }) => {
       const rowsPerPage = 10;

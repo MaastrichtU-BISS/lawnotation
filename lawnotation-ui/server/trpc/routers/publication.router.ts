@@ -1,11 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import { Publication, PublicationStatus } from "~/types";
+import { type Publication, PublicationStatus } from "~/types";
 import type { Context } from "../context";
+import { publicationEditorAuthorizer, publicationViewerAuthorizer } from "../authorizers";
 
 const ZPublicationFields = z.object({
-  editor_id: z.string(),
+  // editor_id: z.string(),
   status: z.union([z.literal(PublicationStatus.PUBLISHED), z.literal(PublicationStatus.UNPUBLISHED)]),
   task_name: z.string(),
   task_description: z.string(),
@@ -22,60 +23,13 @@ const ZPublicationFields = z.object({
   relations: z.number().int()
 });
 
-const seePublicationAuthorizer = async (
-  publication_id: number,
-  user_id: string,
-  ctx: Context
-) => {
-  const editor = await ctx.supabase
-    .from("publications")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", publication_id)
-    .eq("editor_id", user_id);
-
-  if(editor.count) return true;
-
-  const everyone = await ctx.supabase
-    .from("publications")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", publication_id)
-    .eq("status", "published");
-
-    return everyone.count! > 0;
-  
-};
-
-const editPublicationAuthorizer = async (
-  publication_id: number,
-  user_id: string,
-  ctx: Context
-) => {
-  const editor = await ctx.supabase
-    .from("publications")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", publication_id)
-    .eq("editor_id", user_id);
-
-  return editor.count! > 0;
-  
-};
-
 export const publicationRouter = router({
 
   findById: protectedProcedure
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        seePublicationAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+        publicationViewerAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
       )
     )
     .query(async ({ ctx, input: id }) => {
@@ -98,7 +52,7 @@ export const publicationRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        editPublicationAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+        publicationEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
       )
     )
     .query(async ({ ctx, input: id }) => {
@@ -122,7 +76,7 @@ export const publicationRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
         .from("publications")
-        .insert(input)
+        .insert({...input, editor_id: ctx.user.id})
         .select()
         .single();
 
@@ -143,8 +97,8 @@ export const publicationRouter = router({
     )
     .use((opts) =>
       authorizer(opts, () =>
-        editPublicationAuthorizer(opts.input.id, opts.ctx.user.id, opts.ctx)
-        )
+        publicationEditorAuthorizer(opts.input.id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
@@ -164,10 +118,10 @@ export const publicationRouter = router({
 
   delete: protectedProcedure
     .input(z.number().int())
-      .use((opts) =>
+    .use((opts) =>
       authorizer(opts, () =>
-        editPublicationAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
-        )
+        publicationEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase

@@ -107,7 +107,6 @@ const loadData = async (dir: Direction = Direction.CURRENT) => {
     key.value = `ls-${seq_pos.value}`;
 
     assignment.value = await $trpc.assignment.findAssignmentsByUserTaskSeq.query({
-      annotator_id: user.value.id,
       task_id: +route.params.task_id,
       seq_pos: seq_pos.value,
       dir: dir
@@ -170,7 +169,6 @@ const loadCounters = async () => {
       throw new Error("Invalid task");
 
     const counts = await $trpc.assignment.countAssignmentsByUserAndTask.query({
-      annotator_id: user.value.id,
       task_id: +route.params.task_id,
       seq_pos: seq_pos.value
     });

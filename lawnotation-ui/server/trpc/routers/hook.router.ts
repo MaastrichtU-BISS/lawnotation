@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
+  disabledProcedure,
   middleware,
   protectedProcedure,
   publicProcedure,
@@ -18,7 +19,7 @@ const hookAuthorizer = middleware((opts) => {
 });
 
 export const hookRouter = router({
-  afterMLPredict: publicProcedure
+  afterMLPredict: disabledProcedure
     .input(
       z.object({
         annotations: z.array(
@@ -43,7 +44,8 @@ export const hookRouter = router({
 
       return true;
     }),
-  afterMLStatusChanged: publicProcedure
+
+  afterMLStatusChanged: disabledProcedure
     .input(
       z.object({
         assignment_ids: z.array(z.number().int()),
