@@ -195,7 +195,8 @@
                     </template>
                     <template v-else-if="node.type == 'document'">
                       <i class="pi pi-file mr-2 ml-2" />{{ node.data.document_name }}
-                      <NuxtLink v-if="user?.id == project.editor_id" :to="`/projects/${project.id}/tasks/${task.id}/documents/${node.data.document_id}`">
+                      <NuxtLink v-if="user?.id == project.editor_id"
+                        :to="`/projects/${project.id}/tasks/${task.id}/documents/${node.data.document_id}`">
                         <Button label="annotations" link class="text-xs underline" icon=""></Button>
                       </NuxtLink>
                     </template>
@@ -275,28 +276,39 @@
                     Documents
                   </h5>
                   <div>
-                    <label for="number_of_docs">Total</label>
+                    <label>Total</label>
                   </div>
-                  <div>
-                    <InputNumber class="my-2" v-model="number_of_docs" inputId="number_of_docs" showButtons
-                      buttonLayout="horizontal" :step="1" :min="1" :max="total_docs"
-                      decrementButtonClass="p-button-danger" incrementButtonClass="p-button-success"
-                      incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" />
-                  </div>
+                  <Multiselect v-model="selectedTotalDocuments" class="w-full" filter autoFilterFocus="true"
+                    :filterFields="['name']" :maxSelectedLabels="1" :options="optionsTotalDocuments" placeholder="Select documents" :virtualScrollerOptions="{ itemSize: 44 }"
+                    @change="verifyShared">
+                    <template #value="slotProps">
+                      <div>
+                        {{ `${slotProps.value?.length} document${slotProps.value?.length == 1 ? '' : 's'} selected` }}
+                      </div>
+                    </template>
+                    <template #option="slotProps">
+                      {{ slotProps.option.name }}
+                    </template>
+                  </Multiselect>
                   <div class="py-4">
                     <div>
                       <label for="fixed_docs">Shared</label>
                     </div>
-                    <div>
-                      <InputNumber class="my-2" v-model="number_of_fixed_docs" inputId="number_of_fixed_docs" showButtons
-                        buttonLayout="horizontal" :step="1" :min="0" :max="Math.min(total_docs, number_of_docs)"
-                        decrementButtonClass="p-button-danger" incrementButtonClass="p-button-success"
-                        incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" />
-                    </div>
+                    <Multiselect v-model="selectedSharedDocuments" class="w-full" filter autoFilterFocus="true"
+                    :filterFields="['name']" :maxSelectedLabels="1" :options="selectedTotalDocuments" placeholder="Select documents" :virtualScrollerOptions="{ itemSize: 44 }">
+                    <template #value="slotProps">
+                      <div>
+                        {{ `${slotProps.value?.length} document${slotProps.value?.length == 1 ? '' : 's'} selected` }}
+                      </div>
+                    </template>
+                    <template #option="slotProps">
+                      {{ slotProps.option.name }}
+                    </template>
+                  </Multiselect>
                   </div>
                 </div>
                 <template v-if="annotatorEmails.length > 0">
-                  <span class="mt-2 mb-4 block">Amount of assignments with this configuration:</span>
+                  <span class="mt-2 mb-4 block">Distribution of assignments with this configuration:</span>
                   <table id="tableAssignmentsAmounts">
                     <thead>
                       <tr>
@@ -309,32 +321,32 @@
                     <tbody>
                       <tr>
                         <th>Per annotator</th>
-                        <td>{{ number_of_fixed_docs }}</td>
-                        <template v-if="(number_of_docs - number_of_fixed_docs) % annotatorEmails.length == 0">
-                          <td>{{ (number_of_docs - number_of_fixed_docs) / annotatorEmails.length }}</td>
-                          <td>{{ (number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs))
+                        <td>{{ selectedSharedDocuments.length }}</td>
+                        <template v-if="(selectedTotalDocuments.length - selectedSharedDocuments.length) % annotatorEmails.length == 0">
+                          <td>{{ (selectedTotalDocuments.length - selectedSharedDocuments.length) / annotatorEmails.length }}</td>
+                          <td>{{ (selectedSharedDocuments.length * annotatorEmails.length + (selectedTotalDocuments.length - selectedSharedDocuments.length))
                             / annotatorEmails.length }}</td>
                         </template>
                         <template v-else>
                           <td>{{
-                            Math.floor((number_of_docs - number_of_fixed_docs) / annotatorEmails.length)
+                            Math.floor((selectedTotalDocuments.length - selectedSharedDocuments.length) / annotatorEmails.length)
                           }} <i class="text-gray-500">or</i> {{
-  Math.ceil((number_of_docs - number_of_fixed_docs) / annotatorEmails.length)
-}}</td>
-                          <td>{{
-                            Math.floor((number_of_fixed_docs * annotatorEmails.length + (number_of_docs -
-                              number_of_fixed_docs)) / annotatorEmails.length)
-                          }} <i class="text-gray-500">or</i> {{
-  Math.ceil((number_of_fixed_docs * annotatorEmails.length + (number_of_docs -
-    number_of_fixed_docs)) / annotatorEmails.length)
-}}</td>
+                        Math.ceil((selectedTotalDocuments.length - selectedSharedDocuments.length) / annotatorEmails.length)
+                      }}</td>
+                                                <td>{{
+                                                  Math.floor((selectedSharedDocuments.length * annotatorEmails.length + (selectedTotalDocuments.length -
+                                                  selectedSharedDocuments.length)) / annotatorEmails.length)
+                                                }} <i class="text-gray-500">or</i> {{
+                        Math.ceil((selectedSharedDocuments.length * annotatorEmails.length + (selectedTotalDocuments.length -
+                        selectedSharedDocuments.length)) / annotatorEmails.length)
+                      }}</td>
                         </template>
                       </tr>
                       <tr>
                         <th>Total</th>
-                        <td>{{ number_of_fixed_docs * annotatorEmails.length }}</td>
-                        <td>{{ number_of_docs - number_of_fixed_docs }}</td>
-                        <td>{{ number_of_fixed_docs * annotatorEmails.length + (number_of_docs - number_of_fixed_docs) }}
+                        <td>{{ selectedSharedDocuments.length * annotatorEmails.length }}</td>
+                        <td>{{ selectedTotalDocuments.length - selectedSharedDocuments.length }}</td>
+                        <td>{{ selectedSharedDocuments.length * annotatorEmails.length + (selectedTotalDocuments.length - selectedSharedDocuments.length) }}
                         </td>
                       </tr>
                     </tbody>
@@ -361,8 +373,8 @@
         </div>
         <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible"
           @export="exportTask" />
-        <SelectMetricModal v-model:visible="selectMetricModalVisible" 
-          :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`" 
+        <SelectMetricModal v-model:visible="selectMetricModalVisible"
+          :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`"
           :disable-agreement="groupByAnnotators.data.value?.total! < 2"/>
       </div>
     </div>
@@ -375,6 +387,7 @@ import type {
   AssignmentTableData,
   User,
   Project,
+  Document,
   Publication,
   Annotation,
   MlModel,
@@ -382,6 +395,7 @@ import type {
 } from "~/types";
 import { PublicationStatus } from "~/types"
 import { isDocumentLevel } from "~/utils/levels";
+import Multiselect from "primevue/multiselect";
 import Table from "~/components/Table.vue";
 import _ from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
@@ -402,10 +416,11 @@ const task = await $trpc.task.findById.query(+route.params.task_id);
 const project = await $trpc.project.findById.query(+route.params.project_id);
 
 const totalAssignments = await $trpc.table.assignments.useQuery({ filter: { task_id: task.id } });
-const totalAmountOfDocs = await $trpc.document.totalAmountOfDocs.query(task.project_id);
-const total_docs = totalAmountOfDocs ?? 0;
-const number_of_docs = ref<number>(total_docs);
-const number_of_fixed_docs = ref<number>(total_docs);
+
+const optionsTotalDocuments: {id: number; name: string}[] = await $trpc.document.findByProject.query(+route.params.project_id);
+const selectedTotalDocuments = ref<{id: number; name: string}[]>(optionsTotalDocuments);
+const selectedSharedDocuments = ref<{id: number; name: string}[]>(selectedTotalDocuments.value);
+
 const optionsMenu = ref()
 
 const selectMetricModalVisible = ref(false);
@@ -427,16 +442,9 @@ const randomizationMessage = computed(() => {
   }
 });
 
-watch(number_of_docs, (newTotalDocs) => {
-
-  if (number_of_fixed_docs.value > newTotalDocs) {
-    number_of_fixed_docs.value = newTotalDocs;
-  }
-
-  if (number_of_fixed_docs.value > number_of_docs.value) {
-    number_of_fixed_docs.value = number_of_docs.value;
-  }
-});
+const verifyShared = () => {
+  selectedSharedDocuments.value = selectedSharedDocuments.value.filter(x => selectedTotalDocuments.value.includes(x));
+};
 
 //#region  ml variables
 const mlIntervalId = ref();
@@ -644,20 +652,23 @@ const createAssignments = async () => {
     loading.value = true;
     if (!task) throw new Error("Task not found");
 
-    // Get the documents
-    const docs = await $trpc.document.takeUpToNRandomDocuments.query({
-      project_id: task.project_id,
-      n: number_of_docs.value,
-      randomOrder: randomizationSelected.value != RandomizationOptions.NONE
-    });
+    let sharedDocs = _.clone(selectedSharedDocuments.value);
+    let uniqueDocs = _.clone(selectedTotalDocuments.value.filter(x => !selectedSharedDocuments.value.includes(x)));
+
+    if(randomizationSelected.value != RandomizationOptions.NONE) {
+      sharedDocs = _.shuffle(sharedDocs);
+      uniqueDocs = _.shuffle(uniqueDocs);
+    }
+
+    const docs = sharedDocs.concat(uniqueDocs);
 
     const new_assignments: Pick<Assignment, "document_id" | "origin" | "status">[] = [];
 
     // Create shared assignments (only with docs info)
-    for (let i = 0; i < number_of_fixed_docs.value; ++i) {
+    for (let i = 0; i < selectedSharedDocuments.value.length; ++i) {
       for (let j = 0; j < annotatorEmails.value.length; ++j) {
         const new_assignment: Pick<Assignment, "document_id" | "origin" | "status"> = {
-          document_id: docs[i],
+          document_id: docs[i].id,
           status: task.ml_model_id ? AssignmentStatuses.PREDICTING : AssignmentStatuses.PENDING,
           origin: Origins.MANUAL
         };
@@ -666,9 +677,9 @@ const createAssignments = async () => {
     }
 
     // Create unique assignments (only with docs info)
-    for (let i = number_of_fixed_docs.value; i < number_of_docs.value; ++i) {
+    for (let i = selectedSharedDocuments.value.length; i < selectedTotalDocuments.value.length; ++i) {
       const new_assignment: Pick<Assignment, "document_id" | "origin" | "status"> = {
-        document_id: docs[i],
+        document_id: docs[i].id,
         status: task.ml_model_id ? AssignmentStatuses.PREDICTING : AssignmentStatuses.PENDING,
         origin: Origins.MANUAL
       };
@@ -688,8 +699,8 @@ const createAssignments = async () => {
     // Assign users and order to assignments
     const unshuffled: number[] = [
       ...Array(
-        number_of_fixed_docs.value +
-        Math.floor((number_of_docs.value - number_of_fixed_docs.value) / annotators_id.length)
+        selectedSharedDocuments.value.length +
+        Math.floor((selectedTotalDocuments.value.length - selectedSharedDocuments.value.length) / annotators_id.length)
       ).keys(),
     ];
 

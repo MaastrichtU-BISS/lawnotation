@@ -1,11 +1,21 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { authorizer, protectedProcedure, disabledProcedure, router } from "~/server/trpc";
+import {
+  authorizer,
+  protectedProcedure,
+  disabledProcedure,
+  router,
+} from "~/server/trpc";
 import type { Document } from "~/types";
 import type { Context } from "../context";
 import sanitizeHtml from "sanitize-html";
-import { documentEditorAuthorizer, documentEditorOrAnnotatorAuthorizer, projectEditorAuthorizer, taskEditorAuthorizer } from "../authorizers";
-import {readPdfText} from 'pdf-text-reader';
+import {
+  documentEditorAuthorizer,
+  documentEditorOrAnnotatorAuthorizer,
+  projectEditorAuthorizer,
+  taskEditorAuthorizer,
+} from "../authorizers";
+import { readPdfText } from "pdf-text-reader";
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -42,7 +52,11 @@ export const documentRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        documentEditorOrAnnotatorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+        documentEditorOrAnnotatorAuthorizer(
+          opts.input,
+          opts.ctx.user.id,
+          opts.ctx
+        )
       )
     )
     .query(async ({ ctx, input: id }) => {
@@ -65,7 +79,11 @@ export const documentRouter = router({
     .input(ZDocumentFields)
     .use((opts) =>
       authorizer(opts, () =>
-        projectEditorAuthorizer(opts.input.project_id, opts.ctx.user.id, opts.ctx)
+        projectEditorAuthorizer(
+          opts.input.project_id,
+          opts.ctx.user.id,
+          opts.ctx
+        )
       )
     )
     .mutation(async ({ ctx, input }) => {
@@ -184,12 +202,12 @@ export const documentRouter = router({
 
   // Extra implementations
 
-  findByProject: disabledProcedure
+  findByProject: protectedProcedure
     .input(z.number().int())
     .query(async ({ ctx, input: project_id }) => {
       const { data, error } = await ctx.supabase
         .from("documents")
-        .select()
+        .select("id, name")
         .eq("project_id", project_id);
       ctx.supabase.auth.admin.generateLink;
 
@@ -198,7 +216,9 @@ export const documentRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in documents.findByProject: ${error.message}`,
         });
-      return data as Document[];
+      return data.map((d) => {
+        return { id: d.id, name: d.name ?? "unnamed" };
+      });
     }),
 
   findDocumentsByTask: protectedProcedure
@@ -252,7 +272,11 @@ export const documentRouter = router({
     )
     .use((opts) =>
       authorizer(opts, () =>
-        projectEditorAuthorizer(opts.input.project_id, opts.ctx.user.id, opts.ctx)
+        projectEditorAuthorizer(
+          opts.input.project_id,
+          opts.ctx.user.id,
+          opts.ctx
+        )
       )
     )
     .query(async ({ ctx, input }) => {
@@ -307,20 +331,19 @@ export const documentRouter = router({
       return count; // TODO: check if valid. original is data.count
     }),
 
-  getCountByUser: protectedProcedure
-    .query(async ({ ctx }) => {
-      const { data, error, count } = await ctx.supabase
-        .from("documents")
-        .select("*, project:projects!inner(id, editor_id)", { count: "exact" })
-        .eq("projects.editor_id", ctx.user.id);
+  getCountByUser: protectedProcedure.query(async ({ ctx }) => {
+    const { data, error, count } = await ctx.supabase
+      .from("documents")
+      .select("*, project:projects!inner(id, editor_id)", { count: "exact" })
+      .eq("projects.editor_id", ctx.user.id);
 
-      if (error)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error in document.getCountByUser: ${error.message}`,
-        });
-      return count;
-    }),
+    if (error)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Error in document.getCountByUser: ${error.message}`,
+      });
+    return count;
+  }),
 
   // TODO: replace with just get whole doc and get name property from there?
   getName: disabledProcedure
@@ -366,10 +389,10 @@ export const documentRouter = router({
 });
 
 async function getPdfText(data) {
-  const worker = await import('pdfjs-dist/build/pdf.worker.mjs');
-  const pdfText: string = await readPdfText({data});
+  const worker = await import("pdfjs-dist/build/pdf.worker.mjs");
+  const pdfText: string = await readPdfText({ data });
   return pdfText;
-};
+}
 
 function sanitizeFullText(doc: { full_text: string }) {
   doc.full_text = sanitizeHtml(doc.full_text, {
