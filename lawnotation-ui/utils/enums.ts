@@ -45,3 +45,11 @@ export enum MetricTypes {
   DESCRIPTIVE = 'descriptive',
   AGREEMENT = 'agreement'
 }
+
+export enum DocumentFormats {
+  TXT = "txt",
+  HTML = "html",
+  PDF = "pdf",
+  DOC = "doc",
+  DOCX = "docx"
+}

@@ -249,7 +249,7 @@
           <TabView v-model:activeIndex="activeTabDocumentsModal" class="min-h-[565px]">
             <TabPanel header="Upload" :pt="{ headerAction: { 'data-test': 'upload-documents-tab' } }">
               <div class="pt-6">
-                <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html,.pdf"
+                <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html,.pdf,.doc,.docx"
                   chooseLabel="Select" :pt="{
                     input: {
                       'data-test': 'choose-documents'
@@ -269,7 +269,7 @@
                       <i
                         class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
                       <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                      <p class="text-gray-400 text-xs">.txt .html .pdf file(s)</p>
+                      <p class="text-gray-400 text-xs">.txt .html .pdf .doc .docx file(s)</p>
                     </div>
                   </template>
                 </FileUpload>
@@ -279,7 +279,6 @@
               <SearchDocuments :add-documents-to-project="true" @on-documents-fetched="onDocumentsFetched"/>
             </TabPanel>
           </TabView>
-
         </Dialog>
       </TabPanel>
     </TabView>
@@ -466,17 +465,10 @@ const uploadDocuments = async (event: { files: FileList }) => {
   showUploadDocumentsModal.value = false;
 
   for (const file of event.files ?? []) {
-    var full_text = "";
-    const format = file.name.split('.').pop();
-    if(format == 'pdf') {
-      full_text = await getBase64(file) as string;
-    } else {
-      full_text = await file.text();
-    }
     new_docs.push({
       name: file.name,
       source: "local_upload",
-      full_text: full_text,
+      full_text: await getBase64(file) as string,
       project_id: +route.params.project_id,
     });
   };

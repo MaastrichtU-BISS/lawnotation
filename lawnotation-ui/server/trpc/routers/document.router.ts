@@ -16,6 +16,8 @@ import {
   taskEditorAuthorizer,
 } from "../authorizers";
 import { readPdfText } from "pdf-text-reader";
+import WordExtractor from "word-extractor";
+import { DocumentFormats } from "~/utils/enums";
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -87,17 +89,8 @@ export const documentRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      const format = input.name.split(".").pop();
 
-      if (format == "pdf") {
-        const binary = atob(
-          input.full_text.replace("data:application/pdf;base64,", "")
-        );
-        const pdfText = await getPdfText(binary);
-        input.full_text = pdfText;
-      } else if (format == "html") {
-        sanitizeFullText(input);
-      }
+      await getTextFromBase64(input);
 
       const { data, error } = await ctx.supabase
         .from("documents")
@@ -111,26 +104,6 @@ export const documentRouter = router({
           message: `Error in documents.create: ${error.message}`,
         });
       return data as Document;
-    }),
-
-  createMany: disabledProcedure
-    .input(z.array(ZDocumentFields))
-    .mutation(async ({ ctx, input }) => {
-      input.forEach((doc) => {
-        if (doc.name.split(".").pop() == "html") sanitizeFullText(doc);
-      });
-
-      const { data, error } = await ctx.supabase
-        .from("documents")
-        .insert(input)
-        .select();
-
-      if (error)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error in documents.create: ${error.message}`,
-        });
-      return data as Document[];
     }),
 
   update: disabledProcedure
@@ -388,14 +361,52 @@ export const documentRouter = router({
     }),
 });
 
+async function getTextFromBase64(input: {full_text: string; name: string}) {
+
+  const format = input.name.split('.').pop() as DocumentFormats;
+
+  switch(format) {
+    case DocumentFormats.TXT:
+      input.full_text = atob(input.full_text.replace("data:text/plain;base64,", ""));
+      break;
+    case DocumentFormats.HTML:
+      input.full_text = sanitizeFullText(atob(input.full_text.replace("data:text/html;base64,", "")));
+      break;
+    case DocumentFormats.PDF:
+      const binary = atob(
+        input.full_text.replace("data:application/pdf;base64,", "")
+       );
+      const pdfText = await getPdfText(binary);
+      input.full_text = pdfText;
+      break;
+    case DocumentFormats.DOC:
+      input.full_text = await readWordFile(input.full_text.replace("data:application/msword;base64,", ""));
+      console.log(input.full_text.substring(32));
+      break;
+    case DocumentFormats.DOCX:
+      input.full_text = await readWordFile(input.full_text.replace("data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,", ""));
+      break;
+    default:
+      throw new Error("Unsupported format");
+  }
+};
+
+async function readWordFile(base64Format: string) :Promise<string> {
+  const buffer = Buffer.from(base64Format, 'base64');
+  const extractor = new WordExtractor();
+  const extracted = extractor.extract(buffer);
+  const doctext = (await extracted).getBody();
+  return doctext;
+}
+
 async function getPdfText(data) {
   const worker = await import("pdfjs-dist/build/pdf.worker.mjs");
   const pdfText: string = await readPdfText({ data });
   return pdfText;
 }
 
-function sanitizeFullText(doc: { full_text: string }) {
-  doc.full_text = sanitizeHtml(doc.full_text, {
+function sanitizeFullText(full_text: string ) {
+  const sanitized = sanitizeHtml(full_text, {
     allowedAttributes: {
       "*": [
         "style",
@@ -436,6 +447,8 @@ function sanitizeFullText(doc: { full_text: string }) {
       },
     },
   });
+
+  return sanitized;
 }
 
 export type DocumentRouter = typeof documentRouter;
