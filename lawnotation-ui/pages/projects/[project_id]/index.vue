@@ -181,6 +181,13 @@
                           <label :for="`annotator_${index}`"
                             class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
                               `annotator ${index + 1} ` }}</label>
+                          <div class="text-right pb-6">
+                            <Button label="Add myself" :disabled="isMyselfAdded" link @click="addMyself(index)" :pt="{
+                              root: {
+                                class: 'p-0 text-xs text-primary-600 disabled:text-gray-400 underline cursor-pointer disabled:no-underline disabled:pointer-events-none'
+                              }
+                            }" />
+                          </div>
                         </span>
                       </div>
                       <div class="flex justify-center mt-4 pt-4">
@@ -330,6 +337,25 @@ const showUploadDocumentsModal = ref<boolean>(false);
 
 const labelsets = ref(await $trpc.labelset.find.query({}));
 const selectedAnnotationLevel = ref<'span' | AnnotationLevels.DOCUMENT>();
+
+watch(new_annotators, (new_val) => {
+  if (new_val.length && !/^\S+@\S+\.\S+$/.test(new_val[new_val.length - 1])) {
+    new_val.pop();
+    $toast.error('Invalid email!')
+  }
+});
+
+const addMyself = (index: number) => {
+  if (!new_annotators.value[index]) {
+    new_annotators.value[index] = user.value?.email!;
+  } else {
+    $toast.error("You have been already added!")
+  }
+};
+
+const isMyselfAdded = computed(() => {
+  return new_annotators.value.includes(user.value?.email!);
+})
 
 const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
   id: undefined,
