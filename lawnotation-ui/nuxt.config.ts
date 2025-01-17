@@ -13,7 +13,7 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
 
   runtimeConfig: {
-    mailtrapToken: process.env.MAILTRAP_TOKEN,
+    smtpUrl: process.env.SMTP_URL,
     public: {
       mlBackendURL: process.env.MLBACKEND_URL,
       baseURL:
