@@ -760,8 +760,6 @@ const importTask = async () => {
           d.assignments.map((ass: any) => {
             let ann_id: string | null = annotator_ids[ass.annotator - 1];
 
-            console.log(selectedUploadedAssignmentsStatus.value == AssignmentStatuses.NONE ? ass.status : selectedUploadedAssignmentsStatus.value)
-
             let new_ass: any = {
               document_id: documentIds[i],
               difficulty_rating: ass.difficulty_rating,
@@ -806,7 +804,12 @@ const importTask = async () => {
             });
           });
 
-          const annotations = await $trpc.annotation.createMany.mutate(new_annotations)
+          const annotations: any[] = [];
+          const chunkSize = 100;
+          for (let i = 0; i < new_annotations.length; i += chunkSize) {
+              const chunk = new_annotations.slice(i, i + chunkSize);
+              annotations.push(...await $trpc.annotation.createMany.mutate(chunk));
+          };
 
           // create relations
           import_progress.value.message = "Creating Relations";
