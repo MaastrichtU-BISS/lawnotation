@@ -196,6 +196,13 @@
                           <label :for="`annotator_${index}`"
                             class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
                               `annotator ${index + 1} ` }}</label>
+                              <div v-if="index == 0" class="text-right">
+                                <Button label="Add myself" :disabled="isMyselfAdded" link @click="addMyself" :pt="{
+                                  root: {
+                                    class: 'p-0 text-xs text-primary-600 disabled:text-gray-400 underline cursor-pointer disabled:no-underline disabled:pointer-events-none'
+                                  }
+                                }" />
+                              </div>
                         </span>
                       </div>
                       <div class="flex justify-center mt-4 pt-4">
@@ -432,6 +439,18 @@ const currentGuidanceStep = computed(() => {
   }
   return GuidanceSteps.NONE;
 });
+
+const addMyself = () => {
+  if (!isMyselfAdded.value) {
+    new_annotators.value[0] = user.value?.email!;
+  } else {
+    $toast.error("You have been already added!")
+  }
+};
+
+const isMyselfAdded = computed(() => {
+  return new_annotators.value.includes(user.value?.email!);
+})
 
 const modelSelected = async (id: number) => {
 
