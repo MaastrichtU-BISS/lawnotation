@@ -78,23 +78,29 @@ export const documentRouter = router({
     }),
 
   create: protectedProcedure
-    .input(ZDocumentFields)
+    .input(
+      z.object({
+        document: ZDocumentFields,
+        preprocess: z.boolean().optional().default(false),
+      })
+    )
     .use((opts) =>
       authorizer(opts, () =>
         projectEditorAuthorizer(
-          opts.input.project_id,
+          opts.input.document.project_id,
           opts.ctx.user.id,
           opts.ctx
         )
       )
     )
     .mutation(async ({ ctx, input }) => {
-
-      await getTextFromBase64(input);
+      if (input.preprocess) {
+        await preProcessText(input.document);
+      }
 
       const { data, error } = await ctx.supabase
         .from("documents")
-        .insert(input)
+        .insert(input.document)
         .select()
         .single();
 
@@ -361,38 +367,43 @@ export const documentRouter = router({
     }),
 });
 
-async function getTextFromBase64(input: {full_text: string; name: string}) {
+async function preProcessText(input: { full_text: string; name: string }) {
+  const format = input.name.split(".").pop() as DocumentFormats;
 
-  const format = input.name.split('.').pop() as DocumentFormats;
-
-  switch(format) {
+  switch (format) {
     case DocumentFormats.TXT:
-      input.full_text = atob(input.full_text.replace("data:text/plain;base64,", ""));
+      input.full_text = input.full_text;
       break;
     case DocumentFormats.HTML:
-      input.full_text = sanitizeFullText(atob(input.full_text.replace("data:text/html;base64,", "")));
+      input.full_text = sanitizeFullText(input.full_text);
       break;
     case DocumentFormats.PDF:
       const binary = atob(
         input.full_text.replace("data:application/pdf;base64,", "")
-       );
+      );
       const pdfText = await getPdfText(binary);
       input.full_text = pdfText;
       break;
     case DocumentFormats.DOC:
-      input.full_text = await readWordFile(input.full_text.replace("data:application/msword;base64,", ""));
-      console.log(input.full_text.substring(32));
+      input.full_text = await readWordFile(
+        input.full_text.replace("data:application/msword;base64,", "")
+      );
       break;
     case DocumentFormats.DOCX:
-      input.full_text = await readWordFile(input.full_text.replace("data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,", ""));
+      input.full_text = await readWordFile(
+        input.full_text.replace(
+          "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,",
+          ""
+        )
+      );
       break;
     default:
       throw new Error("Unsupported format");
   }
-};
+}
 
-async function readWordFile(base64Format: string) :Promise<string> {
-  const buffer = Buffer.from(base64Format, 'base64');
+async function readWordFile(base64: string): Promise<string> {
+  const buffer = Buffer.from(base64, "base64");
   const extractor = new WordExtractor();
   const extracted = extractor.extract(buffer);
   const doctext = (await extracted).getBody();
@@ -405,7 +416,7 @@ async function getPdfText(data) {
   return pdfText;
 }
 
-function sanitizeFullText(full_text: string ) {
+function sanitizeFullText(full_text: string) {
   const sanitized = sanitizeHtml(full_text, {
     allowedAttributes: {
       "*": [

@@ -105,10 +105,11 @@
                     </div>
                     <div class="flex items-center flex-col pb-4">
                       <div class="w-full text-left bg-yellow-50 p-2 mb-2 rounded-md border border-yellow-200">
-                        <p class="text-xs text-yellow-500 m-0">This feature is currently disabled, we are working on making it better</p>
+                        <p class="text-xs text-yellow-500 m-0">This feature is currently disabled, we are working on
+                          making it better</p>
                       </div>
-                      <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter disabled
-                        optionLabel="name" option-value="id" placeholder="Select Model (Optional)" class="w-full"
+                      <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
+                        disabled optionLabel="name" option-value="id" placeholder="Select Model (Optional)" class="w-full"
                         @update:model-value="modelSelected($event)" :show-clear="true" />
                     </div>
                     <div class="mb-4 flex justify-between items-center">
@@ -169,6 +170,20 @@
                     </div>
                     <div v-else>
                       <div class="text-center">
+                        <div class="mb-6">
+                          <h4 class="mb-2 font-semibold text-gray-900 dark:text-white">
+                            Select the status of the new assignments
+                          </h4>
+                          <SelectButton v-model="selectedUploadedAssignmentsStatus"
+                            :options="optionsUploadedAssignmentsStatus" optionLabel="label" optionValue="value" dataKey="value" optionDisabled="disabled"
+                            :pt="{
+                              label: '!text-sm !font-semibold',
+                              button: ['!px-3', '!py-2']
+                            }"
+                            :ptOptions="{ mergeProps: true }"
+                            >
+                          </SelectButton>
+                        </div>
                         <h4 class="mb-2 font-semibold text-gray-900 dark:text-white">
                           The uploaded Task has {{ new_annotators.length }} annotators.
                         </h4>
@@ -214,13 +229,14 @@
           <div class="dimmer-content">
             <div class="flex justify-end pt-2">
               <div class="relative">
-                <Button label="Add" icon="pi pi-plus" :disabled="upload_docs_progress.loading" @click="showUploadDocumentsModal = true"
-                  icon-pos="right" data-test="open-documents-modal" />
+                <Button label="Add" icon="pi pi-plus" :disabled="upload_docs_progress.loading"
+                  @click="showUploadDocumentsModal = true" icon-pos="right" data-test="open-documents-modal" />
                 <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
               </div>
             </div>
-            <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true" :search="true"
-              :selectable="true" :skipConfirmDialog="true" @remove-rows="removeDocuments" @remove-all-rows="removeAllDocuments">
+            <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true"
+              :search="true" :selectable="true" :skipConfirmDialog="true" @remove-rows="removeDocuments"
+              @remove-all-rows="removeAllDocuments">
               <template #row="{ item }: { item: Document }">
                 <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
                   {{ item.id }}
@@ -249,8 +265,8 @@
           <TabView v-model:activeIndex="activeTabDocumentsModal" class="min-h-[565px]">
             <TabPanel header="Upload" :pt="{ headerAction: { 'data-test': 'upload-documents-tab' } }">
               <div class="pt-6">
-                <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true" accept=".txt,.html,.pdf,.doc,.docx"
-                  chooseLabel="Select" :pt="{
+                <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true"
+                  accept=".txt,.html,.pdf,.doc,.docx" chooseLabel="Select" :pt="{
                     input: {
                       'data-test': 'choose-documents'
                     },
@@ -276,7 +292,7 @@
               </div>
             </TabPanel>
             <TabPanel header="Find (Rechtspraak)">
-              <SearchDocuments :add-documents-to-project="true" @on-documents-fetched="onDocumentsFetched"/>
+              <SearchDocuments :add-documents-to-project="true" @on-documents-fetched="onDocumentsFetched" />
             </TabPanel>
           </TabView>
         </Dialog>
@@ -305,6 +321,7 @@ import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
 import { AnnotationLevels, GuidanceSteps, AssignmentStatuses, Origins } from "~/utils/enums";
 import SearchDocuments from "~/components/SearchDocuments.vue";
+import SelectButton from 'primevue/selectbutton';
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -322,6 +339,27 @@ const activeTab = ref<number>(0);
 const showCreateTaskModal = ref<boolean>(false);
 const new_annotators = ref<string[]>([]);
 const uploadHasStarted = ref<boolean>(false);
+const selectedUploadedAssignmentsStatus = ref(AssignmentStatuses.NONE);
+const optionsUploadedAssignmentsStatus = ref([
+  {
+    label: 'Done',
+    value: AssignmentStatuses.DONE,
+    color: '#10b981', //severity
+    disabled: false
+  },
+  {
+    label: 'Pending',
+    value: AssignmentStatuses.PENDING,
+    color: '#ef4444', //severity danger
+    disabled: false
+  },
+  {
+    label: 'Keep originals',
+    value: AssignmentStatuses.NONE,
+    color: '#475569',
+    disabled: false
+  }
+]);
 const activeTabTaskModal = ref<number>(0);
 const activeTabDocumentsModal = ref<number>(0);
 
@@ -465,15 +503,25 @@ const uploadDocuments = async (event: { files: FileList }) => {
   showUploadDocumentsModal.value = false;
 
   for (const file of event.files ?? []) {
+
+    const format = file.name.split('.').pop() as DocumentFormats;
+    let full_text = "";
+
+    if(format == DocumentFormats.TXT || format == DocumentFormats.HTML) {
+      full_text = await file.text();
+    } else {
+      full_text = await getBase64(file) as string;
+    }
+        
     new_docs.push({
       name: file.name,
       source: "local_upload",
-      full_text: await getBase64(file) as string,
+      full_text: full_text,
       project_id: +route.params.project_id,
     });
   };
-  
-  saveDocuments(new_docs);
+
+  saveDocuments(new_docs, true);
 };
 
 function getBase64(file: File) {
@@ -505,10 +553,10 @@ const onDocumentsFetched = (docs: Doc[]) => {
   saveDocuments(new_docs);
 };
 
-const saveDocuments = async (new_docs: Omit<Document, "id">[]) => {
+const saveDocuments = async (new_docs: Omit<Document, "id">[], preprocess = false) => {
   try {
     for (const doc of new_docs) {
-      await $trpc.document.create.mutate(doc);
+      await $trpc.document.create.mutate({document: doc, preprocess: preprocess});
       upload_docs_progress.value.current++;
     }
     documentTable.value?.refresh();
@@ -588,6 +636,18 @@ const loadExportTaskFile = async (event: { files: FileList }) => {
   const file = event.files[0];
   import_json.value = JSON.parse(await file.text());
 
+  if(!import_json.value.counts?.assignments) {
+    // skip assignment upload page
+  }
+  else if(!import_json.value.documents[0]?.assignments[0]?.status) {
+    // assumes all documents present, have at least 1 assignment associateedd to it (which is currently the case according to the export function)
+    optionsUploadedAssignmentsStatus.value[2].disabled = true;
+    selectedUploadedAssignmentsStatus.value = AssignmentStatuses.DONE;
+  } else {
+    optionsUploadedAssignmentsStatus.value[2].disabled = false;
+    selectedUploadedAssignmentsStatus.value = AssignmentStatuses.NONE;
+  }
+
   if (import_json.value.counts?.annotators) {
     const new_annotators_number = import_json.value.counts?.annotators ?? 0;
     new_annotators.value.splice(0);
@@ -655,11 +715,14 @@ const importTask = async () => {
 
       for (const doc of import_json.value.documents as Omit<Document, 'id'>[]) {
         const uploadedDoc = await $trpc.document.create.mutate({
-          name: doc.name,
-          full_text: doc.full_text,
-          source: "imported",
-          project_id: project.id,
-        })
+          document: {
+            name: doc.name,
+            full_text: doc.full_text,
+            source: "imported",
+            project_id: project.id,
+          }
+        });
+
         documentIds.push(uploadedDoc.id);
         import_progress.value.current++;
       }
@@ -693,17 +756,17 @@ const importTask = async () => {
         import_progress.value.message = "Creating Assignments";
         let new_assignments: Omit<Assignment, "id">[] = [];
 
-        const assignmentStatus = import_json.value.counts?.annotations ? AssignmentStatuses.DONE : AssignmentStatuses.PENDING;
-
         import_json.value.documents.map((d: any, i: number) => {
           d.assignments.map((ass: any) => {
             let ann_id: string | null = annotator_ids[ass.annotator - 1];
+
+            console.log(selectedUploadedAssignmentsStatus.value == AssignmentStatuses.NONE ? ass.status : selectedUploadedAssignmentsStatus.value)
 
             let new_ass: any = {
               document_id: documentIds[i],
               difficulty_rating: ass.difficulty_rating,
               seq_pos: ass.order,
-              status: assignmentStatus,
+              status: selectedUploadedAssignmentsStatus.value == AssignmentStatuses.NONE ? ass.status : selectedUploadedAssignmentsStatus.value,
               annotator_number: ass.annotator,
               origin: Origins.IMPORTED
             };
@@ -829,5 +892,4 @@ div.tabs-holder {
   li.tab-active button {
     @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
-}
-</style>~/components/Labelsets.vue
+}</style>~/components/Labelsets.vue

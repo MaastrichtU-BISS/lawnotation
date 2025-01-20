@@ -834,6 +834,7 @@ const exportTask = async () => {
       doc_assignments.push({
         annotator: annotators[ass.annotator_id],
         order: ass.seq_pos,
+        status: ass.status,
         difficulty_rating: ass.difficulty_rating,
         annotations: []
       })
