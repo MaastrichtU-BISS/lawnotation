@@ -20,7 +20,8 @@ export enum AssignmentStatuses {
   DONE = "done",
   PREDICTING = "predicting",
   PREANNOTATED = "pre-annotated",
-  FAILED = "failed"
+  FAILED = "failed",
+  NONE = "none"
 }
 
 export enum Origins {
