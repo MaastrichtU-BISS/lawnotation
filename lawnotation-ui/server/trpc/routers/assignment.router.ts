@@ -85,8 +85,6 @@ export const assignmentRouter = router({
 
         const body = `Hello ${user_email},<br />
         You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
-        console.log("SMTP:", config.smtpUrl)
-        console.log("MAILTO:", user_email)
         try {
           const mail = await mailClient.sendMail({
             from: "Lawnotation <no-reply@login.lawnotation.org>",
@@ -94,9 +92,7 @@ export const assignmentRouter = router({
             subject: "Assigned to new task",
             html: body,
           });
-          console.log("SENT", mail)
         } catch (error) {
-          console.log("FAILED", error)
           throw new TRPCError({
             message:
               "There was an error sending an email to the invited user.",
