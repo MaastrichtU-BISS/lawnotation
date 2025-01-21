@@ -12,7 +12,7 @@ import type {
 import type { Context } from "../context";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
-import { MailtrapClient } from "mailtrap";
+import nodemailer from "nodemailer"
 import postgres from "postgres";
 import { Origins, AssignmentStatuses, Direction } from "~/utils/enums";
 import { assignmentEditorAuthorizer, assignmentEditorOrAnnotatorAuthorizer, projectEditorAuthorizer, taskEditorAuthorizer, taskEditorOrAnnotatorAuthorizer } from "../authorizers";
@@ -77,34 +77,27 @@ export const assignmentRouter = router({
           user_metadata: { assigned_task_id: input.task_id },
         });
 
-        if (process.env.NODE_ENV !== "development") {
-          const config = useRuntimeConfig();
-          // send email to existing user
-          if (!config.mailtrapToken) throw Error("Mailtrap API token not set");
+        const config = useRuntimeConfig();
+        // send email to existing user
+        if (!config.smtpUrl) throw Error("Mail connection url is not set.");
 
-          const mailClient = new MailtrapClient({
-            token: config.mailtrapToken,
-          });
+        const mailClient = nodemailer.createTransport(config.smtpUrl);
 
-          const body = `Hello ${user_email},<br />
-          You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
-
-          const mail = await mailClient.send({
-            from: {
-              email: "no-reply@login.lawnotation.org",
-              name: "Lawnotation",
-            },
-            to: [{ email: user_email }],
+        const body = `Hello ${user_email},<br />
+        You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
+        try {
+          const mail = await mailClient.sendMail({
+            from: "Lawnotation <no-reply@login.lawnotation.org>",
+            to: user_email,
             subject: "Assigned to new task",
             html: body,
           });
-
-          if (!mail.success)
-            throw new TRPCError({
-              message:
-                "There was an error sending an email to the invited user.",
-              code: "INTERNAL_SERVER_ERROR",
-            });
+        } catch (error) {
+          throw new TRPCError({
+            message:
+              "There was an error sending an email to the invited user.",
+            code: "INTERNAL_SERVER_ERROR",
+          });
         }
       }
 
