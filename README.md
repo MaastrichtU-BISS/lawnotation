@@ -32,9 +32,8 @@ There are some dependencies that have to be resolved in some way or another. Som
 - **Supabase** project
   - [Supabase](https://github.com/supabase/supabase) is an open source Firebase alternative. It is being used for interacting with a Postgres database and provides authentication to the users.
   - It is possible to run a Supabase locally, or to create a free project on supabase.com and use those details for self-hosting.
-- **Mailtrap** token
-  - Mailtrap is a service that provides the functionality to send emails. We use their service for sending OTP-mails to users.
-  - Currently, it is only possible to use the hosted version of mailtrap. We're working on removing this hard-dependency and allow to use any mail provider.
+- **SMTP** credentials
+  - In order to send OTP-emails and emails for when a user is assigned to a new task, it is needed to define SMTP credentials for sending these mails.
 
 ### Steps
 **1. Clone the repository set up the directory**
@@ -49,25 +48,20 @@ pnpm install
 - In the project on the left sidebar, go to database,
 - Copy the details for step 4
 
-**3. Create a MailTrap.io account**
-- Go to mailtrap.io
-- Fill in the details,
-- Generate and copy the API token for the next step
-
-**4. Set-up the .env file**
+**3. Set-up the .env file**
 - First, copy the `.env.example` file to `.env`
 - Fill in the correct values:
   - `SUPABASE_URL`: The url for supabase
   - `SUPABASE_KEY`: Supabase anon key
   - `SUPABASE_SERVICE_KEY`: Supabase service key
   - `DATABASE_URL`: Postgres database URL
-  - `MAILTRAP_TOKEN`: The API token from mailtrap
+  - `SMTP_URL`: The connection URL to the SMTP server, starting with `smtp://` or `smtps://`. Go [here](https://www.nodemailer.com/smtp/) for an example
 
-**5. Set-up the supabase database**
+**4. Set-up the supabase database**
 - Link the local instance to your remote supabase project using `pnpm supabase link` ([reference](https://supabase.com/docs/guides/functions/deploy))
 - Push the migrations to the remote database using `pnpm supabase db push` command ([reference](https://supabase.com/docs/reference/cli/supabase-db-push))
 
-**6. Start the nuxt server**
+**5. Start the nuxt server**
 - The application can be built using `pnpm build`. 
 - The application can be ran either using `pnpm preview` or `node .output/server/index.mjs`
 
