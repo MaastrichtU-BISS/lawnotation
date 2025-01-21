@@ -260,7 +260,7 @@ export const assignmentRouter = router({
     .query(async ({ ctx, input: id }) => {
       const { data, error, count } = await ctx.supabase
         .from("assignments")
-        .select("*, annotator:users!inner(id, email)")
+        .select("*, annotator:users(id, email)")
         .eq("id", id)
         .single();
 

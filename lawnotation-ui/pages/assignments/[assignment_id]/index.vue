@@ -76,7 +76,7 @@ const loadData = async () => {
 
     if (!assignment.value) throw Error("Assignment not found");
 
-    if(assignment.value.annotator.email) {
+    if(assignment.value.annotator?.email) {
       annotator_email.value = assignment.value.annotator.email
     } else {
       annotator_email.value = `annotator ${assignment.value.annotator_number}`;
