@@ -87,7 +87,10 @@ export const assignmentRouter = router({
         You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
         try {
           const mail = await mailClient.sendMail({
-            from: "Lawnotation <no-reply@login.lawnotation.org>",
+            from: {
+              name: "Lawnotation",
+              address: "no-reply@login.lawnotation.org"
+            },
             to: user_email,
             subject: "Assigned to new task",
             html: body,
