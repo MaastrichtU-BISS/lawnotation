@@ -804,33 +804,55 @@ const importTask = async () => {
           let new_annotations: Omit<Annotation, "id">[] = [];
           let ass_index: number = 0;
 
-          import_json.value.documents.map((d: any) => {
-            d.assignments.map((ass: any) => {
-              ass.annotations.map((ann: any) => {
-                new_annotations.push({
+          type ImportJsonAnnotaiton = {
+            start: number,
+            end: number,
+            label: string,
+            text: string,
+            // relations: Annotation[][],
+            ls_id: string,
+            confidence_rating: number,
+            html_metadata: Annotation['html_metadata']
+          }
+
+          type ImportJsonDocuments = Array<
+            Document & {
+              assignments: Array<
+                Assignment & {
+                  annotations: Array<ImportJsonAnnotaiton>
+                }
+              >
+            }
+          >
+
+          const assignmentAnnotations: Record<number, Omit<Annotation, "id" | "assignment_id">[]> = {};
+
+          (import_json.value.documents as ImportJsonDocuments).map((d) => {
+            d.assignments.map((ass) => {
+              ass.annotations.map((ann) => {
+                (assignmentAnnotations[assignments[ass_index].id] ??= []).push({
                   start_index: ann.start,
                   end_index: ann.end,
                   label: ann.label,
                   text: ann.text,
-                  assignment_id: assignments[ass_index].id,
-                  origin: "imported",
+                  origin: Origins.IMPORTED,
                   ls_id: ann.ls_id,
                   confidence_rating: ann.confidence_rating,
                   html_metadata: ann.html_metadata
                 });
               });
-              ass_index++;
             });
           });
-
-          // const annotations: any[] = [];
-          // const chunkSize = 100;
-          // for (let i = 0; i < new_annotations.length; i += chunkSize) {
-          //     const chunk = new_annotations.slice(i, i + chunkSize);
-          //     annotations.push(...await $trpc.annotation.createMany.mutate(chunk));
-          // };
           
-          const annotations = await $trpc.annotation.createMany.mutate(new_annotations)
+          const annotations: Annotation[] = [];
+          for (const [assignment_id, annotations] of Object.entries(assignmentAnnotations)) {
+            annotations.push(
+              ...await $trpc.annotation.createMany.mutate({
+                assignment_id: +assignment_id,
+                annotations: annotations
+              })
+            )
+          }
 
           // create relations
           import_progress.value.message = "Creating Relations";

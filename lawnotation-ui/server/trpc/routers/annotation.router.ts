@@ -3,7 +3,7 @@ import { z } from "zod";
 import { protectedProcedure, disabledProcedure, router, authorizer } from "~/server/trpc";
 import type { Annotation } from "~/types";
 import { Origins } from "~/utils/enums";
-import { assignmentEditorOrAnnotatorAuthorizer, taskEditorAuthorizer } from "../authorizers";
+import { assignmentEditorAuthorizer, assignmentEditorOrAnnotatorAuthorizer, taskEditorAuthorizer } from "../authorizers";
 import { TRPCForbidden } from "../errors"
 
 const ZAnnotationFields = z.object({
@@ -111,20 +111,21 @@ export const annotationRouter = router({
     }),
 
   createMany: protectedProcedure
-    .input(z.array(ZAnnotationFields))
+    .input(
+      z.object({
+        assignment_id: z.number(),
+        annotations: z.array(ZAnnotationFields.omit({assignment_id: true}))
+      })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentEditorAuthorizer(opts.input.assignment_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
     .mutation(async ({ ctx, input }) => {
-
-      const assignmentIds = [...new Set(input.map(x => x.assignment_id))];
-      for (let assId of assignmentIds) {
-        const access = await assignmentEditorOrAnnotatorAuthorizer(assId, ctx.user.id, ctx)
-        if (!access) {
-          throw TRPCForbidden()
-        }
-      }
-
       const { data, error } = await ctx.supabase
         .from("annotations")
-        .insert(input)
+        .insert(input.annotations)
         .select();
 
       if (error)
