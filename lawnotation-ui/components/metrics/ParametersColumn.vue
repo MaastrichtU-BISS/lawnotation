@@ -144,6 +144,9 @@ import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import Divider from 'primevue/divider';
 
+const { $trpc } = useNuxtApp();
+const route = useRoute();
+
 const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations']);
 
 const selectedLabelsOrEmpty = defineModel('selectedLabelsOrEmpty', { type: Array<String>, required: true });
@@ -161,8 +164,10 @@ const selectedSimilarTask = ref<number>();
 
 const loadSimilarTasks = async () => {
     loadingSimilarTasks.value = true;
-
-
+    optionSimilarTasks.value = await $trpc.task.findSimilarTasks.query({
+        task_id: +route.params.task_id,
+        annotators: props.annotatorsOptions
+    });
     loadingSimilarTasks.value = false;
 };
 //#endregion

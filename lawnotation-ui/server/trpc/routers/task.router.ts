@@ -1,12 +1,22 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { authorizer, protectedProcedure, disabledProcedure, router } from "~/server/trpc";
+import {
+  authorizer,
+  protectedProcedure,
+  disabledProcedure,
+  router,
+} from "~/server/trpc";
 import type { Task, Annotator } from "~/types";
 import { AnnotationLevels } from "~/utils/enums";
 import type { Context } from "../context";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
-import { projectEditorAuthorizer, taskEditorAuthorizer, taskEditorOrAnnotatorAuthorizer } from "../authorizers";
+import {
+  projectEditorAuthorizer,
+  taskEditorAuthorizer,
+  taskEditorOrAnnotatorAuthorizer,
+} from "../authorizers";
+import _ from "lodash";
 
 const ZTaskFields = z.object({
   name: z.string(),
@@ -15,7 +25,7 @@ const ZTaskFields = z.object({
   labelset_id: z.number().int(),
   ann_guidelines: z.string(),
   ml_model_id: z.number().int().nullable().optional(),
-  annotation_level: z.nativeEnum(AnnotationLevels)
+  annotation_level: z.nativeEnum(AnnotationLevels),
 });
 
 export const taskRouter = router({
@@ -154,11 +164,84 @@ export const taskRouter = router({
       return data as Task;
     }),
 
+  findSimilarTasks: protectedProcedure
+    .input(z.object({
+        task_id: z.number().int(),
+        annotators: z.array(z.string())
+      }
+    ))
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorOrAnnotatorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input: { task_id, annotators} }) => {
+      const currentTask = await ctx.supabase
+        .from("tasks")
+        .select("id, annotation_level, labelsets(labels)")
+        .eq("id", task_id)
+        .single();
+
+      if (currentTask.count == 0) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      } else if (!currentTask.data || currentTask.error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findSimilarTasks: ${currentTask.error.message}`,
+        });
+      }
+
+      const projects = await ctx.supabase
+        .from("projects")
+        .select("id, tasks(id, name, annotation_level, labelsets(labels))")
+        .neq("tasks.id", task_id)
+        .eq("tasks.annotation_level", currentTask.data.annotation_level); //filters out different annotation level
+
+      const tasks: { id: number; name: string }[] = [];
+
+      if(projects.data?.length) {
+        for (let i = 0; i < projects.data.length; i++) {
+          const project = projects.data[i];
+          if(project.tasks?.length) {
+            for (let j = 0; j < project.tasks.length; j++) {
+              const task = project.tasks[j];
+
+              // filters out different labelset
+              if(!_.isEqual(currentTask.data.labelsets, task.labelsets)) continue;
+
+              // filters out different annotators
+              const currentTaskannotators = await ctx.supabase
+              .rpc("get_all_annotators_from_task", { t_id: task.id });
+
+              if(_.xor(annotators, currentTaskannotators.data?.map(ann => ann.email)).length !== 0) continue;
+
+              // // filters out different documents
+              // const currentTaskDocuments = await ctx.supabase.rpc("get_all_docs_from_task", {
+              //   t_id: task_id,
+              // });
+
+              tasks.push({
+                id: task.id,
+                name: task.name ?? `Task-${task.id}`,
+              });
+            }
+          }
+        }
+      }
+
+      return tasks;
+    }),
+
   create: protectedProcedure
     .input(ZTaskFields)
     .use((opts) =>
       authorizer(opts, () =>
-        projectEditorAuthorizer(opts.input.project_id, opts.ctx.user.id, opts.ctx))
+        projectEditorAuthorizer(
+          opts.input.project_id,
+          opts.ctx.user.id,
+          opts.ctx
+        )
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
@@ -179,12 +262,13 @@ export const taskRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        updates: ZTaskFields.omit({'project_id': true}).partial(),
+        updates: ZTaskFields.omit({ project_id: true }).partial(),
       })
     )
     .use((opts) =>
       authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input.id, opts.ctx.user.id, opts.ctx))
+        taskEditorAuthorizer(opts.input.id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
@@ -206,7 +290,8 @@ export const taskRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase
@@ -224,19 +309,18 @@ export const taskRouter = router({
 
   // Extra procedures
 
-  getCountByUser: protectedProcedure
-    .query(async ({ ctx }) => {
-      const { data, error } = await ctx.supabase
-        .rpc("get_count_tasks", { e_id: ctx.user.id })
-        .single();
+  getCountByUser: protectedProcedure.query(async ({ ctx }) => {
+    const { data, error } = await ctx.supabase
+      .rpc("get_count_tasks", { e_id: ctx.user.id })
+      .single();
 
-      if (error)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error in tasks.getCountByUser: ${error.message}`,
-        });
-      return data as number;
-    }),
+    if (error)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Error in tasks.getCountByUser: ${error.message}`,
+      });
+    return data as number;
+  }),
 
   getCountByLabelset: protectedProcedure
     .input(z.number().int())
@@ -244,7 +328,7 @@ export const taskRouter = router({
       const { error, count } = await ctx.supabase
         .from("tasks")
         .select("*", {
-          count: "exact"
+          count: "exact",
         })
         .eq("labelset_id", labelset_id);
 
@@ -277,7 +361,8 @@ export const taskRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
     )
     .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase.rpc(
@@ -298,7 +383,8 @@ export const taskRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        projectEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
+        projectEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input: project_id }) => {
       const { data, error } = await ctx.supabase
@@ -316,15 +402,15 @@ export const taskRouter = router({
 
   replicateTask: protectedProcedure
     .input(z.number().int())
-    .use((opts) => 
+    .use((opts) =>
       authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input: task_id }): Promise<Task> => {
       const caller = appRouter.createCaller(ctx);
 
       const task = await caller.task.findById(task_id);
-
 
       const new_task = await caller.task.create(task);
 
@@ -370,7 +456,7 @@ export const taskRouter = router({
             text: a.text!,
             ls_id: a.ls_id!,
             origin: a.origin,
-            confidence_rating: a.confidence_rating
+            confidence_rating: a.confidence_rating,
           };
         })
       );
