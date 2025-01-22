@@ -823,12 +823,14 @@ const importTask = async () => {
             });
           });
 
-          const annotations: any[] = [];
-          const chunkSize = 100;
-          for (let i = 0; i < new_annotations.length; i += chunkSize) {
-              const chunk = new_annotations.slice(i, i + chunkSize);
-              annotations.push(...await $trpc.annotation.createMany.mutate(chunk));
-          };
+          // const annotations: any[] = [];
+          // const chunkSize = 100;
+          // for (let i = 0; i < new_annotations.length; i += chunkSize) {
+          //     const chunk = new_annotations.slice(i, i + chunkSize);
+          //     annotations.push(...await $trpc.annotation.createMany.mutate(chunk));
+          // };
+          
+          const annotations = await $trpc.annotation.createMany.mutate(new_annotations)
 
           // create relations
           import_progress.value.message = "Creating Relations";
