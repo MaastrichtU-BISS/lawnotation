@@ -845,11 +845,11 @@ const importTask = async () => {
           });
           
           const annotations: Annotation[] = [];
-          for (const [assignment_id, annotations] of Object.entries(assignmentAnnotations)) {
+          for (const [assignment_id, part_annotations] of Object.entries(assignmentAnnotations)) {
             annotations.push(
               ...await $trpc.annotation.createMany.mutate({
                 assignment_id: +assignment_id,
-                annotations: annotations
+                annotations: part_annotations
               })
             )
           }
