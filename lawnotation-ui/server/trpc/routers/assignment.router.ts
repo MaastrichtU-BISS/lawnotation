@@ -431,6 +431,27 @@ export const assignmentRouter = router({
       return data as Assignment[];
     }),
 
+  findRichAssignmentsByTask: protectedProcedure
+    .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input: task_id }) => {
+      const { data, error } = await ctx.supabase
+        .from("assignments")
+        .select("*, documents(name)")
+        .eq("task_id", task_id);
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findAssignmentsByTask: ${error.message}`,
+        });
+      return data;
+    }),
+
   findAssignmentsByTaskAndUser: protectedProcedure
     .input(
       z.object({

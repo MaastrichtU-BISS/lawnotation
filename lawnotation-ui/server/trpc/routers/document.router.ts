@@ -241,6 +241,32 @@ export const documentRouter = router({
       return data as Document[];
     }),
 
+  findByProjectAndName: protectedProcedure
+    .input(z.object({
+      project_id: z.number().int(),
+      name: z.string()
+    }))
+    .use((opts) =>
+      authorizer(opts, () =>
+        projectEditorAuthorizer(opts.input.project_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input: { project_id, name } }) => {
+      const { data, error } = await ctx.supabase
+      .from("documents")
+      .select()
+      .eq("project_id", project_id)
+      .eq("name", name)
+      .single();
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findSharedDocumentsByTask: ${error.message}`,
+        });
+      return data as Document[];
+    }),
+
   takeUpToNRandomDocuments: protectedProcedure
     .input(
       z.object({

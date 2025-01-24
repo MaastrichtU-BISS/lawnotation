@@ -50,7 +50,7 @@
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" v-model:tolerance="tolerance"
                   v-model:contained="contained" v-model:separate_into_words="separate_into_words"
                   v-model:hideNonText="hideNonText" @click-compute-metrics="clickComputeMetrics"
-                  @click-download-all="clickDownloadAll" @update-annotations="updateAnnotations">
+                  @click-download-all="clickDownloadAll" @update-annotations="updateAnnotations"  @click-download-all-intra="clickDownloadAllIntra($event)">
                 </ParametersColumn>
               </TabPanel>
             </TabView>
@@ -378,6 +378,24 @@ const clickDownloadAll = async () => {
     }
     const blob_zip = await zip.generateAsync({ type: "blob" });
     saveAs(blob_zip, `${task.value?.name}.zip`);
+    download_progress.value.loading = false;
+    $toast.success(`One .zip file has been downloaded!`);
+  } catch (error) {
+    download_progress.value.loading = false;
+  }
+};
+
+const clickDownloadAllIntra = async (similarTaskId: number) => {
+  if (!task.value) {
+    $toast.error("Task does not exist");
+    throw new Error("Task does not exist");
+  }
+
+  download_progress.value.loading = true;
+  download_progress.value.message = "Merging tasks..."
+  try {
+    const mergedTask = await $trpc.task.mergeTasks.mutate({ originalTaskId: task.value.id, similarTaskId: similarTaskId});
+    console.log(mergedTask);
     download_progress.value.loading = false;
     $toast.success(`One .zip file has been downloaded!`);
   } catch (error) {

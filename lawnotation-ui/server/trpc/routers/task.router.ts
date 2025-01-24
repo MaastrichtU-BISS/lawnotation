@@ -6,8 +6,8 @@ import {
   disabledProcedure,
   router,
 } from "~/server/trpc";
-import type { Task, Annotator } from "~/types";
-import { AnnotationLevels } from "~/utils/enums";
+import type { Task, Annotator, Assignment } from "~/types";
+import { AnnotationLevels, Origins, AssignmentStatuses } from "~/utils/enums";
 import type { Context } from "../context";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
@@ -165,17 +165,22 @@ export const taskRouter = router({
     }),
 
   findSimilarTasks: protectedProcedure
-    .input(z.object({
+    .input(
+      z.object({
         task_id: z.number().int(),
-        annotators: z.array(z.string())
-      }
-    ))
+        annotators: z.array(z.string()),
+      })
+    )
     .use((opts) =>
       authorizer(opts, () =>
-        taskEditorOrAnnotatorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+        taskEditorOrAnnotatorAuthorizer(
+          opts.input.task_id,
+          opts.ctx.user.id,
+          opts.ctx
+        )
       )
     )
-    .query(async ({ ctx, input: { task_id, annotators} }) => {
+    .query(async ({ ctx, input: { task_id, annotators } }) => {
       const currentTask = await ctx.supabase
         .from("tasks")
         .select("id, annotation_level, labelsets(labels)")
@@ -199,21 +204,30 @@ export const taskRouter = router({
 
       const tasks: { id: number; name: string }[] = [];
 
-      if(projects.data?.length) {
+      if (projects.data?.length) {
         for (let i = 0; i < projects.data.length; i++) {
           const project = projects.data[i];
-          if(project.tasks?.length) {
+          if (project.tasks?.length) {
             for (let j = 0; j < project.tasks.length; j++) {
               const task = project.tasks[j];
 
               // filters out different labelset
-              if(!_.isEqual(currentTask.data.labelsets, task.labelsets)) continue;
+              if (!_.isEqual(currentTask.data.labelsets, task.labelsets))
+                continue;
 
               // filters out different annotators
-              const currentTaskannotators = await ctx.supabase
-              .rpc("get_all_annotators_from_task", { t_id: task.id });
+              const currentTaskannotators = await ctx.supabase.rpc(
+                "get_all_annotators_from_task",
+                { t_id: task.id }
+              );
 
-              if(_.xor(annotators, currentTaskannotators.data?.map(ann => ann.email)).length !== 0) continue;
+              if (
+                _.xor(
+                  annotators,
+                  currentTaskannotators.data?.map((ann) => ann.email)
+                ).length !== 0
+              )
+                continue;
 
               // // filters out different documents
               // const currentTaskDocuments = await ctx.supabase.rpc("get_all_docs_from_task", {
@@ -483,6 +497,80 @@ export const taskRouter = router({
 
       return new_task;
     }),
+
+  mergeTasks: protectedProcedure
+    .input(
+      z.object({
+        originalTaskId: z.number().int(),
+        similarTaskId: z.number().int(),
+      })
+    )
+    .use((opts) =>
+      authorizer(
+        opts,
+        () =>
+          taskEditorAuthorizer(
+            opts.input.originalTaskId,
+            opts.ctx.user.id,
+            opts.ctx
+          ) //maybe it is a good idea to validate the similar task id too.
+      )
+    )
+    .mutation(
+      async ({
+        ctx,
+        input: { originalTaskId, similarTaskId },
+      }): Promise<Task> => {
+        const caller = appRouter.createCaller(ctx);
+
+        try {
+          // create a temporary task by replicating the original
+          const mergedTask = await caller.task.replicateTask(originalTaskId);
+
+          // get assignments from both tasks
+          const originalAssignments =
+            await caller.assignment.findRichAssignmentsByTask(originalTaskId);
+          const similarAssignments =
+            await caller.assignment.findRichAssignmentsByTask(similarTaskId);
+
+          // at this point we assume both tasks have documents with the same.
+          // this will be checked as a part of the similarity check
+          // in the future this will be done based on a hash of the full_text
+
+          // join assignments based on document name
+          const name2Id: any = {};
+          originalAssignments.map((a) => {
+            if (!(a.documents?.name! in name2Id)) {
+              name2Id[a.documents?.name!] = a.document_id;
+            }
+          });
+
+          // modify similar assignments with new data from original task
+          const newAssignments: Omit<Assignment, "id">[] = [];
+          similarAssignments.map((a) => {
+            newAssignments.push({
+              task_id: mergedTask.id, //new task_id
+              document_id: name2Id[a.documents?.name!], //new document_id
+              annotator_id: a.annotator_id as string,
+              annotator_number: a.annotator_number,
+              status: a.status as AssignmentStatuses,
+              origin: a.origin as Origins,
+              seq_pos: a.seq_pos as number,
+              difficulty_rating: a.difficulty_rating as number,
+            });
+          });
+
+          // add similar assignemnts to merged task
+          await caller.assignment.createMany({task_id: mergedTask.id, assignments: newAssignments });
+
+          // TODO: replicate annotations too
+
+          return mergedTask;
+        } catch (error) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Error in mergeTasks: ${error}`})
+        }
+      }
+    ),
 });
 
 export type TaskRouter = typeof taskRouter;

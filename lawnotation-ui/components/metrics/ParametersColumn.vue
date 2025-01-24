@@ -126,8 +126,12 @@
                 <AccordionTab header="Intra-Annotator-Agreement">
                     <Button v-if="!optionSimilarTasks?.length" type="button" label="Find similar tasks" icon="pi pi-search"
                         :loading="loadingSimilarTasks" @click="loadSimilarTasks" class="w-full" />
-                    <Dropdown v-else v-model="selectedSimilarTask" :options="optionSimilarTasks" showClear filter
-                        optionLabel="name" placeholder="Select a task" class="w-full" />
+                    <template v-else>
+                        <Dropdown v-model="selectedSimilarTask" :options="optionSimilarTasks" showClear filter
+                            optionLabel="name" optionValue="id" placeholder="Select a task" class="w-full" />
+                        <Button :disabled="!selectedSimilarTask" class="w-full mt-3" label="Download All" outlined size="small"
+                            @click="emit('clickDownloadAllIntra', selectedSimilarTask)" />
+                    </template>
                 </AccordionTab>
             </Accordion>
         </div>
@@ -147,7 +151,7 @@ import Divider from 'primevue/divider';
 const { $trpc } = useNuxtApp();
 const route = useRoute();
 
-const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations']);
+const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations', 'clickDownloadAllIntra']);
 
 const selectedLabelsOrEmpty = defineModel('selectedLabelsOrEmpty', { type: Array<String>, required: true });
 const selectedDocumentsOrEmpty = defineModel('selectedDocumentsOrEmpty', { type: Array<String>, required: true });

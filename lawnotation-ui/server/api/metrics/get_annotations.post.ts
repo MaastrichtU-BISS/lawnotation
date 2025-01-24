@@ -53,8 +53,6 @@ export default eventHandler(async (event) => {
     result = setTextToHidden(result, data.hideNonText);
   }
 
-  console.log(result.length)
-
   return result;
 });
 
