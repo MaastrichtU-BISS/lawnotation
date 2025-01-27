@@ -173,7 +173,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   let query = supabase
     .from("annotations")
     .select(
-      "id, start_index, end_index, label, text, confidence_rating, assignment:assignments!inner(task_id, document_id, document:documents(id, name), annotator:users!inner(email))"
+      "id, start_index, end_index, label, text, confidence_rating, assignment:assignments!inner(task_id, document_id, original_task_id, document:documents(id, name), annotator:users!inner(email))"
     )
     .eq("assignments.task_id", task_id)
   
@@ -204,7 +204,8 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
         ann_id: ann.id,
         doc_id: ann.assignment!.document_id,
         doc_name: ann.assignment!.document!.name,
-        confidence: ann.confidence_rating
+        confidence: ann.confidence_rating,
+        original_task_id: ann.assignment!.original_task_id,
       } as RichAnnotation;
     });
   }

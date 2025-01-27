@@ -26,6 +26,7 @@ const ZAssignmentFields = z.object({
   difficulty_rating: z.number().int(),
   annotator_number: z.number().int(),
   origin: z.nativeEnum(Origins),
+  original_task_id: z.number().int().nullable().optional()
 });
 
 export const assignmentRouter = router({
@@ -167,6 +168,7 @@ export const assignmentRouter = router({
             difficulty_rating: z.number().int().optional(),
             annotator_number: z.number().int().optional(),
             origin: z.nativeEnum(Origins).optional(),
+            original_task_id: z.number().int().nullable().optional()
           })
         ),
         pre_annotations: z
