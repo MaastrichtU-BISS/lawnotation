@@ -1,3 +1,4 @@
+import { Annotation } from "./../../../types/annotation";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -415,88 +416,100 @@ export const taskRouter = router({
     }),
 
   replicateTask: protectedProcedure
-    .input(z.number().int())
+    .input(
+      z.object({
+        task_id: z.number().int(),
+        addOriginalTaskIdToAssignments: z.boolean().optional().default(false),
+      })
+    )
     .use((opts) =>
       authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
       )
     )
-    .mutation(async ({ ctx, input: task_id }): Promise<Task> => {
-      const caller = appRouter.createCaller(ctx);
+    .mutation(
+      async ({
+        ctx,
+        input: { task_id, addOriginalTaskIdToAssignments },
+      }): Promise<Task> => {
+        const caller = appRouter.createCaller(ctx);
 
-      const task = await caller.task.findById(task_id);
+        const task = await caller.task.findById(task_id);
 
-      const new_task = await caller.task.create(task);
+        const new_task = await caller.task.create(task);
 
-      const assignments = await caller.assignment.findAssignmentsByTask(
-        task_id
-      );
+        const assignments = await caller.assignment.findAssignmentsByTask(
+          task_id
+        );
 
-      const new_assignments = await caller.assignment.createMany({
-        task_id: new_task.id,
-        assignments: assignments.map((a) => {
-          return {
-            annotator_id: a.annotator_id,
-            annotator_number: a.annotator_number,
-            document_id: a.document_id,
-            seq_pos: a.seq_pos,
-            status: a.status,
-            difficulty_rating: a.difficulty_rating,
-            origin: a.origin,
-          };
-        }),
-      });
+        const new_assignments = await caller.assignment.createMany({
+          task_id: new_task.id,
+          assignments: assignments.map((a) => {
+            return {
+              annotator_id: a.annotator_id,
+              annotator_number: a.annotator_number,
+              document_id: a.document_id,
+              seq_pos: a.seq_pos,
+              status: a.status,
+              difficulty_rating: a.difficulty_rating,
+              origin: a.origin,
+              original_task_id: addOriginalTaskIdToAssignments ? task_id : null,
+            };
+          }),
+        });
 
-      let dicAssignments: any = {};
-      new_assignments.map((na, index) => {
-        dicAssignments[assignments[index].id] = na.id;
-      });
+        // leveraging the fact that the new assigmnets are created and returned in the same order as the paramaters provided
+        let dicAssignments: any = {};
+        new_assignments.map((na, index) => {
+          dicAssignments[assignments[index].id] = na.id;
+        });
 
-      type NonNullableObject<T> = {
-        [K in keyof T]: NonNullable<T[K]>;
-      };
+        type NonNullableObject<T> = {
+          [K in keyof T]: NonNullable<T[K]>;
+        };
 
-      const annotations = await caller.annotation.findAnnotationsByTask(
-        task_id
-      );
+        const annotations = await caller.annotation.findAnnotationsByTask(
+          task_id
+        );
 
-      const new_annotations = await caller.annotation.createMany(
-        annotations.map((a) => {
-          return {
-            assignment_id: dicAssignments[a.assignment_id!]!,
-            label: a.label!,
-            start_index: a.start_index!,
-            end_index: a.end_index!,
-            text: a.text!,
-            ls_id: a.ls_id!,
-            origin: a.origin,
-            confidence_rating: a.confidence_rating,
-          };
-        })
-      );
+        const new_annotations = await caller.annotation.createMany(
+          annotations.map((a) => {
+            return {
+              assignment_id: dicAssignments[a.assignment_id!]!,
+              label: a.label!,
+              start_index: a.start_index!,
+              end_index: a.end_index!,
+              text: a.text!,
+              ls_id: a.ls_id!,
+              origin: a.origin,
+              confidence_rating: a.confidence_rating,
+            };
+          })
+        );
 
-      const relations = await caller.relation.findRelationsByTask(task_id);
+        const relations = await caller.relation.findRelationsByTask(task_id);
 
-      let dicAnnotations: any = {};
-      new_annotations.map((na, index) => {
-        dicAnnotations[annotations[index].id] = na.id;
-      });
+        let dicAnnotations: any = {};
+        new_annotations.map((na, index) => {
+          dicAnnotations[annotations[index].id] = na.id;
+        });
 
-      const new_relations = await caller.relation.createMany(
-        relations.map((a) => {
-          return {
-            direction: a.direction!,
-            from_id: dicAnnotations[a.from_id]!,
-            to_id: dicAnnotations[a.to_id]!,
-            labels: a.labels!,
-            ls_from: a.ls_from!,
-            ls_to: a.ls_to!,
-          };
-        })
-      );
+        const new_relations = await caller.relation.createMany(
+          relations.map((a) => {
+            return {
+              direction: a.direction!,
+              from_id: dicAnnotations[a.from_id]!,
+              to_id: dicAnnotations[a.to_id]!,
+              labels: a.labels!,
+              ls_from: a.ls_from!,
+              ls_to: a.ls_to!,
+            };
+          })
+        );
 
-      return new_task;
-    }),
+        return new_task;
+      }
+    ),
 
   mergeTasks: protectedProcedure
     .input(
@@ -525,10 +538,13 @@ export const taskRouter = router({
 
         try {
           // create a temporary task by replicating the original
-          const mergedTask = await caller.task.replicateTask(originalTaskId);
+          const mergedTask = await caller.task.replicateTask({
+            task_id: originalTaskId,
+            addOriginalTaskIdToAssignments: true,
+          });
 
-          // get assignments from both tasks
-          const originalAssignments =
+          // get assignments from merged and similar tasks
+          const mergedAssignments =
             await caller.assignment.findRichAssignmentsByTask(originalTaskId);
           const similarAssignments =
             await caller.assignment.findRichAssignmentsByTask(similarTaskId);
@@ -539,7 +555,7 @@ export const taskRouter = router({
 
           // join assignments based on document name
           const name2Id: any = {};
-          originalAssignments.map((a) => {
+          mergedAssignments.map((a) => {
             if (!(a.documents?.name! in name2Id)) {
               name2Id[a.documents?.name!] = a.document_id;
             }
@@ -557,17 +573,54 @@ export const taskRouter = router({
               origin: a.origin as Origins,
               seq_pos: a.seq_pos as number,
               difficulty_rating: a.difficulty_rating as number,
+              original_task_id: similarTaskId,
             });
           });
 
           // add similar assignemnts to merged task
-          await caller.assignment.createMany({task_id: mergedTask.id, assignments: newAssignments });
+          const mergedSimilarAssignments = await caller.assignment.createMany({
+            task_id: mergedTask.id,
+            assignments: newAssignments,
+          });
 
-          // TODO: replicate annotations too
+          // leveraging the fact that the new assigmnets are created and returned in the same order as the paramaters provided
+          let dicAssignments: any = {};
+          mergedSimilarAssignments.map((na, index) => {
+            dicAssignments[similarAssignments[index].id] = na.id;
+          });
+
+          // get similar annotations
+          const similarAnnotations =
+            await caller.annotation.findAnnotationsByTask(similarTaskId);
+
+          // modify similar annotations with new similar ids
+          const newAnnotations: Omit<Annotation, "id">[] = [];
+          similarAnnotations.map((ann: Annotation) => {
+            newAnnotations.push({
+              assignment_id: dicAssignments[ann.assignment_id],
+              label: ann.label,
+              text: ann.text,
+              start_index: ann.start_index,
+              end_index: ann.end_index,
+              origin: ann.origin,
+              metadata: ann.metadata,
+              html_metadata: ann.html_metadata,
+              confidence_rating: ann.confidence_rating,
+              ls_id: ann.ls_id,
+            });
+          });
+
+          // add new similar annotations to merged task
+          await caller.annotation.createMany(newAnnotations);
+
+          // TODO: for now the relations are not needed to compute metrics
 
           return mergedTask;
         } catch (error) {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Error in mergeTasks: ${error}`})
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Error in mergeTasks: ${error}`,
+          });
         }
       }
     ),
