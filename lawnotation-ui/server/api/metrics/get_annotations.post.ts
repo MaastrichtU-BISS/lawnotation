@@ -12,7 +12,6 @@ import { H3Event } from "h3";
 type DocDic = Record<number, { full_text: string; name: string }>;
 
 export default eventHandler(async (event) => {
-
   const data = await readBody(event);
 
   const documentsDataPromise = getDocuments(
@@ -35,7 +34,7 @@ export default eventHandler(async (event) => {
   const documentsData = await documentsDataPromise;
   let result = annotations;
 
-  if(data.metricType == MetricTypes.AGREEMENT) { 
+  if (data.metricType == MetricTypes.AGREEMENT) {
     if (!data.documentLevel) {
       result = await getNonAnnotations(
         annotations,
@@ -88,7 +87,7 @@ async function getNonAnnotations(
           ann_id: -1,
           doc_id: previous_ann.doc_id,
           doc_name: previous_ann.doc_name,
-          confidence: 0
+          confidence: 0,
         });
       }
       last_end = 0;
@@ -107,7 +106,7 @@ async function getNonAnnotations(
         ann_id: -1,
         doc_id: next_doc_id,
         doc_name: documentsData[next_doc_id].name,
-        confidence: 0
+        confidence: 0,
       });
       next_doc_id = documentsOptions[++docs_index];
     }
@@ -127,11 +126,11 @@ async function getNonAnnotations(
         ann_id: -1,
         doc_id: current_ann.doc_id,
         doc_name: current_ann.doc_name,
-        confidence: current_ann.confidence
+        confidence: current_ann.confidence,
       });
     }
 
-    if(current_ann.doc_id in documentsData) {
+    if (current_ann.doc_id in documentsData) {
       new_annotations.push(current_ann);
     }
     last_end = Math.max(last_end, current_ann.end);
@@ -155,7 +154,7 @@ async function getNonAnnotations(
       ann_id: -1,
       doc_id: previous_ann.doc_id,
       doc_name: previous_ann.doc_name,
-      confidence: 0
+      confidence: 0,
     });
   }
   return new_annotations;
@@ -175,10 +174,9 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
     .select(
       "id, start_index, end_index, label, text, confidence_rating, assignment:assignments!inner(task_id, document_id, original_task_id, document:documents(id, name), annotator:users!inner(email))"
     )
-    .eq("assignments.task_id", task_id)
-  
-  if (labels && labels.length > 0)
-    query = query.in("label", labels);
+    .eq("assignments.task_id", task_id);
+
+  if (labels && labels.length > 0) query = query.in("label", labels);
 
   if (documents && documents.length > 0)
     query = query.in("assignments.document_id", documents);
@@ -199,7 +197,11 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
         end: ann.end_index,
         text: ann.text,
         label: ann.label,
-        annotator: ann.assignment!.annotator!.email,
+        annotator: ann.assignment!.original_task_id
+          ? `${ann.assignment!.original_task_id}-${
+              ann.assignment!.annotator!.email
+            }`
+          : ann.assignment!.annotator!.email,
         hidden: false,
         ann_id: ann.id,
         doc_id: ann.assignment!.document_id,

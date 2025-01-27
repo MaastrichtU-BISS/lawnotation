@@ -32,7 +32,26 @@ export default eventHandler(async (event) => {
     return Promise.resolve(metrics.map((m) => newEmptyMetricResult(m)));
   }
 
-  const metric_body = JSON.stringify({
+  let metric_body = "";
+
+  if (data.intraTaskIds?.length == 2) {
+    metric_body = JSON.stringify({
+      annotations: annotations.filter((ann) => !ann.hidden),
+      annotators: [
+        `${data.intraTaskIds[0]}-${data.annotators[0]}`,
+        `${data.intraTaskIds[1]}-${data.annotators[0]}`,
+      ],
+      tolerance: data.tolerance,
+      contained: data.contained,
+    });
+
+    return [await $fetch(`/api/metrics/cohens_kappa`, {
+      method: "POST",
+      body: metric_body,
+    })];
+  }
+
+  metric_body = JSON.stringify({
     annotations: annotations.filter((ann) => !ann.hidden),
     annotators: data.annotators,
     tolerance: data.tolerance,
