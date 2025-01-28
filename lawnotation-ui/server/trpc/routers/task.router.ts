@@ -1,12 +1,23 @@
+import { Annotation } from "./../../../types/annotation";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { authorizer, protectedProcedure, disabledProcedure, router } from "~/server/trpc";
-import type { Task, Annotator } from "~/types";
-import { AnnotationLevels } from "~/utils/enums";
+import {
+  authorizer,
+  protectedProcedure,
+  disabledProcedure,
+  router,
+} from "~/server/trpc";
+import type { Task, Annotator, Assignment } from "~/types";
+import { AnnotationLevels, Origins, AssignmentStatuses } from "~/utils/enums";
 import type { Context } from "../context";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
-import { projectEditorAuthorizer, taskEditorAuthorizer, taskEditorOrAnnotatorAuthorizer } from "../authorizers";
+import {
+  projectEditorAuthorizer,
+  taskEditorAuthorizer,
+  taskEditorOrAnnotatorAuthorizer,
+} from "../authorizers";
+import _ from "lodash";
 
 const ZTaskFields = z.object({
   name: z.string(),
@@ -15,7 +26,7 @@ const ZTaskFields = z.object({
   labelset_id: z.number().int(),
   ann_guidelines: z.string(),
   ml_model_id: z.number().int().nullable().optional(),
-  annotation_level: z.nativeEnum(AnnotationLevels)
+  annotation_level: z.nativeEnum(AnnotationLevels),
 });
 
 export const taskRouter = router({
@@ -154,11 +165,98 @@ export const taskRouter = router({
       return data as Task;
     }),
 
+  findSimilarTasks: protectedProcedure
+    .input(
+      z.object({
+        task_id: z.number().int(),
+        annotators: z.array(z.string()),
+      })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorOrAnnotatorAuthorizer(
+          opts.input.task_id,
+          opts.ctx.user.id,
+          opts.ctx
+        )
+      )
+    )
+    .query(async ({ ctx, input: { task_id, annotators } }) => {
+      const currentTask = await ctx.supabase
+        .from("tasks")
+        .select("id, annotation_level, labelsets(labels)")
+        .eq("id", task_id)
+        .single();
+
+      if (currentTask.count == 0) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      } else if (!currentTask.data || currentTask.error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findSimilarTasks: ${currentTask.error.message}`,
+        });
+      }
+
+      const projects = await ctx.supabase
+        .from("projects")
+        .select("id, tasks(id, name, annotation_level, labelsets(labels))")
+        .neq("tasks.id", task_id)
+        .eq("tasks.annotation_level", currentTask.data.annotation_level); //filters out different annotation level
+
+      const tasks: { id: number; name: string }[] = [];
+
+      if (projects.data?.length) {
+        for (let i = 0; i < projects.data.length; i++) {
+          const project = projects.data[i];
+          if (project.tasks?.length) {
+            for (let j = 0; j < project.tasks.length; j++) {
+              const task = project.tasks[j];
+
+              // filters out different labelset
+              if (!_.isEqual(currentTask.data.labelsets, task.labelsets))
+                continue;
+
+              // filters out different annotators
+              const currentTaskannotators = await ctx.supabase.rpc(
+                "get_all_annotators_from_task",
+                { t_id: task.id }
+              );
+
+              if (
+                _.xor(
+                  annotators,
+                  currentTaskannotators.data?.map((ann) => ann.email)
+                ).length !== 0
+              )
+                continue;
+
+              // // filters out different documents
+              // const currentTaskDocuments = await ctx.supabase.rpc("get_all_docs_from_task", {
+              //   t_id: task_id,
+              // });
+
+              tasks.push({
+                id: task.id,
+                name: task.name ?? `Task-${task.id}`,
+              });
+            }
+          }
+        }
+      }
+
+      return tasks;
+    }),
+
   create: protectedProcedure
     .input(ZTaskFields)
     .use((opts) =>
       authorizer(opts, () =>
-        projectEditorAuthorizer(opts.input.project_id, opts.ctx.user.id, opts.ctx))
+        projectEditorAuthorizer(
+          opts.input.project_id,
+          opts.ctx.user.id,
+          opts.ctx
+        )
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
@@ -179,12 +277,13 @@ export const taskRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        updates: ZTaskFields.omit({'project_id': true}).partial(),
+        updates: ZTaskFields.omit({ project_id: true }).partial(),
       })
     )
     .use((opts) =>
       authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input.id, opts.ctx.user.id, opts.ctx))
+        taskEditorAuthorizer(opts.input.id, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
@@ -206,7 +305,8 @@ export const taskRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const { error } = await ctx.supabase
@@ -224,19 +324,18 @@ export const taskRouter = router({
 
   // Extra procedures
 
-  getCountByUser: protectedProcedure
-    .query(async ({ ctx }) => {
-      const { data, error } = await ctx.supabase
-        .rpc("get_count_tasks", { e_id: ctx.user.id })
-        .single();
+  getCountByUser: protectedProcedure.query(async ({ ctx }) => {
+    const { data, error } = await ctx.supabase
+      .rpc("get_count_tasks", { e_id: ctx.user.id })
+      .single();
 
-      if (error)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error in tasks.getCountByUser: ${error.message}`,
-        });
-      return data as number;
-    }),
+    if (error)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Error in tasks.getCountByUser: ${error.message}`,
+      });
+    return data as number;
+  }),
 
   getCountByLabelset: protectedProcedure
     .input(z.number().int())
@@ -244,7 +343,7 @@ export const taskRouter = router({
       const { error, count } = await ctx.supabase
         .from("tasks")
         .select("*", {
-          count: "exact"
+          count: "exact",
         })
         .eq("labelset_id", labelset_id);
 
@@ -277,7 +376,8 @@ export const taskRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
     )
     .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase.rpc(
@@ -298,7 +398,8 @@ export const taskRouter = router({
     .input(z.number().int())
     .use((opts) =>
       authorizer(opts, () =>
-        projectEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
+        projectEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
     )
     .mutation(async ({ ctx, input: project_id }) => {
       const { data, error } = await ctx.supabase
@@ -315,88 +416,214 @@ export const taskRouter = router({
     }),
 
   replicateTask: protectedProcedure
-    .input(z.number().int())
-    .use((opts) => 
-      authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
+    .input(
+      z.object({
+        task_id: z.number().int(),
+        addOriginalTaskIdToAssignments: z.boolean().optional().default(false),
+      })
     )
-    .mutation(async ({ ctx, input: task_id }): Promise<Task> => {
-      const caller = appRouter.createCaller(ctx);
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .mutation(
+      async ({
+        ctx,
+        input: { task_id, addOriginalTaskIdToAssignments },
+      }): Promise<Task> => {
+        const caller = appRouter.createCaller(ctx);
 
-      const task = await caller.task.findById(task_id);
+        const task = await caller.task.findById(task_id);
 
+        const new_task = await caller.task.create(task);
 
-      const new_task = await caller.task.create(task);
+        const assignments = await caller.assignment.findAssignmentsByTask(
+          task_id
+        );
 
-      const assignments = await caller.assignment.findAssignmentsByTask(
-        task_id
-      );
+        const new_assignments = await caller.assignment.createMany({
+          task_id: new_task.id,
+          assignments: assignments.map((a) => {
+            return {
+              annotator_id: a.annotator_id,
+              annotator_number: a.annotator_number,
+              document_id: a.document_id,
+              seq_pos: a.seq_pos,
+              status: a.status,
+              difficulty_rating: a.difficulty_rating,
+              origin: a.origin,
+              original_task_id: addOriginalTaskIdToAssignments ? task_id : null,
+            };
+          }),
+        });
 
-      const new_assignments = await caller.assignment.createMany({
-        task_id: new_task.id,
-        assignments: assignments.map((a) => {
-          return {
-            annotator_id: a.annotator_id,
-            annotator_number: a.annotator_number,
-            document_id: a.document_id,
-            seq_pos: a.seq_pos,
-            status: a.status,
-            difficulty_rating: a.difficulty_rating,
-            origin: a.origin,
-          };
-        }),
-      });
+        // leveraging the fact that the new assigmnets are created and returned in the same order as the paramaters provided
+        let dicAssignments: any = {};
+        new_assignments.map((na, index) => {
+          dicAssignments[assignments[index].id] = na.id;
+        });
 
-      let dicAssignments: any = {};
-      new_assignments.map((na, index) => {
-        dicAssignments[assignments[index].id] = na.id;
-      });
+        type NonNullableObject<T> = {
+          [K in keyof T]: NonNullable<T[K]>;
+        };
 
-      type NonNullableObject<T> = {
-        [K in keyof T]: NonNullable<T[K]>;
-      };
+        const annotations = await caller.annotation.findAnnotationsByTask(
+          task_id
+        );
 
-      const annotations = await caller.annotation.findAnnotationsByTask(
-        task_id
-      );
+        const new_annotations = await caller.annotation.createMany(
+          annotations.map((a) => {
+            return {
+              assignment_id: dicAssignments[a.assignment_id!]!,
+              label: a.label!,
+              start_index: a.start_index!,
+              end_index: a.end_index!,
+              text: a.text!,
+              ls_id: a.ls_id!,
+              origin: a.origin,
+              confidence_rating: a.confidence_rating,
+            };
+          })
+        );
 
-      const new_annotations = await caller.annotation.createMany(
-        annotations.map((a) => {
-          return {
-            assignment_id: dicAssignments[a.assignment_id!]!,
-            label: a.label!,
-            start_index: a.start_index!,
-            end_index: a.end_index!,
-            text: a.text!,
-            ls_id: a.ls_id!,
-            origin: a.origin,
-            confidence_rating: a.confidence_rating
-          };
-        })
-      );
+        const relations = await caller.relation.findRelationsByTask(task_id);
 
-      const relations = await caller.relation.findRelationsByTask(task_id);
+        let dicAnnotations: any = {};
+        new_annotations.map((na, index) => {
+          dicAnnotations[annotations[index].id] = na.id;
+        });
 
-      let dicAnnotations: any = {};
-      new_annotations.map((na, index) => {
-        dicAnnotations[annotations[index].id] = na.id;
-      });
+        const new_relations = await caller.relation.createMany(
+          relations.map((a) => {
+            return {
+              direction: a.direction!,
+              from_id: dicAnnotations[a.from_id]!,
+              to_id: dicAnnotations[a.to_id]!,
+              labels: a.labels!,
+              ls_from: a.ls_from!,
+              ls_to: a.ls_to!,
+            };
+          })
+        );
 
-      const new_relations = await caller.relation.createMany(
-        relations.map((a) => {
-          return {
-            direction: a.direction!,
-            from_id: dicAnnotations[a.from_id]!,
-            to_id: dicAnnotations[a.to_id]!,
-            labels: a.labels!,
-            ls_from: a.ls_from!,
-            ls_to: a.ls_to!,
-          };
-        })
-      );
+        return new_task;
+      }
+    ),
 
-      return new_task;
-    }),
+  mergeTasks: protectedProcedure
+    .input(
+      z.object({
+        originalTaskId: z.number().int(),
+        similarTaskId: z.number().int(),
+      })
+    )
+    .use((opts) =>
+      authorizer(
+        opts,
+        () =>
+          taskEditorAuthorizer(
+            opts.input.originalTaskId,
+            opts.ctx.user.id,
+            opts.ctx
+          ) //maybe it is a good idea to validate the similar task id too.
+      )
+    )
+    .mutation(
+      async ({
+        ctx,
+        input: { originalTaskId, similarTaskId },
+      }): Promise<Task> => {
+        const caller = appRouter.createCaller(ctx);
+
+        try {
+          // create a temporary task by replicating the original
+          const mergedTask = await caller.task.replicateTask({
+            task_id: originalTaskId,
+            addOriginalTaskIdToAssignments: true,
+          });
+
+          // get assignments from merged and similar tasks
+          const mergedAssignments =
+            await caller.assignment.findRichAssignmentsByTask(originalTaskId);
+          const similarAssignments =
+            await caller.assignment.findRichAssignmentsByTask(similarTaskId);
+
+          // at this point we assume both tasks have documents with the same.
+          // this will be checked as a part of the similarity check
+          // in the future this will be done based on a hash of the full_text
+
+          // join assignments based on document name
+          const name2Id: any = {};
+          mergedAssignments.map((a) => {
+            if (!(a.documents?.name! in name2Id)) {
+              name2Id[a.documents?.name!] = a.document_id;
+            }
+          });
+
+          // modify similar assignments with new data from original task
+          const newAssignments: Omit<Assignment, "id">[] = [];
+          similarAssignments.map((a) => {
+            newAssignments.push({
+              task_id: mergedTask.id, //new task_id
+              document_id: name2Id[a.documents?.name!], //new document_id
+              annotator_id: a.annotator_id as string,
+              annotator_number: a.annotator_number,
+              status: a.status as AssignmentStatuses,
+              origin: a.origin as Origins,
+              seq_pos: a.seq_pos as number,
+              difficulty_rating: a.difficulty_rating as number,
+              original_task_id: similarTaskId,
+            });
+          });
+
+          // add similar assignemnts to merged task
+          const mergedSimilarAssignments = await caller.assignment.createMany({
+            task_id: mergedTask.id,
+            assignments: newAssignments,
+          });
+
+          // leveraging the fact that the new assigmnets are created and returned in the same order as the paramaters provided
+          let dicAssignments: any = {};
+          mergedSimilarAssignments.map((na, index) => {
+            dicAssignments[similarAssignments[index].id] = na.id;
+          });
+
+          // get similar annotations
+          const similarAnnotations =
+            await caller.annotation.findAnnotationsByTask(similarTaskId);
+
+          // modify similar annotations with new similar ids
+          const newAnnotations: Omit<Annotation, "id">[] = [];
+          similarAnnotations.map((ann: Annotation) => {
+            newAnnotations.push({
+              assignment_id: dicAssignments[ann.assignment_id],
+              label: ann.label,
+              text: ann.text,
+              start_index: ann.start_index,
+              end_index: ann.end_index,
+              origin: ann.origin,
+              metadata: ann.metadata,
+              html_metadata: ann.html_metadata,
+              confidence_rating: ann.confidence_rating,
+              ls_id: ann.ls_id,
+            });
+          });
+
+          // add new similar annotations to merged task
+          await caller.annotation.createMany(newAnnotations);
+
+          // TODO: for now the relations are not needed to compute metrics
+
+          return mergedTask;
+        } catch (error) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Error in mergeTasks: ${error}`,
+          });
+        }
+      }
+    ),
 });
 
 export type TaskRouter = typeof taskRouter;

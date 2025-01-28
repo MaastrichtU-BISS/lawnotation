@@ -9,7 +9,8 @@ export type Assignment = {
   seq_pos: number;
   difficulty_rating: number;
   annotator_number: number;
-  origin: Origins
+  origin: Origins;
+  original_task_id?: number;
 };
 
 export type AssignmentTableData = {
