@@ -556,15 +556,12 @@ export const taskRouter = router({
           const similarAssignments =
             await caller.assignment.findRichAssignmentsByTask(similarTaskId);
 
-          // at this point we assume both tasks have documents with the same.
-          // this will be checked as a part of the similarity check
-          // in the future this will be done based on a hash of the full_text
-
-          // join assignments based on document name
-          const name2Id: any = {};
+          // join assignments based on document hash
+          // assumes that there will not be 2 documents with the same content and different doc_id within the same task
+          const hash2Id: any = {};
           mergedAssignments.map((a) => {
-            if (!(a.documents?.name! in name2Id)) {
-              name2Id[a.documents?.name!] = a.document_id;
+            if (!(a.documents?.hash! in hash2Id)) {
+              hash2Id[a.documents?.hash!] = a.document_id;
             }
           });
 
@@ -573,7 +570,7 @@ export const taskRouter = router({
           similarAssignments.map((a) => {
             newAssignments.push({
               task_id: mergedTask.id, //new task_id
-              document_id: name2Id[a.documents?.name!], //new document_id
+              document_id: hash2Id[a.documents?.hash!], //new document_id
               annotator_id: a.annotator_id as string,
               annotator_number: a.annotator_number,
               status: a.status as AssignmentStatuses,

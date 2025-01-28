@@ -443,7 +443,7 @@ export const assignmentRouter = router({
     .query(async ({ ctx, input: task_id }) => {
       const { data, error } = await ctx.supabase
         .from("assignments")
-        .select("*, documents(name)")
+        .select("*, documents(hash)")
         .eq("task_id", task_id);
 
       if (error)
