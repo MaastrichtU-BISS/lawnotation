@@ -1,4 +1,4 @@
-import { Origins } from "~/utils/enum";
+import { Origins } from "~/utils/enums";
 
 export type Annotation = {
   id: number;
