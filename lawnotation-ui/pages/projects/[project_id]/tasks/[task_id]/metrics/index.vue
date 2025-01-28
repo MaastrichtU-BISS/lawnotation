@@ -685,7 +685,7 @@ async function createWorkBooks(data: any, document?: any) {
       data.annotators
     );
 
-    let sheetName = label.substring(0, 31);
+    let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
 
     // works as long as there are less than 100 labels
     if (label.length > 31) {
@@ -952,7 +952,7 @@ async function createWorkBooks_intra(data: any, document?: any) {
 
     const sheets = await getMetricsSheetAndAnnotations_intra(label, document ? [document] : data.documentsOptQuery, data);
 
-    let sheetName = label.substring(0, 31);
+    let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
     // // works as long as there are less than 100 labels
     if (label.length > 31) {
       const range = i + 1 > 9 ? 12 : 13;
