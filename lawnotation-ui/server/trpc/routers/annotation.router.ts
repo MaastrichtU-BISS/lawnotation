@@ -193,7 +193,6 @@ export const annotationRouter = router({
         .eq("assignments.document_id", input.document_id);
 
       const { data, error } = await query;
-      console.log(data)
       if (error)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

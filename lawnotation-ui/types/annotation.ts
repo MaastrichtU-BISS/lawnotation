@@ -27,7 +27,7 @@ export type LSSerializedAnnotation = {
   id: string;
   from_name: string;
   to_name: string;
-  origin: "manual" | "imported" | "model";
+  origin: Origins;
   type: "labels" | "choices" | "hypertextlabels" | "rating";
   meta?: {
     text?: string[]

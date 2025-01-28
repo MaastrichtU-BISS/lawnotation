@@ -6,6 +6,8 @@ import type {
   LSSerializedAnnotation,
 } from "~/types";
 
+import { Origins } from "~/utils/enums";
+
 export const convert_annotation_ls2db = (
   anns: LSSerializedAnnotations,
   assignment_id: number
@@ -82,7 +84,7 @@ export const convert_annotation_db2ls = (
       const base_anns = anns.map((a) => {
         const baseAnn: any = {
           id: a.ls_id,
-          origin: "manual",
+          origin: Origins.MANUAL,
           from_name: "label",
           to_name: "text",
           type: "hypertextlabels",
@@ -112,7 +114,7 @@ export const convert_annotation_db2ls = (
       const confidence_anns = anns.map((a) => {
         return {
           id: a.ls_id,
-          origin: "manual",
+          origin: Origins.MANUAL,
           from_name: "ann_confidence",
           to_name: "text",
           type: "rating",
@@ -136,7 +138,7 @@ export const convert_annotation_db2ls = (
       const base_anns = anns.map((a) => {
         let baseAnn: any = {
           id: a.ls_id,
-          origin: "manual",
+          origin: Origins.MANUAL,
           from_name: "label",
           to_name: "text",
           type: "labels",
@@ -147,7 +149,6 @@ export const convert_annotation_db2ls = (
             labels: [a.label],
           },
         }
-
         if(a.metadata) {
           baseAnn.meta = {
             text: [a.metadata]
@@ -160,7 +161,7 @@ export const convert_annotation_db2ls = (
       const confidence_anns = anns.map((a) => { 
         return {
           id: a.ls_id,
-          origin: "manual",
+          origin: Origins.MANUAL,
           from_name: "ann_confidence",
           to_name: "text",
           type: "rating",
@@ -181,7 +182,7 @@ export const convert_annotation_db2ls = (
       ? [
           {
             id: anns[0].ls_id,
-            origin: "manual",
+            origin: Origins.MANUAL,
             from_name: "label",
             to_name: "text",
             type: "choices",
