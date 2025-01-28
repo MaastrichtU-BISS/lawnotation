@@ -224,15 +224,21 @@ export const taskRouter = router({
               console.log("Passed labelset")
 
               // filters out different annotators
-              const currentTaskAnnotators = await ctx.supabase.rpc(
+              const currentTaskAnnotators = (await ctx.supabase.rpc(
                 "get_all_annotators_from_task",
                 { t_id: currentTask.id }
-              );
-
+              )).data?.map((ann) => ann.email) as string[];
+              
+              console.log(annotators);
+              console.log(currentTaskAnnotators);
+              console.log(_.xor(
+                annotators,
+                currentTaskAnnotators,
+              ));
               if (
                 _.xor(
                   annotators,
-                  currentTaskAnnotators.data?.map((ann) => ann.email)
+                  currentTaskAnnotators,
                 ).length !== 0
               )
                 continue;
