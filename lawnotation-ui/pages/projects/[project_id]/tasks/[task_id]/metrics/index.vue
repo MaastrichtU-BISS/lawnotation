@@ -357,8 +357,10 @@ const clickDownloadAll = async () => {
     throw new Error("Task does not exist");
   }
 
+  download_progress.value.current = 0;
   download_progress.value.loading = true;
   try {
+    download_progress.value.message = "Computing metrics..."
     const blobs = await download_all({
       task_id: task.value?.id.toString()!,
       labelsOptions: labelsOptions.map((l) => l.name),
@@ -375,12 +377,15 @@ const clickDownloadAll = async () => {
       documentsOptions: documentsOptions.value.map((d) => d.value),
     });
 
+    download_progress.value.message = "Generating files..."
     const zip = JSZip();
     for (let i = 0; i < blobs.length; i++) {
       const b = await (await fetch(blobs[i].data)).blob();
       zip.file(`${blobs[i].name}`, b);
     }
     const blob_zip = await zip.generateAsync({ type: "blob" });
+
+    download_progress.value.message = "Downloading..."
     saveAs(blob_zip, `${task.value?.name}.zip`);
     download_progress.value.loading = false;
     $toast.success(`One .zip file has been downloaded!`);
@@ -395,6 +400,7 @@ const clickDownloadAllIntra = async (similarTaskId: number) => {
     throw new Error("Task does not exist");
   }
 
+  download_progress.value.current = 0;
   download_progress.value.loading = true;
   download_progress.value.message = "Merging tasks..."
   try {
@@ -435,7 +441,7 @@ const clickDownloadAllIntra = async (similarTaskId: number) => {
     $toast.success(`One .zip file has been downloaded!`);
   } catch (error) {
     download_progress.value.loading = false;
-    // Logic to detect latest replicated task and delete it
+    // TODO: Logic to detect latest replicated task and delete it
   }
 };
 
@@ -529,78 +535,11 @@ async function createBlobs(data: any, document?: any) {
 //#region INTRA-ANNOTATOR-AGREEMENT 
 
 async function download_all_csv_intra(data: any) {
-  let results: { data: string; name: string }[] = [];
-  download_progress.value.current = 0;
-  download_progress.value.total =
-    (selectedDocuments.value.length + 1) * labelsOptions.length;
-  try {
-    if (data.documents.length > 1) {
-      const { workbookAnnotations } = await createBlobs(data);
-      results.push({
-        data: getZippeableBlob(workbookAnnotations),
-        name: `_annotations.xlsx`,
-      });
-    }
-
-    // Per document
-    for (let i = 0; i < data.documents.length; i++) {
-      const document = data.documents[i];
-      const filename = `${document}-${documentsNames.value[document].split('.')[0]}`;
-      const { workbookAnnotations } = await createBlobs(data, document);
-      results.push({
-        data: getZippeableBlob(workbookAnnotations),
-        name: `${filename}_annotations.xlsx`,
-      });
-    }
-
-    return results;
-  } catch (error) { console.error(error) }
-  return [];
+  // TODO
 }
 
 async function createBlobs_intra(data: any, document?: any) {
-  const workbookAnnotations = XLSX.utils.book_new();
-  for (let i = 0; i < data.labelsOptions.length; i++) {
-    const label = data.labelsOptions[i];
-
-    const annotations = await getAnnotations(
-      data.task_id,
-      [label],
-      document ? [document] : data.documentsOrEmpty,
-      data.annotators,
-      data.byWords,
-      data.hideNonText,
-      data.documentLevel,
-      MetricTypes.DESCRIPTIVE
-    );
-
-    const annotations_sheet = XLSX.utils.json_to_sheet(annotations.filter(a => a.label !== "NOT ANNOTATED").map(annotation => {
-      return {
-        start: annotation.start,
-        end: annotation.end,
-        label: annotation.label,
-        text: annotation.text,
-        annotator: annotation.annotator,
-        doc_id: annotation.doc_id.toString(),
-        doc_name: annotation?.doc_name!,
-        confidence: annotation.confidence
-      }
-    }));
-
-    let sheetName = label.substring(0, 31);
-
-    // works as long as there are less than 100 labels
-    if (label.length > 31) {
-      const range = i + 1 > 9 ? 12 : 13;
-      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
-    }
-
-    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
-
-    download_progress.value.current += 1;
-  }
-
-  return { workbookAnnotations };
+  // TODO
 }
 //#endregion 
 
@@ -1053,16 +992,24 @@ async function getMetricsSheetAndAnnotations_intra(
       data.intraTaskIds
     );
     const m = metrics[0];
-    if (m.result !== undefined)
+    if (m.result !== undefined) {
+
       rows_m.push({
         metric: m.name,
         annotators: `${data.intraTaskIds[0]}-${annotator},${data.intraTaskIds[1]}-${annotator}`,
         value: m.result,
         p0: m.po,
-        pe: m.pe,
-        tolerance: data.tolerance,
-        consider_contained: data.contained ? "yes" : "no",
+        pe: m.pe
       });
+
+      if (!isDocumentLevel(task.value!)) {
+        Object.assign(rows_m.at(-1),
+          {
+            tolerance: data.tolerance,
+            consider_contained: data.contained ? "yes" : "no"
+          })
+      }
+    }
 
     const table = m.table!;
     if (table) {
@@ -1071,16 +1018,22 @@ async function getMetricsSheetAndAnnotations_intra(
           rows_a.push({
             document: r.doc_id + "-" + r.doc_name,
             annotator: k,
-            start: r.start,
-            end: r.end,
-            text: r.text,
             value: v,
+            confidence: r.confidences[k],
           });
+
+          if (!isDocumentLevel(task.value!)) {
+            Object.assign(rows_a.at(-1),
+              {
+                start: r.start,
+                end: r.end,
+                text: r.text?.length ? (r.text.length <= 1000 ? r.text : `${r.text.substring(0, 100)} ... ${r.text.substring(900, 1000)}`) : "",
+              })
+          }
         });
       });
     }
   }
-
   return [XLSX.utils.json_to_sheet(rows_m), XLSX.utils.json_to_sheet(rows_a)];
 }
 

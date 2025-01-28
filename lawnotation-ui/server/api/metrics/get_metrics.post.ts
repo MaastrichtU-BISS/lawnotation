@@ -1,6 +1,7 @@
 import { type RichAnnotation } from "~/utils/metrics";
 import type { MetricResult } from "~/utils/metrics";
 import { newEmptyMetricResult } from "~/utils/metrics";
+import { MetricTypes } from "~/utils/enums";
 
 const metrics = ["krippendorff", "fleiss_kappa", "cohens_kappa"];
 
@@ -20,6 +21,7 @@ export default eventHandler(async (event) => {
       documentLevel: data.documentLevel,
       documentsData: data.documentsData,
       documentsOptions: data.documentsOptions,
+      metricType: MetricTypes.AGREEMENT
     });
 
     annotations = await $fetch(`/api/metrics/get_annotations`, {
@@ -39,7 +41,7 @@ export default eventHandler(async (event) => {
       annotations: annotations.filter((ann) => !ann.hidden),
       annotators: [
         `${data.intraTaskIds[0]}-${data.annotators[0]}`,
-        `${data.intraTaskIds[1]}-${data.annotators[0]}`,
+        `${data.intraTaskIds[1]}-${data.annotators[0]}`
       ],
       tolerance: data.tolerance,
       contained: data.contained,

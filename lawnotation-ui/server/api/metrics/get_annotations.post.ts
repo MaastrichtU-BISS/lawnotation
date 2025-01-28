@@ -33,7 +33,7 @@ export default eventHandler(async (event) => {
   sortByDocumentAndRange(annotations);
   const documentsData = await documentsDataPromise;
   let result = annotations;
-
+    
   if (data.metricType == MetricTypes.AGREEMENT) {
     if (!data.documentLevel) {
       result = await getNonAnnotations(
@@ -65,6 +65,7 @@ async function getNonAnnotations(
   var last_end: number = 0;
   var docs_index: number = 0;
   var previous_ann = annotations[0];
+
   for (let i = 0; i < annotations.length; ++i) {
     var current_ann = annotations[i];
     // new document
