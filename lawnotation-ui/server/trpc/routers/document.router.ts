@@ -23,7 +23,7 @@ const ZDocumentFields = z.object({
   name: z.string(),
   project_id: z.number().int(),
   source: z.string(),
-  full_text: z.string(),
+  full_text: z.string()
 });
 
 export const documentRouter = router({

@@ -1,4 +1,3 @@
-import { Annotation } from "./../../../types/annotation";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -7,7 +6,7 @@ import {
   disabledProcedure,
   router,
 } from "~/server/trpc";
-import type { Task, Annotator, Assignment } from "~/types";
+import type { Task, Annotator, Assignment, Annotation } from "~/types";
 import { AnnotationLevels, Origins, AssignmentStatuses } from "~/utils/enums";
 import type { Context } from "../context";
 import { appRouter } from ".";
@@ -182,26 +181,31 @@ export const taskRouter = router({
       )
     )
     .query(async ({ ctx, input: { task_id, annotators } }) => {
-      const currentTask = await ctx.supabase
+      const originTask = await ctx.supabase
         .from("tasks")
         .select("id, annotation_level, labelsets(labels)")
         .eq("id", task_id)
         .single();
 
-      if (currentTask.count == 0) {
+      if (originTask.count == 0) {
         throw new TRPCError({ code: "NOT_FOUND" });
-      } else if (!currentTask.data || currentTask.error) {
+      } else if (!originTask.data || originTask.error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findSimilarTasks: ${currentTask.error.message}`,
+          message: `Error in findSimilarTasks: ${originTask.error.message}`,
         });
       }
+
+      const originTaskDocuments = (await ctx.supabase.rpc("get_all_docs_from_task_mini", {
+        t_id: task_id,
+      })).data as {id: number; hash: string}[];
 
       const projects = await ctx.supabase
         .from("projects")
         .select("id, tasks(id, name, annotation_level, labelsets(labels))")
-        .neq("tasks.id", task_id)
-        .eq("tasks.annotation_level", currentTask.data.annotation_level); //filters out different annotation level
+        .eq("editor_id", ctx.user.id) // consider only projects from this user
+        .neq("tasks.id", task_id) // exclude origin task
+        .eq("tasks.annotation_level", originTask.data.annotation_level); //filters out different annotation level
 
       const tasks: { id: number; name: string }[] = [];
 
@@ -210,34 +214,37 @@ export const taskRouter = router({
           const project = projects.data[i];
           if (project.tasks?.length) {
             for (let j = 0; j < project.tasks.length; j++) {
-              const task = project.tasks[j];
+              const currentTask = project.tasks[j];
 
               // filters out different labelset
-              if (!_.isEqual(currentTask.data.labelsets, task.labelsets))
+              // at the moment they have to be exactly the same (same order and same colors too)
+              if (!_.isEqual(originTask.data.labelsets, currentTask.labelsets))
                 continue;
 
               // filters out different annotators
-              const currentTaskannotators = await ctx.supabase.rpc(
+              const currentTaskAnnotators = await ctx.supabase.rpc(
                 "get_all_annotators_from_task",
-                { t_id: task.id }
+                { t_id: currentTask.id }
               );
 
               if (
                 _.xor(
                   annotators,
-                  currentTaskannotators.data?.map((ann) => ann.email)
+                  currentTaskAnnotators.data?.map((ann) => ann.email)
                 ).length !== 0
               )
                 continue;
 
-              // // filters out different documents
-              // const currentTaskDocuments = await ctx.supabase.rpc("get_all_docs_from_task", {
-              //   t_id: task_id,
-              // });
+              // // filters out different documents without at least one document in common (according to hash)
+              const currentTaskDocuments = (await ctx.supabase.rpc("get_all_docs_from_task_mini", {
+                t_id: currentTask.id,
+              })).data as {id: number; hash: string}[];
+
+              if(!_.intersectionWith(originTaskDocuments, currentTaskDocuments, (o1, o2) => o1.hash == o2.hash)?.length) continue;
 
               tasks.push({
-                id: task.id,
-                name: task.name ?? `Task-${task.id}`,
+                id: currentTask.id,
+                name: currentTask.name ?? `Task-${currentTask.id}`,
               });
             }
           }
