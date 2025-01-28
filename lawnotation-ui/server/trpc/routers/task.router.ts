@@ -220,8 +220,6 @@ export const taskRouter = router({
               // at the moment they have to be exactly the same (same order and same colors too)
               if (!_.isEqual(originTask.data.labelsets, currentTask.labelsets))
                 continue;
-              
-              console.log("Passed labelset")
 
               // filters out different annotators
               const currentTaskAnnotators = (await ctx.supabase.rpc(
@@ -229,12 +227,6 @@ export const taskRouter = router({
                 { t_id: currentTask.id }
               )).data?.map((ann) => ann.email) as string[];
               
-              console.log(annotators);
-              console.log(currentTaskAnnotators);
-              console.log(_.xor(
-                annotators,
-                currentTaskAnnotators,
-              ));
               if (
                 _.xor(
                   annotators,
@@ -243,18 +235,12 @@ export const taskRouter = router({
               )
                 continue;
               
-              console.log("Passed annotators")
               // // filters out different documents without at least one document in common (according to hash)
               const currentTaskDocuments = (await ctx.supabase.rpc("get_all_docs_from_task_mini", {
                 t_id: currentTask.id,
               })).data as {id: number; hash: string}[];
 
-              console.log(originTaskDocuments)
-              console.log(currentTaskDocuments)
-
               if(!_.intersectionWith(originTaskDocuments, currentTaskDocuments, (o1, o2) => o1.hash == o2.hash)?.length) continue;
-
-              console.log("Passed documents")
 
               tasks.push({
                 id: currentTask.id,
