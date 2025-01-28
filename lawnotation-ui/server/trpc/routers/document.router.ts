@@ -23,7 +23,7 @@ const ZDocumentFields = z.object({
   name: z.string(),
   project_id: z.number().int(),
   source: z.string(),
-  full_text: z.string(),
+  full_text: z.string()
 });
 
 export const documentRouter = router({
@@ -232,6 +232,32 @@ export const documentRouter = router({
         "get_all_shared_docs_from_task",
         { t_id: task_id }
       );
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findSharedDocumentsByTask: ${error.message}`,
+        });
+      return data as Document[];
+    }),
+
+  findByProjectAndName: protectedProcedure
+    .input(z.object({
+      project_id: z.number().int(),
+      name: z.string()
+    }))
+    .use((opts) =>
+      authorizer(opts, () =>
+        projectEditorAuthorizer(opts.input.project_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input: { project_id, name } }) => {
+      const { data, error } = await ctx.supabase
+      .from("documents")
+      .select()
+      .eq("project_id", project_id)
+      .eq("name", name)
+      .single();
 
       if (error)
         throw new TRPCError({

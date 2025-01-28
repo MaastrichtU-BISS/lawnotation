@@ -2,11 +2,9 @@
     <ul class="space-y-2 text-sm">
         <li>
             <label class="block mb-2 text-sm font-medium text-gray-900">Label(s)</label>
-            <Multiselect v-if="metricType == MetricTypes.DESCRIPTIVE" v-model="selectedLabelsOrEmpty" optionValue="name" class="w-full" filter autoFilterFocus="true"
-                :filterFields="['name']" :maxSelectedLabels="1"
-                :options="labelsOptions"
-                placeholder="All"
-                @change="emit('updateAnnotations')">
+            <Multiselect v-if="metricType == MetricTypes.DESCRIPTIVE" v-model="selectedLabelsOrEmpty" optionValue="name"
+                class="w-full" filter autoFilterFocus="true" :filterFields="['name']" :maxSelectedLabels="1"
+                :options="labelsOptions" placeholder="All" @change="emit('updateAnnotations')">
                 <template #value="slotProps">
                     <div v-if="slotProps.value?.length == 1">
                         <LabelCmpt class="mr-2"
@@ -24,11 +22,9 @@
                     <LabelCmpt :label="slotProps.option"></LabelCmpt>
                 </template>
             </Multiselect>
-            <Dropdown v-else-if="metricType == MetricTypes.AGREEMENT" v-model="selectedLabelsOrEmpty[0]" optionValue="name" class="w-full" filter autoFilterFocus="true"
-                :filterFields="['name']"
-                :options="labelsOptions"
-                placeholder="Select label"
-                @change="emit('updateAnnotations')">
+            <Dropdown v-else-if="metricType == MetricTypes.AGREEMENT" v-model="selectedLabelsOrEmpty[0]" optionValue="name"
+                class="w-full" filter autoFilterFocus="true" :filterFields="['name']" :options="labelsOptions"
+                placeholder="Select label" @change="emit('updateAnnotations')">
                 <template #value="slotProps">
                     <div v-if="slotProps.value?.length">
                         <LabelCmpt class="mr-2"
@@ -47,7 +43,8 @@
         <li>
             <label class="block mb-2 text-sm font-medium text-gray-900">Document(s)</label>
             <Multiselect v-model="selectedDocumentsOrEmpty" class="w-full" optionLabel="label" optionValue="value"
-                :options="documentsOptions" placeholder="All" @change="emit('updateAnnotations')" filter autoFilterFocus="true" :maxSelectedLabels="1" />
+                :options="documentsOptions" placeholder="All" @change="emit('updateAnnotations')" filter
+                autoFilterFocus="true" :maxSelectedLabels="1" />
         </li>
         <li>
             <label class="block mb-2 text-sm font-medium text-gray-900">Annotator(s)</label>
@@ -118,6 +115,26 @@
             <Button class="w-full" :class="metricType == MetricTypes.DESCRIPTIVE ? 'mt-4' : ''" label="Download All"
                 outlined size="small" @click="emit('clickDownloadAll')" />
         </li>
+        <div v-if="metricType == MetricTypes.AGREEMENT">
+            <Divider class="py-6" />
+            <div class="flex justify-end">
+                <i class="pi pi-info-circle cursor-pointer border-0 self-center"
+                    v-tooltip="'(Optional). Search for tasks among all your projects that:\n* Have the same annotators as the current task\n * Have the same documents\n* Have the same labelset\nAnd perform the Agreement calculations of the individual annotators\nagainst themselves from task to task.\n(You can create tasks like these by, for example:\nReplicating Tasks or Exporting/Importing Tasks)'"
+                    type="text"></i>
+            </div>
+            <Accordion>
+                <AccordionTab header="Intra-Annotator-Agreement">
+                    <Button v-if="!optionSimilarTasks?.length" type="button" label="Find similar tasks" icon="pi pi-search"
+                        :loading="loadingSimilarTasks" @click="loadSimilarTasks" class="w-full" />
+                    <template v-else>
+                        <Dropdown v-model="selectedSimilarTask" :options="optionSimilarTasks" showClear filter
+                            optionLabel="name" optionValue="id" placeholder="Select a task" class="w-full" />
+                        <Button :disabled="!selectedSimilarTask" class="w-full mt-3" label="Download All" outlined size="small"
+                            @click="emit('clickDownloadAllIntra', selectedSimilarTask)" />
+                    </template>
+                </AccordionTab>
+            </Accordion>
+        </div>
     </ul>
 </template>
 <script setup lang="ts">
@@ -127,8 +144,14 @@ import Multiselect from "primevue/multiselect";
 import LabelCmpt from "~/components/labels/Label.vue";
 import InputSwitch from 'primevue/inputswitch';
 import InputNumber from 'primevue/inputnumber';
+import Accordion from 'primevue/accordion';
+import AccordionTab from 'primevue/accordiontab';
+import Divider from 'primevue/divider';
 
-const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations']);
+const { $trpc } = useNuxtApp();
+const route = useRoute();
+
+const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations', 'clickDownloadAllIntra']);
 
 const selectedLabelsOrEmpty = defineModel('selectedLabelsOrEmpty', { type: Array<String>, required: true });
 const selectedDocumentsOrEmpty = defineModel('selectedDocumentsOrEmpty', { type: Array<String>, required: true });
@@ -137,6 +160,21 @@ const tolerance = defineModel('tolerance', { type: Number, required: false });
 const contained = defineModel('contained', { type: Boolean, required: false });
 const hideNonText = defineModel('hideNonText', { type: Boolean, required: false });
 const separate_into_words = defineModel('separate_into_words', { type: Boolean, required: false });
+
+//#region Intra-Annotator-Agreement
+const loadingSimilarTasks = ref<boolean>(false);
+const optionSimilarTasks = ref<{ id: number; name: string }[]>([]);
+const selectedSimilarTask = ref<number>();
+
+const loadSimilarTasks = async () => {
+    loadingSimilarTasks.value = true;
+    optionSimilarTasks.value = await $trpc.task.findSimilarTasks.query({
+        task_id: +route.params.task_id,
+        annotators: props.annotatorsOptions
+    });
+    loadingSimilarTasks.value = false;
+};
+//#endregion
 
 const props = defineProps<{
     metricType: MetricTypes,

@@ -737,7 +737,7 @@ const importTask = async () => {
           document: {
             name: doc.name,
             full_text: doc.full_text,
-            source: "imported",
+            source: Origins.IMPORTED,
             project_id: project.id,
           }
         });
@@ -813,7 +813,7 @@ const importTask = async () => {
                   label: ann.label,
                   text: ann.text,
                   assignment_id: assignments[ass_index].id,
-                  origin: "imported",
+                  origin: Origins.IMPORTED,
                   ls_id: ann.ls_id,
                   confidence_rating: ann.confidence_rating,
                   html_metadata: ann.html_metadata

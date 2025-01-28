@@ -775,7 +775,7 @@ const createAssignments = async () => {
 
 const replicateTask = async () => {
   loading.value = true;
-  const new_task = await $trpc.task.replicateTask.mutate(task.id);
+  const new_task = await $trpc.task.replicateTask.mutate({ task_id: task.id });
   loading.value = false;
   $toast.success(`Task successfully replicated! ${new_task.id}`);
 };

@@ -7,6 +7,7 @@
                     <span class="ml-2 text-xs text-gray-500">
                         <i>{{ annotation.annotator }} | </i>
                         <i>{{ annotation.confidence }} <i class="pi pi-star-fill text-yellow-300" /> </i>
+                        <i v-if="annotation.metadata"> | {{ annotation.metadata }}</i>
                     </span>
                 </template>
                 <template v-else>

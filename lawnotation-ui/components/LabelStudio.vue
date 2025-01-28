@@ -33,7 +33,7 @@ import type {
   LsLabels,
   LSSerializedAnnotations,
 } from "~/types";
-import { AnnotationLevels, AssignmentStatuses, Direction } from "~/utils/enums";
+import { AnnotationLevels, AssignmentStatuses, Direction, Origins } from "~/utils/enums";
 
 const { $trpc, $toast } = useNuxtApp();
 
@@ -57,7 +57,7 @@ const props = defineProps<{
 }>();
 
 const doc_confidence_ann = ref({
-  origin: "manual",
+  origin: Origins.MANUAL,
   from_name: "doc_confidence",
   to_name: "doc_confidence",
   type: "rating",
