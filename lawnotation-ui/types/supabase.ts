@@ -92,6 +92,7 @@ export type Database = {
           id: number
           label: string | null
           ls_id: string | null
+          metadata: string | null
           origin: Database["public"]["Enums"]["origins"] | null
           start_index: number | null
           text: string | null
@@ -105,6 +106,7 @@ export type Database = {
           id?: number
           label?: string | null
           ls_id?: string | null
+          metadata?: string | null
           origin?: Database["public"]["Enums"]["origins"] | null
           start_index?: number | null
           text?: string | null
@@ -118,6 +120,7 @@ export type Database = {
           id?: number
           label?: string | null
           ls_id?: string | null
+          metadata?: string | null
           origin?: Database["public"]["Enums"]["origins"] | null
           start_index?: number | null
           text?: string | null
@@ -141,6 +144,7 @@ export type Database = {
           document_id: number | null
           id: number
           origin: Database["public"]["Enums"]["origins"] | null
+          original_task_id: number | null
           seq_pos: number | null
           status: Database["public"]["Enums"]["assignment_status"] | null
           task_id: number | null
@@ -153,6 +157,7 @@ export type Database = {
           document_id?: number | null
           id?: number
           origin?: Database["public"]["Enums"]["origins"] | null
+          original_task_id?: number | null
           seq_pos?: number | null
           status?: Database["public"]["Enums"]["assignment_status"] | null
           task_id?: number | null
@@ -165,6 +170,7 @@ export type Database = {
           document_id?: number | null
           id?: number
           origin?: Database["public"]["Enums"]["origins"] | null
+          original_task_id?: number | null
           seq_pos?: number | null
           status?: Database["public"]["Enums"]["assignment_status"] | null
           task_id?: number | null
@@ -197,6 +203,7 @@ export type Database = {
         Row: {
           created_at: string | null
           full_text: string | null
+          hash: string | null
           id: number
           name: string | null
           project_id: number | null
@@ -205,6 +212,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           full_text?: string | null
+          hash?: string | null
           id?: number
           name?: string | null
           project_id?: number | null
@@ -213,6 +221,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           full_text?: string | null
+          hash?: string | null
           id?: number
           name?: string | null
           project_id?: number | null
@@ -535,10 +544,20 @@ export type Database = {
         Returns: {
           created_at: string | null
           full_text: string | null
+          hash: string | null
           id: number
           name: string | null
           project_id: number | null
           source: string | null
+        }[]
+      }
+      get_all_docs_from_task_mini: {
+        Args: {
+          t_id: number
+        }
+        Returns: {
+          id: number
+          hash: string
         }[]
       }
       get_all_shared_docs_from_task: {
@@ -548,6 +567,7 @@ export type Database = {
         Returns: {
           created_at: string | null
           full_text: string | null
+          hash: string | null
           id: number
           name: string | null
           project_id: number | null
@@ -614,6 +634,7 @@ export type Database = {
           document_id: number | null
           id: number
           origin: Database["public"]["Enums"]["origins"] | null
+          original_task_id: number | null
           seq_pos: number | null
           status: Database["public"]["Enums"]["assignment_status"] | null
           task_id: number | null

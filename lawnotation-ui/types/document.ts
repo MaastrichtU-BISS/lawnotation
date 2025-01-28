@@ -4,4 +4,5 @@ export type Document = {
   project_id: number;
   source: string;
   full_text: string;
+  hash: string;
 };

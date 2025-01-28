@@ -22,6 +22,8 @@ export type RichAnnotation = {
   doc_id: number;
   doc_name?: string;
   confidence: number;
+  original_task_id?: number;
+  metadata?: string;
 };
 
 export type MetricResult = {

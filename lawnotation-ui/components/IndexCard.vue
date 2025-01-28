@@ -5,7 +5,7 @@
         <div class="text-center">
             <h5 class="mb-6 text-2xl text-inherit font-bold tracking-tight">{{ title }}</h5>
             <i style="font-size: 3rem" :class="icon"></i>
-            <div v-if="description?.length" class="text-xs mt-4">{{ description }}</div>
+            <div v-if="description?.length" class="text-xs mt-4" :class="disabled ? 'text-red-400' : ''">{{ description }}</div>
         </div>
     </NuxtLink>
 </template>

@@ -375,7 +375,8 @@
           @export="exportTask" />
         <SelectMetricModal v-model:visible="selectMetricModalVisible"
           :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`"
-          :disable-agreement="groupByAnnotators.data.value?.total! < 2"/>
+          :disable-agreement="amountAnnotators < 2"
+          :disable-descriptive="amountAnnotators == 0" />
       </div>
     </div>
   </div>
@@ -546,6 +547,8 @@ const groupByDocumentsPaginate = ({ page }: { page: number }) => {
 watch(() => groupByDocumentsArgs.filter.document, refreshGroupByDocuments)
 
 // end
+
+const amountAnnotators = (await $trpc.task.getAllAnnotatorsFromTask.query(+task?.id!)).filter(x => x.id).length
 
 const tabChangeEvent = ({ index }: TabViewChangeEvent) => {
   if (index === 0) refreshGroupByAnnotators()
@@ -772,7 +775,7 @@ const createAssignments = async () => {
 
 const replicateTask = async () => {
   loading.value = true;
-  const new_task = await $trpc.task.replicateTask.mutate(task.id);
+  const new_task = await $trpc.task.replicateTask.mutate({ task_id: task.id });
   loading.value = false;
   $toast.success(`Task successfully replicated! ${new_task.id}`);
 };

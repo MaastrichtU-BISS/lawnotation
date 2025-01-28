@@ -26,6 +26,7 @@ const ZAssignmentFields = z.object({
   difficulty_rating: z.number().int(),
   annotator_number: z.number().int(),
   origin: z.nativeEnum(Origins),
+  original_task_id: z.number().int().nullable().optional()
 });
 
 export const assignmentRouter = router({
@@ -167,6 +168,7 @@ export const assignmentRouter = router({
             difficulty_rating: z.number().int().optional(),
             annotator_number: z.number().int().optional(),
             origin: z.nativeEnum(Origins).optional(),
+            original_task_id: z.number().int().nullable().optional()
           })
         ),
         pre_annotations: z
@@ -260,7 +262,7 @@ export const assignmentRouter = router({
     .query(async ({ ctx, input: id }) => {
       const { data, error, count } = await ctx.supabase
         .from("assignments")
-        .select("*, annotator:users!inner(id, email)")
+        .select("*, annotator:users(id, email)")
         .eq("id", id)
         .single();
 
@@ -429,6 +431,27 @@ export const assignmentRouter = router({
           message: `Error in findAssignmentsByTask: ${error.message}`,
         });
       return data as Assignment[];
+    }),
+
+  findRichAssignmentsByTask: protectedProcedure
+    .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input: task_id }) => {
+      const { data, error } = await ctx.supabase
+        .from("assignments")
+        .select("*, documents(hash)")
+        .eq("task_id", task_id);
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findAssignmentsByTask: ${error.message}`,
+        });
+      return data;
     }),
 
   findAssignmentsByTaskAndUser: protectedProcedure
