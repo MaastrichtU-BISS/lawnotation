@@ -129,8 +129,8 @@
                     <template v-else>
                         <Dropdown v-model="selectedSimilarTask" :options="optionSimilarTasks" showClear filter
                             optionLabel="name" optionValue="id" placeholder="Select a task" class="w-full" />
-                        <Button :disabled="!selectedSimilarTask" class="w-full mt-3" label="Download All" outlined size="small"
-                            @click="emit('clickDownloadAllIntra', selectedSimilarTask)" />
+                        <Button :disabled="!selectedSimilarTask" class="w-full mt-3" label="Merge tasks" outlined size="small"
+                            @click="emit('mergeTasks', selectedSimilarTask)" />
                     </template>
                 </AccordionTab>
             </Accordion>
@@ -151,7 +151,7 @@ import Divider from 'primevue/divider';
 const { $trpc } = useNuxtApp();
 const route = useRoute();
 
-const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations', 'clickDownloadAllIntra']);
+const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations', 'mergeTasks']);
 
 const selectedLabelsOrEmpty = defineModel('selectedLabelsOrEmpty', { type: Array<String>, required: true });
 const selectedDocumentsOrEmpty = defineModel('selectedDocumentsOrEmpty', { type: Array<String>, required: true });

@@ -51,7 +51,7 @@
                   v-model:contained="contained" v-model:separate_into_words="separate_into_words"
                   v-model:hideNonText="hideNonText" @click-compute-metrics="clickComputeMetrics"
                   @click-download-all="clickDownloadAll" @update-annotations="updateAnnotations"
-                  @click-download-all-intra="clickDownloadAllIntra($event)">
+                  @merge-tasks="mergeTasks($event)">
                 </ParametersColumn>
               </TabPanel>
             </TabView>
@@ -394,7 +394,7 @@ const clickDownloadAll = async () => {
   }
 };
 
-const clickDownloadAllIntra = async (similarTaskId: number) => {
+const mergeTasks = async (similarTaskId: number) => {
   if (!task.value) {
     $toast.error("Task does not exist");
     throw new Error("Task does not exist");
@@ -405,43 +405,44 @@ const clickDownloadAllIntra = async (similarTaskId: number) => {
   download_progress.value.message = "Merging tasks..."
   try {
     const mergedTask = await $trpc.task.mergeTasks.mutate({ originalTaskId: task.value.id, similarTaskId: similarTaskId });
-    download_progress.value.message = "Computing metrics"
-    const blobs = await download_all({
-      task_id: mergedTask.id.toString(),
-      labelsOptions: labelsOptions.map((l) => l.name),
-      documents: selectedDocuments.value,
-      documentsOrEmpty: selectedDocumentsOptQuery.value,
-      annotators: selectedAnnotators.value,
-      annotatorsOrEmpty: selectedAnnotatorsOrEmpty.value,
-      tolerance: tolerance.value,
-      byWords: separate_into_words.value,
-      hideNonText: hideNonText.value,
-      contained: contained.value,
-      documentLevel: isDocumentLevel(mergedTask),
-      documentsData: documentsData.value,
-      documentsOptions: documentsOptions.value.map((d) => d.value),
-      intraTaskIds: [task.value.id, similarTaskId]
-    }, true);
+    // download_progress.value.message = "Computing metrics"
+    // const blobs = await download_all({
+    //   task_id: mergedTask.id.toString(),
+    //   labelsOptions: labelsOptions.map((l) => l.name),
+    //   documents: selectedDocuments.value,
+    //   documentsOrEmpty: selectedDocumentsOptQuery.value,
+    //   annotators: selectedAnnotators.value,
+    //   annotatorsOrEmpty: selectedAnnotatorsOrEmpty.value,
+    //   tolerance: tolerance.value,
+    //   byWords: separate_into_words.value,
+    //   hideNonText: hideNonText.value,
+    //   contained: contained.value,
+    //   documentLevel: isDocumentLevel(mergedTask),
+    //   documentsData: documentsData.value,
+    //   documentsOptions: documentsOptions.value.map((d) => d.value),
+    //   intraTaskIds: [task.value.id, similarTaskId]
+    // }, true);
 
-    download_progress.value.message = "Generating files..."
-    const zip = JSZip();
-    for (let i = 0; i < blobs.length; i++) {
-      const b = await (await fetch(blobs[i].data)).blob();
-      zip.file(`${blobs[i].name}`, b);
-    }
-    const blob_zip = await zip.generateAsync({ type: "blob" });
+    // download_progress.value.message = "Generating files..."
+    // const zip = JSZip();
+    // for (let i = 0; i < blobs.length; i++) {
+    //   const b = await (await fetch(blobs[i].data)).blob();
+    //   zip.file(`${blobs[i].name}`, b);
+    // }
+    // const blob_zip = await zip.generateAsync({ type: "blob" });
 
-    download_progress.value.message = "Deleting temporary task..."
-    await $trpc.task.delete.mutate(mergedTask.id);
+    // download_progress.value.message = "Deleting temporary task..."
+    // await $trpc.task.delete.mutate(mergedTask.id);
 
-    download_progress.value.message = "Downloading..."
-    saveAs(blob_zip, `${task.value?.name}.zip`);
-
+    // download_progress.value.message = "Downloading..."
+    // saveAs(blob_zip, `${task.value?.name}.zip`);
+    
     download_progress.value.loading = false;
-    $toast.success(`One .zip file has been downloaded!`);
+    $toast.success(`Tasks succesfully merged!`);
+    router.push(router.currentRoute.value.fullPath.replace(`tasks/${task.value.id}`, `tasks/${mergedTask.id}`));
   } catch (error) {
     download_progress.value.loading = false;
-    // TODO: Logic to detect latest replicated task and delete it
+    $toast.error(`Tasks could not be merged: ${error}`);
   }
 };
 

@@ -9,4 +9,6 @@ export type Task = {
   ann_guidelines: string;
   ml_model_id?: number;
   annotation_level: AnnotationLevels;
+  origin_task_1_id?: number;
+  origin_task_2_id?: number;
 };
