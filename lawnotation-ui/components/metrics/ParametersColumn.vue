@@ -3,7 +3,7 @@
         <li>
             <label class="block mb-2 text-sm font-medium text-gray-900">Label(s)</label>
             <Multiselect v-if="metricType == MetricTypes.DESCRIPTIVE" v-model="selectedLabelsOrEmpty" optionValue="name"
-                class="w-full" filter autoFilterFocus="true" :filterFields="['name']" :maxSelectedLabels="1"
+                class="w-full" filter :autoFilterFocus="true" :filterFields="['name']" :maxSelectedLabels="1"
                 :options="labelsOptions" placeholder="All" @change="emit('updateAnnotations')">
                 <template #value="slotProps">
                     <div v-if="slotProps.value?.length == 1">
@@ -23,7 +23,7 @@
                 </template>
             </Multiselect>
             <Dropdown v-else-if="metricType == MetricTypes.AGREEMENT" v-model="selectedLabelsOrEmpty[0]" optionValue="name"
-                class="w-full" filter autoFilterFocus="true" :filterFields="['name']" :options="labelsOptions"
+                class="w-full" filter :autoFilterFocus="true" :filterFields="['name']" :options="labelsOptions"
                 placeholder="Select label" @change="emit('updateAnnotations')">
                 <template #value="slotProps">
                     <div v-if="slotProps.value?.length">
@@ -44,12 +44,12 @@
             <label class="block mb-2 text-sm font-medium text-gray-900">Document(s)</label>
             <Multiselect v-model="selectedDocumentsOrEmpty" class="w-full" optionLabel="label" optionValue="value"
                 :options="documentsOptions" placeholder="All" @change="emit('updateAnnotations')" filter
-                autoFilterFocus="true" :maxSelectedLabels="1" />
+                :autoFilterFocus="true" :maxSelectedLabels="1" />
         </li>
         <li>
             <label class="block mb-2 text-sm font-medium text-gray-900">Annotator(s)</label>
             <Multiselect v-model="selectedAnnotatorsOrEmpty" :options="annotatorsOptions" placeholder="All" class="w-full"
-                @change="emit('updateAnnotations')" filter autoFilterFocus="true" :maxSelectedLabels="1" />
+                @change="emit('updateAnnotations')" filter :autoFilterFocus="true" :maxSelectedLabels="1" />
         </li>
         <li v-if="showNonDocumentLevelAgreementParams">
             <!-- Only for span annotations -->
@@ -73,6 +73,16 @@
             </div>
             <table>
                 <tbody>
+                    <tr>
+                        <td><span class="text-sm font-medium float-right mr-2" :class="isMergedTask ? 'text-gray-900' : 'text-gray-400'">Inter</span></td>
+                        <td>
+                            <InputSwitch v-model="intraAnnotatorAgreement" @change="emit('updateAnnotations')" :disabled="!isMergedTask"/>
+                        </td>
+                        <td><span class="text-sm font-medium float-left ml-2" :class="isMergedTask ? 'text-gray-900' : 'text-gray-400'">Intra</span></td>
+                        <td> <i class="pi pi-info-circle cursor-pointer border-0"
+                                v-tooltip="'This option is enabled only for tasks that are the merge of 2 similar tasks.\nTo create merged tasks scroll down to the section Intra-Annotator-Agreement.\n* Inter-Annotator-Agreement will compute agreement metrics \nby comparing each annotator to one another\n* Intra-Annotator-Agreement will compute agreement metrics \nby comparing each annotator to themselves from a different original task.'"
+                                type="text"></i></td>
+                    </tr>
                     <tr>
                         <td><span class="text-sm font-medium text-gray-900 float-right mr-2">Annotation</span></td>
                         <td>
@@ -109,13 +119,13 @@
             </table>
         </li>
         <li v-if="metricType == MetricTypes.AGREEMENT">
-            <Button class="w-full mt-4" label="Compute Metrics" size="small" @click="emit('clickComputeMetrics', $event)" />
+            <Button class="w-full mt-4" :disabled="intraAnnotatorAgreement" label="Compute Metrics" size="small" @click="emit('clickComputeMetrics', $event)" />
         </li>
         <li>
             <Button class="w-full" :class="metricType == MetricTypes.DESCRIPTIVE ? 'mt-4' : ''" label="Download All"
                 outlined size="small" @click="emit('clickDownloadAll')" />
         </li>
-        <div v-if="metricType == MetricTypes.AGREEMENT">
+        <div v-if="metricType == MetricTypes.AGREEMENT && !isMergedTask">
             <Divider class="py-6" />
             <div class="flex justify-end">
                 <i class="pi pi-info-circle cursor-pointer border-0 self-center"
@@ -129,8 +139,11 @@
                     <template v-else>
                         <Dropdown v-model="selectedSimilarTask" :options="optionSimilarTasks" showClear filter
                             optionLabel="name" optionValue="id" placeholder="Select a task" class="w-full" />
-                        <Button :disabled="!selectedSimilarTask" class="w-full mt-3" label="Download All" outlined size="small"
-                            @click="emit('clickDownloadAllIntra', selectedSimilarTask)" />
+                        <i class="pi pi-info-circle cursor-pointer border-0 self-center float-end"
+                        v-tooltip="'This will create a replica of the current task.\n After that, the replica will be merged with the similar task. \n Then you will be redirected to the metrics#agreement page of the newly created task\nThere you will have the option to compute intra-annotator-agreement-metrics.'"
+                            type="text"></i>
+                        <Button :disabled="!selectedSimilarTask" class="w-full" label="Merge tasks" outlined size="small"
+                            @click="emit('mergeTasks', selectedSimilarTask)"/>
                     </template>
                 </AccordionTab>
             </Accordion>
@@ -151,11 +164,12 @@ import Divider from 'primevue/divider';
 const { $trpc } = useNuxtApp();
 const route = useRoute();
 
-const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations', 'clickDownloadAllIntra']);
+const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations', 'mergeTasks']);
 
 const selectedLabelsOrEmpty = defineModel('selectedLabelsOrEmpty', { type: Array<String>, required: true });
 const selectedDocumentsOrEmpty = defineModel('selectedDocumentsOrEmpty', { type: Array<String>, required: true });
 const selectedAnnotatorsOrEmpty = defineModel('selectedAnnotatorsOrEmpty', { type: Array<String>, required: true });
+const intraAnnotatorAgreement = defineModel('intraAnnotatorAgreement', { type: Boolean, required: false });
 const tolerance = defineModel('tolerance', { type: Number, required: false });
 const contained = defineModel('contained', { type: Boolean, required: false });
 const hideNonText = defineModel('hideNonText', { type: Boolean, required: false });
@@ -184,7 +198,8 @@ const props = defineProps<{
         name: string;
     }[],
     documentsOptions: { value: string; label: string }[],
-    annotatorsOptions: string[]
+    annotatorsOptions: string[],
+    isMergedTask: boolean
 }>();
 
 </script>

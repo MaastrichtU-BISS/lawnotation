@@ -34,6 +34,7 @@
                 <ParametersColumn :metric-type="MetricTypes.DESCRIPTIVE" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="allDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="false" v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
+                  :is-merged-task="isMergedTask"
                   v-model:selectedDocumentsOrEmpty="allSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" @click-download-all="clickDownloadAll"
                   @update-annotations="updateAnnotations">
@@ -45,13 +46,15 @@
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="sharedDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)"
+                  :is-merged-task="isMergedTask"
                   v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
                   v-model:selectedDocumentsOrEmpty="sharedSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" v-model:tolerance="tolerance"
                   v-model:contained="contained" v-model:separate_into_words="separate_into_words"
                   v-model:hideNonText="hideNonText" @click-compute-metrics="clickComputeMetrics"
+                  v-model:intraAnnotatorAgreement="intraAnnotatorAgreement"
                   @click-download-all="clickDownloadAll" @update-annotations="updateAnnotations"
-                  @click-download-all-intra="clickDownloadAllIntra($event)">
+                  @merge-tasks="mergeTasks($event)">
                 </ParametersColumn>
               </TabPanel>
             </TabView>
@@ -117,6 +120,7 @@ const updateUrl = (activeIndex: number) => {
   } else {
     router.push({ hash: '#descriptive' });
   }
+  intraAnnotatorAgreement.value = false;
   selectedLabelsOrEmpty.value.splice(0);
   selectedDocumentsOrEmpty.value.splice(0);
   selectedAnnotatorsOrEmpty.value.splice(0);
@@ -168,9 +172,15 @@ const selectedAnnotators = computed((): string[] => {
 });
 
 const tolerance = ref<number>(0);
+const intraAnnotatorAgreement = ref(false);
 const separate_into_words = ref(false);
 const contained = ref(false);
 const hideNonText = ref(true);
+
+const isMergedTask = computed(() => {
+  if(!task.value) return false;
+  return task.value.origin_task_2_id != null;
+});
 
 // annotations
 const annotations_limit = 10 ** 6;
@@ -194,7 +204,8 @@ const getAnnotations = async (
   byWords: boolean,
   hideNonText: boolean,
   documentLevel: boolean = false,
-  metricType: MetricTypes = MetricTypes.AGREEMENT
+  metricType: MetricTypes = MetricTypes.AGREEMENT,
+  intra: boolean = false
 ) => {
   const body = JSON.stringify({
     task_id: task_id,
@@ -204,7 +215,8 @@ const getAnnotations = async (
     byWords: byWords,
     hideNonText: hideNonText,
     documentLevel: documentLevel,
-    metricType: metricType
+    metricType: metricType,
+    intra: intra
   });
 
   return $fetch("/api/metrics/get_annotations", {
@@ -232,7 +244,8 @@ const updateAnnotations = async () => {
         separate_into_words.value,
         hideNonText.value,
         isDocumentLevel(task.value),
-        metricType.value
+        metricType.value,
+        intraAnnotatorAgreement.value
       );
       if (anns.length < annotations_limit) annotations.push(...anns);
       loading_annotations.value = false;
@@ -360,7 +373,7 @@ const clickDownloadAll = async () => {
   download_progress.value.current = 0;
   download_progress.value.loading = true;
   try {
-    download_progress.value.message = "Computing metrics..."
+    download_progress.value.message = metricType.value == MetricTypes.DESCRIPTIVE ? "Extracting annotations..." : "Computing metrics...";
     const blobs = await download_all({
       task_id: task.value?.id.toString()!,
       labelsOptions: labelsOptions.map((l) => l.name),
@@ -375,7 +388,8 @@ const clickDownloadAll = async () => {
       documentLevel: isDocumentLevel(task.value),
       documentsData: documentsData.value,
       documentsOptions: documentsOptions.value.map((d) => d.value),
-    });
+      intraTaskIds: intraAnnotatorAgreement.value ? [task.value.origin_task_1_id, task.value.origin_task_2_id] : undefined
+    }, intraAnnotatorAgreement.value) as {data: string; name: string}[];
 
     download_progress.value.message = "Generating files..."
     const zip = JSZip();
@@ -391,57 +405,6 @@ const clickDownloadAll = async () => {
     $toast.success(`One .zip file has been downloaded!`);
   } catch (error) {
     download_progress.value.loading = false;
-  }
-};
-
-const clickDownloadAllIntra = async (similarTaskId: number) => {
-  if (!task.value) {
-    $toast.error("Task does not exist");
-    throw new Error("Task does not exist");
-  }
-
-  download_progress.value.current = 0;
-  download_progress.value.loading = true;
-  download_progress.value.message = "Merging tasks..."
-  try {
-    const mergedTask = await $trpc.task.mergeTasks.mutate({ originalTaskId: task.value.id, similarTaskId: similarTaskId });
-    download_progress.value.message = "Computing metrics"
-    const blobs = await download_all({
-      task_id: mergedTask.id.toString(),
-      labelsOptions: labelsOptions.map((l) => l.name),
-      documents: selectedDocuments.value,
-      documentsOrEmpty: selectedDocumentsOptQuery.value,
-      annotators: selectedAnnotators.value,
-      annotatorsOrEmpty: selectedAnnotatorsOrEmpty.value,
-      tolerance: tolerance.value,
-      byWords: separate_into_words.value,
-      hideNonText: hideNonText.value,
-      contained: contained.value,
-      documentLevel: isDocumentLevel(mergedTask),
-      documentsData: documentsData.value,
-      documentsOptions: documentsOptions.value.map((d) => d.value),
-      intraTaskIds: [task.value.id, similarTaskId]
-    }, true);
-
-    download_progress.value.message = "Generating files..."
-    const zip = JSZip();
-    for (let i = 0; i < blobs.length; i++) {
-      const b = await (await fetch(blobs[i].data)).blob();
-      zip.file(`${blobs[i].name}`, b);
-    }
-    const blob_zip = await zip.generateAsync({ type: "blob" });
-
-    download_progress.value.message = "Deleting temporary task..."
-    await $trpc.task.delete.mutate(mergedTask.id);
-
-    download_progress.value.message = "Downloading..."
-    saveAs(blob_zip, `${task.value?.name}.zip`);
-
-    download_progress.value.loading = false;
-    $toast.success(`One .zip file has been downloaded!`);
-  } catch (error) {
-    download_progress.value.loading = false;
-    // TODO: Logic to detect latest replicated task and delete it
   }
 };
 
@@ -499,7 +462,8 @@ async function createBlobs(data: any, document?: any) {
       data.byWords,
       data.hideNonText,
       data.documentLevel,
-      MetricTypes.DESCRIPTIVE
+      MetricTypes.DESCRIPTIVE,
+      false //assumes that in descriptive page is always inter son the annotator names are the same (without the taskId) 
     );
 
     const annotations_sheet = XLSX.utils.json_to_sheet(annotations.filter(a => a.label !== "NOT ANNOTATED").map(annotation => {
@@ -533,7 +497,6 @@ async function createBlobs(data: any, document?: any) {
 //#endregion 
 
 //#region INTRA-ANNOTATOR-AGREEMENT 
-
 async function download_all_csv_intra(data: any) {
   // TODO
 }
@@ -632,7 +595,8 @@ async function createWorkBooks(data: any, document?: any) {
       data.annotators,
       data.byWords,
       data.hideNonText,
-      data.documentLevel
+      data.documentLevel,
+      data.intra
     );
 
     const metrics = await compute_metrics(
@@ -900,6 +864,33 @@ async function getConfidenceSheet(
 //#endregion
 
 //#region INTRA-ANNOTATOR-AGREEMENT
+const mergeTasks = async (similarTaskId: number) => {
+  if (!task.value) {
+    $toast.error("Task does not exist");
+    throw new Error("Task does not exist");
+  }
+
+  download_progress.value.current = 0;
+  download_progress.value.loading = true;
+  download_progress.value.message = "Replicating current task..."
+  try {
+
+    const replica = await $trpc.task.replicateTask.mutate({ 
+      task_id: task.value.id,
+      originalTaskId2: similarTaskId
+    });
+
+    download_progress.value.message = "Merging similar task and replica..."
+    const mergedTask = await $trpc.task.mergeTasks.mutate({ originalTaskId: replica.id, similarTaskId: similarTaskId });
+    
+    download_progress.value.loading = false;
+    $toast.success(`Tasks succesfully merged!`);
+    router.push(router.currentRoute.value.fullPath.replace(`tasks/${task.value.id}`, `tasks/${mergedTask.id}`));
+  } catch (error) {
+    download_progress.value.loading = false;
+    $toast.error(`Tasks could not be merged: ${error}`);
+  }
+};
 
 async function download_all_xlsl_intra(data: any) {
   let results: { data: string; name: string }[] = [];

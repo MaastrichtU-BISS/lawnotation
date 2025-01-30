@@ -26,7 +26,8 @@ export default eventHandler(async (event) => {
       data.task_id,
       data.labels,
       data.documents,
-      data.annotators
+      data.annotators,
+      data.intra
     );
 
   const annotations = await annotationsPromise;
@@ -167,7 +168,8 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
   task_id: string,
   labels: string[] | undefined,
   documents: string[] | undefined,
-  annotators: string[] | undefined
+  annotators: string[] | undefined,
+  intra: boolean
 ): Promise<RichAnnotation[]> {
   const supabase = await serverSupabaseServiceRole<Database>(event);
   let query = supabase
@@ -198,7 +200,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
         end: ann.end_index,
         text: ann.text,
         label: ann.label,
-        annotator: ann.assignment!.original_task_id
+        annotator: intra
           ? `${ann.assignment!.original_task_id}-${
               ann.assignment!.annotator!.email
             }`
