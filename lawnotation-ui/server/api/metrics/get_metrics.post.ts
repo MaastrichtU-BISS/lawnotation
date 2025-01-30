@@ -21,7 +21,8 @@ export default eventHandler(async (event) => {
       documentLevel: data.documentLevel,
       documentsData: data.documentsData,
       documentsOptions: data.documentsOptions,
-      metricType: MetricTypes.AGREEMENT
+      metricType: MetricTypes.AGREEMENT,
+      intra: data.intraTaskIds?.length == 2
     });
 
     annotations = await $fetch(`/api/metrics/get_annotations`, {

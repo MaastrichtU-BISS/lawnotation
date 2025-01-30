@@ -76,7 +76,7 @@
                     <tr>
                         <td><span class="text-sm font-medium float-right mr-2" :class="isMergedTask ? 'text-gray-900' : 'text-gray-400'">Inter</span></td>
                         <td>
-                            <InputSwitch v-model="intraAnnotatorAgreement" :disabled="!isMergedTask"/>
+                            <InputSwitch v-model="intraAnnotatorAgreement" @change="emit('updateAnnotations')" :disabled="!isMergedTask"/>
                         </td>
                         <td><span class="text-sm font-medium float-left ml-2" :class="isMergedTask ? 'text-gray-900' : 'text-gray-400'">Intra</span></td>
                         <td> <i class="pi pi-info-circle cursor-pointer border-0"
@@ -119,7 +119,7 @@
             </table>
         </li>
         <li v-if="metricType == MetricTypes.AGREEMENT">
-            <Button class="w-full mt-4" label="Compute Metrics" size="small" @click="emit('clickComputeMetrics', $event)" />
+            <Button class="w-full mt-4" :disabled="intraAnnotatorAgreement" label="Compute Metrics" size="small" @click="emit('clickComputeMetrics', $event)" />
         </li>
         <li>
             <Button class="w-full" :class="metricType == MetricTypes.DESCRIPTIVE ? 'mt-4' : ''" label="Download All"
