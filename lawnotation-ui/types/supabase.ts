@@ -425,6 +425,8 @@ export type Database = {
           labelset_id: number | null
           ml_model_id: number | null
           name: string | null
+          origin_task_1_id: number | null
+          origin_task_2_id: number | null
           project_id: number | null
         }
         Insert: {
@@ -438,6 +440,8 @@ export type Database = {
           labelset_id?: number | null
           ml_model_id?: number | null
           name?: string | null
+          origin_task_1_id?: number | null
+          origin_task_2_id?: number | null
           project_id?: number | null
         }
         Update: {
@@ -451,6 +455,8 @@ export type Database = {
           labelset_id?: number | null
           ml_model_id?: number | null
           name?: string | null
+          origin_task_1_id?: number | null
+          origin_task_2_id?: number | null
           project_id?: number | null
         }
         Relationships: [
@@ -523,6 +529,8 @@ export type Database = {
           labelset_id: number | null
           ml_model_id: number | null
           name: string | null
+          origin_task_1_id: number | null
+          origin_task_2_id: number | null
           project_id: number | null
         }[]
       }
