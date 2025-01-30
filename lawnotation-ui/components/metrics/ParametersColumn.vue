@@ -115,7 +115,7 @@
             <Button class="w-full" :class="metricType == MetricTypes.DESCRIPTIVE ? 'mt-4' : ''" label="Download All"
                 outlined size="small" @click="emit('clickDownloadAll')" />
         </li>
-        <div v-if="metricType == MetricTypes.AGREEMENT">
+        <div v-if="metricType == MetricTypes.AGREEMENT && !isMergedTask">
             <Divider class="py-6" />
             <div class="flex justify-end">
                 <i class="pi pi-info-circle cursor-pointer border-0 self-center"
@@ -187,7 +187,8 @@ const props = defineProps<{
         name: string;
     }[],
     documentsOptions: { value: string; label: string }[],
-    annotatorsOptions: string[]
+    annotatorsOptions: string[],
+    isMergedTask: boolean
 }>();
 
 </script>

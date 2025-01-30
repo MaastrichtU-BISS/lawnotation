@@ -45,6 +45,7 @@
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="sharedDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)"
+                  :is-merged-task="task.origin_task_2_id != null"
                   v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
                   v-model:selectedDocumentsOrEmpty="sharedSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" v-model:tolerance="tolerance"
