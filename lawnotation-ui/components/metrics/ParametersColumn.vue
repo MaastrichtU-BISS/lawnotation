@@ -129,8 +129,11 @@
                     <template v-else>
                         <Dropdown v-model="selectedSimilarTask" :options="optionSimilarTasks" showClear filter
                             optionLabel="name" optionValue="id" placeholder="Select a task" class="w-full" />
-                        <Button :disabled="!selectedSimilarTask" class="w-full mt-3" label="Merge tasks" outlined size="small"
-                            @click="emit('mergeTasks', selectedSimilarTask)" />
+                        <i class="pi pi-info-circle cursor-pointer border-0 self-center float-end"
+                        v-tooltip="'This will create a replica of the current task.\n After that, the replica will be merged with the similar task. \n Then you will be redirected to the metrics#agreement page of the newly created task\nThere you will have the option to compute intra-annotator-agreement-metrics.'"
+                            type="text"></i>
+                        <Button :disabled="!selectedSimilarTask" class="w-full" label="Merge tasks" outlined size="small"
+                            @click="emit('mergeTasks', selectedSimilarTask)"/>
                     </template>
                 </AccordionTab>
             </Accordion>

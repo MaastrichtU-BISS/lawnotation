@@ -428,7 +428,6 @@ export const taskRouter = router({
     .input(
       z.object({
         task_id: z.number().int(),
-        addOriginalTaskIdToAssignments: z.boolean().optional().default(false),
         originalTaskId2: z.number().int().nullable().optional()
       })
     )
@@ -440,7 +439,7 @@ export const taskRouter = router({
     .mutation(
       async ({
         ctx,
-        input: { task_id, addOriginalTaskIdToAssignments, originalTaskId2 },
+        input: { task_id, originalTaskId2 },
       }): Promise<Task> => {
         const caller = appRouter.createCaller(ctx);
 
@@ -467,7 +466,7 @@ export const taskRouter = router({
           assignments: assignments.map((a) => {
             return {
               ...a,
-              original_task_id: addOriginalTaskIdToAssignments ? task_id : null
+              original_task_id: task_id
             }
           }),
         });
@@ -542,13 +541,7 @@ export const taskRouter = router({
         const caller = appRouter.createCaller(ctx);
 
         try {
-          // create a temporary task by replicating the original
-          const mergedTask = await caller.task.replicateTask({
-            task_id: originalTaskId,
-            addOriginalTaskIdToAssignments: true,
-            originalTaskId2: similarTaskId
-          });
-
+          
           // get assignments from merged and similar tasks
           const mergedAssignments =
             await caller.assignment.findRichAssignmentsByTask(originalTaskId);
@@ -568,7 +561,7 @@ export const taskRouter = router({
           const newAssignments: Omit<Assignment, "id">[] = [];
           similarAssignments.map((a) => {
             newAssignments.push({
-              task_id: mergedTask.id, //new task_id
+              task_id: originalTaskId, //new task_id
               document_id: hash2Id[a.documents?.hash!], //new document_id
               annotator_id: a.annotator_id as string,
               annotator_number: a.annotator_number,
@@ -582,7 +575,7 @@ export const taskRouter = router({
 
           // add similar assignemnts to merged task
           const mergedSimilarAssignments = await caller.assignment.createMany({
-            task_id: mergedTask.id,
+            task_id: originalTaskId,
             assignments: newAssignments,
           });
 
@@ -614,9 +607,29 @@ export const taskRouter = router({
           });
 
           // add new similar annotations to merged task
-          await caller.annotation.createMany(newAnnotations);
+          const mergedSimilarAnnotations = await caller.annotation.createMany(newAnnotations);
 
-          // TODO: for now the relations are not needed to compute metrics
+          // get relations from similar task
+          const relations = await caller.relation.findRelationsByTask(similarTaskId);
+
+
+          let dicAnnotations: any = {};
+          mergedSimilarAnnotations.map((na, index) => {
+            dicAnnotations[similarAnnotations[index].id] = na.id;
+          });
+
+          // create new relations
+          const new_relations = await caller.relation.createMany(
+            relations.map((a) => {
+              return {
+                ...a,
+                from_id: dicAnnotations[a.from_id]!,
+                to_id: dicAnnotations[a.to_id]!,
+              };
+            })
+          );
+          
+          const mergedTask = await caller.task.findById(originalTaskId);
 
           return mergedTask;
         } catch (error) {

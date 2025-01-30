@@ -402,9 +402,16 @@ const mergeTasks = async (similarTaskId: number) => {
 
   download_progress.value.current = 0;
   download_progress.value.loading = true;
-  download_progress.value.message = "Merging tasks..."
+  download_progress.value.message = "Replicating current tasks..."
   try {
-    const mergedTask = await $trpc.task.mergeTasks.mutate({ originalTaskId: task.value.id, similarTaskId: similarTaskId });
+
+    const replica = await $trpc.task.replicateTask.mutate({ 
+      task_id: task.value.id,
+      originalTaskId2: similarTaskId
+    });
+
+    download_progress.value.message = "Merging similar task and replica..."
+    const mergedTask = await $trpc.task.mergeTasks.mutate({ originalTaskId: replica.id, similarTaskId: similarTaskId });
     // download_progress.value.message = "Computing metrics"
     // const blobs = await download_all({
     //   task_id: mergedTask.id.toString(),
