@@ -52,6 +52,7 @@
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" v-model:tolerance="tolerance"
                   v-model:contained="contained" v-model:separate_into_words="separate_into_words"
                   v-model:hideNonText="hideNonText" @click-compute-metrics="clickComputeMetrics"
+                  v-model:intraAnnotatorAgreement="intraAnnotatorAgreement"
                   @click-download-all="clickDownloadAll" @update-annotations="updateAnnotations"
                   @merge-tasks="mergeTasks($event)">
                 </ParametersColumn>
