@@ -34,6 +34,7 @@
                 <ParametersColumn :metric-type="MetricTypes.DESCRIPTIVE" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="allDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="false" v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
+                  :is-merged-task="isMergedtask"
                   v-model:selectedDocumentsOrEmpty="allSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" @click-download-all="clickDownloadAll"
                   @update-annotations="updateAnnotations">
@@ -45,7 +46,7 @@
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="sharedDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)"
-                  :is-merged-task="task.origin_task_2_id != null"
+                  :is-merged-task="isMergedtask"
                   v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
                   v-model:selectedDocumentsOrEmpty="sharedSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" v-model:tolerance="tolerance"
@@ -169,9 +170,15 @@ const selectedAnnotators = computed((): string[] => {
 });
 
 const tolerance = ref<number>(0);
+const intraAnnotatorAgreement = ref(false);
 const separate_into_words = ref(false);
 const contained = ref(false);
 const hideNonText = ref(true);
+
+const isMergedtask = computed(() => {
+  if(!task.value) return false;
+  return task.value.origin_task_2_id != null;
+});
 
 // annotations
 const annotations_limit = 10 ** 6;
