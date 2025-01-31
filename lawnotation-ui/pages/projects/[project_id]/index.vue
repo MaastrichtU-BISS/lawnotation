@@ -855,8 +855,12 @@ const importTask = async () => {
                 ann_index += current_ann;
               });
             });
-
-            const relations = await $trpc.relation.createMany.mutate(new_relations);
+            
+            const relations: any[] = [];
+            for (let i = 0; i < new_relations.length; i += chunkSize) {
+              const chunk = new_relations.slice(i, i + chunkSize);
+              relations.push(...await $trpc.relation.createMany.mutate(chunk));
+            };
           }
         }
       }
