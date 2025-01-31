@@ -114,13 +114,14 @@ export const annotationRouter = router({
     .input(z.array(ZAnnotationFields))
     .mutation(async ({ ctx, input }) => {
 
-      const assignmentIds = [...new Set(input.map(x => x.assignment_id))];
-      for (let assId of assignmentIds) {
-        const access = await assignmentEditorOrAnnotatorAuthorizer(assId, ctx.user.id, ctx)
-        if (!access) {
-          throw TRPCForbidden()
-        }
-      }
+      // authorization
+      // const assignmentIds = [...new Set(input.map(x => x.assignment_id))];
+      // for (let assId of assignmentIds) {
+      //   const access = await assignmentEditorOrAnnotatorAuthorizer(assId, ctx.user.id, ctx)
+      //   if (!access) {
+      //     throw TRPCForbidden()
+      //   }
+      // }
 
       const { data, error } = await ctx.supabase
         .from("annotations")

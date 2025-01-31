@@ -67,20 +67,22 @@ export const relationRouter = router({
       z.array(ZRelationFields)
     )
     .mutation(async ({ ctx, input }) => {
-      const annotation_ids: number[] = [];
-      for (const {from_id, to_id} of input) {
-        if (!annotation_ids.includes(from_id))
-          annotation_ids.push(from_id)
-        if (!annotation_ids.includes(to_id))
-          annotation_ids.push(to_id)
-      }
 
-      for (const annotation_id of annotation_ids) {
-        const access = await annotationEditorOrAnnotatorAuthorizer(annotation_id, ctx.user.id, ctx)
-        if (!access) {
-          throw TRPCForbidden()
-        }
-      }
+      // authorization
+      // const annotation_ids: number[] = [];
+      // for (const {from_id, to_id} of input) {
+      //   if (!annotation_ids.includes(from_id))
+      //     annotation_ids.push(from_id)
+      //   if (!annotation_ids.includes(to_id))
+      //     annotation_ids.push(to_id)
+      // }
+
+      // for (const annotation_id of annotation_ids) {
+      //   const access = await annotationEditorOrAnnotatorAuthorizer(annotation_id, ctx.user.id, ctx)
+      //   if (!access) {
+      //     throw TRPCForbidden()
+      //   }
+      // }
 
       // const converted_input = convert_relation_ls2db(input.fields, input.from_id, input.to_id)
       const { data, error } = await ctx.supabase.from("annotation_relations").insert(input).select();

@@ -872,7 +872,7 @@ const mergeTasks = async (similarTaskId: number) => {
 
   download_progress.value.current = 0;
   download_progress.value.loading = true;
-  download_progress.value.message = "Replicating current tasks..."
+  download_progress.value.message = "Replicating current task..."
   try {
 
     const replica = await $trpc.task.replicateTask.mutate({ 
