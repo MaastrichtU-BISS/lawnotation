@@ -6,7 +6,7 @@ import {
   disabledProcedure,
   router,
 } from "~/server/trpc";
-import type { Task, Annotator, Assignment, Annotation } from "~/types";
+import type { Task, Annotator, Assignment, Annotation, AnnotationRelation } from "~/types";
 import { AnnotationLevels, Origins, AssignmentStatuses } from "~/utils/enums";
 import type { Context } from "../context";
 import { appRouter } from ".";
@@ -443,8 +443,14 @@ export const taskRouter = router({
       }): Promise<Task> => {
         const caller = appRouter.createCaller(ctx);
 
-        const task = await caller.task.findById(task_id);
+        console.time("total time");
 
+        console.time("find task by id")
+        const task = await caller.task.findById(task_id);
+        console.timeEnd("find task by id");
+
+
+        console.time("create new task")
         let description = `Replica of task ${task.id} - (${new Date().toLocaleDateString()})`;
         if(originalTaskId2) {
           description = `Merge of tasks ${task.id} and ${originalTaskId2} - (${new Date().toLocaleDateString()})`;
@@ -456,61 +462,93 @@ export const taskRouter = router({
           origin_task_2_id: originalTaskId2,
           desc: description
         });
+        console.timeEnd("create new task")
 
+        console.time("find assignments by task")
         const assignments = await caller.assignment.findAssignmentsByTask(
           task_id
         );
+        console.timeEnd("find assignments by task")
 
-        const new_assignments = await caller.assignment.createMany({
-          task_id: new_task.id,
-          assignments: assignments.map((a) => {
+        console.time("prepare new assignments")
+        // TODO: add none as status to db
+        const assignmentsWithoutId = assignments.map(a => {
+          const { id, ...assWithoutId } = a;
             return {
-              ...a,
+              ...assWithoutId, 
+              task_id: new_task.id,
               original_task_id: task_id
             }
-          }),
-        });
+        }) as Omit<Assignment, "id">[];
+        console.timeEnd("prepare new assignments")
+        console.time("create new assignments")
+        const new_assignments = (await ctx.supabase
+          .from("assignments")
+          .insert(assignmentsWithoutId)
+          .select()).data as Assignment[];
+        console.timeEnd("create new assignments")
 
+        console.time("create dic with new assignment ids")
         // leveraging the fact that the new assigmnets are created and returned in the same order as the paramaters provided
         let dicAssignments: any = {};
-        new_assignments.map((na, index) => {
+
+        new_assignments?.forEach((na, index) => {
           dicAssignments[assignments[index].id] = na.id;
         });
+        console.timeEnd("create dic with new assignment ids")
 
         type NonNullableObject<T> = {
           [K in keyof T]: NonNullable<T[K]>;
         };
 
+        console.time("find annotations by task")
         const annotations = await caller.annotation.findAnnotationsByTask(
           task_id
         );
+        console.timeEnd("find annotations by task")
 
-        const new_annotations = await caller.annotation.createMany(
-          annotations.map((a) => {
-            return {
-              ...a,
-              assignment_id: dicAssignments[a.assignment_id!]!
-            };
-          })
-        );
+        console.time("create annotations")
+        const annotationsWithoutId = annotations.map((a) => {
+          const { id, assignment, ...annWithoutId } = a;
+          return {
+            ...annWithoutId,
+            assignment_id: dicAssignments[a.assignment_id!]!
+          }
+        }) as Omit<Annotation, "id">[];
 
+        const new_annotations = (await ctx.supabase
+          .from("annotations")
+          .insert(annotationsWithoutId)
+          .select()).data;
+        console.timeEnd("create annotations")
+
+        console.time("find relations by task")
         const relations = await caller.relation.findRelationsByTask(task_id);
+        console.timeEnd("find relations by task")
 
+        console.time("create dic with new annotation ids")
         let dicAnnotations: any = {};
-        new_annotations.map((na, index) => {
+        new_annotations?.forEach((na, index) => {
           dicAnnotations[annotations[index].id] = na.id;
         });
+        console.timeEnd("create dic with new annotation ids")
 
-        const new_relations = await caller.relation.createMany(
-          relations.map((a) => {
-            return {
-              ...a,
-              from_id: dicAnnotations[a.from_id]!,
-              to_id: dicAnnotations[a.to_id]!,
-            };
-          })
-        );
+        console.time("create relations")
+        const newRelationsWithoutId = relations.map(r => {
+          const { id, annotation, ...relWithoutId } = r;
+          return {
+            ...relWithoutId,
+            from_id: dicAnnotations[r.from_id]!,
+            to_id: dicAnnotations[r.to_id]!,
+          }
+        });
+        const new_relations = (await ctx.supabase
+          .from("annotation_relations")
+          .insert(newRelationsWithoutId)
+          .select()).data as AnnotationRelation[];
+        console.timeEnd("create relations")
 
+        console.timeEnd("total time");
         return new_task;
       }
     ),
