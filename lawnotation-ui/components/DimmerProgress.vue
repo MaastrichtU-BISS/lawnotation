@@ -8,7 +8,7 @@
       <div v-if="modelValue.current && modelValue.total" class="text-lg font-semibold mb-4">
         {{ Math.trunc((modelValue.current / modelValue.total) * 100) }} %
       </div>
-      <HollowDotsSpinner :animation-duration="1000" :size="60" color="#0D5984" />
+      <HollowDotsSpinner :animation-duration="1000" :size="60" color="#0D5984" class="mx-auto" />
     </div>
   </div>
 </template>

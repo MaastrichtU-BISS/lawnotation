@@ -34,8 +34,7 @@
                 <ParametersColumn :metric-type="MetricTypes.DESCRIPTIVE" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="allDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="false" v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
-                  :is-merged-task="isMergedTask"
-                  v-model:selectedDocumentsOrEmpty="allSelectedDocumentsOrEmpty"
+                  :is-merged-task="isMergedTask" v-model:selectedDocumentsOrEmpty="allSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" @click-download-all="clickDownloadAll"
                   @update-annotations="updateAnnotations">
                 </ParametersColumn>
@@ -45,16 +44,14 @@
               }" :ptOptions="{ mergeProps: true }">
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="sharedDocumentsOptions"
-                  :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)"
-                  :is-merged-task="isMergedTask"
+                  :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)" :is-merged-task="isMergedTask"
                   v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
                   v-model:selectedDocumentsOrEmpty="sharedSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" v-model:tolerance="tolerance"
                   v-model:contained="contained" v-model:separate_into_words="separate_into_words"
                   v-model:hideNonText="hideNonText" @click-compute-metrics="clickComputeMetrics"
-                  v-model:intraAnnotatorAgreement="intraAnnotatorAgreement"
-                  @click-download-all="clickDownloadAll" @update-annotations="updateAnnotations"
-                  @merge-tasks="mergeTasks($event)">
+                  v-model:intraAnnotatorAgreement="intraAnnotatorAgreement" @click-download-all="clickDownloadAll"
+                  @update-annotations="updateAnnotations" @merge-tasks="mergeTasks($event)">
                 </ParametersColumn>
               </TabPanel>
             </TabView>
@@ -178,7 +175,7 @@ const contained = ref(false);
 const hideNonText = ref(true);
 
 const isMergedTask = computed(() => {
-  if(!task.value) return false;
+  if (!task.value) return false;
   return task.value.origin_task_2_id != null;
 });
 
@@ -389,7 +386,7 @@ const clickDownloadAll = async () => {
       documentsData: documentsData.value,
       documentsOptions: documentsOptions.value.map((d) => d.value),
       intraTaskIds: intraAnnotatorAgreement.value ? [task.value.origin_task_1_id, task.value.origin_task_2_id] : undefined
-    }, intraAnnotatorAgreement.value) as {data: string; name: string}[];
+    }, intraAnnotatorAgreement.value) as { data: string; name: string }[];
 
     download_progress.value.message = "Generating files..."
     const zip = JSZip();
@@ -419,30 +416,39 @@ async function download_all(data: any, intra: boolean = false) {
 
 //#region INTER-ANNOTATOR-AGREEMENT 
 
+// DESCRIPTIVE
 async function download_all_csv(data: any) {
-  let results: { data: string; name: string }[] = [];
-  download_progress.value.current = 0;
   download_progress.value.total =
     (selectedDocuments.value.length + 1) * labelsOptions.length;
   try {
+    const promises: Promise<{
+      workbookAnnotations: XLSX.WorkBook;
+    }>[] = [];
+    const baseName: string = "annotations.xlsx";
+    const names: string[] = [`_${baseName}`];
+
     if (data.documents.length > 1) {
-      const { workbookAnnotations } = await createBlobs(data);
-      results.push({
-        data: getZippeableBlob(workbookAnnotations),
-        name: `_annotations.xlsx`,
-      });
+      promises.push(createBlobs(data));
     }
 
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
       const filename = `${document}-${documentsNames.value[document].split('.')[0]}`;
-      const { workbookAnnotations } = await createBlobs(data, document);
-      results.push({
-        data: getZippeableBlob(workbookAnnotations),
-        name: `${filename}_annotations.xlsx`,
-      });
+      promises.push(createBlobs(data, document));
+      names.push(`${filename}_${baseName}`);
     }
+
+    const workbooks = await Promise.all(promises);
+
+    let results: { data: string; name: string }[] = [];
+
+    workbooks.forEach((w, index) => {
+      results.push({
+        data: getZippeableBlob(w.workbookAnnotations),
+        name: names[index]
+      });
+    });
 
     return results;
   } catch (error) { console.error(error) }
@@ -450,11 +456,13 @@ async function download_all_csv(data: any) {
 }
 
 async function createBlobs(data: any, document?: any) {
-  const workbookAnnotations = XLSX.utils.book_new();
+
+  const promises: Promise<any>[] = [];
+  const names: string[] = [];
   for (let i = 0; i < data.labelsOptions.length; i++) {
     const label = data.labelsOptions[i];
 
-    const annotations = await getAnnotations(
+    promises.push(getAnnotations(
       data.task_id,
       [label],
       document ? [document] : data.documentsOrEmpty,
@@ -464,9 +472,24 @@ async function createBlobs(data: any, document?: any) {
       data.documentLevel,
       MetricTypes.DESCRIPTIVE,
       false //assumes that in descriptive page is always inter son the annotator names are the same (without the taskId) 
-    );
+    ));
 
-    const annotations_sheet = XLSX.utils.json_to_sheet(annotations.filter(a => a.label !== "NOT ANNOTATED").map(annotation => {
+    let sheetName = label.substring(0, 31);
+
+    // works as long as there are less than 100 labels
+    if (label.length > 31) {
+      const range = i + 1 > 9 ? 12 : 13;
+      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+    }
+
+    names.push(sheetName);
+  }
+
+  const annotations = await Promise.all(promises);
+  const workbookAnnotations = XLSX.utils.book_new();
+
+  annotations.forEach((anns, index) => {
+    const annotations_sheet = XLSX.utils.json_to_sheet(anns.filter(a => a.label !== "NOT ANNOTATED").map(annotation => {
       return {
         start: annotation.start,
         end: annotation.end,
@@ -479,18 +502,10 @@ async function createBlobs(data: any, document?: any) {
       }
     }));
 
-    let sheetName = label.substring(0, 31);
+    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, names[index]);
+  });
 
-    // works as long as there are less than 100 labels
-    if (label.length > 31) {
-      const range = i + 1 > 9 ? 12 : 13;
-      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
-    }
-
-    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
-
-    download_progress.value.current += 1;
-  }
+  download_progress.value.current += data.labelsOptions.length;
 
   return { workbookAnnotations };
 }
@@ -512,59 +527,50 @@ async function createBlobs_intra(data: any, document?: any) {
 
 //#region INTER-ANNOTATOR-AGREEMENT
 async function download_all_xlsl(data: any) {
-  let results: { data: string; name: string }[] = [];
-  download_progress.value.current = 0;
   download_progress.value.total =
-    (selectedDocuments.value.length + 1) * labelsOptions.length * 3 +
-    (selectedDocuments.value.length + 1);
+    (selectedDocuments.value.length + 1) * labelsOptions.length;
+  const promises: Promise<{
+    workBookConfidence: XLSX.WorkBook;
+    workbookMetrics: XLSX.WorkBook;
+    workbookAnnotations: XLSX.WorkBook;
+    workbookDescriptive: XLSX.WorkBook;
+  }>[] = [];
+  const baseNames: string[] = [`confidence.xlsx`, `metrics.xlsx`, `annotations.xlsx`, `descriptive.xlsx`];
+  const names: string[][] = [[`_${baseNames[0]}`, `_${baseNames[1]}`, `_${baseNames[2]}`, `_${baseNames[3]}`]];
   try {
     if (data.documents.length > 1) {
-      const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data);
-      results.push({
-        data: getZippeableBlob(workBookConfidence),
-        name: `_confidence.xlsx`,
-      });
-      results.push({
-        data: getZippeableBlob(workbookMetrics),
-        name: `_metrics.xlsx`,
-      });
-      results.push({
-        data: getZippeableBlob(workbookAnnotations),
-        name: `_annotations.xlsx`,
-      });
-      results.push({
-        data: getZippeableBlob(workbookDescriptive),
-        name: `_descriptive.xlsx`,
-      });
+      promises.push(createWorkBooks(data));
     }
 
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
-
-      const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data, document);
-
-      results.push({
-        data: getZippeableBlob(workBookConfidence),
-        name: `${filename}_confidence.xlsx`,
-      });
-
-      results.push({
-        data: getZippeableBlob(workbookMetrics),
-        name: `${filename}_metrics.xlsx`,
-      });
-
-      results.push({
-        data: getZippeableBlob(workbookAnnotations),
-        name: `${filename}_annotations.xlsx`,
-      });
-
-      results.push({
-        data: getZippeableBlob(workbookDescriptive),
-        name: `${filename}_descriptive.xlsx`,
-      });
+      promises.push(createWorkBooks(data, document));
+      names.push([`${filename}_${baseNames[0]}`, `${filename}_${baseNames[1]}`, `${filename}_${baseNames[2]}`, `${filename}_${baseNames[3]}`]);
     }
+
+    const workbooks = await Promise.all(promises);
+    let results: { data: string; name: string }[] = [];
+
+    workbooks.forEach((w, index) => {
+      results.push({
+        data: getZippeableBlob(w.workBookConfidence),
+        name: names[index][0],
+      });
+      results.push({
+        data: getZippeableBlob(w.workbookMetrics),
+        name: names[index][1],
+      });
+      results.push({
+        data: getZippeableBlob(w.workbookAnnotations),
+        name: names[index][2],
+      });
+      results.push({
+        data: getZippeableBlob(w.workbookDescriptive),
+        name: names[index][3],
+      });
+    });
 
     return results;
   } catch (error) { console.error(error) }
@@ -572,82 +578,14 @@ async function download_all_xlsl(data: any) {
 }
 
 async function createWorkBooks(data: any, document?: any) {
-  // All confidence
-  const workBookConfidence = await getConfidenceSheet(
-    data.task_id,
-    data.annotators.length,
-    data.annotatorOrEmpty,
-    document ? [document] : data.documentsOptQuery
-  );
-  download_progress.value.current++;
 
-  // All metrics
-  const workbookMetrics = XLSX.utils.book_new();
-  const workbookAnnotations = XLSX.utils.book_new();
-  const workbookDescriptive = XLSX.utils.book_new();
+  const promises: Promise<any>[] = [];
+  const names: string[] = [];
+  // All confidence
+
   for (let i = 0; i < data.labelsOptions.length; i++) {
     const label = data.labelsOptions[i];
-
-    const annotations = await getAnnotations(
-      data.task_id,
-      [label],
-      document ? [document] : data.documentsOptQuery,
-      data.annotators,
-      data.byWords,
-      data.hideNonText,
-      data.documentLevel,
-      data.intra
-    );
-
-    const metrics = await compute_metrics(
-      data.task_id,
-      label,
-      document ? [document] : data.documentsOptQuery,
-      data.annotators,
-      data.annotatorsOrEmpty,
-      data.tolerance,
-      data.byWords,
-      data.hideNonText,
-      data.contained,
-      data.documentLevel,
-      data.documentsData,
-      data.documentsOptions,
-      undefined,
-      annotations
-    );
-
-    const metrics_sheet = await getMetricsSheet(
-      metrics,
-      label,
-      document ? [document] : data.documentsOptQuery,
-      data
-    );
-
-    const metrics_sample = metrics[0].table ?? metrics[2].table!;
-
-    const annotations_sheet = await getAnnotationsSheet(metrics_sample?.length ?
-      metrics_sample :
-      annotations.map(annotation => {
-        return {
-          start: annotation.start,
-          end: annotation.end,
-          label: annotation.label,
-          text: annotation.text,
-          annotators: { [annotation.annotator]: Number(annotation.label !== "NOT ANNOTATED") },
-          doc_id: annotation.doc_id.toString(),
-          doc_name: annotation?.doc_name!,
-          zeros: 0,
-          ones: 0,
-          confidences: {
-            [annotation.annotator]: annotation.confidence
-          }
-        }
-      }));
-
-    const descriptive_anns_sheet = await getDescriptiveAnnotatorSheet(
-      metrics_sample,
-      data.annotators
-    );
+    promises.push(getAllInter(data, label, document));
 
     let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
 
@@ -657,14 +595,95 @@ async function createWorkBooks(data: any, document?: any) {
       sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
     }
 
-    XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, sheetName);
-    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
-    XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, sheetName);
-
-    download_progress.value.current += 3;
+    names.push(sheetName);
   }
 
+  const workbooks = await Promise.all(promises);
+
+  const workBookConfidence = await getConfidenceSheet(
+    data.task_id,
+    data.annotators.length,
+    data.annotatorOrEmpty,
+    document ? [document] : data.documentsOptQuery
+  );
+  const workbookMetrics = XLSX.utils.book_new();
+  const workbookAnnotations = XLSX.utils.book_new();
+  const workbookDescriptive = XLSX.utils.book_new();
+
+  workbooks.forEach((w, index) => {
+    XLSX.utils.book_append_sheet(workbookMetrics, w.metrics_sheet, names[index]);
+    XLSX.utils.book_append_sheet(workbookAnnotations, w.annotations_sheet, names[index]);
+    XLSX.utils.book_append_sheet(workbookDescriptive, w.descriptive_anns_sheet, names[index]);
+  });
+
+  download_progress.value.current += data.labelsOptions.length
+
   return { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive };
+}
+
+async function getAllInter(data: any, label: string, document?: any) {
+  const annotations = await getAnnotations(
+    data.task_id,
+    [label],
+    document ? [document] : data.documentsOptQuery,
+    data.annotators,
+    data.byWords,
+    data.hideNonText,
+    data.documentLevel,
+    data.intra
+  );
+
+  const metrics = await compute_metrics(
+    data.task_id,
+    label,
+    document ? [document] : data.documentsOptQuery,
+    data.annotators,
+    data.annotatorsOrEmpty,
+    data.tolerance,
+    data.byWords,
+    data.hideNonText,
+    data.contained,
+    data.documentLevel,
+    data.documentsData,
+    data.documentsOptions,
+    undefined,
+    annotations
+  );
+
+  const metrics_sheet = await getMetricsSheet(
+    metrics,
+    label,
+    document ? [document] : data.documentsOptQuery,
+    data
+  );
+
+  const metrics_sample = metrics[0].table ?? metrics[2].table!;
+
+  const annotations_sheet = getAnnotationsSheet(metrics_sample?.length ?
+    metrics_sample :
+    annotations.map(annotation => {
+      return {
+        start: annotation.start,
+        end: annotation.end,
+        label: annotation.label,
+        text: annotation.text,
+        annotators: { [annotation.annotator]: Number(annotation.label !== "NOT ANNOTATED") },
+        doc_id: annotation.doc_id.toString(),
+        doc_name: annotation?.doc_name!,
+        zeros: 0,
+        ones: 0,
+        confidences: {
+          [annotation.annotator]: annotation.confidence
+        }
+      }
+    }));
+
+  const descriptive_anns_sheet = getDescriptiveAnnotatorSheet(
+    metrics_sample,
+    data.annotators
+  );
+
+  return { metrics_sheet, annotations_sheet, descriptive_anns_sheet }
 }
 
 async function getMetricsSheet(
@@ -740,7 +759,7 @@ async function getMetricsSheet(
   return XLSX.utils.json_to_sheet(rows);
 }
 
-async function getAnnotationsSheet(table: RangeLabel[]) {
+function getAnnotationsSheet(table: RangeLabel[]) {
   let rows: any[] = [];
   if (table) {
     table.map((r: RangeLabel) => {
@@ -766,7 +785,7 @@ async function getAnnotationsSheet(table: RangeLabel[]) {
   return XLSX.utils.json_to_sheet(rows);
 }
 
-async function getDescriptiveAnnotatorSheet(table: RangeLabel[], annotators: string[]) {
+function getDescriptiveAnnotatorSheet(table: RangeLabel[], annotators: string[]) {
   let rows: any[] = [];
   let dic: any = {};
   let nanns: number = 0;
@@ -875,14 +894,14 @@ const mergeTasks = async (similarTaskId: number) => {
   download_progress.value.message = "Replicating current task..."
   try {
 
-    const replica = await $trpc.task.replicateTask.mutate({ 
+    const replica = await $trpc.task.replicateTask.mutate({
       task_id: task.value.id,
       originalTaskId2: similarTaskId
     });
 
     download_progress.value.message = "Merging similar task and replica..."
     const mergedTask = await $trpc.task.mergeTasks.mutate({ originalTaskId: replica.id, similarTaskId: similarTaskId });
-    
+
     download_progress.value.loading = false;
     $toast.success(`Tasks succesfully merged!`);
     router.push(router.currentRoute.value.fullPath.replace(`tasks/${task.value.id}`, `tasks/${mergedTask.id}`));
@@ -893,55 +912,59 @@ const mergeTasks = async (similarTaskId: number) => {
 };
 
 async function download_all_xlsl_intra(data: any) {
-  let results: { data: string; name: string }[] = [];
-  download_progress.value.current = 0;
   download_progress.value.total =
     (selectedDocuments.value.length + 1) * labelsOptions.length;
   try {
-    if (data.documents.length > 1) {
-      const { workbookMetrics, workbookAnnotations } = await createWorkBooks_intra(data);
-      results.push({
-        data: getZippeableBlob(workbookMetrics),
-        name: `_metrics.xlsx`,
-      });
 
-      results.push({
-        data: getZippeableBlob(workbookAnnotations),
-        name: `_annotations.xlsx`,
-      });
+    const promises: Promise<{
+      workbookMetrics: XLSX.WorkBook;
+      workbookAnnotations: XLSX.WorkBook;
+    }>[] = [];
+
+    const baseName: string[] = ['metrics.xlsx', 'annotations.xlsx']
+    const names: string[][] = [[`_${baseName[0]}`, `_${baseName[1]}`]];
+
+    if (data.documents.length > 1) {
+      promises.push(createWorkBooks_intra(data));
     }
 
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
-
-      const { workbookMetrics, workbookAnnotations } = await createWorkBooks_intra(data, document);
-
-      results.push({
-        data: getZippeableBlob(workbookMetrics),
-        name: `${filename}_metrics.xlsx`,
-      });
-
-      results.push({
-        data: getZippeableBlob(workbookAnnotations),
-        name: `${filename}_annotations.xlsx`,
-      });
+      promises.push(createWorkBooks_intra(data, document));
+      names.push([`${filename}_${baseName[0]}`, `${filename}_${baseName[1]}`])
     }
 
+    const workbooks = await Promise.all(promises);
+
+    const results: { data: string; name: string }[] = [];
+
+    workbooks.forEach((w, index) => {
+      results.push({
+        data: getZippeableBlob(w.workbookMetrics),
+        name: names[index][0]
+      });
+      results.push({
+        data: getZippeableBlob(w.workbookAnnotations),
+        name: names[index][1]
+      });
+    });
+
     return results;
+
   } catch (error) { console.error(error) }
   return [];
 }
 
 async function createWorkBooks_intra(data: any, document?: any) {
   // All metrics
-  const workbookMetrics = XLSX.utils.book_new();
-  const workbookAnnotations = XLSX.utils.book_new();
+  const promises: Promise<XLSX.WorkSheet[]>[] = [];
+  const names: string[] = [];
   for (let i = 0; i < data.labelsOptions.length; i++) {
     const label = data.labelsOptions[i];
 
-    const sheets = await getMetricsSheetAndAnnotations_intra(label, document ? [document] : data.documentsOptQuery, data);
+    promises.push(getMetricsSheetAndAnnotations_intra(label, document ? [document] : data.documentsOptQuery, data));
 
     let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
     // // works as long as there are less than 100 labels
@@ -950,10 +973,20 @@ async function createWorkBooks_intra(data: any, document?: any) {
       sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
     }
 
-    XLSX.utils.book_append_sheet(workbookMetrics, sheets[0], sheetName);
-    XLSX.utils.book_append_sheet(workbookAnnotations, sheets[1], sheetName);
-    download_progress.value.current++;
+    names.push(sheetName);
   }
+
+  const workbooks = await Promise.all(promises);
+
+  const workbookMetrics = XLSX.utils.book_new();
+  const workbookAnnotations = XLSX.utils.book_new();
+
+  workbooks.forEach((w, index) => {
+    XLSX.utils.book_append_sheet(workbookMetrics, w[0], names[index]);
+    XLSX.utils.book_append_sheet(workbookAnnotations, w[1], names[index]);
+  });
+
+  download_progress.value.current += data.labelsOptions.length;
 
   return { workbookMetrics, workbookAnnotations };
 }
@@ -963,11 +996,12 @@ async function getMetricsSheetAndAnnotations_intra(
   documents: string[],
   data: any
 ) {
+  const promises: Promise<any>[] = [];
   let rows_a: any[] = [];
   let rows_m: any[] = [];
   for (let k = 0; k < data.annotators.length; k++) {
     const annotator: string = data.annotators[k];
-    const metrics = await compute_metrics(
+    promises.push(compute_metrics(
       data.task_id,
       label,
       documents,
@@ -981,10 +1015,15 @@ async function getMetricsSheetAndAnnotations_intra(
       data.documentsData,
       data.documentsOptions,
       data.intraTaskIds
-    );
+    ));
+  }
+
+  const resolved = await Promise.all(promises);
+
+  resolved.forEach((metrics, index) => {
+    const annotator = data.annotators[index];
     const m = metrics[0];
     if (m.result !== undefined) {
-
       rows_m.push({
         metric: m.name,
         annotators: `${data.intraTaskIds[0]}-${annotator},${data.intraTaskIds[1]}-${annotator}`,
@@ -1024,7 +1063,8 @@ async function getMetricsSheetAndAnnotations_intra(
         });
       });
     }
-  }
+  });
+
   return [XLSX.utils.json_to_sheet(rows_m), XLSX.utils.json_to_sheet(rows_a)];
 }
 
