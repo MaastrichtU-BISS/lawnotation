@@ -86,6 +86,7 @@ import fileSaver from "file-saver";
 import JSZip, { file } from "jszip";
 import type { RangeLabel } from "~/utils/metrics";
 import { authorizeClient } from "~/utils/authorize.client";
+import { sleep } from "~/utils/sleep";
 // import { mkConfig, generateCsv, asBlob } from "export-to-csv";
 
 const saveAs = fileSaver.saveAs;
@@ -418,37 +419,32 @@ async function download_all(data: any, intra: boolean = false) {
 
 // DESCRIPTIVE
 async function download_all_csv(data: any) {
+  let results: { data: string; name: string }[] = [];
   download_progress.value.total =
     (selectedDocuments.value.length + 1) * labelsOptions.length;
   try {
-    const promises: Promise<{
-      workbookAnnotations: XLSX.WorkBook;
-    }>[] = [];
     const baseName: string = "annotations.xlsx";
-    const names: string[] = [`_${baseName}`];
 
     if (data.documents.length > 1) {
-      promises.push(createBlobs(data));
+      const { workbookAnnotations } = await createBlobs(data);
+      results.push({
+        data: getZippeableBlob(workbookAnnotations),
+        name: `_${baseName}`
+      });
+      download_progress.value.current += data.labelsOptions.length;
     }
 
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
       const filename = `${document}-${documentsNames.value[document].split('.')[0]}`;
-      promises.push(createBlobs(data, document));
-      names.push(`${filename}_${baseName}`);
-    }
-
-    const workbooks = await Promise.all(promises);
-
-    let results: { data: string; name: string }[] = [];
-
-    workbooks.forEach((w, index) => {
+      const { workbookAnnotations } = await createBlobs(data, document);
       results.push({
-        data: getZippeableBlob(w.workbookAnnotations),
-        name: names[index]
+        data: getZippeableBlob(workbookAnnotations),
+        name: `${filename}_${baseName}`
       });
-    });
+      download_progress.value.current += data.labelsOptions.length;
+    }
 
     return results;
   } catch (error) { console.error(error) }
@@ -505,8 +501,6 @@ async function createBlobs(data: any, document?: any) {
     XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, names[index]);
   });
 
-  download_progress.value.current += data.labelsOptions.length;
-
   return { workbookAnnotations };
 }
 //#endregion 
@@ -527,50 +521,56 @@ async function createBlobs_intra(data: any, document?: any) {
 
 //#region INTER-ANNOTATOR-AGREEMENT
 async function download_all_xlsl(data: any) {
+  let results: { data: string; name: string }[] = [];
   download_progress.value.total =
     (selectedDocuments.value.length + 1) * labelsOptions.length;
-  const promises: Promise<{
-    workBookConfidence: XLSX.WorkBook;
-    workbookMetrics: XLSX.WorkBook;
-    workbookAnnotations: XLSX.WorkBook;
-    workbookDescriptive: XLSX.WorkBook;
-  }>[] = [];
+
   const baseNames: string[] = [`confidence.xlsx`, `metrics.xlsx`, `annotations.xlsx`, `descriptive.xlsx`];
-  const names: string[][] = [[`_${baseNames[0]}`, `_${baseNames[1]}`, `_${baseNames[2]}`, `_${baseNames[3]}`]];
   try {
     if (data.documents.length > 1) {
-      promises.push(createWorkBooks(data));
+      const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data);
+      results.push({
+        data: getZippeableBlob(workBookConfidence),
+        name: `_${baseNames[0]}`,
+      });
+      results.push({
+        data: getZippeableBlob(workbookMetrics),
+        name: `_${baseNames[1]}`,
+      });
+      results.push({
+        data: getZippeableBlob(workbookAnnotations),
+        name: `_${baseNames[2]}`,
+      });
+      results.push({
+        data: getZippeableBlob(workbookDescriptive),
+        name: `_${baseNames[3]}`,
+      });
+      download_progress.value.current += data.labelsOptions.length;
     }
 
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
-      promises.push(createWorkBooks(data, document));
-      names.push([`${filename}_${baseNames[0]}`, `${filename}_${baseNames[1]}`, `${filename}_${baseNames[2]}`, `${filename}_${baseNames[3]}`]);
+      const { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive } = await createWorkBooks(data, document);
+      results.push({
+        data: getZippeableBlob(workBookConfidence),
+        name: `${filename}_${baseNames[0]}`,
+      });
+      results.push({
+        data: getZippeableBlob(workbookMetrics),
+        name: `${filename}_${baseNames[1]}`,
+      });
+      results.push({
+        data: getZippeableBlob(workbookAnnotations),
+        name: `${filename}_${baseNames[2]}`,
+      });
+      results.push({
+        data: getZippeableBlob(workbookDescriptive),
+        name: `${filename}_${baseNames[3]}`,
+      });
+      download_progress.value.current += data.labelsOptions.length;
     }
-
-    const workbooks = await Promise.all(promises);
-    let results: { data: string; name: string }[] = [];
-
-    workbooks.forEach((w, index) => {
-      results.push({
-        data: getZippeableBlob(w.workBookConfidence),
-        name: names[index][0],
-      });
-      results.push({
-        data: getZippeableBlob(w.workbookMetrics),
-        name: names[index][1],
-      });
-      results.push({
-        data: getZippeableBlob(w.workbookAnnotations),
-        name: names[index][2],
-      });
-      results.push({
-        data: getZippeableBlob(w.workbookDescriptive),
-        name: names[index][3],
-      });
-    });
 
     return results;
   } catch (error) { console.error(error) }
@@ -615,8 +615,6 @@ async function createWorkBooks(data: any, document?: any) {
     XLSX.utils.book_append_sheet(workbookAnnotations, w.annotations_sheet, names[index]);
     XLSX.utils.book_append_sheet(workbookDescriptive, w.descriptive_anns_sheet, names[index]);
   });
-
-  download_progress.value.current += data.labelsOptions.length
 
   return { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive };
 }
@@ -912,44 +910,41 @@ const mergeTasks = async (similarTaskId: number) => {
 };
 
 async function download_all_xlsl_intra(data: any) {
+  const results: { data: string; name: string }[] = [];
   download_progress.value.total =
     (selectedDocuments.value.length + 1) * labelsOptions.length;
   try {
 
-    const promises: Promise<{
-      workbookMetrics: XLSX.WorkBook;
-      workbookAnnotations: XLSX.WorkBook;
-    }>[] = [];
-
-    const baseName: string[] = ['metrics.xlsx', 'annotations.xlsx']
-    const names: string[][] = [[`_${baseName[0]}`, `_${baseName[1]}`]];
+    const baseName: string[] = ['metrics.xlsx', 'annotations.xlsx'];
 
     if (data.documents.length > 1) {
-      promises.push(createWorkBooks_intra(data));
+      const { workbookMetrics, workbookAnnotations } = await createWorkBooks_intra(data);
+      results.push({
+        data: getZippeableBlob(workbookMetrics),
+        name: `_${baseName[0]}`
+      });
+      results.push({
+        data: getZippeableBlob(workbookAnnotations),
+        name: `_${baseName[1]}`
+      });
+      download_progress.value.current += data.labelsOptions.length;
     }
 
     // Per document
     for (let i = 0; i < data.documents.length; i++) {
       const document = data.documents[i];
       const filename = document + "-" + data.documentsData[document].name.split(".")[0];
-      promises.push(createWorkBooks_intra(data, document));
-      names.push([`${filename}_${baseName[0]}`, `${filename}_${baseName[1]}`])
+      const { workbookMetrics, workbookAnnotations } = await createWorkBooks_intra(data, document);
+      results.push({
+        data: getZippeableBlob(workbookMetrics),
+        name: `${filename}_${baseName[0]}`
+      });
+      results.push({
+        data: getZippeableBlob(workbookAnnotations),
+        name: `${filename}_${baseName[1]}`
+      });
+      download_progress.value.current += data.labelsOptions.length;
     }
-
-    const workbooks = await Promise.all(promises);
-
-    const results: { data: string; name: string }[] = [];
-
-    workbooks.forEach((w, index) => {
-      results.push({
-        data: getZippeableBlob(w.workbookMetrics),
-        name: names[index][0]
-      });
-      results.push({
-        data: getZippeableBlob(w.workbookAnnotations),
-        name: names[index][1]
-      });
-    });
 
     return results;
 
@@ -985,8 +980,6 @@ async function createWorkBooks_intra(data: any, document?: any) {
     XLSX.utils.book_append_sheet(workbookMetrics, w[0], names[index]);
     XLSX.utils.book_append_sheet(workbookAnnotations, w[1], names[index]);
   });
-
-  download_progress.value.current += data.labelsOptions.length;
 
   return { workbookMetrics, workbookAnnotations };
 }
