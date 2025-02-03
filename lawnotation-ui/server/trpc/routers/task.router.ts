@@ -606,8 +606,14 @@ export const taskRouter = router({
 
           // join assignments based on document hash
           // assumes that there will not be 2 documents with the same content and different doc_id within the same task
+          // also continue the seq_pos for each annotator starting from the biggest value from merged task
+          const annotator2lastSeqPos: any = {};
           const hash2Id: any = {};
           mergedAssignments?.forEach((a) => {
+            if (!(annotator2lastSeqPos[a.annotator_number])) {
+              annotator2lastSeqPos[a.annotator_number] = 0;
+            }
+            annotator2lastSeqPos[a.annotator_number] = Math.max(annotator2lastSeqPos[a.annotator_number], a.seq_pos!);
             if (!(a.documents?.hash! in hash2Id)) {
               hash2Id[a.documents?.hash!] = a.document_id;
             }
@@ -617,11 +623,13 @@ export const taskRouter = router({
           const assignmentsWithoutId = similarAssignments?.map((a) => {
             const newDocumentId = hash2Id[a.documents?.hash!];
             const { id, documents, ...assignmentWithoutId } = a;
+            const new_seq_pos = ++annotator2lastSeqPos[a.annotator_number];
             return {
               ...assignmentWithoutId,
               task_id: originalTaskId,
               document_id: newDocumentId,
               original_task_id: similarTaskId,
+              seq_pos: new_seq_pos
             };
           });
 
