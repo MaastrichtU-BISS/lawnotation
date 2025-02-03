@@ -12,8 +12,8 @@ const ZAnnotationFields = z.object({
   start_index: z.number().int(),
   end_index: z.number().int(),
   text: z.string(),
-  origin: z.nativeEnum(Origins),
-  ls_id: z.string(),
+  origin: z.nativeEnum(Origins).nullable().optional(),
+  ls_id: z.string().nullable().optional(),
   metadata: z.string().nullable().optional(),
   html_metadata: z
     .object({
