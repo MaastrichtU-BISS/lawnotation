@@ -111,7 +111,7 @@ export const convert_annotation_db2ls = (
         return baseAnn as LSSerializedAnnotation;
       });
 
-      const confidence_anns = anns.map((a) => {
+      const confidence_anns = anns.filter(a => a.ls_id).map((a) => {
         return {
           id: a.ls_id,
           origin: Origins.MANUAL,
@@ -158,7 +158,7 @@ export const convert_annotation_db2ls = (
         return baseAnn as LSSerializedAnnotation;
       });
 
-      const confidence_anns = anns.map((a) => { 
+      const confidence_anns = anns.filter(a => a.ls_id).map((a) => { 
         return {
           id: a.ls_id,
           origin: Origins.MANUAL,
