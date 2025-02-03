@@ -545,7 +545,6 @@ async function download_all_xlsl(data: any) {
         data: getZippeableBlob(workbookDescriptive),
         name: `_${baseNames[3]}`,
       });
-      download_progress.value.current += data.labelsOptions.length;
     }
 
     // Per document
@@ -569,7 +568,6 @@ async function download_all_xlsl(data: any) {
         data: getZippeableBlob(workbookDescriptive),
         name: `${filename}_${baseNames[3]}`,
       });
-      download_progress.value.current += data.labelsOptions.length;
     }
 
     return results;
@@ -578,28 +576,7 @@ async function download_all_xlsl(data: any) {
 }
 
 async function createWorkBooks(data: any, document?: any) {
-
-  const promises: Promise<any>[] = [];
-  const names: string[] = [];
   // All confidence
-
-  for (let i = 0; i < data.labelsOptions.length; i++) {
-    const label = data.labelsOptions[i];
-    promises.push(getAllInter(data, label, document));
-
-    let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
-
-    // works as long as there are less than 100 labels
-    if (label.length > 31) {
-      const range = i + 1 > 9 ? 12 : 13;
-      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
-    }
-
-    names.push(sheetName);
-  }
-
-  const workbooks = await Promise.all(promises);
-
   const workBookConfidence = await getConfidenceSheet(
     data.task_id,
     data.annotators.length,
@@ -610,11 +587,24 @@ async function createWorkBooks(data: any, document?: any) {
   const workbookAnnotations = XLSX.utils.book_new();
   const workbookDescriptive = XLSX.utils.book_new();
 
-  workbooks.forEach((w, index) => {
-    XLSX.utils.book_append_sheet(workbookMetrics, w.metrics_sheet, names[index]);
-    XLSX.utils.book_append_sheet(workbookAnnotations, w.annotations_sheet, names[index]);
-    XLSX.utils.book_append_sheet(workbookDescriptive, w.descriptive_anns_sheet, names[index]);
-  });
+  for (let i = 0; i < data.labelsOptions.length; i++) {
+    const label = data.labelsOptions[i];
+    const { metrics_sheet, annotations_sheet, descriptive_anns_sheet } = await getAllInter(data, label, document);
+
+    let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
+
+    // works as long as there are less than 100 labels
+    if (label.length > 31) {
+      const range = i + 1 > 9 ? 12 : 13;
+      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+    }
+
+    XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, sheetName);
+    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
+    XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, sheetName);
+
+    download_progress.value.current++;
+  }
 
   return { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive };
 }
@@ -927,7 +917,6 @@ async function download_all_xlsl_intra(data: any) {
         data: getZippeableBlob(workbookAnnotations),
         name: `_${baseName[1]}`
       });
-      download_progress.value.current += data.labelsOptions.length;
     }
 
     // Per document
@@ -943,7 +932,6 @@ async function download_all_xlsl_intra(data: any) {
         data: getZippeableBlob(workbookAnnotations),
         name: `${filename}_${baseName[1]}`
       });
-      download_progress.value.current += data.labelsOptions.length;
     }
 
     return results;
@@ -954,12 +942,13 @@ async function download_all_xlsl_intra(data: any) {
 
 async function createWorkBooks_intra(data: any, document?: any) {
   // All metrics
-  const promises: Promise<XLSX.WorkSheet[]>[] = [];
-  const names: string[] = [];
+  const workbookMetrics = XLSX.utils.book_new();
+  const workbookAnnotations = XLSX.utils.book_new();
+
   for (let i = 0; i < data.labelsOptions.length; i++) {
     const label = data.labelsOptions[i];
 
-    promises.push(getMetricsSheetAndAnnotations_intra(label, document ? [document] : data.documentsOptQuery, data));
+    const workbook = await getMetricsSheetAndAnnotations_intra(label, document ? [document] : data.documentsOptQuery, data);
 
     let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
     // // works as long as there are less than 100 labels
@@ -968,18 +957,12 @@ async function createWorkBooks_intra(data: any, document?: any) {
       sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
     }
 
-    names.push(sheetName);
+    XLSX.utils.book_append_sheet(workbookMetrics, workbook[0], sheetName);
+    XLSX.utils.book_append_sheet(workbookAnnotations, workbook[1], sheetName);
+
+    download_progress.value.current++;
   }
 
-  const workbooks = await Promise.all(promises);
-
-  const workbookMetrics = XLSX.utils.book_new();
-  const workbookAnnotations = XLSX.utils.book_new();
-
-  workbooks.forEach((w, index) => {
-    XLSX.utils.book_append_sheet(workbookMetrics, w[0], names[index]);
-    XLSX.utils.book_append_sheet(workbookAnnotations, w[1], names[index]);
-  });
 
   return { workbookMetrics, workbookAnnotations };
 }
@@ -989,12 +972,11 @@ async function getMetricsSheetAndAnnotations_intra(
   documents: string[],
   data: any
 ) {
-  const promises: Promise<any>[] = [];
   let rows_a: any[] = [];
   let rows_m: any[] = [];
   for (let k = 0; k < data.annotators.length; k++) {
     const annotator: string = data.annotators[k];
-    promises.push(compute_metrics(
+    const metrics = await compute_metrics(
       data.task_id,
       label,
       documents,
@@ -1008,13 +990,8 @@ async function getMetricsSheetAndAnnotations_intra(
       data.documentsData,
       data.documentsOptions,
       data.intraTaskIds
-    ));
-  }
+    );
 
-  const resolved = await Promise.all(promises);
-
-  resolved.forEach((metrics, index) => {
-    const annotator = data.annotators[index];
     const m = metrics[0];
     if (m.result !== undefined) {
       rows_m.push({
@@ -1056,7 +1033,7 @@ async function getMetricsSheetAndAnnotations_intra(
         });
       });
     }
-  });
+  }
 
   return [XLSX.utils.json_to_sheet(rows_m), XLSX.utils.json_to_sheet(rows_a)];
 }
