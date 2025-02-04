@@ -43,7 +43,7 @@
                 headerAction: '!py-3',
               }" :ptOptions="{ mergeProps: true }">
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
-                  :annotators-options="annotatorsOptions" :documents-options="sharedDocumentsOptions"
+                  :annotators-options="annotatorsOptions" :documents-options="documentsOptions"
                   :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)" :is-merged-task="isMergedTask"
                   v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
                   v-model:selectedDocumentsOrEmpty="sharedSelectedDocumentsOrEmpty"
@@ -139,8 +139,15 @@ const selectedLabels = computed((): string[] => {
 
 const allDocumentsOptions = reactive<{ value: string; label: string }[]>([]);
 const sharedDocumentsOptions = reactive<{ value: string; label: string }[]>([]);
+const sharedDocumentsIntraOptions = reactive<{ value: string; label: string }[]>([]);
 const documentsOptions = computed(() => {
-  return metricsTypeActiveTab.value == 0 ? allDocumentsOptions : sharedDocumentsOptions;
+  if(metricType.value == MetricTypes.DESCRIPTIVE) {
+    return allDocumentsOptions;
+  } else if(intraAnnotatorAgreement.value) {
+    return sharedDocumentsIntraOptions;
+  } else {
+    return sharedDocumentsOptions;
+  }
 });
 const allSelectedDocumentsOrEmpty = ref<string[]>([]);
 const sharedSelectedDocumentsOrEmpty = ref<string[]>([]);
@@ -154,9 +161,16 @@ const selectedDocuments = computed((): string[] => {
 });
 const selectedDocumentsOptQuery = computed((): string[] => {
   if (metricType.value == MetricTypes.AGREEMENT &&
-    !sharedSelectedDocumentsOrEmpty.value?.length &&
-    sharedDocumentsOptions.length < allDocumentsOptions.length) {
-    return sharedDocumentsOptions.map(d => d.value);
+    !sharedSelectedDocumentsOrEmpty.value?.length) {
+    
+    if (intraAnnotatorAgreement.value) {
+      if(sharedDocumentsIntraOptions.length < allDocumentsOptions.length) {
+        return sharedDocumentsIntraOptions.map(d => d.value);
+      }
+    }
+    else if(sharedDocumentsOptions.length < allDocumentsOptions.length) {
+      return sharedDocumentsOptions.map(d => d.value);
+    } 
   }
   return selectedDocumentsOrEmpty.value;
 });
@@ -581,7 +595,7 @@ async function createWorkBooks(data: any, document?: any) {
     data.task_id,
     data.annotators.length,
     data.annotatorOrEmpty,
-    document ? [document] : data.documentsOptQuery
+    document ? [document] : data.documentsOrEmpty
   );
   const workbookMetrics = XLSX.utils.book_new();
   const workbookAnnotations = XLSX.utils.book_new();
@@ -613,7 +627,7 @@ async function getAllInter(data: any, label: string, document?: any) {
   const annotations = await getAnnotations(
     data.task_id,
     [label],
-    document ? [document] : data.documentsOptQuery,
+    document ? [document] : data.documentsOrEmpty,
     data.annotators,
     data.byWords,
     data.hideNonText,
@@ -624,7 +638,7 @@ async function getAllInter(data: any, label: string, document?: any) {
   const metrics = await compute_metrics(
     data.task_id,
     label,
-    document ? [document] : data.documentsOptQuery,
+    document ? [document] : data.documentsOrEmpty,
     data.annotators,
     data.annotatorsOrEmpty,
     data.tolerance,
@@ -641,7 +655,7 @@ async function getAllInter(data: any, label: string, document?: any) {
   const metrics_sheet = await getMetricsSheet(
     metrics,
     label,
-    document ? [document] : data.documentsOptQuery,
+    document ? [document] : data.documentsOrEmpty,
     data
   );
 
@@ -906,7 +920,6 @@ async function download_all_xlsl_intra(data: any) {
   try {
 
     const baseName: string[] = ['metrics.xlsx', 'annotations.xlsx'];
-
     if (data.documents.length > 1) {
       const { workbookMetrics, workbookAnnotations } = await createWorkBooks_intra(data);
       results.push({
@@ -948,7 +961,7 @@ async function createWorkBooks_intra(data: any, document?: any) {
   for (let i = 0; i < data.labelsOptions.length; i++) {
     const label = data.labelsOptions[i];
 
-    const workbook = await getMetricsSheetAndAnnotations_intra(label, document ? [document] : data.documentsOptQuery, data);
+    const workbook = await getMetricsSheetAndAnnotations_intra(label, document ? [document] : data.documentsOrEmpty, data);
 
     let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
     // // works as long as there are less than 100 labels
@@ -1083,6 +1096,17 @@ onMounted(async () => {
   if (annotatorsOptions.length > 1) {
     sharedDocumentsOptions.push(
       ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map((d) => {
+        if (!(d.id in documentsData.value)) {
+          documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
+        }
+        return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
+      })
+    );
+  }
+
+  if(isMergedTask) {
+    sharedDocumentsIntraOptions.push(
+      ...(await $trpc.document.findSharedDocumentsByTaskIntra.query(+task.value.id)).map((d) => {
         if (!(d.id in documentsData.value)) {
           documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
         }

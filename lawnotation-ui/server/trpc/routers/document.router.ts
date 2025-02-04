@@ -241,6 +241,27 @@ export const documentRouter = router({
       return data as Document[];
     }),
 
+  findSharedDocumentsByTaskIntra: protectedProcedure
+    .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input: task_id }) => {
+      const { data, error } = await ctx.supabase.rpc(
+        "get_all_shared_docs_from_task_intra",
+        { t_id: task_id }
+      );
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findSharedDocumentsByTaskIntra: ${error.message}`,
+        });
+      return data as Document[];
+    }),
+
   findByProjectAndName: protectedProcedure
     .input(z.object({
       project_id: z.number().int(),
