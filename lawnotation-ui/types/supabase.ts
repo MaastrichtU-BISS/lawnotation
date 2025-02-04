@@ -582,6 +582,20 @@ export type Database = {
           source: string | null
         }[]
       }
+      get_all_shared_docs_from_task_intra: {
+        Args: {
+          t_id: number
+        }
+        Returns: {
+          created_at: string | null
+          full_text: string | null
+          hash: string | null
+          id: number
+          name: string | null
+          project_id: number | null
+          source: string | null
+        }[]
+      }
       get_completion_by_annotator: {
         Args: {
           a_id: string
