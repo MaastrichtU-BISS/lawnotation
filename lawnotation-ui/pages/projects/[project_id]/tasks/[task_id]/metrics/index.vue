@@ -1104,7 +1104,7 @@ onMounted(async () => {
     );
   }
 
-  if(isMergedTask) {
+  if(isMergedTask.value) {
     sharedDocumentsIntraOptions.push(
       ...(await $trpc.document.findSharedDocumentsByTaskIntra.query(+task.value.id)).map((d) => {
         if (!(d.id in documentsData.value)) {
