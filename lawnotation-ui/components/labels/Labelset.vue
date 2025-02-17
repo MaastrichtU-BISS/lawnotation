@@ -194,6 +194,8 @@ const validateLabel = (label: Label, index?: number) => {
     throw new Error("Invalid label color");
   if (!/^[a-zA-Z0-9 \- \_]+$/.test(label.name))
     throw new Error("Special characters are not allowed");
+  if (!/^[^\s]+(\s+[^\s]+)*$/.test(label.name))
+    throw new Error("Label can't start or end with whitespaces");
   if (index?.toString()) {
     if (
       labelset.value.labels
