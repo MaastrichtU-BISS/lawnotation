@@ -1,5 +1,5 @@
 <template>
-  <div  id="label-studio-container" class="h-full">
+  <div id="label-studio-container" class="h-full">
     <div v-if="assignment" class="px-4 my-2 flex items-center justify-between">
       <div class="flex items-center">
         <NuxtLink v-if="guidelines" :to="guidelines" target="_blank" class="mr-3">
@@ -11,12 +11,15 @@
       <div v-if="!isEditor && previousCount != undefined && totalCount" class="flex items-center w-1/3">
         <span class="font-semibold mr-2">{{ previousCount }}/{{ totalCount }}</span>
         <span class="w-full">
-          <ProgressBar :value="Math.round((previousCount / totalCount) * 100)"> {{ Math.round(previousCount / totalCount * 100)}}% </ProgressBar>
+          <ProgressBar :value="Math.round((previousCount / totalCount) * 100)"> {{ Math.round(previousCount / totalCount *
+            100) }}% </ProgressBar>
         </span>
       </div>
       <div v-if="!isEditor && totalCount && previousCount != undefined">
-        <Button :disabled="previousCount <= 1" label="Back" class="mr-3" icon="pi pi-arrow-left" @click="Done(Direction.PREVIOUS)" icon-pos="left" outlined />
-        <Button :label="previousCount < totalCount ? 'Next' : 'Finish'" icon="pi pi-arrow-right" @click="Done(Direction.NEXT)" icon-pos="right" />
+        <Button :disabled="previousCount <= 1" label="Back" class="mr-3" icon="pi pi-arrow-left"
+          @click="Done(Direction.PREVIOUS)" icon-pos="left" outlined />
+        <Button :label="previousCount < totalCount ? 'Next' : 'Finish'" icon="pi pi-arrow-right"
+          @click="Done(Direction.NEXT)" icon-pos="right" />
       </div>
       <div v-else>
         <Button label="Save" icon="pi pi-check" @click="Done(Direction.CURRENT)" icon-pos="right" />
@@ -34,6 +37,7 @@ import type {
   LSSerializedAnnotations,
 } from "~/types";
 import { AnnotationLevels, AssignmentStatuses, Direction, Origins } from "~/utils/enums";
+import { AnnotationsLocalStorage } from "~/utils/localstorage";
 
 const { $trpc, $toast } = useNuxtApp();
 
@@ -66,6 +70,8 @@ const doc_confidence_ann = ref({
   }
 });
 
+const AnnsLS = ref<AnnotationsLocalStorage>(new AnnotationsLocalStorage(props.assignment?.id));
+
 const showSideColumn = computed(() => {
   // return props.annotation_level != AnnotationLevels.DOCUMENT && !props.isEditor;
   return props.annotation_level != AnnotationLevels.DOCUMENT;
@@ -83,26 +89,26 @@ const initLS = async () => {
     config: `<View style="display: grid; grid-template-columns: min-content 1fr; grid-template-rows: 1fr min-content; height: 100%; min-height: 0;">
               <View style="min-width: 200px; background: #f1f1f1; border-radius: 3px; padding: .3rem; overflow-y: auto; display: flex; flex-direction: column; flex: 1">
                 ${(props.annotation_level != AnnotationLevels.DOCUMENT)
-                  ?
-                  `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
+        ?
+        `<Filter name="fl" toName="label" hotkey="shift+f" minlength="1" />
                     <${props.isHtml ? "HyperTextLabels" : "Labels"} style="padding-left: 2em; margin-right: 2em;" name="label" toName="text">
                      ${props.labels?.map((l, index) => (`<Label value="${l.name}" background="${l.color}" selected="${!props.isEditor && index == 0}" style="display: inline-table; user-select: none;"/>`)).join("\n")}
                     </${props.isHtml ? "HyperTextLabels" : "Labels"}>`
-                  :
-                  `<Choices name="label" toName="text" choice="multiple">
+        :
+        `<Choices name="label" toName="text" choice="multiple">
                     ${props.labels?.map((l) => (`<Choice value="${l.name}" style="background-color: ${l.color}26; border-left:4px solid ${l.color}; padding-left: .25rem; border-radius: .25rem; width: min-content;" />`)).join("\n")}
                   </Choices>`
-                }
+      }
                 <View style="border-top: 1px solid rgba(0,0,0,.1); padding: 10px 5px; margin-top: auto">
                   ${props.annotation_level != AnnotationLevels.DOCUMENT
-                    ?
-                    `<View visibleWhen="region-selected" style="margin-bottom: 10px">
+        ?
+        `<View visibleWhen="region-selected" style="margin-bottom: 10px">
                       <Header value="Annotation Confidence" style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" />
                         <Rating name="ann_confidence" toName="text" perRegion="true" />
                     </View>`
-                    :
-                    ``
-                  }
+        :
+        ``
+      }
                   <View>
                     <Header style="margin-bottom: 0; margin: 0px; user-select: none; font-size: medium" value="Document Confidence"/>
                     <Rating toName="doc_confidence" name="doc_confidence" maxRating="5" icon="star" size="medium" />
@@ -140,7 +146,8 @@ const initLS = async () => {
     },
     task: {
       annotations: [{
-        result: (props.annotations as any).concat(props.relations).concat([doc_confidence_ann.value])
+        // if there are local storage annotations use those, instead, what comes from db
+        result: AnnsLS.value.get() ?? (props.annotations as any).concat(props.relations).concat([doc_confidence_ann.value])
       }],
       // predictions: this.predictions,
       data: {
@@ -150,6 +157,18 @@ const initLS = async () => {
     onLabelStudioLoad: (LS: any) => {
       LS.annotationStore.selectAnnotation(LS.annotationStore.annotations);
     },
+    onEntityCreate: (LS: any) => {
+      // save to local storage
+      nextTick(() => {
+        AnnsLS.value.store(serializeLSAnnotations());
+      });
+    },
+    onEntityDelete: (LS: any) => {
+      // save to local storage
+      nextTick(() => {
+        AnnsLS.value.store(serializeLSAnnotations());
+      });
+    }
   });
 
 };
@@ -161,8 +180,8 @@ const serializeLSAnnotations = () => {
 };
 
 const Done = async (dir: Direction) => {
-  if(await save(dir)) {
-    if(props.totalCount) {
+  if (await save(dir)) {
+    if (props.totalCount) {
       switch (dir) {
         case Direction.PREVIOUS:
           emit("previousAssignment");
@@ -177,9 +196,10 @@ const Done = async (dir: Direction) => {
       $toast.success("Changes were successfully saved!");
     }
   }
+  AnnsLS.value.clear();
 };
 
-const save = async (dir: Direction) :Promise<boolean> => {
+const save = async (dir: Direction): Promise<boolean> => {
   if (!props.assignment) return false;
 
   const serializedAnnotations: any[] = serializeLSAnnotations();
@@ -205,7 +225,7 @@ const save = async (dir: Direction) :Promise<boolean> => {
 
   await updateAnnotationsAndRelations(serializedAnnotations, rating);
 
-  if(dir != Direction.PREVIOUS) {
+  if (dir != Direction.PREVIOUS) {
     await $trpc.assignment.update.mutate({
       id: props.assignment.id,
       updates: {
@@ -229,14 +249,14 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[], assig
       ls_anns.push(ann);
     } else {
       if (ls_anns.length > 0) {
-        if(props.annotation_level != AnnotationLevels.DOCUMENT) {
+        if (props.annotation_level != AnnotationLevels.DOCUMENT) {
           // assumes each confidence comes right after their respective labeled annotation
           // (so far it seems correct to assume this, based on LS sorting the annotations by Id)
           if (ann.from_name == "ann_confidence") {
             if (ann.id == ls_anns[ls_anns.length - 1].id) {
               ls_anns[ls_anns.length - 1].value.confidence_rating = ann.value.rating;
             }
-          } 
+          }
         }
         else {
           ls_anns[ls_anns.length - 1].value.confidence_rating = assignmentRating;
@@ -273,6 +293,7 @@ const updateAnnotationsAndRelations = async (serializedAnnotations: any[], assig
       to_id: to,
     });
   });
+
 };
 
 function waitForElement(selector: string): Promise<Element> {
@@ -359,5 +380,4 @@ sup {
 
 .ant-rate-star-zero svg {
   color: #d2cece;
-}
-</style>
+}</style>
