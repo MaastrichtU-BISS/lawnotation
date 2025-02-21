@@ -269,6 +269,9 @@ export const annotationRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
+
+      // throw new TRPCError({message: 'HALT', code: 'NOT_IMPLEMENTED'});
+
       const query_delete = await ctx.supabase
         .from("annotations")
         .delete()

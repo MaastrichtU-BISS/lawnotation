@@ -180,23 +180,30 @@ const serializeLSAnnotations = () => {
 };
 
 const Done = async (dir: Direction) => {
-  if (await save(dir)) {
-    if (props.totalCount) {
-      switch (dir) {
-        case Direction.PREVIOUS:
-          emit("previousAssignment");
-          break;
-        case Direction.NEXT:
-          emit("nextAssignment");
-          break;
-        default:
-          break;
+  try {
+    if (await save(dir)) {
+      if (props.totalCount) {
+        switch (dir) {
+          case Direction.PREVIOUS:
+            emit("previousAssignment");
+            break;
+          case Direction.NEXT:
+            emit("nextAssignment");
+            break;
+          default:
+            break;
+        }
+      } else {
+        $toast.success("Changes were successfully saved!");
       }
-    } else {
-      $toast.success("Changes were successfully saved!");
+      AnnsLS.value.clear();
     }
+  } catch (error) {
+    $toast.error(`Annotations could not be saved into the db. They still exists locally, so you can safely reload the page without loosing progress and try again.`);
+    nextTick(() => {
+      AnnsLS.value.store(serializeLSAnnotations());
+    });
   }
-  AnnsLS.value.clear();
 };
 
 const save = async (dir: Direction): Promise<boolean> => {
@@ -380,4 +387,5 @@ sup {
 
 .ant-rate-star-zero svg {
   color: #d2cece;
-}</style>
+}
+</style>
