@@ -55,5 +55,5 @@ python3 main.py -t doccano -i docs-in/lawnotation-task.json -o docs-out/doccano-
 
 Example:
 ```
-python3 main.py -t doccano -i docs-in/transkribus/page/*.xml -o docs-out/lawnotation-task.json
+python3 main.py -t transkribus -i docs-in/transkribus/page/*.xml -o docs-out/lawnotation-task.json
 ```
