@@ -134,8 +134,6 @@ const loadData = async (dir: Direction = Direction.CURRENT) => {
       assignment.value.id
     );
 
-    console.log(_annotations)
-
     ls_annotations.splice(0);
     if (_annotations.length) {
       const db2ls_anns = convert_annotation_db2ls(_annotations, !isDocumentLevel(task.value), isHtml.value);
