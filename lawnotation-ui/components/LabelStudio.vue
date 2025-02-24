@@ -16,16 +16,19 @@
         </span>
       </div>
       <div v-if="!isEditor && totalCount && previousCount != undefined">
-        <Button :disabled="previousCount <= 1" label="Back" class="mr-3" icon="pi pi-arrow-left"
-          @click="Done(Direction.PREVIOUS)" icon-pos="left" outlined />
-        <Button :label="previousCount < totalCount ? 'Next' : 'Finish'" icon="pi pi-arrow-right"
-          @click="Done(Direction.NEXT)" icon-pos="right" />
+        <Button :disabled="previousCount <= 1" class="mr-3" icon="pi pi-arrow-left"
+          @click="Done(Direction.PREVIOUS)" icon-pos="left" label="Back" outlined v-tooltip.top="'Save and go to the previous document'" />
+        <Button class="mr-3" icon="pi pi-save"
+          @click="Done(Direction.CURRENT)" outlined v-tooltip.top="'Save and continue annotating the current document'" />
+        <Button :label="previousCount < totalCount ? 'Next' : 'Finish'" :icon="previousCount < totalCount ? 'pi pi-arrow-right' : ''"
+          @click="Done(Direction.NEXT)" icon-pos="right" v-tooltip.top="`Save and ${previousCount < totalCount ?  'go to the next document' : 'finish'}`"/>
       </div>
       <div v-else>
         <Button label="Save" icon="pi pi-check" @click="Done(Direction.CURRENT)" icon-pos="right" />
       </div>
     </div>
     <div id="label-studio" class="h-full"></div>
+    <ConfirmBox />
   </div>
 </template>
 <script setup lang="ts">
@@ -38,6 +41,8 @@ import type {
 } from "~/types";
 import { AnnotationLevels, AssignmentStatuses, Direction, Origins } from "~/utils/enums";
 import { AnnotationsLocalStorage } from "~/utils/localstorage";
+import { useConfirm } from "primevue/useconfirm";
+import ConfirmBox from "~/components/ConfirmBox.vue";
 
 const { $trpc, $toast } = useNuxtApp();
 
@@ -190,6 +195,9 @@ const Done = async (dir: Direction) => {
           case Direction.NEXT:
             emit("nextAssignment");
             break;
+          case Direction.CURRENT:
+            $toast.success("Changes were successfully saved!");
+            break;
           default:
             break;
         }
@@ -213,11 +221,11 @@ const save = async (dir: Direction): Promise<boolean> => {
 
   // serializedAnnotations.length === 1 because the document rating will always be there. (default=0)
   if (
-    dir == Direction.NEXT &&
+    dir != Direction.CURRENT &&
     !props.isEditor &&
     props.assignment.status !== "done" &&
     serializedAnnotations.length === 1 &&
-    !confirm(
+    !window.confirm(
       "No annotations were made in this document.\nAre you sure you want to continue?"
     )
   ) {
@@ -232,7 +240,7 @@ const save = async (dir: Direction): Promise<boolean> => {
 
   await updateAnnotationsAndRelations(serializedAnnotations, rating);
 
-  if (dir != Direction.PREVIOUS) {
+  if (dir == Direction.NEXT) {
     await $trpc.assignment.update.mutate({
       id: props.assignment.id,
       updates: {
@@ -335,6 +343,29 @@ onMounted(() => {
     );
   }
 });
+
+const confirm = useConfirm();
+onBeforeRouteLeave((to, from, next) => {
+  if (AnnsLS.value.isStored) {
+    confirm.require({
+          group: 'headless',
+          header: "Are you sure you want to leave?",
+          message: "You have unsaved changes.",
+          rejectLabel: "No, stay",
+          acceptLabel: "Yes, leave",
+          accept: () => {
+            AnnsLS.value.clear();
+            next();
+          },
+          reject: () => { 
+            next(false);
+          }
+      });
+  } else {
+    next();
+  }
+});
+
 </script>
 <style>
 #label-studio {

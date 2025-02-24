@@ -10,15 +10,19 @@ export class AnnotationsLocalStorage {
     this.assignment_id = assignment_id.toString();
     this.baseName = "lawnotation-";
     this.key = CryptoJS.SHA256(this.baseName + this.assignment_id);
+    const tryGet = this.get();
+    this.isStored = tryGet != null;
   }
 
   private assignment_id: string;
   private baseName: string;
   private key: string;
+  isStored: boolean;
 
   store(annotations: LSSerializedAnnotations) {
     const encryptedValue = CryptoJS.AES.encrypt(JSON.stringify(annotations), this.assignment_id);
     localStorage.setItem(this.key, encryptedValue.toString());
+    this.isStored = true;
   }
 
   get() {
@@ -39,5 +43,6 @@ export class AnnotationsLocalStorage {
 
   clear() {
     localStorage.removeItem(this.key);
+    this.isStored = false;
   }
 }
