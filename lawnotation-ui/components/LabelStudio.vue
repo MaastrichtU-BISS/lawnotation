@@ -17,11 +17,11 @@
       </div>
       <div v-if="!isEditor && totalCount && previousCount != undefined">
         <Button :disabled="previousCount <= 1" class="mr-3" icon="pi pi-arrow-left"
-          @click="Done(Direction.PREVIOUS)" icon-pos="left" label="Back" outlined v-tooltip.top="'Save and go to the previous document'" />
+          @click="Done(Direction.PREVIOUS)" icon-pos="left" label="Back" outlined v-tooltip="'Save and go to the previous document'" />
         <Button class="mr-3" icon="pi pi-save"
-          @click="Done(Direction.CURRENT)" outlined v-tooltip.top="'Save and continue annotating the current document'" />
+          @click="Done(Direction.CURRENT)" outlined v-tooltip="'Save and continue annotating the current document'" />
         <Button :label="previousCount < totalCount ? 'Next' : 'Finish'" :icon="previousCount < totalCount ? 'pi pi-arrow-right' : ''"
-          @click="Done(Direction.NEXT)" icon-pos="right" v-tooltip.top="`Save and ${previousCount < totalCount ?  'go to the next document' : 'finish'}`"/>
+          @click="Done(Direction.NEXT)" icon-pos="right" v-tooltip="`Save and ${previousCount < totalCount ?  'go to the next document' : 'finish'}`"/>
       </div>
       <div v-else>
         <Button label="Save" icon="pi pi-check" @click="Done(Direction.CURRENT)" icon-pos="right" />
