@@ -75,7 +75,10 @@ const doc_confidence_ann = ref({
   }
 });
 
-const AnnsLS = ref<AnnotationsLocalStorage>(new AnnotationsLocalStorage(props.assignment?.id));
+const AnnsLS = ref<AnnotationsLocalStorage>();
+if(props.assignment?.id) {
+  AnnsLS.value = new AnnotationsLocalStorage(props.assignment?.id);
+}
 
 const showSideColumn = computed(() => {
   // return props.annotation_level != AnnotationLevels.DOCUMENT && !props.isEditor;
@@ -152,7 +155,7 @@ const initLS = async () => {
     task: {
       annotations: [{
         // if there are local storage annotations use those, instead, what comes from db
-        result: AnnsLS.value.get() ?? (props.annotations as any).concat(props.relations).concat([doc_confidence_ann.value])
+        result: AnnsLS.value?.get() ?? (props.annotations as any).concat(props.relations).concat([doc_confidence_ann.value])
       }],
       // predictions: this.predictions,
       data: {
@@ -165,13 +168,13 @@ const initLS = async () => {
     onEntityCreate: (LS: any) => {
       // save to local storage
       nextTick(() => {
-        AnnsLS.value.store(serializeLSAnnotations());
+        AnnsLS.value?.store(serializeLSAnnotations());
       });
     },
     onEntityDelete: (LS: any) => {
       // save to local storage
       nextTick(() => {
-        AnnsLS.value.store(serializeLSAnnotations());
+        AnnsLS.value?.store(serializeLSAnnotations());
       });
     }
   });
@@ -204,12 +207,12 @@ const Done = async (dir: Direction) => {
       } else {
         $toast.success("Changes were successfully saved!");
       }
-      AnnsLS.value.clear();
+      AnnsLS.value?.clear();
     }
   } catch (error) {
     $toast.error(`Annotations could not be saved into the db. They still exists locally, so you can safely reload the page without loosing progress and try again.`);
     nextTick(() => {
-      AnnsLS.value.store(serializeLSAnnotations());
+      AnnsLS.value?.store(serializeLSAnnotations());
     });
   }
 };
@@ -346,7 +349,7 @@ onMounted(() => {
 
 const confirm = useConfirm();
 onBeforeRouteLeave((to, from, next) => {
-  if (AnnsLS.value.isStored) {
+  if (AnnsLS.value?.isStored) {
     confirm.require({
           group: 'headless',
           header: "Are you sure you want to leave?",
@@ -354,7 +357,7 @@ onBeforeRouteLeave((to, from, next) => {
           rejectLabel: "No, stay",
           acceptLabel: "Yes, leave",
           accept: () => {
-            AnnsLS.value.clear();
+            AnnsLS.value?.clear();
             next();
           },
           reject: () => { 
