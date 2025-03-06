@@ -9,6 +9,7 @@ import {
 import type {
   Task,
   Annotator,
+  User,
   Assignment,
   Annotation,
   AnnotationRelation,
@@ -414,6 +415,27 @@ export const taskRouter = router({
           message: `Error in tasks.getAllAnnotatorsFromTask: ${error.message}`,
         });
       return data as Annotator[];
+    }),
+
+    getAllEditorsFromTask: protectedProcedure
+    .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input: task_id }) => {
+      const { data, error } = await ctx.supabase
+        .from("editors")
+        .select("id, user:users(id, email)")
+        .eq("task_id", task_id);
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in tasks.getAllEditorsFromTask: ${error.message}`,
+        });
+      return data;
     }),
 
   deleteAllFromProject: protectedProcedure
