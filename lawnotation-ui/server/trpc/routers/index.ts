@@ -15,6 +15,7 @@ import { metricsRouter } from './metrics.router';
 import { tableRouter } from './table.router';
 import { hookRouter } from './hook.router';
 import { archiveRouter } from './archive.router';
+import { editorRouter } from './editors.router';
 
 export const appRouter = router({
   relation: relationRouter,
@@ -29,7 +30,8 @@ export const appRouter = router({
   hook: hookRouter,
   user: userRouter,
   table: tableRouter,
-  archive: archiveRouter
+  archive: archiveRouter,
+  editor: editorRouter
   // metrics: metricsRouter,
 })
 

@@ -58,16 +58,18 @@
                                 <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
                                     <i class="pi pi-envelope"></i>
                                 </div>
-                                <input type="text" v-model="editors[index].user.email"
-                                placeholder="new@editor.com"
+                                <input type="text" v-model="editors[index].user.email" placeholder="new@editor.com"
                                     :disabled="editors[index].id > 0"
                                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
                             </div>
-                            <Button class="float-right text-red-500 text-xs !p-2 " link type="button" icon="pi pi-trash" @click="removeEditor(index)" />
+                            <Button class="float-right text-red-500 text-xs !p-2 " link type="button" icon="pi pi-trash"
+                                @click="removeEditor(index)" />
                         </li>
-                        <Button :disabled="editors.length > 0 && !validateEmail(editors.at(-1)?.user.email)" class="float-right text-xs !p-2 " outlined type="button" label="Add" icon="pi pi-plus" @click="addEditor" />
+                        <Button :disabled="editors.length > 0 && !validateEmail(editors.at(-1)?.user.email)"
+                            class="float-right text-xs !p-2 " outlined type="button" label="Add" icon="pi pi-plus"
+                            @click="addEditor" />
                     </ul>
-                    <Button @click="replaceAnnotators" label="Save Editors Changes" />
+                    <Button @click="saveEditorCahnges" label="Save Editors Changes" />
                 </div>
             </div>
         </div>
@@ -124,7 +126,6 @@ const editTask = async () => {
     } catch (error) {
         loading.value = false;
         $toast.error("Error editing Task");
-        console.log(error);
     }
 };
 
@@ -191,6 +192,26 @@ const removeEditor = (index: number) => {
     editors.splice(index, 1);
 }
 
+const saveEditorCahnges = async () => {
+    if (!project.value || !task.value) {
+        throw new Error("Project or Task not loaded yet");
+    }
+
+    loading.value = true;
+    try {
+        await $trpc.editor.updateAllFromTask.mutate({
+            project_id: project.value?.id,
+            task_id: task.value?.id,
+            emails: editors.map(e => e.user.email)
+        });
+        $toast.success("Editor changes successfully saved!");
+    } catch (error) {
+        $toast.error("Error editing editors");
+    } finally {
+        loading.value = false;
+    }
+}
+
 onMounted(async () => {
     task.value = await $trpc.task.findById.query(+route.params.task_id);
     project.value = await $trpc.project.findById.query(+route.params.project_id);
@@ -205,7 +226,7 @@ onMounted(async () => {
     );
 
     editors.splice(0) && editors.push(
-        ...(await $trpc.task.getAllEditorsFromTask.query(+route.params.task_id))
+        ...(await $trpc.editor.getAllFromTask.query(+route.params.task_id))
     );
 
     console.log(editors);
