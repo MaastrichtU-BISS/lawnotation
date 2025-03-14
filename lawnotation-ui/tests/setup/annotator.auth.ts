@@ -15,10 +15,13 @@ setup('Authenticate as annotator', async ({ context, page }) => {
 
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const magicLinkPage = await context.newPage();
-  await magicLinkPage.goto('http://127.0.0.1:54324/m/annotator');
-  await magicLinkPage.getByRole('button', { name: '' }).click();
+  await magicLinkPage.goto('http://127.0.0.1:54324/');
   await magicLinkPage.getByText('Your login code for').first().click();
-  const magicCode = await magicLinkPage.locator('#login-code').innerText();
+  await magicLinkPage.locator('#nav-plain-text-tab').click();
+  const text = await magicLinkPage.locator('.text-view').innerText();
+  const magicCode = text.match(/[0-9]{6}/)?.[0]!;
+  // const magicCode = text.split(':')[1].split('If')[0].trim();
+  console.log(magicCode);
 
   await page.getByRole("textbox").first().fill(magicCode);
   await page.getByTestId('verify-button').click();
