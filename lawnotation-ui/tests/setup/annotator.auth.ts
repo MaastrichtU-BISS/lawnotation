@@ -20,7 +20,6 @@ setup('Authenticate as annotator', async ({ context, page }) => {
   await magicLinkPage.locator('#nav-plain-text-tab').click();
   const text = await magicLinkPage.locator('.text-view').innerText();
   const magicCode = text.match(/[0-9]{6}/)?.[0]!;
-  // const magicCode = text.split(':')[1].split('If')[0].trim();
   console.log(magicCode);
 
   await page.getByRole("textbox").first().fill(magicCode);
