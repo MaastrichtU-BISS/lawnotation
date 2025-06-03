@@ -515,7 +515,7 @@ const refreshLabelsets = async () => {
 
 const uploadDocuments = async (event: { files: FileList }) => {
 
-  const new_docs: Omit<Document, "id">[] = [];
+  const new_docs: Omit<Document, "id" | "hash">[] = [];
   upload_docs_progress.value.loading = true;
   upload_docs_progress.value.total = event.files.length ?? 0;
   upload_docs_progress.value.current = 0;
