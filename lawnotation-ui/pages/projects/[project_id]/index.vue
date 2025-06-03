@@ -553,7 +553,7 @@ function getBase64(file: File) {
 }
 
 const onDocumentsFetched = (docs: Doc[]) => {
-  var new_docs: Omit<Document, "id">[] = [];
+  var new_docs: Omit<Document, "id" | "hash">[] = [];
 
   upload_docs_progress.value.loading = true;
   upload_docs_progress.value.total = docs.length;
