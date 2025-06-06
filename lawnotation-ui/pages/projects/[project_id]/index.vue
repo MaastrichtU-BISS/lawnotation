@@ -109,8 +109,8 @@
                           making it better</p>
                       </div>
                       <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
-                        disabled optionLabel="name" option-value="id" placeholder="Select Model (Optional)" class="w-full"
-                        @update:model-value="modelSelected($event)" :show-clear="true" />
+                        disabled optionLabel="name" option-value="id" placeholder="Select Model (Optional)"
+                        class="w-full" @update:model-value="modelSelected($event)" :show-clear="true" />
                     </div>
                     <div class="mb-4 flex justify-between items-center">
                       <div>
@@ -175,13 +175,11 @@
                             Select the status of the new assignments
                           </h4>
                           <SelectButton v-model="selectedUploadedAssignmentsStatus"
-                            :options="optionsUploadedAssignmentsStatus" optionLabel="label" optionValue="value" dataKey="value" optionDisabled="disabled"
-                            :pt="{
+                            :options="optionsUploadedAssignmentsStatus" optionLabel="label" optionValue="value"
+                            dataKey="value" optionDisabled="disabled" :pt="{
                               label: '!text-sm !font-semibold',
                               button: ['!px-3', '!py-2']
-                            }"
-                            :ptOptions="{ mergeProps: true }"
-                            >
+                            }" :ptOptions="{ mergeProps: true }">
                           </SelectButton>
                         </div>
                         <h4 class="mb-2 font-semibold text-gray-900 dark:text-white">
@@ -189,20 +187,20 @@
                         </h4>
                         <p class="mb-4">Please, provide the new ones:</p>
                       </div>
-                      <div v-for="( new_ann, index ) in  new_annotators " class="flex justify-center mb-4">
+                      <div v-for="(new_ann, index) in new_annotators" class="flex justify-center mb-4">
                         <span class="relative w-full">
-                          <InputText v-model="new_annotators[index]" autocomplete="off" class="peer w-full" placeholder=""
-                            :id="`annotator_${index}`" />
+                          <InputText v-model="new_annotators[index]" autocomplete="off" class="peer w-full"
+                            placeholder="" :id="`annotator_${index}`" />
                           <label :for="`annotator_${index}`"
                             class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
                               `annotator ${index + 1} ` }}</label>
-                              <div v-if="index == 0" class="text-right">
-                                <Button label="Add myself" :disabled="isMyselfAdded" link @click="addMyself" :pt="{
-                                  root: {
-                                    class: 'p-0 text-xs text-primary-600 disabled:text-gray-400 underline cursor-pointer disabled:no-underline disabled:pointer-events-none'
-                                  }
-                                }" />
-                              </div>
+                          <div v-if="index == 0" class="text-right">
+                            <Button label="Add myself" :disabled="isMyselfAdded" link @click="addMyself" :pt="{
+                              root: {
+                                class: 'p-0 text-xs text-primary-600 disabled:text-gray-400 underline cursor-pointer disabled:no-underline disabled:pointer-events-none'
+                              }
+                            }" />
+                          </div>
                         </span>
                       </div>
                       <div class="flex justify-center mt-4 pt-4">
@@ -273,7 +271,7 @@
             <TabPanel header="Upload" :pt="{ headerAction: { 'data-test': 'upload-documents-tab' } }">
               <div class="pt-6">
                 <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true"
-                  accept=".txt,.html,.pdf,.doc,.docx" chooseLabel="Select" :pt="{
+                  :maxFileSize="DOCUMENT_SIZE_LIMIT_TXT" accept=".txt,.html,.pdf,.doc,.docx" chooseLabel="Select" :pt="{
                     input: {
                       'data-test': 'choose-documents'
                     },
@@ -292,7 +290,8 @@
                       <i
                         class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
                       <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                      <p class="text-gray-400 text-xs">.txt .html .pdf .doc .docx file(s)</p>
+                      <p class="text-gray-400 text-xs mb-0">.txt .html file(s) (up to 6MB each)</p>
+                      <p class="text-gray-400 text-xs">.pdf .doc .docx file(s) (up to 4MB each)</p>
                     </div>
                   </template>
                 </FileUpload>
@@ -407,6 +406,9 @@ const upload_docs_progress = ref<{
   current: 0,
   total: 0,
 });
+
+const DOCUMENT_SIZE_LIMIT_TXT = 6000000; // 6MB for .txt and .html files
+const DOCUMENT_SIZE_LIMIT_PDF = 4000000; // 4MB for .pdf, .doc, .docx files
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
@@ -523,15 +525,22 @@ const uploadDocuments = async (event: { files: FileList }) => {
 
   for (const file of event.files ?? []) {
 
+    // 6mb limit will is checked by the FileUpload component
+    // here we check 4mb limit for .pdf, .doc, .docx files
+    if (file.size > DOCUMENT_SIZE_LIMIT_PDF && (file.name.endsWith('.pdf') || file.name.endsWith('.doc') || file.name.endsWith('.docx'))) {
+      $toast.error(`File ${file.name} exceeds the 4mb limit for .pdf, .doc, .docx files.`);
+      continue;
+    }
+
     const format = file.name.split('.').pop() as DocumentFormats;
     let full_text = "";
 
-    if(format == DocumentFormats.TXT || format == DocumentFormats.HTML) {
+    if (format == DocumentFormats.TXT || format == DocumentFormats.HTML) {
       full_text = await file.text();
     } else {
       full_text = await getBase64(file) as string;
     }
-        
+
     new_docs.push({
       name: file.name,
       source: "local_upload",
@@ -541,6 +550,7 @@ const uploadDocuments = async (event: { files: FileList }) => {
   };
 
   saveDocuments(new_docs, true);
+
 };
 
 function getBase64(file: File) {
@@ -572,19 +582,19 @@ const onDocumentsFetched = (docs: Doc[]) => {
   saveDocuments(new_docs);
 };
 
-const saveDocuments = async (new_docs: Omit<Document, "id">[], preprocess = false) => {
-  try {
-    for (const doc of new_docs) {
-      await $trpc.document.create.mutate({document: doc, preprocess: preprocess});
+const saveDocuments = async (new_docs: Omit<Document, "id" | "hash">[], preprocess = false) => {
+  for (const doc of new_docs) {
+    try {
+      await $trpc.document.create.mutate({ document: doc, preprocess: preprocess });
       upload_docs_progress.value.current++;
+    } catch (error) {
+      $toast.error(`Error uploading document: ${doc.name}`);
     }
-    documentTable.value?.refresh();
-    $toast.success(`${new_docs.length} documents uploaded!`);
-  } catch (error) {
-    $toast.success(`Error uploading documents: ${error}`);
-  } finally {
-    upload_docs_progress.value.loading = false;
   }
+
+  documentTable.value?.refresh();
+  $toast.success(`${upload_docs_progress.value.current} document(s) uploaded!`);
+  upload_docs_progress.value.loading = false;
 };
 
 const createTask = () => {
@@ -655,10 +665,10 @@ const loadExportTaskFile = async (event: { files: FileList }) => {
   const file = event.files[0];
   import_json.value = JSON.parse(await file.text());
 
-  if(!import_json.value.counts?.assignments) {
+  if (!import_json.value.counts?.assignments) {
     // skip assignment upload page
   }
-  else if(!import_json.value.documents[0]?.assignments[0]?.status) {
+  else if (!import_json.value.documents[0]?.assignments[0]?.status) {
     // assumes all documents present, have at least 1 assignment associateedd to it (which is currently the case according to the export function)
     optionsUploadedAssignmentsStatus.value[2].disabled = true;
     selectedUploadedAssignmentsStatus.value = AssignmentStatuses.DONE;
@@ -826,8 +836,8 @@ const importTask = async () => {
           const annotations: any[] = [];
           const chunkSize = 100;
           for (let i = 0; i < new_annotations.length; i += chunkSize) {
-              const chunk = new_annotations.slice(i, i + chunkSize);
-              annotations.push(...await $trpc.annotation.createMany.mutate(chunk));
+            const chunk = new_annotations.slice(i, i + chunkSize);
+            annotations.push(...await $trpc.annotation.createMany.mutate(chunk));
           };
 
           // create relations
@@ -855,7 +865,7 @@ const importTask = async () => {
                 ann_index += current_ann;
               });
             });
-            
+
             const relations: any[] = [];
             for (let i = 0; i < new_relations.length; i += chunkSize) {
               const chunk = new_relations.slice(i, i + chunkSize);
@@ -918,4 +928,5 @@ div.tabs-holder {
   li.tab-active button {
     @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
-}</style>~/components/Labelsets.vue
+}
+</style>~/components/Labelsets.vue
