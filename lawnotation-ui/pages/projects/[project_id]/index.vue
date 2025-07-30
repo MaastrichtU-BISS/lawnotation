@@ -12,7 +12,7 @@
 
   <div v-if="project">
     <GuidancePanel :currentStep="currentGuidanceStep" />
-    <TabView v-model:activeIndex="activeTab">
+    <TabView v-model:activeIndex="activeTab" @tab-click="onTabClick">
       <TabPanel :pt="{
         headeraction: { 'data-test': 'tasks-tab' }
       }">
@@ -193,7 +193,7 @@
                             placeholder="" :id="`annotator_${index}`" />
                           <label :for="`annotator_${index}`"
                             class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
-                              `annotator ${index + 1} ` }}</label>
+                            `annotator ${index + 1} ` }}</label>
                           <div v-if="index == 0" class="text-right">
                             <Button label="Add myself" :disabled="isMyselfAdded" link @click="addMyself" :pt="{
                               root: {
@@ -302,6 +302,15 @@
             </TabPanel>
           </TabView>
         </Dialog>
+      </TabPanel>
+      <TabPanel :pt="{
+        headeraction: { 'data-test': 'edit-tab' }
+      }">
+        <template #header>
+          <div class="flex gap-3 items-center h-6">
+            <span class="leading-none whitespace-nowrap">Edit</span>
+          </div>
+        </template>
       </TabPanel>
     </TabView>
   </div>
@@ -897,6 +906,14 @@ const removeTasks = (ids: string[], finish: (promises: (Promise<Boolean>[])) => 
 };
 const removeAllTasks = (finish: (promises: (Promise<Boolean>)) => void) => {
   finish($trpc.task.deleteAllFromProject.mutate(project.id));
+};
+
+const onTabClick = (event: { index: number; }) => {
+  if (event.index === 2) {
+    navigateTo(`/projects/${route.params.project_id}/edit`);
+    return;
+  }
+  activeTab.value = event.index;
 };
 
 onMounted(async () => {
