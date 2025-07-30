@@ -78,7 +78,7 @@ const new_project = reactive<Omit<Project, "id">>({
 const showCreateModal = ref<boolean>(false);
 
 const currentGuidanceStep = computed(() => {
-  if(projectTable.value) {
+  if (projectTable.value) {
     if (projectTable.value.total == 0) {
       return GuidanceSteps.CREATE_PROJECT;
     } else {
