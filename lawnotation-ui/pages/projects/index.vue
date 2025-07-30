@@ -38,22 +38,26 @@
       </template>
     </Table>
     <Dialog v-model:visible="showCreateModal" :draggable="false" modal header="Create new project">
-      <div class="flex justify-center mb-4">
-        <span class="relative w-full">
-          <InputText v-model="new_project.name" data-test="project-name" id="project_name" autocomplete="off" ulk-
-            class="peer w-full" placeholder="" />
-          <label for="project_name"
-            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
-        </span>
-      </div>
-      <Textarea v-model="new_project.desc" data-test="project-description" autoResize rows="5" cols="30"
-        placeholder="Description" class="w-full mb-4" />
-      <div class="flex justify-center mt-4">
-        <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
-          @click="showCreateModal = false" />
-        <Button data-test="add-project" label="Create" size="small" icon="pi pi-check" iconPos="right"
-          @click="createNewProject" />
-      </div>
+      <form @submit.prevent="createNewProject">
+        <p class="text-gray-500 mb-4">Create a new project to start annotating your documents.</p>
+        <div class="flex justify-center mb-4">
+          <span class="relative w-full">
+            <InputText v-model="new_project.name" required data-test="project-name" id="project_name" autocomplete="off"
+              ulk- class="peer w-full" placeholder="" />
+            <label for="project_name"
+              class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name<span
+                class="text-red-500">*</span></label>
+          </span>
+        </div>
+        <Textarea v-model="new_project.desc" data-test="project-description" autoResize rows="5" cols="30"
+          placeholder="Description" class="w-full mb-4" />
+        <div class="flex justify-center mt-4">
+          <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
+            @click="showCreateModal = false" />
+          <Button type="submit" data-test="add-project" label="Create" size="small" icon="pi pi-check"
+            iconPos="right" />
+        </div>
+      </form>
     </Dialog>
   </div>
 </template>
