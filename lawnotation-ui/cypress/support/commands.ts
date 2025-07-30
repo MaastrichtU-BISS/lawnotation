@@ -7,7 +7,7 @@ Cypress.Commands.add("login", (role: Role) => {
     cy.wait(1000) // Otherwise (fetch)POST 200 /api/_supabase/session messes up the typing
     cy.get('input[data-test="email-field-to-login"]').type(`${role}@example.com`)
     cy.get('button[data-test="login-button"]').click()
-    cy.wait(4000)
+    cy.wait(8000)
 
     cy.request(`http://127.0.0.1:54324/api/v1/mailbox/${role}`).then((response) => {
       return response.body.pop().id;
@@ -23,6 +23,8 @@ Cypress.Commands.add("login", (role: Role) => {
       })
       cy.get('button[data-test="verify-button"]').click()
     })
+
+    cy.wait(4000);
   })
 });
 
