@@ -47,7 +47,16 @@
                         </template>
                     </Card>
                 </form>
+                <form class="p-5 pt-0">
+                    <Fieldset legend="Danger Zone" class="flex justify-center"
+                        :pt="{ root: { class: '!border-red-500' }, legend: { class: '!text-red-500 !bg-inherit border-none' } }"
+                        :ptOptions="{ mergeProps: true }">
+                        <Button label="Delete Project" severity="danger" icon="pi pi-trash" iconPos="right"
+                            @click="deleteProject(project)" data-test="delete-project-button" />
+                    </Fieldset>
+                </form>
             </section>
+            <ConfirmBox />
         </div>
     </div>
 </template>
@@ -56,6 +65,7 @@ import type {
     Project
 } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
+import { useConfirm } from "primevue/useconfirm";
 
 const { $toast, $trpc } = useNuxtApp();
 const route = useRoute();
@@ -77,6 +87,28 @@ const editProject = async () => {
     } finally {
         loading.value = false;
     }
+};
+
+const confirm = useConfirm();
+const deleteProject = (project: Project) => {
+    confirm.require({
+        group: 'headless',
+        header: "Are you sure?",
+        message: `You are about to delete project ${project.name} and all tasks. This action cannot be undone.`,
+        accept: async () => {
+            try {
+                loading.value = true;
+                await $trpc.project.delete.mutate(project.id);
+                $toast.success("Project deleted successfully");
+                navigateTo('/projects');
+            } catch (error) {
+                $toast.error(`Failed to delete project: ${error}`);
+            } finally {
+                loading.value = false;
+            }
+        },
+        reject: () => { }
+    });
 };
 
 definePageMeta({
