@@ -56,11 +56,11 @@
                   label: `Remove all (${groupByAnnotators.data.value?.total})`,
                   command: () => removeAllAssignments(refreshGroupByAnnotators)
                 }]" :pt="{
-  label: 'text-[#f05252]',
-  content: {
-    'data-test': 'remove-all'
-  }
-}" :ptOptions="{ mergeProps: true }" />
+                  label: 'text-[#f05252]',
+                  content: {
+                    'data-test': 'remove-all'
+                  }
+                }" :ptOptions="{ mergeProps: true }" />
                 <Button v-if="groupByAnnotatorsSelectedAssignmentIds.length"
                   @click="removeAssignments(groupByAnnotatorsSelectedAssignmentIds, refreshGroupByAnnotators)"
                   severity="danger" outlined :pt="{ label: 'text-xs' }" :ptOptions="{ mergeProps: true }"
@@ -69,7 +69,8 @@
                 </Button>
               </div>
 
-              <span v-if="groupByAnnotators.status.value == 'error'" class="block p-3 bg-red-200 border border-red-300">An
+              <span v-if="groupByAnnotators.status.value == 'error'"
+                class="block p-3 bg-red-200 border border-red-300">An
                 error occured when loading the assignments.{{ groupByAnnotators.error.value }}</span>
               <TreeTable v-else :value="groupByAnnotators.data.value!.data"
                 :totalRecords="groupByAnnotators.data.value!.total" :pt="{
@@ -77,8 +78,8 @@
                     class: 'border-collapse w-full'
                   }
                 }" v-model:selection-keys="groupByAnnotatorsSelection" selectionMode="checkbox"
-                id="tableGroupByAnnotators" :lazy="true" :paginator="true" :rows="10" :loading="groupByAnnotatorsLoading"
-                @page="groupByAnnotatorsPaginate">
+                id="tableGroupByAnnotators" :lazy="true" :paginator="true" :rows="10"
+                :loading="groupByAnnotatorsLoading" @page="groupByAnnotatorsPaginate">
                 <Column columnKey="name" header="Name" expander style="white-space: nowrap; padding-right: 3rem">
                   <template #filter>
                     <InputText v-model="groupByAnnotatorsArgs.filter.name" size="small" type="text"
@@ -96,7 +97,8 @@
                     </template>
                     <template v-else-if="node.type == 'document'">
                       <i class="pi pi-file mr-3 ml-2" />
-                      <Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name }}
+                      <Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name
+                      }}
                     </template>
                   </template>
                 </Column>
@@ -153,11 +155,11 @@
                   label: `Remove all (${groupByDocuments.data.value?.total})`,
                   command: () => removeAllAssignments(refreshGroupByDocuments)
                 }]" :pt="{
-  label: 'text-[#f05252]',
-  content: {
-    'data-test': 'remove-all'
-  }
-}" :ptOptions="{ mergeProps: true }" />
+                  label: 'text-[#f05252]',
+                  content: {
+                    'data-test': 'remove-all'
+                  }
+                }" :ptOptions="{ mergeProps: true }" />
                 <Button v-if="groupByDocumentsSelectedAssignmentIds.length"
                   @click="removeAssignments(groupByDocumentsSelectedAssignmentIds, refreshGroupByDocuments)"
                   severity="danger" outlined :pt="{ label: 'text-xs' }" :ptOptions="{ mergeProps: true }"
@@ -178,7 +180,8 @@
                 }" v-model:selection-keys="groupByDocumentsSelection" selectionMode="checkbox"
                 id="tableGroupByDocuments" :lazy="true" :paginator="true" :rows="10" :loading="groupByDocumentsLoading"
                 @page="groupByDocumentsPaginate">
-                <Column columnKey="name" header="Name" sortable expander style="white-space: nowrap; padding-right: 3rem">
+                <Column columnKey="name" header="Name" sortable expander
+                  style="white-space: nowrap; padding-right: 3rem">
                   <template #filter>
                     <InputText v-model="groupByDocumentsArgs.filter.document" size="small" type="text"
                       class="p-column-filter font-medium" placeholder="Filter by document" />
@@ -279,8 +282,8 @@
                     <label>Total</label>
                   </div>
                   <Multiselect v-model="selectedTotalDocuments" class="w-full" filter autoFilterFocus="true"
-                    :filterFields="['name']" :maxSelectedLabels="1" :options="optionsTotalDocuments" placeholder="Select documents" :virtualScrollerOptions="{ itemSize: 44 }"
-                    @change="verifyShared">
+                    :filterFields="['name']" :maxSelectedLabels="1" :options="optionsTotalDocuments"
+                    placeholder="Select documents" :virtualScrollerOptions="{ itemSize: 44 }" @change="verifyShared">
                     <template #value="slotProps">
                       <div>
                         {{ `${slotProps.value?.length} document${slotProps.value?.length == 1 ? '' : 's'} selected` }}
@@ -295,16 +298,17 @@
                       <label for="fixed_docs">Shared</label>
                     </div>
                     <Multiselect v-model="selectedSharedDocuments" class="w-full" filter autoFilterFocus="true"
-                    :filterFields="['name']" :maxSelectedLabels="1" :options="selectedTotalDocuments" placeholder="Select documents" :virtualScrollerOptions="{ itemSize: 44 }">
-                    <template #value="slotProps">
-                      <div>
-                        {{ `${slotProps.value?.length} document${slotProps.value?.length == 1 ? '' : 's'} selected` }}
-                      </div>
-                    </template>
-                    <template #option="slotProps">
-                      {{ slotProps.option.name }}
-                    </template>
-                  </Multiselect>
+                      :filterFields="['name']" :maxSelectedLabels="1" :options="selectedTotalDocuments"
+                      placeholder="Select documents" :virtualScrollerOptions="{ itemSize: 44 }">
+                      <template #value="slotProps">
+                        <div>
+                          {{ `${slotProps.value?.length} document${slotProps.value?.length == 1 ? '' : 's'} selected` }}
+                        </div>
+                      </template>
+                      <template #option="slotProps">
+                        {{ slotProps.option.name }}
+                      </template>
+                    </Multiselect>
                   </div>
                 </div>
                 <template v-if="annotatorEmails.length > 0">
@@ -322,31 +326,40 @@
                       <tr>
                         <th>Per annotator</th>
                         <td>{{ selectedSharedDocuments.length }}</td>
-                        <template v-if="(selectedTotalDocuments.length - selectedSharedDocuments.length) % annotatorEmails.length == 0">
-                          <td>{{ (selectedTotalDocuments.length - selectedSharedDocuments.length) / annotatorEmails.length }}</td>
-                          <td>{{ (selectedSharedDocuments.length * annotatorEmails.length + (selectedTotalDocuments.length - selectedSharedDocuments.length))
+                        <template
+                          v-if="(selectedTotalDocuments.length - selectedSharedDocuments.length) % annotatorEmails.length == 0">
+                          <td>{{ (selectedTotalDocuments.length - selectedSharedDocuments.length) /
+                            annotatorEmails.length }}</td>
+                          <td>{{ (selectedSharedDocuments.length * annotatorEmails.length +
+                            (selectedTotalDocuments.length - selectedSharedDocuments.length))
                             / annotatorEmails.length }}</td>
                         </template>
                         <template v-else>
                           <td>{{
-                            Math.floor((selectedTotalDocuments.length - selectedSharedDocuments.length) / annotatorEmails.length)
+                            Math.floor((selectedTotalDocuments.length - selectedSharedDocuments.length) /
+                              annotatorEmails.length)
                           }} <i class="text-gray-500">or</i> {{
-                        Math.ceil((selectedTotalDocuments.length - selectedSharedDocuments.length) / annotatorEmails.length)
-                      }}</td>
-                                                <td>{{
-                                                  Math.floor((selectedSharedDocuments.length * annotatorEmails.length + (selectedTotalDocuments.length -
-                                                  selectedSharedDocuments.length)) / annotatorEmails.length)
-                                                }} <i class="text-gray-500">or</i> {{
-                        Math.ceil((selectedSharedDocuments.length * annotatorEmails.length + (selectedTotalDocuments.length -
-                        selectedSharedDocuments.length)) / annotatorEmails.length)
-                      }}</td>
+                              Math.ceil((selectedTotalDocuments.length - selectedSharedDocuments.length) /
+                                annotatorEmails.length)
+                            }}</td>
+                          <td>{{
+                            Math.floor((selectedSharedDocuments.length * annotatorEmails.length +
+                              (selectedTotalDocuments.length -
+                                selectedSharedDocuments.length)) / annotatorEmails.length)
+                          }} <i class="text-gray-500">or</i> {{
+                              Math.ceil((selectedSharedDocuments.length * annotatorEmails.length +
+                                (selectedTotalDocuments.length -
+                                  selectedSharedDocuments.length)) / annotatorEmails.length)
+                            }}</td>
                         </template>
                       </tr>
                       <tr>
                         <th>Total</th>
                         <td>{{ selectedSharedDocuments.length * annotatorEmails.length }}</td>
                         <td>{{ selectedTotalDocuments.length - selectedSharedDocuments.length }}</td>
-                        <td>{{ selectedSharedDocuments.length * annotatorEmails.length + (selectedTotalDocuments.length - selectedSharedDocuments.length) }}
+                        <td>{{ selectedSharedDocuments.length * annotatorEmails.length + (selectedTotalDocuments.length
+                          -
+                          selectedSharedDocuments.length) }}
                         </td>
                       </tr>
                     </tbody>
@@ -374,8 +387,7 @@
         <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible"
           @export="exportTask" />
         <SelectMetricModal v-model:visible="selectMetricModalVisible"
-          :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`"
-          :disable-agreement="amountAnnotators < 2"
+          :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`" :disable-agreement="amountAnnotators < 2"
           :disable-descriptive="amountAnnotators == 0" />
       </div>
     </div>
@@ -418,9 +430,9 @@ const project = await $trpc.project.findById.query(+route.params.project_id);
 
 const totalAssignments = await $trpc.table.assignments.useQuery({ filter: { task_id: task.id } });
 
-const optionsTotalDocuments: {id: number; name: string}[] = await $trpc.document.findByProject.query(+route.params.project_id);
-const selectedTotalDocuments = ref<{id: number; name: string}[]>(optionsTotalDocuments);
-const selectedSharedDocuments = ref<{id: number; name: string}[]>(selectedTotalDocuments.value);
+const optionsTotalDocuments: { id: number; name: string }[] = await $trpc.document.findByProject.query(+route.params.project_id);
+const selectedTotalDocuments = ref<{ id: number; name: string }[]>(optionsTotalDocuments);
+const selectedSharedDocuments = ref<{ id: number; name: string }[]>(selectedTotalDocuments.value);
 
 const optionsMenu = ref()
 
@@ -658,7 +670,7 @@ const createAssignments = async () => {
     let sharedDocs = _.clone(selectedSharedDocuments.value);
     let uniqueDocs = _.clone(selectedTotalDocuments.value.filter(x => !selectedSharedDocuments.value.includes(x)));
 
-    if(randomizationSelected.value != RandomizationOptions.NONE) {
+    if (randomizationSelected.value != RandomizationOptions.NONE) {
       sharedDocs = _.shuffle(sharedDocs);
       uniqueDocs = _.shuffle(uniqueDocs);
     }
