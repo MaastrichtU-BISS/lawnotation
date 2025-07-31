@@ -281,7 +281,7 @@
                   <div>
                     <label>Total</label>
                   </div>
-                  <Multiselect v-model="selectedTotalDocuments" class="w-full" filter autoFilterFocus="true"
+                  <Multiselect v-model="selectedTotalDocuments" class="w-full" filter autoFilterFocus=true
                     :filterFields="['name']" :maxSelectedLabels="1" :options="optionsTotalDocuments"
                     placeholder="Select documents" :virtualScrollerOptions="{ itemSize: 44 }" @change="verifyShared">
                     <template #value="slotProps">
@@ -297,7 +297,7 @@
                     <div>
                       <label for="fixed_docs">Shared</label>
                     </div>
-                    <Multiselect v-model="selectedSharedDocuments" class="w-full" filter autoFilterFocus="true"
+                    <Multiselect v-model="selectedSharedDocuments" class="w-full" filter autoFilterFocus=true
                       :filterFields="['name']" :maxSelectedLabels="1" :options="selectedTotalDocuments"
                       placeholder="Select documents" :virtualScrollerOptions="{ itemSize: 44 }">
                       <template #value="slotProps">
