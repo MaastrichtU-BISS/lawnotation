@@ -27,7 +27,7 @@
             <div data-test="tasks-table">
               <div class="flex justify-end">
                 <div class="relative">
-                  <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
+                  <Button label="Add" icon="pi pi-plus" @click="openCreateTaskModal" icon-pos="right"
                     data-test="open-tasks-modal" />
                   <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK" />
                 </div>
@@ -76,7 +76,8 @@
                   }
                 }" :ptOptions="{ mergeProps: true }">
                 <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[565px]">
-                  <TabPanel header="New" :pt="{ headerAction: { 'data-test': 'new-tab' } }">
+                  <TabPanel header="New" :disabled="!documentTable?.total"
+                    :pt="{ headerAction: { 'data-test': 'new-tab' } }">
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
                         <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
@@ -193,7 +194,7 @@
                             placeholder="" :id="`annotator_${index}`" />
                           <label :for="`annotator_${index}`"
                             class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
-                            `annotator ${index + 1} ` }}</label>
+                              `annotator ${index + 1} ` }}</label>
                           <div v-if="index == 0" class="text-right">
                             <Button label="Add myself" :disabled="isMyselfAdded" link @click="addMyself" :pt="{
                               root: {
@@ -210,7 +211,7 @@
                       </div>
                     </div>
                   </TabPanel>
-                  <TabPanel header="Labelset">
+                  <TabPanel header="Labelset" :disabled="!documentTable?.total">
                     <Labelset v-model="labelset" @labelset-persisted="refreshLabelsets" />
                   </TabPanel>
                 </TabView>
@@ -232,9 +233,11 @@
         <div class="dimmer-wrapper">
           <DimmerProgress v-if="upload_docs_progress.loading" v-model="upload_docs_progress" />
           <div class="dimmer-content">
-            <div class="flex justify-end pt-2">
+            <div class="flex justify-end gap-4 pt-2">
+              <Button label="Import task(s)" outlined icon="pi pi-plus" @click="activeTab = 0; openCreateTaskModal()"
+                icon-pos="right" data-test="open-import-task-modal" />
               <div class="relative">
-                <Button label="Add" icon="pi pi-plus" :disabled="upload_docs_progress.loading"
+                <Button label="Add document(s)" icon="pi pi-plus" :disabled="upload_docs_progress.loading"
                   @click="showUploadDocumentsModal = true" icon-pos="right" data-test="open-documents-modal" />
                 <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
               </div>
@@ -451,6 +454,13 @@ const currentGuidanceStep = computed(() => {
   return GuidanceSteps.NONE;
 });
 
+const openCreateTaskModal = () => {
+  if (!documentTable.value?.total) {
+    activeTabTaskModal.value = 1;
+  }
+  showCreateTaskModal.value = true;
+};
+
 const addMyself = () => {
   if (!isMyselfAdded.value) {
     new_annotators.value[0] = user.value?.email!;
@@ -651,11 +661,11 @@ const createTask = () => {
   }
 };
 
-watch(showCreateTaskModal, (new_val) => {
-  if (new_val) {
-    resetModal();
-  }
-});
+// watch(showCreateTaskModal, (new_val) => {
+//   if (new_val) {
+//     resetModal();
+//   }
+// });
 
 const resetModal = () => {
   uploadHasStarted.value = false;
