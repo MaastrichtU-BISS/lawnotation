@@ -27,7 +27,7 @@
             <div data-test="tasks-table">
               <div class="flex justify-end">
                 <div class="relative">
-                  <Button label="Add" icon="pi pi-plus" @click="openCreateTaskModal" icon-pos="right"
+                  <Button label="Add task" icon="pi pi-plus" @click="openCreateTaskModal" icon-pos="right"
                     data-test="open-tasks-modal" />
                   <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK" />
                 </div>

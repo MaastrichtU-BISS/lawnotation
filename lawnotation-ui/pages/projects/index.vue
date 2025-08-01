@@ -4,7 +4,7 @@
     <div class="flex justify-between">
       <h3 class="mb-2 text-lg font-semibold">Projects</h3>
       <div class="relative">
-        <Button label="Add" icon="pi pi-plus" @click="showCreateModal = true" icon-pos="right"
+        <Button label="Add project" icon="pi pi-plus" @click="showCreateModal = true" icon-pos="right"
           data-test="open-projects-modal" />
         <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_PROJECT" />
       </div>
