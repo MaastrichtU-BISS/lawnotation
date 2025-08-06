@@ -21,33 +21,46 @@
         <Dimmer v-model="loading" />
         <div class="dimmer-content">
             <div class="grid md:grid-cols-2 md:gap-6">
-                <Card class="flex flex-col h-fit">
-                    <template #title>
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-semibold">Edit Task</h3>
-                            <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${task.id}`">
-                                <Button :label="hasAssignments ? 'View' : 'Assign'" size="small" link />
-                            </NuxtLink>
-                        </div>
-                    </template>
-                    <template #content>
-                        <main class="flex flex-col gap-4">
-                            <input class="base" type="text" placeholder="Task name" v-model="new_task.name"
-                                data-test="task-name" />
-                            <textarea class="base" placeholder="Task description" v-model="new_task.desc"
-                                data-test="task-description"></textarea>
-                            <textarea class="base" placeholder="Annotation Guidelines" v-model="new_task.ann_guidelines"
-                                data-test="annotation-guidelines"></textarea>
-                            <Dropdown :disabled="hasAssignments" v-model="new_task.labelset_id" :options="labelsets"
-                                optionLabel="name" optionValue="id" filter class="w-full text-left" />
-                        </main>
-                    </template>
-                    <template #footer>
-                        <div class="flex justify-end">
-                            <Button @click="editTask" label="Save Changes" data-test="save-changes-button" />
-                        </div>
-                    </template>
-                </Card>
+                <form @submit.prevent="editTask">
+                    <Card class="flex flex-col h-fit">
+                        <template #title>
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold">Edit Task</h3>
+                                <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${task.id}`">
+                                    <Button :label="hasAssignments ? 'View' : 'Assign'" size="small" link />
+                                </NuxtLink>
+                            </div>
+                        </template>
+                        <template #content>
+                            <main class="flex flex-col gap-4">
+                                <span class="relative w-full">
+                                    <InputText id="task_name" v-model="new_task.name" autocomplete="off"
+                                        data-test="task-name" class="peer w-full" placeholder="" required />
+                                    <label for="task_name"
+                                        class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name<span
+                                            class="text-red-500">*</span></label>
+                                </span>
+                                <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3"
+                                    cols="30" placeholder="Description*" class="w-full" required />
+                                <span class="relative w-full">
+                                    <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines"
+                                        id="annotation_guidelines" autocomplete="off" class="peer w-full"
+                                        placeholder="" />
+                                    <label for="annotation_guidelines"
+                                        class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines
+                                        url</label>
+                                </span>
+                                <Dropdown :disabled="hasAssignments" v-model="new_task.labelset_id" :options="labelsets"
+                                    optionLabel="name" optionValue="id" filter class="w-full text-left" />
+                            </main>
+                        </template>
+                        <template #footer>
+                            <div class="flex justify-end">
+                                <Button type="submit" label="Save Changes" data-test="save-changes-button" />
+                            </div>
+                        </template>
+                    </Card>
+                </form>
                 <section class="flex flex-col gap-6">
                     <Card v-if="new_emails && new_emails.length" class="flex flex-col gap-4 h-fit">
                         <template #title>
