@@ -27,7 +27,7 @@
             <div data-test="tasks-table">
               <div class="flex justify-end">
                 <div class="relative">
-                  <Button label="Add task" icon="pi pi-plus" @click="openCreateTaskModal" icon-pos="right"
+                  <Button label="Add task" icon="pi pi-plus" @click="openCreateTaskModal()" icon-pos="right"
                     data-test="open-tasks-modal" />
                   <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK" />
                 </div>
@@ -234,7 +234,7 @@
           <DimmerProgress v-if="upload_docs_progress.loading" v-model="upload_docs_progress" />
           <div class="dimmer-content">
             <div class="flex justify-end gap-4 pt-2">
-              <Button label="Import task(s)" outlined icon="pi pi-plus" @click="activeTab = 0; openCreateTaskModal()"
+              <Button label="Import task(s)" outlined icon="pi pi-plus" @click="activeTab = 0; openCreateTaskModal(1)"
                 icon-pos="right" data-test="open-import-task-modal" />
               <div class="relative">
                 <Button label="Add document(s)" icon="pi pi-plus" :disabled="upload_docs_progress.loading"
@@ -454,10 +454,9 @@ const currentGuidanceStep = computed(() => {
   return GuidanceSteps.NONE;
 });
 
-const openCreateTaskModal = () => {
-  if (!documentTable.value?.total) {
-    activeTabTaskModal.value = 1;
-  }
+const openCreateTaskModal = (tabIndex?: number) => {
+  if (tabIndex) activeTabTaskModal.value = tabIndex;
+  if (!documentTable.value?.total) activeTabTaskModal.value = 1;
   showCreateTaskModal.value = true;
 };
 
