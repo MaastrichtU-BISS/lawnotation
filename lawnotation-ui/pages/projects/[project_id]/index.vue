@@ -658,6 +658,7 @@ const createTask = () => {
     $trpc.task.create.mutate(new_task as Omit<Task, "id">).then(() => {
       taskTable.value?.refresh();
       $toast.success("Task created");
+      resetModal();
     }).catch((error) => {
       trpcErrorHandler(error, "creating task")
     });
