@@ -78,70 +78,73 @@
                 <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[565px]">
                   <TabPanel header="New" :disabled="!documentTable?.total"
                     :pt="{ headerAction: { 'data-test': 'new-tab' } }">
-                    <div class="flex justify-center mb-4">
-                      <span class="relative w-full">
-                        <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
-                          class="peer w-full" placeholder="" />
-                        <label for="task_name"
-                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
-                      </span>
-                    </div>
-                    <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
-                      placeholder="Description" class="w-full mb-4" />
-                    <div class="flex justify-center mb-4">
-                      <span class="relative w-full">
-                        <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines"
-                          id="annotation_guidelines" autocomplete="off" class="peer w-full" placeholder="" />
-                        <label for="annotation_guidelines"
-                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines
-                          url</label>
-                      </span>
-                    </div>
-                    <div class="flex items-center pb-4">
-                      <Dropdown v-model="new_task.labelset_id" :options="labelsets" filter optionLabel="name"
-                        option-value="id" placeholder="Select Labelset" class="w-full md:w-1/2"
-                        data-test="select-labelset" @update:model-value="labelSelected($event)" />
-                      <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
-                        data-test='create-new-labelset' />
-                    </div>
-                    <div class="flex items-center flex-col pb-4">
-                      <div class="w-full text-left bg-yellow-50 p-2 mb-2 rounded-md border border-yellow-200">
-                        <p class="text-xs text-yellow-500 m-0">This feature is currently disabled, we are working on
-                          making it better</p>
+                    <form @submit.prevent="createTask">
+                      <div class="flex justify-center mb-4">
+                        <span class="relative w-full">
+                          <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
+                            class="peer w-full" placeholder="" required />
+                          <label for="task_name"
+                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name<span
+                              class="text-red-500">*</span></label>
+                        </span>
                       </div>
-                      <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
-                        disabled optionLabel="name" option-value="id" placeholder="Select Model (Optional)"
-                        class="w-full" @update:model-value="modelSelected($event)" :show-clear="true" />
-                    </div>
-                    <div class="mb-4 flex justify-between items-center">
-                      <div>
-                        <p class="font-bold mb-4">Annotation level</p>
-                        <SelectButton :options="['text', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel"
-                          @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
-                          aria-labelledby="basic" data-test="select-annotation-level" :pt="{
-                            label: {
-                              class: 'font-normal'
-                            }
-                          }" />
+                      <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
+                        placeholder="Description*" class="w-full mb-4" required />
+                      <div class="flex justify-center mb-4">
+                        <span class="relative w-full">
+                          <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines"
+                            id="annotation_guidelines" autocomplete="off" class="peer w-full" placeholder="" />
+                          <label for="annotation_guidelines"
+                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines
+                            url</label>
+                        </span>
                       </div>
-                      <div v-if="selectedAnnotationLevel == 'text'">
-                        <p class="font-bold mb-4">Granularity</p>
-                        <SelectButton v-model="new_task.annotation_level"
-                          :options="Object.values(AnnotationLevels).filter(level => level != AnnotationLevels.DOCUMENT)"
-                          @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
-                          aria-labelledby="basic" data-test="select-annotation-level-2" :pt="{
-                            label: {
-                              class: 'font-normal'
-                            }
-                          }" />
+                      <div class="flex items-center pb-4">
+                        <Dropdown v-model="new_task.labelset_id" :options="labelsets" filter optionLabel="name"
+                          option-value="id" placeholder="Select Labelset*" class="w-full md:w-1/2"
+                          data-test="select-labelset" @update:model-value="labelSelected($event)" />
+                        <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
+                          data-test='create-new-labelset' />
                       </div>
-                    </div>
-                    <div class="flex justify-center mt-10">
-                      <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
-                        @click="showCreateTaskModal = false;" />
-                      <Button data-test="create-tasks" label="Create" size="small" icon="pi pi-check" iconPos="right"
-                        @click="createTask" />
-                    </div>
+                      <div class="flex items-center flex-col pb-4">
+                        <div class="w-full text-left bg-yellow-50 p-2 mb-2 rounded-md border border-yellow-200">
+                          <p class="text-xs text-yellow-500 m-0">This feature is currently disabled, we are working on
+                            making it better</p>
+                        </div>
+                        <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
+                          disabled optionLabel="name" option-value="id" placeholder="Select Model (Optional)"
+                          class="w-full" @update:model-value="modelSelected($event)" :show-clear="true" />
+                      </div>
+                      <div class="mb-4 flex justify-between items-center">
+                        <div>
+                          <p class="font-bold mb-4">Annotation level<span class="text-red-500">*</span></p>
+                          <SelectButton :options="['text', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel"
+                            @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
+                            aria-labelledby="basic" data-test="select-annotation-level" :pt="{
+                              label: {
+                                class: 'font-normal'
+                              }
+                            }" />
+                        </div>
+                        <div v-if="selectedAnnotationLevel == 'text'">
+                          <p class="font-bold mb-4">Granularity<span class="text-red-500">*</span></p>
+                          <SelectButton v-model="new_task.annotation_level"
+                            :options="Object.values(AnnotationLevels).filter(level => level != AnnotationLevels.DOCUMENT)"
+                            @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
+                            aria-labelledby="basic" data-test="select-annotation-level-2" :pt="{
+                              label: {
+                                class: 'font-normal'
+                              }
+                            }" />
+                        </div>
+                      </div>
+                      <div class="flex justify-center mt-10">
+                        <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
+                          @click="showCreateTaskModal = false;" />
+                        <Button type="submit" data-test="create-tasks" label="Create" size="small" icon="pi pi-check"
+                          iconPos="right" />
+                      </div>
+                    </form>
                   </TabPanel>
                   <TabPanel header="Import">
                     <div v-if="!uploadHasStarted" class="pt-6">
@@ -642,6 +645,11 @@ const createTask = () => {
   }
   if (!new_task.annotation_level) {
     $toast.error("Task must have an annotation level");
+    return;
+  }
+
+  if (!Object.values(AnnotationLevels).includes(new_task.annotation_level)) {
+    $toast.error("Task must have an annotation granularity");
     return;
   }
 
