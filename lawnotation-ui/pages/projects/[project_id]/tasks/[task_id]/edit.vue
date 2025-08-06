@@ -23,7 +23,12 @@
             <div class="grid md:grid-cols-2 md:gap-6">
                 <Card class="flex flex-col h-fit">
                     <template #title>
-                        <h3 class="text-lg font-semibold">Edit Task</h3>
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">Edit Task</h3>
+                            <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${task.id}`">
+                                <Button :label="hasAssignments ? 'View' : 'Assign'" size="small" link />
+                            </NuxtLink>
+                        </div>
                     </template>
                     <template #content>
                         <main class="flex flex-col gap-4">
