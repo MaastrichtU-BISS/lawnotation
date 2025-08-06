@@ -133,6 +133,27 @@ const new_emails = reactive<string[]>([]);
 const annotators = reactive<Annotator[]>([]);
 
 const editTask = async () => {
+    if (!new_task.value.name) {
+        $toast.error("Task name is required");
+        return;
+    }
+    if (!new_task.value.desc) {
+        $toast.error("Task description is required");
+        return;
+    }
+    if (new_task.value.ann_guidelines) {
+        try {
+            const url = new URL(new_task.value.ann_guidelines);
+        } catch (_) {
+            $toast.error("Invalid Guidelines url");
+            return;
+        }
+    }
+    if (!new_task.value.labelset_id) {
+        $toast.error("Task must have a labelset");
+        return;
+    }
+
     loading.value = true;
     try {
         task.value = await $trpc.task.update.mutate({
