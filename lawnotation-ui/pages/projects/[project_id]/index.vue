@@ -532,7 +532,9 @@ const annotationLevelSelected = async (value: "span" | AnnotationLevels) => {
 
 const refreshLabelsets = async () => {
   activeTabTaskModal.value = 0;
-  labelsets.value?.push(labelset.value as any);
+  if (!labelsets.value.find(l => l.id === labelset.value.id)) {
+    labelsets.value?.push(labelset.value as any);
+  }
   new_task.labelset_id = labelset.value.id!;
 }
 
