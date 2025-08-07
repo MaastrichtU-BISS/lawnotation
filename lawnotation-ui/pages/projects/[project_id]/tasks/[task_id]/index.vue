@@ -250,6 +250,10 @@
                 </Column>
               </TreeTable>
             </TabPanel>
+            <TabPanel header="Edit" :pt="{
+              headeraction: { 'data-test': 'edit-tab' }
+            }">
+            </TabPanel>
           </TabView>
 
         </div>
@@ -566,6 +570,7 @@ const amountAnnotators = (await $trpc.task.getAllAnnotatorsFromTask.query(+task?
 const tabChangeEvent = ({ index }: TabViewChangeEvent) => {
   if (index === 0) refreshGroupByAnnotators()
   else if (index === 1) refreshGroupByDocuments()
+  else if (index === 2) navigateTo(`/projects/${project.id}/tasks/${task.id}/edit`);
 }
 
 const removeAssignments = async (ids: string[], finish: () => void) => {
