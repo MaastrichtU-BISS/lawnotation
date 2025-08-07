@@ -378,7 +378,8 @@
               </AccordionTab>
             </Accordion>
             <div class="text-center pt-6">
-              <Button :disabled="annotatorEmails.length == 0" @click="createAssignments" data-test="create-assignments">
+              <Button :disabled="annotatorEmails.length == 0 || !selectedTotalDocuments.length"
+                @click="createAssignments" data-test="create-assignments">
                 Create Assignments
               </Button>
             </div>
