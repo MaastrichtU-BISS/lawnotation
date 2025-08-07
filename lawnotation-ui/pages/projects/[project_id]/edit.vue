@@ -8,6 +8,10 @@
             name: `Project ${project.name}`,
             link: `/projects/${project.id}`,
         },
+        {
+            name: `Edit`,
+            link: `/projects/${project.id}/edit`,
+        },
     ]" />
     <div v-if="project" class="dimmer-wrapper">
         <Dimmer v-model="loading" />
