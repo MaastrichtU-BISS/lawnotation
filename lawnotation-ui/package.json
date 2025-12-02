@@ -66,7 +66,12 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz",
     "zod": "^3.22.4"
   },
-  "resolutions": {
-    "vue": "3.3.13"
+  "pnpm": {
+    "overrides": {
+      "d3-color@<3.1.0": ">=3.1.0",
+      "@babel/runtime@<7.26.10": ">=7.26.10",
+      "nodemailer@<7.0.7": ">=7.0.7",
+      "nodemailer@<=7.0.10": ">=7.0.11"
+    }
   }
 }
