@@ -1,6 +1,7 @@
 import type { inferAsyncReturnType } from '@trpc/server' 
 import { H3Event } from 'h3';
-import { serverSupabaseServiceRole } from '#supabase/server';
+// import { serverSupabaseServiceRole } from '#supabase/server';
+import { serverSupabaseServiceRole } from '~/node_modules/@nuxtjs/supabase/dist/runtime/server/services';
 import type { Database } from '~/types/supabase';
 import sql from './db';
 

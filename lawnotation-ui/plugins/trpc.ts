@@ -1,7 +1,7 @@
 import { loggerLink } from '@trpc/client';
 import { observable, tap } from '@trpc/server/observable';
 import { createTRPCNuxtClient, httpBatchLink } from 'trpc-nuxt/client'
-import type { AppRouter } from '~/server/trpc/routers'
+import type { AppRouter } from '~/types/trpc'
 
 export default defineNuxtPlugin(async (app) => {
 
