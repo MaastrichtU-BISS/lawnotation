@@ -54,13 +54,26 @@ export default defineNuxtConfig({
   },
 
   vite: {
-    optimizeDeps: { exclude: ["/lawnotation-ui/utils/enums.ts", "/lawnotation-ui/utils/guidance.ts"] },
+    optimizeDeps: { 
+      exclude: [
+        "/lawnotation-ui/utils/enums.ts", 
+        "/lawnotation-ui/utils/guidance.ts"
+      ]
+    },
     vue: {
       script: {
         defineModel: true,
         propsDestructure: true,
       },
     },
+    build: {
+      rollupOptions: {
+        external: (id) => {
+          // Externalize all server files and dependencies during client build
+          return id.includes('/server/') || id.includes('postgres') || id.includes('nodemailer')
+        }
+      }
+    }
   },
 
   compatibilityDate: "2024-10-01"
