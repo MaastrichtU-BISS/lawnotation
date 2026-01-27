@@ -11,8 +11,6 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import { appRouter } from ".";
 import type { DocFormat, Doc } from "~/types/archive";
 
-const config = useRuntimeConfig();
-
 const archiveAuthorizer = middleware((opts) => {
   // opts.ctx.hooksKey
   return opts.next();
@@ -23,6 +21,7 @@ export const archiveRouter = router({
     .input(z.object({ eclis: z.array(z.string())}))
     // .use(archiveAuthorizer)
     .query(async ({ ctx, input }) => {
+      const config = useRuntimeConfig();
       
       try {
         const response = await fetch(`${config.public.mlBackendURL}/archives/search/rechtspraak`, {
