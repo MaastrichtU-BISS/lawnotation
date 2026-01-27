@@ -398,7 +398,7 @@ import { PublicationStatus } from "~/types"
 import { isDocumentLevel } from "~/utils/levels";
 import Multiselect from "primevue/multiselect";
 import Table from "~/components/Table.vue";
-import _ from "lodash";
+import * as _ from "lodash";
 import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
