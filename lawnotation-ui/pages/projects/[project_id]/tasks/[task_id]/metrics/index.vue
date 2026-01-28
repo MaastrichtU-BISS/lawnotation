@@ -313,6 +313,9 @@ const compute_metrics = async (
   return $fetch("/api/metrics/get_metrics", {
     method: "POST",
     body: body,
+    timeout: 300000, // 5 minutes timeout
+    retry: 2,
+    retryDelay: 1000,
   });
 };
 
@@ -603,89 +606,107 @@ async function createWorkBooks(data: any, document?: any) {
 
   for (let i = 0; i < data.labelsOptions.length; i++) {
     const label = data.labelsOptions[i];
-    const { metrics_sheet, annotations_sheet, descriptive_anns_sheet } = await getAllInter(data, label, document);
+    
+    try {
+      const { metrics_sheet, annotations_sheet, descriptive_anns_sheet } = await getAllInter(data, label, document);
 
-    let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
+      let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
 
-    // works as long as there are less than 100 labels
-    if (label.length > 31) {
-      const range = i + 1 > 9 ? 12 : 13;
-      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+      // works as long as there are less than 100 labels
+      if (label.length > 31) {
+        const range = i + 1 > 9 ? 12 : 13;
+        sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+      }
+
+      XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, sheetName);
+      XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
+      XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, sheetName);
+
+      download_progress.value.current++;
+      
+      // Small delay to avoid overwhelming the server
+      if (i < data.labelsOptions.length - 1) {
+        await sleep(100);
+      }
+    } catch (error) {
+      console.error(`Failed to process label ${label}:`, error);
+      // Continue with next label instead of failing completely
+      download_progress.value.current++;
     }
-
-    XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, sheetName);
-    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
-    XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, sheetName);
-
-    download_progress.value.current++;
   }
 
   return { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive };
 }
 
 async function getAllInter(data: any, label: string, document?: any) {
-  const annotations = await getAnnotations(
-    data.task_id,
-    [label],
-    document ? [document] : data.documentsOrEmpty,
-    data.annotators,
-    data.byWords,
-    data.hideNonText,
-    data.documentLevel,
-    data.intra
-  );
+  try {
+    const annotations = await getAnnotations(
+      data.task_id,
+      [label],
+      document ? [document] : data.documentsOrEmpty,
+      data.annotators,
+      data.byWords,
+      data.hideNonText,
+      data.documentLevel,
+      data.intra
+    );
 
-  const metrics = await compute_metrics(
-    data.task_id,
-    label,
-    document ? [document] : data.documentsOrEmpty,
-    data.annotators,
-    data.annotatorsOrEmpty,
-    data.tolerance,
-    data.byWords,
-    data.hideNonText,
-    data.contained,
-    data.documentLevel,
-    data.documentsData,
-    data.documentsOptions,
-    undefined,
-    annotations
-  );
+    const metrics = await compute_metrics(
+      data.task_id,
+      label,
+      document ? [document] : data.documentsOrEmpty,
+      data.annotators,
+      data.annotatorsOrEmpty,
+      data.tolerance,
+      data.byWords,
+      data.hideNonText,
+      data.contained,
+      data.documentLevel,
+      data.documentsData,
+      data.documentsOptions,
+      undefined,
+      annotations
+    );
 
-  const metrics_sheet = await getMetricsSheet(
-    metrics,
-    label,
-    document ? [document] : data.documentsOrEmpty,
-    data
-  );
+    const metrics_sheet = await getMetricsSheet(
+      metrics,
+      label,
+      document ? [document] : data.documentsOrEmpty,
+      data
+    );
 
-  const metrics_sample = metrics[0].table ?? metrics[2].table!;
+    const metrics_sample = metrics[0].table ?? metrics[2].table!;
 
-  const annotations_sheet = getAnnotationsSheet(metrics_sample?.length ?
-    metrics_sample :
-    annotations.map(annotation => {
-      return {
-        start: annotation.start,
-        end: annotation.end,
-        label: annotation.label,
-        text: annotation.text,
-        annotators: { [annotation.annotator]: Number(annotation.label !== "NOT ANNOTATED") },
-        doc_id: annotation.doc_id.toString(),
-        doc_name: annotation?.doc_name!,
-        zeros: 0,
-        ones: 0,
-        confidences: {
-          [annotation.annotator]: annotation.confidence
+    const annotations_sheet = getAnnotationsSheet(metrics_sample?.length ?
+      metrics_sample :
+      annotations.map(annotation => {
+        return {
+          start: annotation.start,
+          end: annotation.end,
+          label: annotation.label,
+          text: annotation.text,
+          annotators: { [annotation.annotator]: Number(annotation.label !== "NOT ANNOTATED") },
+          doc_id: annotation.doc_id.toString(),
+          doc_name: annotation?.doc_name!,
+          zeros: 0,
+          ones: 0,
+          confidences: {
+            [annotation.annotator]: annotation.confidence
+          }
         }
-      }
-    }));
+      }));
 
-  const descriptive_anns_sheet = getDescriptiveAnnotatorSheet(
-    metrics_sample,
-    data.annotators
-  );
+    const descriptive_anns_sheet = getDescriptiveAnnotatorSheet(
+      metrics_sample,
+      data.annotators
+    );
 
-  return { metrics_sheet, annotations_sheet, descriptive_anns_sheet }
+    return { metrics_sheet, annotations_sheet, descriptive_anns_sheet }
+  } catch (error) {
+    console.error(`Error processing label "${label}":`, error);
+    $toast.error(`Failed to process label: ${label}`);
+    throw error;
+  }
 }
 
 async function getMetricsSheet(
@@ -717,28 +738,45 @@ async function getMetricsSheet(
   });
 
   if (data.annotators.length > 2) {
+    // Batch pairwise comparisons to run in parallel (limit concurrency to avoid overwhelming server)
+    const pairwisePromises: Promise<{ metrics: MetricResult[], pair: string }>[] = [];
+    
     for (let i = 0; i < data.annotators.length; i++) {
       for (let j = i + 1; j < data.annotators.length; j++) {
-        const metrics = await compute_metrics(
-          data.task_id,
-          label,
-          documents,
-          [data.annotators[i], data.annotators[j]],
-          [data.annotators[i], data.annotators[j]],
-          data.tolerance,
-          data.byWords,
-          data.hideNonText,
-          data.contained,
-          data.documentLevel,
-          data.documentsData,
-          data.documentsOptions
+        const annotatorPair = [data.annotators[i], data.annotators[j]];
+        const pairName = annotatorPair.join(",");
+        
+        pairwisePromises.push(
+          compute_metrics(
+            data.task_id,
+            label,
+            documents,
+            annotatorPair,
+            annotatorPair,
+            data.tolerance,
+            data.byWords,
+            data.hideNonText,
+            data.contained,
+            data.documentLevel,
+            data.documentsData,
+            data.documentsOptions
+          ).then(metrics => ({ metrics, pair: pairName }))
         );
+      }
+    }
 
-        metrics.map((m) => {
+    // Process in batches of 3 to avoid overwhelming the server
+    const batchSize = 3;
+    for (let i = 0; i < pairwisePromises.length; i += batchSize) {
+      const batch = pairwisePromises.slice(i, i + batchSize);
+      const results = await Promise.all(batch);
+      
+      results.forEach(({ metrics: pairMetrics, pair }) => {
+        pairMetrics.map((m) => {
           if (m.result !== undefined) {
             rows.push({
               metric: m.name,
-              annotators: data.annotators[i] + "," + data.annotators[j],
+              annotators: pair,
               value: m.result,
               p0: m.po,
               pe: m.pe
@@ -752,9 +790,8 @@ async function getMetricsSheet(
                 })
             }
           }
-
         });
-      }
+      });
     }
   }
 

@@ -55,10 +55,7 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: { 
-      exclude: [
-        "/lawnotation-ui/utils/enums.ts", 
-        "/lawnotation-ui/utils/guidance.ts"
-      ]
+      exclude: []
     },
     vue: {
       script: {
@@ -66,11 +63,16 @@ export default defineNuxtConfig({
         propsDestructure: true,
       },
     },
-    build: {
-      rollupOptions: {
-        external: (id) => {
-          // Externalize all server files and dependencies during client build
-          return id.includes('/server/') || id.includes('postgres') || id.includes('nodemailer')
+  },
+
+  nitro: {
+    experimental: {
+      asyncContext: true
+    },
+    routeRules: {
+      '/api/metrics/**': {
+        headers: {
+          'Connection': 'keep-alive'
         }
       }
     }
