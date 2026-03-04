@@ -9,8 +9,10 @@
  */
 import { TRPCError, initTRPC } from "@trpc/server";
 import { ZodError } from "zod";
-import { type Context } from "~/server/trpc/context";
+import { type Context, createContext } from "~/server/trpc/context";
 import { TRPCNotFound, TRPCForbidden } from "./errors";
+
+export { createContext };
 
 const t = initTRPC.context<Context>().create({
   errorFormatter(opts) {
@@ -73,7 +75,7 @@ export const authorizer = async <T extends MiddlewareOptsParam>(
  * Procedures
  **/
 export const publicProcedure = t.procedure;
-export const disabledProcedure = t.procedure.use(() => {throw TRPCNotFound()});
+export const disabledProcedure = t.procedure.use(() => { throw TRPCNotFound() });
 export const protectedProcedure = t.procedure.use(isAuthenticated);
 export const router = t.router;
 export const middleware = t.middleware;

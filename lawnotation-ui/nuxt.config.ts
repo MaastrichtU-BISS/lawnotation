@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import Lara from '@primeuix/themes/lara';
+
 export default defineNuxtConfig({
   app: {
     head: {
@@ -23,13 +25,18 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ["@nuxtjs/supabase", "@nuxtjs/tailwindcss", 'nuxt-primevue'],
+  modules: ["@nuxtjs/supabase", "@nuxtjs/tailwindcss", '@primevue/nuxt-module'],
 
   primevue: {
     options: {
-      unstyled: true
+      // unstyled: true,
+      theme: {
+        preset: Lara,
+        options: {
+          darkModeSelector: false || 'none',
+        }
+      }
     },
-    importPT: { as: "Lara", from: "@/presets/lara" }
   },
 
   build: {
@@ -54,7 +61,7 @@ export default defineNuxtConfig({
   },
 
   vite: {
-    optimizeDeps: { 
+    optimizeDeps: {
       exclude: []
     },
     vue: {
