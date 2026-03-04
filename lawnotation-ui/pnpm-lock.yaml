@@ -9,7 +9,6 @@ overrides:
   '@babel/runtime@<7.26.10': '>=7.26.10'
   nodemailer@<7.0.7: '>=7.0.7'
   nodemailer@<=7.0.10: '>=7.0.11'
-  estree-walker: 2.0.2
 
 importers:
 
@@ -3055,6 +3054,9 @@ packages:
 
   estree-walker@2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
+
+  estree-walker@3.0.3:
+    resolution: {integrity: sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==}
 
   esutils@2.0.3:
     resolution: {integrity: sha512-kVscqXk4OCp68SZ0dkgEKVi6/8ij300KBWTJq32P/dYeWTSwK41WyTxalN1eRmA5Z9UU/LX9D7FWSmV9SAYx6g==}
@@ -8920,6 +8922,10 @@ snapshots:
 
   estree-walker@2.0.2: {}
 
+  estree-walker@3.0.3:
+    dependencies:
+      '@types/estree': 1.0.8
+
   esutils@2.0.3: {}
 
   etag@1.8.1: {}
@@ -9705,7 +9711,7 @@ snapshots:
 
   magic-regexp@0.10.0:
     dependencies:
-      estree-walker: 2.0.2
+      estree-walker: 3.0.3
       magic-string: 0.30.21
       mlly: 1.8.0
       regexp-tree: 0.1.27
@@ -11439,7 +11445,7 @@ snapshots:
   unctx@2.5.0:
     dependencies:
       acorn: 8.16.0
-      estree-walker: 2.0.2
+      estree-walker: 3.0.3
       magic-string: 0.30.21
       unplugin: 2.3.11
 
@@ -11472,7 +11478,7 @@ snapshots:
     dependencies:
       acorn: 8.16.0
       escape-string-regexp: 5.0.0
-      estree-walker: 2.0.2
+      estree-walker: 3.0.3
       local-pkg: 1.1.2
       magic-string: 0.30.21
       mlly: 1.8.0
@@ -11690,7 +11696,7 @@ snapshots:
 
   vite-plugin-vue-tracer@1.2.0(vite@7.3.1(@types/node@22.19.13)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.29(typescript@5.9.3)):
     dependencies:
-      estree-walker: 2.0.2
+      estree-walker: 3.0.3
       exsolve: 1.0.8
       magic-string: 0.30.21
       pathe: 2.0.3
