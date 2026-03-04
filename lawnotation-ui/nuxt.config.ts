@@ -1,5 +1,27 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import Lara from '@primeuix/themes/lara';
+import { definePreset } from '@primeuix/themes';
+
+const customPreset = definePreset(Lara, {
+  semantic: {
+    primary: {
+      // 'primary': '#0D5984',
+      // 'primary-low': '#0b4b6f',
+      // 'primary-high': '#236B95',
+      50: '#bbe4fb',
+      100: '#AAE0FF',
+      200: '#86BCED',
+      300: '#629AC9',
+      400: '#3D78A6',
+      500: '#0D5984',
+      600: '#0b4e75',
+      700: '#094568',
+      800: '#083b5a',
+      900: '#06314b',
+      950: '#05283e',
+    }
+  }
+});
 
 export default defineNuxtConfig({
   app: {
@@ -31,7 +53,7 @@ export default defineNuxtConfig({
     options: {
       // unstyled: true,
       theme: {
-        preset: Lara,
+        preset: customPreset,
         options: {
           darkModeSelector: false || 'none',
         }
