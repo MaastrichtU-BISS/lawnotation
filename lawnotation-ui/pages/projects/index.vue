@@ -2,7 +2,7 @@
   <div class="max-w-screen-lg mx-auto my-8">
     <GuidancePanel :currentStep="currentGuidanceStep" />
     <div class="flex justify-between">
-      <h3 class="mb-2 text-lg font-semibold">Projects</h3>
+      <h1 class="mb-2 text-lg font-semibold">Projects</h1>
       <div class="relative">
         <Button label="Add" icon="pi pi-plus" @click="showCreateModal = true" icon-pos="right"
           data-test="open-projects-modal" />
