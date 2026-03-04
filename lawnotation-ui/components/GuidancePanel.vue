@@ -2,7 +2,7 @@
     <transition v-if="isVisible" name="slide-fade" mode="out-in">
         <Fieldset :key="currentStep"  class="max-w-md mx-auto mb-4" :pt="{
             legend: {
-                class: ['py-2 pb-0']
+                class: ['py-2']
             },
             content: {
                 class: ['py-2 px-3 pt-0']
@@ -14,7 +14,7 @@
                     <span class="font-bold">Step {{ panelData?.step }}</span>
                 </div>
             </template>
-            <span class="font-bold flex justify-center text-sm mb-2">{{ panelData?.title }}</span>
+            <h2 class="font-bold flex text-sm mb-2">{{ panelData?.title }}</h2>
             <p class="m-0 text-xs mb-2">
                 {{ panelData?.text }}
             </p>
