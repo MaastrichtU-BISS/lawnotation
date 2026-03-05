@@ -15,7 +15,6 @@ import {
   projectEditorAuthorizer,
   taskEditorAuthorizer,
 } from "../authorizers";
-import { readPdfText } from "pdf-text-reader";
 import WordExtractor from "word-extractor";
 import { DocumentFormats } from "~/utils/enums";
 
@@ -458,9 +457,17 @@ async function readWordFile(base64: string): Promise<string> {
 }
 
 async function getPdfText(data: string) {
-  // const worker = await import("pdfjs-dist/build/pdf.worker.mjs");
-  const pdfText: string = await readPdfText({ data });
-  return pdfText;
+  try {
+    const { readPdfText } = await import("pdf-text-reader");
+    const pdfText: string = await readPdfText({ data });
+    return pdfText;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: `PDF text extraction is unavailable in this runtime. ${reason}`,
+    });
+  }
 }
 
 function sanitizeFullText(full_text: string) {
