@@ -274,11 +274,11 @@ export const documentRouter = router({
     )
     .query(async ({ ctx, input: { project_id, name } }) => {
       const { data, error } = await ctx.supabase
-      .from("documents")
-      .select()
-      .eq("project_id", project_id)
-      .eq("name", name)
-      .single();
+        .from("documents")
+        .select()
+        .eq("project_id", project_id)
+        .eq("name", name)
+        .single();
 
       if (error)
         throw new TRPCError({
