@@ -457,8 +457,8 @@ async function readWordFile(base64: string): Promise<string> {
   return doctext;
 }
 
-async function getPdfText(data) {
-  const worker = await import("pdfjs-dist/build/pdf.worker.mjs");
+async function getPdfText(data: string) {
+  // const worker = await import("pdfjs-dist/build/pdf.worker.mjs");
   const pdfText: string = await readPdfText({ data });
   return pdfText;
 }
