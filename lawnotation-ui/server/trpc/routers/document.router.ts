@@ -15,6 +15,7 @@ import {
   projectEditorAuthorizer,
   taskEditorAuthorizer,
 } from "../authorizers";
+import { PDFParse } from 'pdf-parse';
 import WordExtractor from "word-extractor";
 import { DocumentFormats } from "~/utils/enums";
 
@@ -424,10 +425,8 @@ async function preProcessText(input: { full_text: string; name: string }) {
       input.full_text = sanitizeFullText(input.full_text);
       break;
     case DocumentFormats.PDF:
-      const binary = atob(
-        input.full_text.replace("data:application/pdf;base64,", "")
-      );
-      const pdfText = await getPdfText(binary);
+      const fullText = input.full_text.replace("data:application/pdf;base64,", "")
+      const pdfText = await getPdfText(fullText);
       input.full_text = pdfText;
       break;
     case DocumentFormats.DOC:
@@ -458,9 +457,17 @@ async function readWordFile(base64: string): Promise<string> {
 
 async function getPdfText(data: string) {
   try {
-    const { readPdfText } = await import("pdf-text-reader");
-    const pdfText: string = await readPdfText({ data });
-    return pdfText;
+    const binary = Buffer.from(data, 'base64')
+    const parser = new PDFParse({ data: binary });
+    const result = await parser.getText();
+    await parser.destroy();
+
+    const cleanedText = result.text
+      .replace(/--\s*\d+\s*of\s*\d+\s*--/g, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    return cleanedText;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new TRPCError({

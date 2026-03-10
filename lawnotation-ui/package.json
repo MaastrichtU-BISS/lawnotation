@@ -48,7 +48,7 @@
     "flowbite": "^1.8.1",
     "jszip": "^3.10.1",
     "nodemailer": "^6.9.16",
-    "pdf-text-reader": "^5.1.0",
+    "pdf-parse": "^2.4.5",
     "postgres": "^3.4.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.4",
