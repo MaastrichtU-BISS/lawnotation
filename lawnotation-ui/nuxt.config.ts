@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import Lara from '@primeuix/themes/lara';
-import { definePreset } from '@primeuix/themes';
+import Lara from "@primeuix/themes/lara";
+import { definePreset } from "@primeuix/themes";
 
 const customPreset = definePreset(Lara, {
   semantic: {
@@ -8,31 +8,33 @@ const customPreset = definePreset(Lara, {
       // 'primary': '#0D5984',
       // 'primary-low': '#0b4b6f',
       // 'primary-high': '#236B95',
-      50: '#bbe4fb',
-      100: '#AAE0FF',
-      200: '#86BCED',
-      300: '#629AC9',
-      400: '#3D78A6',
-      500: '#0D5984',
-      600: '#0b4e75',
-      700: '#094568',
-      800: '#083b5a',
-      900: '#06314b',
-      950: '#05283e',
-    }
-  }
+      50: "#bbe4fb",
+      100: "#AAE0FF",
+      200: "#86BCED",
+      300: "#629AC9",
+      400: "#3D78A6",
+      500: "#0D5984",
+      600: "#0b4e75",
+      700: "#094568",
+      800: "#083b5a",
+      900: "#06314b",
+      950: "#05283e",
+    },
+  },
 });
 
 export default defineNuxtConfig({
   app: {
     head: {
-      script: [{
-        defer: true,
-        src: "https://umami-biss-um.vercel.app/script.js",
-        "data-website-id": "0d643ede-ed67-4311-a8c0-6db0edc96f64",
-        "data-domains": "app.lawnotation.org"
-      }]
-    }
+      script: [
+        {
+          defer: true,
+          src: "https://umami-biss-um.vercel.app/script.js",
+          "data-website-id": "0d643ede-ed67-4311-a8c0-6db0edc96f64",
+          "data-domains": "app.lawnotation.org",
+        },
+      ],
+    },
   },
   devtools: { enabled: false },
 
@@ -47,7 +49,7 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ["@nuxtjs/supabase", "@nuxtjs/tailwindcss", '@primevue/nuxt-module'],
+  modules: ["@nuxtjs/supabase", "@nuxtjs/tailwindcss", "@primevue/nuxt-module"],
 
   primevue: {
     options: {
@@ -55,17 +57,17 @@ export default defineNuxtConfig({
       theme: {
         preset: customPreset,
         options: {
-          darkModeSelector: false || 'none',
-        }
-      }
+          darkModeSelector: false || "none",
+        },
+      },
     },
   },
 
   build: {
-    transpile: ['trpc-nuxt'],
+    transpile: ["trpc-nuxt"],
   },
 
-  css: ["@/assets/styles/main.scss", 'primeicons/primeicons.css'],
+  css: ["@/assets/styles/main.scss"],
 
   supabase: {
     redirect: false,
@@ -76,15 +78,15 @@ export default defineNuxtConfig({
     // },
     clientOptions: {
       auth: {
-        flowType: 'implicit',
+        flowType: "implicit",
         detectSessionInUrl: true,
-      }
-    }
+      },
+    },
   },
 
   vite: {
     optimizeDeps: {
-      exclude: []
+      exclude: [],
     },
     vue: {
       script: {
@@ -96,16 +98,16 @@ export default defineNuxtConfig({
 
   nitro: {
     experimental: {
-      asyncContext: true
+      asyncContext: true,
     },
     routeRules: {
-      '/api/metrics/**': {
+      "/api/metrics/**": {
         headers: {
-          'Connection': 'keep-alive'
-        }
-      }
-    }
+          Connection: "keep-alive",
+        },
+      },
+    },
   },
 
-  compatibilityDate: "2024-10-01"
+  compatibilityDate: "2024-10-01",
 });
