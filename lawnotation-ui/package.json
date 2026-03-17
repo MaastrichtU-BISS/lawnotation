@@ -43,6 +43,7 @@
     "array-move": "^4.0.0",
     "crypto-js": "^4.2.0",
     "epic-spinners": "^2.0.0",
+    "es-toolkit": "^1.45.1",
     "export-to-csv": "^1.4.0",
     "file-saver": "^2.0.5",
     "flowbite": "^1.8.1",
