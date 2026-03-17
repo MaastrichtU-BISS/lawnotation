@@ -1,28 +1,29 @@
-import { test as setup } from '@playwright/test';
-import { delay } from '../utils';
+import { test as setup, expect } from "@playwright/test";
 
-const editorFile = 'playwright/.auth/editor.json';
+const editorFile = "playwright/.auth/editor.json";
 
-setup('Authenticate as editor', async ({ context, page }) => {
-  await page.goto('/');
-  const emailField = page.getByTestId('email-field-to-login');
-  await emailField.waitFor();
-  await delay(3000);
-  await emailField.pressSequentially('editor@example.com', { delay: 100 });
-  await emailField.press('Enter');
-  await page.getByTestId('verify-button').waitFor();
+setup("Authenticate as editor", async ({ context, page }) => {
+  setup.setTimeout(90_000);
 
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto("/");
+  const emailField = page.getByTestId("email-field-to-login");
+  await expect(emailField).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await emailField.fill("editor@example.com");
+  await page.getByRole("button", { name: /send code/i }).click();
+  const verifyBtn = page.getByTestId("verify-button");
+  await verifyBtn.waitFor();
+  await expect(verifyBtn).toBeVisible();
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const magicLinkPage = await context.newPage();
-  await magicLinkPage.goto('http://127.0.0.1:54324/m/editor');
-  await magicLinkPage.getByRole('button', { name: '' }).click();
-  await magicLinkPage.getByText('Your login code for').first().click();
-  const magicCode = await magicLinkPage.locator('#login-code').innerText();
-
+  await magicLinkPage.goto("http://127.0.0.1:54324/m/editor");
+  await magicLinkPage.getByRole("button", { name: "" }).click();
+  await magicLinkPage.getByText("Your login code for").first().click();
+  const magicCode = await magicLinkPage.locator("#login-code").innerText();
   await page.getByRole("textbox").first().fill(magicCode);
-  await page.getByTestId('verify-button').click();
-  await page.getByText('Create new project').waitFor();
-  await page.getByText('Create new project').isVisible();
+  await verifyBtn.click();
+  await page.getByText("Create new project").waitFor();
+  await expect(page.getByText("Create new project")).toBeVisible();
 
   await page.context().storageState({ path: editorFile });
 });
