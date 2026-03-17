@@ -1,41 +1,73 @@
 <template>
-  <Breadcrumb v-if="project" :crumbs="[
-    {
-      name: 'Projects',
-      link: '/projects',
-    },
-    {
-      name: `Project ${project.name}`,
-      link: `/projects/${project.id}`,
-    },
-  ]" />
+  <Breadcrumb
+    v-if="project"
+    :crumbs="[
+      {
+        name: 'Projects',
+        link: '/projects',
+      },
+      {
+        name: `Project ${project.name}`,
+        link: `/projects/${project.id}`,
+      },
+    ]"
+  />
 
   <div v-if="project">
     <GuidancePanel :currentStep="currentGuidanceStep" />
     <TabView v-model:activeIndex="activeTab">
-      <TabPanel :pt="{
-        headeraction: { 'data-test': 'tasks-tab' }
-      }">
+      <TabPanel
+        :pt="{
+          headeraction: { 'data-test': 'tasks-tab' },
+        }"
+      >
         <template #header>
           <div class="flex gap-3 items-center h-6">
             <span class="leading-none whitespace-nowrap">Tasks</span>
           </div>
         </template>
         <div class="dimmer-wrapper pt-2">
-          <DimmerProgress v-if="import_progress.loading" v-model="import_progress" />
+          <DimmerProgress
+            v-if="import_progress.loading"
+            v-model="import_progress"
+          />
           <div class="dimmer-content">
             <div data-test="tasks-table">
               <div class="flex justify-end">
                 <div class="relative">
-                  <Button label="Add" icon="pi pi-plus" @click="showCreateTaskModal = true" icon-pos="right"
-                    data-test="open-tasks-modal" />
-                  <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK" />
+                  <Button
+                    label="Add"
+                    icon="pi pi-plus"
+                    @click="showCreateTaskModal = true"
+                    icon-pos="right"
+                    data-test="open-tasks-modal"
+                  />
+                  <PulsingRedCircle
+                    v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK"
+                  />
                 </div>
               </div>
-              <Table ref="taskTable" endpoint="tasks" :filter="{ project_id: project?.id }" :sort="true" :search="true"
-                :selectable="true" @remove-rows="removeTasks" @remove-all-rows="removeAllTasks">
-                <template #row="{ item }: { item: Task & { assignments: [{ count: number }] } }">
-                  <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
+              <Table
+                ref="taskTable"
+                endpoint="tasks"
+                :filter="{ project_id: project?.id }"
+                :sort="true"
+                :search="true"
+                :selectable="true"
+                @remove-rows="removeTasks"
+                @remove-all-rows="removeAllTasks"
+              >
+                <template
+                  #row="{
+                    item,
+                  }: {
+                    item: Task & { assignments: [{ count: number }] };
+                  }"
+                >
+                  <td
+                    scope="row"
+                    class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+                  >
                     {{ item.id }}
                   </td>
                   <td class="px-6 py-2">
@@ -50,120 +82,242 @@
                   <td class="px-6 py-2">
                     <div class="flex gap-2">
                       <div class="relative">
-                        <NuxtLink class="base" :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
-                          data-test="view-task-link">
-                          <Button :label="item.assignments[0].count ? 'View' : 'Assign'" size="small" />
+                        <NuxtLink
+                          class="base"
+                          :to="`/projects/${route.params.project_id}/tasks/${item.id}`"
+                          data-test="view-task-link"
+                        >
+                          <Button
+                            :label="
+                              item.assignments[0].count ? 'View' : 'Assign'
+                            "
+                            size="small"
+                          />
                         </NuxtLink>
                         <PulsingRedCircle
-                          v-if="item.assignments[0].count ? currentGuidanceStep == GuidanceSteps.CHECK_ASSIGNMENTS : currentGuidanceStep == GuidanceSteps.ASSIGN_ANNOTATORS" />
+                          v-if="
+                            item.assignments[0].count
+                              ? currentGuidanceStep ==
+                                GuidanceSteps.CHECK_ASSIGNMENTS
+                              : currentGuidanceStep ==
+                                GuidanceSteps.ASSIGN_ANNOTATORS
+                          "
+                        />
                       </div>
-                      <NuxtLink :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
-                        data-test="edit-task-link">
+                      <NuxtLink
+                        :to="`/projects/${route.params.project_id}/tasks/${item.id}/edit`"
+                        data-test="edit-task-link"
+                      >
                         <Button label="Edit" size="small" link />
                       </NuxtLink>
                     </div>
                   </td>
                 </template>
               </Table>
-              <Dialog v-model:visible="showCreateTaskModal" modal header="Create task" :autoZIndex="false"
-                :draggable="false" :pt="{
+              <Dialog
+                v-model:visible="showCreateTaskModal"
+                modal
+                header="Create task"
+                :autoZIndex="false"
+                :draggable="false"
+                :pt="{
                   root: '!w-[80vw] xl:!w-[50vw]',
                   header: {
-                    style: 'padding-bottom: 0px'
+                    style: 'padding-bottom: 0px',
                   },
                   content: {
-                    style: 'padding-bottom: 0px'
-                  }
-                }" :ptOptions="{ mergeProps: true }">
-                <TabView v-model:activeIndex="activeTabTaskModal" class="min-h-[565px]">
-                  <TabPanel header="New" :pt="{ headerAction: { 'data-test': 'new-tab' } }">
+                    style: 'padding-bottom: 0px',
+                  },
+                }"
+                :ptOptions="{ mergeProps: true }"
+              >
+                <TabView
+                  v-model:activeIndex="activeTabTaskModal"
+                  class="min-h-[565px]"
+                >
+                  <TabPanel
+                    header="New"
+                    :pt="{ headerAction: { 'data-test': 'new-tab' } }"
+                  >
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
-                        <InputText v-model="new_task.name" data-test="task-name" id="task_name" autocomplete="off"
-                          class="peer w-full" placeholder="" />
-                        <label for="task_name"
-                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Name</label>
+                        <InputText
+                          v-model="new_task.name"
+                          data-test="task-name"
+                          id="task_name"
+                          autocomplete="off"
+                          class="peer w-full"
+                          placeholder=""
+                        />
+                        <label
+                          for="task_name"
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
+                          >Name</label
+                        >
                       </span>
                     </div>
-                    <Textarea v-model="new_task.desc" data-test="task-description" autoResize rows="3" cols="30"
-                      placeholder="Description" class="w-full mb-4" />
+                    <Textarea
+                      v-model="new_task.desc"
+                      data-test="task-description"
+                      autoResize
+                      rows="3"
+                      cols="30"
+                      placeholder="Description"
+                      class="w-full mb-4"
+                    />
                     <div class="flex justify-center mb-4">
                       <span class="relative w-full">
-                        <InputText v-model="new_task.ann_guidelines" data-test="annotation-guidelines"
-                          id="annotation_guidelines" autocomplete="off" class="peer w-full" placeholder="" />
-                        <label for="annotation_guidelines"
-                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">Guidelines
-                          url</label>
+                        <InputText
+                          v-model="new_task.ann_guidelines"
+                          data-test="annotation-guidelines"
+                          id="annotation_guidelines"
+                          autocomplete="off"
+                          class="peer w-full"
+                          placeholder=""
+                        />
+                        <label
+                          for="annotation_guidelines"
+                          class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
+                          >Guidelines url</label
+                        >
                       </span>
                     </div>
                     <div class="flex items-center pb-4">
-                      <Dropdown v-model="new_task.labelset_id" :options="labelsets" filter optionLabel="name"
-                        option-value="id" placeholder="Select Labelset" class="w-full md:w-1/2"
-                        data-test="select-labelset" @update:model-value="labelSelected($event)" />
-                      <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
-                        data-test='create-new-labelset' />
+                      <Dropdown
+                        v-model="new_task.labelset_id"
+                        :options="labelsets"
+                        filter
+                        optionLabel="name"
+                        option-value="id"
+                        placeholder="Select Labelset"
+                        class="w-full md:w-1/2"
+                        data-test="select-labelset"
+                        @update:model-value="handleLabelsetSelection($event)"
+                      />
+                      <Button
+                        label="Create new labelset"
+                        size="small"
+                        @click="activeTabTaskModal = 2"
+                        link
+                        data-test="create-new-labelset"
+                      />
                     </div>
                     <div class="flex items-center flex-col pb-4">
-                      <div class="w-full text-left bg-yellow-50 p-2 mb-2 rounded-md border border-yellow-200">
-                        <p class="text-xs text-yellow-500 m-0">This feature is currently disabled, we are working on
-                          making it better</p>
+                      <div
+                        class="w-full text-left bg-yellow-50 p-2 mb-2 rounded-md border border-yellow-200"
+                      >
+                        <p class="text-xs text-yellow-500 m-0">
+                          This feature is currently disabled, we are working on
+                          making it better
+                        </p>
                       </div>
-                      <Dropdown data-test="select-mlModel" v-model="new_task.ml_model_id" :options="models" filter
-                        disabled optionLabel="name" option-value="id" placeholder="Select Model (Optional)"
-                        class="w-full" @update:model-value="modelSelected($event)" :show-clear="true" />
+                      <Dropdown
+                        data-test="select-mlModel"
+                        v-model="new_task.ml_model_id"
+                        :options="models"
+                        filter
+                        disabled
+                        optionLabel="name"
+                        option-value="id"
+                        placeholder="Select Model (Optional)"
+                        class="w-full"
+                        @update:model-value="modelSelected($event)"
+                        :show-clear="true"
+                      />
                     </div>
                     <div class="mb-4 flex justify-between items-center">
                       <div>
                         <p class="font-bold mb-4">Annotation level</p>
-                        <SelectButton :options="['text', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel"
-                          @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
-                          aria-labelledby="basic" data-test="select-annotation-level" :pt="{
+                        <SelectButton
+                          :options="['text', AnnotationLevels.DOCUMENT]"
+                          v-model="selectedAnnotationLevel"
+                          @update:model-value="annotationLevelSelected($event)"
+                          class="capitalize font-normal"
+                          aria-labelledby="basic"
+                          data-test="select-annotation-level"
+                          :pt="{
                             label: {
-                              class: 'font-normal'
-                            }
-                          }" />
+                              class: 'font-normal',
+                            },
+                          }"
+                        />
                       </div>
                       <div v-if="selectedAnnotationLevel == 'text'">
                         <p class="font-bold mb-4">Granularity</p>
-                        <SelectButton v-model="new_task.annotation_level"
-                          :options="Object.values(AnnotationLevels).filter(level => level != AnnotationLevels.DOCUMENT)"
-                          @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
-                          aria-labelledby="basic" data-test="select-annotation-level-2" :pt="{
+                        <SelectButton
+                          v-model="new_task.annotation_level"
+                          :options="
+                            Object.values(AnnotationLevels).filter(
+                              (level) => level != AnnotationLevels.DOCUMENT,
+                            )
+                          "
+                          @update:model-value="annotationLevelSelected($event)"
+                          class="capitalize font-normal"
+                          aria-labelledby="basic"
+                          data-test="select-annotation-level-2"
+                          :pt="{
                             label: {
-                              class: 'font-normal'
-                            }
-                          }" />
+                              class: 'font-normal',
+                            },
+                          }"
+                        />
                       </div>
                     </div>
                     <div class="flex justify-center mt-10">
-                      <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
-                        @click="showCreateTaskModal = false;" />
-                      <Button data-test="create-tasks" label="Create" size="small" icon="pi pi-check" iconPos="right"
-                        @click="createTask" />
+                      <Button
+                        class="mr-6"
+                        label="Cancel"
+                        size="small"
+                        icon="pi pi-times"
+                        iconPos="right"
+                        outlined
+                        @click="showCreateTaskModal = false"
+                      />
+                      <Button
+                        data-test="create-tasks"
+                        label="Create"
+                        size="small"
+                        icon="pi pi-check"
+                        iconPos="right"
+                        @click="createTask"
+                      />
                     </div>
                   </TabPanel>
                   <TabPanel header="Import">
                     <div v-if="!uploadHasStarted" class="pt-6">
-                      <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
-                        chooseLabel="Select" :pt="{
+                      <FileUpload
+                        customUpload
+                        @uploader="loadExportTaskFile($event)"
+                        :multiple="false"
+                        accept=".json"
+                        chooseLabel="Select"
+                        :pt="{
                           chooseButton: {
                             'data-test': 'choose-task',
                           },
                           uploadbutton: {
                             root: {
-                              'data-test': 'upload-task'
-                            }
+                              'data-test': 'upload-task',
+                            },
                           },
                           thumbnail: {
-                            class: 'hidden'
-                          }
-                        }">
+                            class: 'hidden',
+                          },
+                        }"
+                      >
                         <template #empty>
-                          <div class="flex items-center justify-center flex-col">
+                          <div
+                            class="flex items-center justify-center flex-col"
+                          >
                             <i
-                              class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
-                            <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                            <p class="text-gray-400 text-xs">.json files exported from Lawnotation</p>
+                              class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600"
+                            />
+                            <p class="mt-4 mb-0">
+                              Drag and drop files to here to upload.
+                            </p>
+                            <p class="text-gray-400 text-xs">
+                              .json files exported from Lawnotation
+                            </p>
                           </div>
                         </template>
                       </FileUpload>
@@ -171,47 +325,92 @@
                     <div v-else>
                       <div class="text-center">
                         <div class="mb-6">
-                          <h4 class="mb-2 font-semibold text-gray-900 dark:text-white">
+                          <h4
+                            class="mb-2 font-semibold text-gray-900 dark:text-white"
+                          >
                             Select the status of the new assignments
                           </h4>
-                          <SelectButton v-model="selectedUploadedAssignmentsStatus"
-                            :options="optionsUploadedAssignmentsStatus" optionLabel="label" optionValue="value"
-                            dataKey="value" optionDisabled="disabled" :pt="{
+                          <SelectButton
+                            v-model="selectedUploadedAssignmentsStatus"
+                            :options="optionsUploadedAssignmentsStatus"
+                            optionLabel="label"
+                            optionValue="value"
+                            dataKey="value"
+                            optionDisabled="disabled"
+                            :pt="{
                               label: '!text-sm !font-semibold',
-                              button: ['!px-3', '!py-2']
-                            }" :ptOptions="{ mergeProps: true }">
+                              button: ['!px-3', '!py-2'],
+                            }"
+                            :ptOptions="{ mergeProps: true }"
+                          >
                           </SelectButton>
                         </div>
-                        <h4 class="mb-2 font-semibold text-gray-900 dark:text-white">
-                          The uploaded Task has {{ new_annotators.length }} annotators.
+                        <h4
+                          class="mb-2 font-semibold text-gray-900 dark:text-white"
+                        >
+                          The uploaded Task has
+                          {{ new_annotators.length }} annotators.
                         </h4>
                         <p class="mb-4">Please, provide the new ones:</p>
                       </div>
-                      <div v-for="(new_ann, index) in new_annotators" class="flex justify-center mb-4">
+                      <div
+                        v-for="(new_ann, index) in new_annotators"
+                        class="flex justify-center mb-4"
+                      >
                         <span class="relative w-full">
-                          <InputText v-model="new_annotators[index]" autocomplete="off" class="peer w-full"
-                            placeholder="" :id="`annotator_${index}`" />
-                          <label :for="`annotator_${index}`"
-                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4">{{
-                              `annotator ${index + 1} ` }}</label>
+                          <InputText
+                            v-model="new_annotators[index]"
+                            autocomplete="off"
+                            class="peer w-full"
+                            placeholder=""
+                            :id="`annotator_${index}`"
+                          />
+                          <label
+                            :for="`annotator_${index}`"
+                            class="absolute text-sm text-primary-500 dark:text-primary-400/60 duration-300 transform -translate-y-4 scale-75 top-3 z-10 origin-[0] start-2.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4"
+                            >{{ `annotator ${index + 1} ` }}</label
+                          >
                           <div v-if="index == 0" class="text-right">
-                            <Button label="Add myself" :disabled="isMyselfAdded" link @click="addMyself" :pt="{
-                              root: {
-                                class: 'p-0 text-xs text-primary-600 disabled:text-gray-400 underline cursor-pointer disabled:no-underline disabled:pointer-events-none'
-                              }
-                            }" />
+                            <Button
+                              label="Add myself"
+                              :disabled="isMyselfAdded"
+                              link
+                              @click="addMyself"
+                              :pt="{
+                                root: {
+                                  class:
+                                    'p-0 text-xs text-primary-600 disabled:text-gray-400 underline cursor-pointer disabled:no-underline disabled:pointer-events-none',
+                                },
+                              }"
+                            />
                           </div>
                         </span>
                       </div>
                       <div class="flex justify-center mt-4 pt-4">
-                        <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
-                          @click="showCreateTaskModal = false;" />
-                        <Button label="Create" size="small" icon="pi pi-check" iconPos="right" @click="importTask" />
+                        <Button
+                          class="mr-6"
+                          label="Cancel"
+                          size="small"
+                          icon="pi pi-times"
+                          iconPos="right"
+                          outlined
+                          @click="showCreateTaskModal = false"
+                        />
+                        <Button
+                          label="Create"
+                          size="small"
+                          icon="pi pi-check"
+                          iconPos="right"
+                          @click="importTask"
+                        />
                       </div>
                     </div>
                   </TabPanel>
                   <TabPanel header="Labelset">
-                    <Labelset v-model="labelset" @labelset-persisted="refreshLabelsets" />
+                    <Labelset
+                      v-model="labelset"
+                      @labelset-persisted="refreshLabelsets"
+                    />
                   </TabPanel>
                 </TabView>
               </Dialog>
@@ -219,38 +418,69 @@
           </div>
         </div>
       </TabPanel>
-      <TabPanel :pt="{
-        headeraction: { 'data-test': 'documents-tab' }
-      }">
+      <TabPanel
+        :pt="{
+          headeraction: { 'data-test': 'documents-tab' },
+        }"
+      >
         <template #header>
           <div class="flex gap-3 items-center h-6">
             <span class="leading-none whitespace-nowrap">Documents</span>
-            <Badge v-if="documentTable?.total" :value="documentTable?.total || 0" :pt="{ root: 'opacity-75' }"
-              :ptOptions="{ mergeProps: true }"></Badge>
+            <Badge
+              v-if="documentTable?.total"
+              :value="documentTable?.total || 0"
+              :pt="{ root: 'opacity-75' }"
+              :ptOptions="{ mergeProps: true }"
+            ></Badge>
           </div>
         </template>
         <div class="dimmer-wrapper">
-          <DimmerProgress v-if="upload_docs_progress.loading" v-model="upload_docs_progress" />
+          <DimmerProgress
+            v-if="upload_docs_progress.loading"
+            v-model="upload_docs_progress"
+          />
           <div class="dimmer-content">
             <div class="flex justify-end pt-2">
               <div class="relative">
-                <Button label="Add" icon="pi pi-plus" :disabled="upload_docs_progress.loading"
-                  @click="showUploadDocumentsModal = true" icon-pos="right" data-test="open-documents-modal" />
-                <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS" />
+                <Button
+                  label="Add"
+                  icon="pi pi-plus"
+                  :disabled="upload_docs_progress.loading"
+                  @click="showUploadDocumentsModal = true"
+                  icon-pos="right"
+                  data-test="open-documents-modal"
+                />
+                <PulsingRedCircle
+                  v-if="currentGuidanceStep == GuidanceSteps.UPLOAD_DOCUMENTS"
+                />
               </div>
             </div>
-            <Table ref="documentTable" endpoint="documents" :filter="{ project_id: project?.id }" :sort="true"
-              :search="true" :selectable="true" :skipConfirmDialog="true" @remove-rows="removeDocuments"
-              @remove-all-rows="removeAllDocuments">
+            <Table
+              ref="documentTable"
+              endpoint="documents"
+              :filter="{ project_id: project?.id }"
+              :sort="true"
+              :search="true"
+              :selectable="true"
+              :skipConfirmDialog="true"
+              @remove-rows="removeDocuments"
+              @remove-all-rows="removeAllDocuments"
+            >
               <template #row="{ item }: { item: Document }">
-                <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
+                <td
+                  scope="row"
+                  class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap"
+                >
                   {{ item.id }}
                 </td>
                 <td class="px-6 py-2">
                   {{ item.name }}
                 </td>
                 <td class="px-6 py-2 flex">
-                  <NuxtLink class="base" :to="`/projects/${route.params.project_id}/documents/${item.id}`">
+                  <NuxtLink
+                    class="base"
+                    :to="`/projects/${route.params.project_id}/documents/${item.id}`"
+                  >
                     <Button label="View" size="small" />
                   </NuxtLink>
                 </td>
@@ -258,47 +488,75 @@
             </Table>
           </div>
         </div>
-        <Dialog v-model:visible="showUploadDocumentsModal" modal header="Add documents" :pt="{
-          root: '!w-[80vw] xl:!w-[50vw]',
-          header: {
-            style: 'padding-bottom: 0px'
-          },
-          content: {
-            style: 'padding-bottom: 0px'
-          }
-        }" :ptOptions="{ mergeProps: true }">
-          <TabView v-model:activeIndex="activeTabDocumentsModal" class="min-h-[565px]">
-            <TabPanel header="Upload" :pt="{ headerAction: { 'data-test': 'upload-documents-tab' } }">
+        <Dialog
+          v-model:visible="showUploadDocumentsModal"
+          modal
+          header="Add documents"
+          :pt="{
+            root: '!w-[80vw] xl:!w-[50vw]',
+            header: {
+              style: 'padding-bottom: 0px',
+            },
+            content: {
+              style: 'padding-bottom: 0px',
+            },
+          }"
+          :ptOptions="{ mergeProps: true }"
+        >
+          <TabView
+            v-model:activeIndex="activeTabDocumentsModal"
+            class="min-h-[565px]"
+          >
+            <TabPanel
+              header="Upload"
+              :pt="{ headerAction: { 'data-test': 'upload-documents-tab' } }"
+            >
               <div class="pt-6">
-                <FileUpload customUpload @uploader="uploadDocuments($event)" :multiple="true"
-                  :maxFileSize="DOCUMENT_SIZE_LIMIT_TXT" accept=".txt,.html,.pdf,.doc,.docx" chooseLabel="Select" :pt="{
+                <FileUpload
+                  customUpload
+                  @uploader="uploadDocuments($event)"
+                  :multiple="true"
+                  :maxFileSize="DOCUMENT_SIZE_LIMIT_TXT"
+                  accept=".txt,.html,.pdf,.doc,.docx"
+                  chooseLabel="Select"
+                  :pt="{
                     input: {
-                      'data-test': 'choose-documents'
+                      'data-test': 'choose-documents',
                     },
                     uploadbutton: {
                       root: {
-                        'data-test': 'upload-documents'
-                      }
+                        'data-test': 'upload-documents',
+                      },
                     },
                     thumbnail: {
-                      class: 'hidden'
-                    }
-                  }
-                    ">
+                      class: 'hidden',
+                    },
+                  }"
+                >
                   <template #empty>
                     <div class="flex items-center justify-center flex-col">
                       <i
-                        class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
-                      <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
-                      <p class="text-gray-400 text-xs mb-0">.txt .html file(s) (up to 6MB each)</p>
-                      <p class="text-gray-400 text-xs">.pdf .doc .docx file(s) (up to 4MB each)</p>
+                        class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600"
+                      />
+                      <p class="mt-4 mb-0">
+                        Drag and drop files to here to upload.
+                      </p>
+                      <p class="text-gray-400 text-xs mb-0">
+                        .txt .html file(s) (up to 6MB each)
+                      </p>
+                      <p class="text-gray-400 text-xs">
+                        .pdf .doc .docx file(s) (up to 4MB each)
+                      </p>
                     </div>
                   </template>
                 </FileUpload>
               </div>
             </TabPanel>
             <TabPanel header="Find (Rechtspraak)">
-              <SearchDocuments :add-documents-to-project="true" @on-documents-fetched="onDocumentsFetched" />
+              <SearchDocuments
+                :add-documents-to-project="true"
+                @on-documents-fetched="onDocumentsFetched"
+              />
             </TabPanel>
           </TabView>
         </Dialog>
@@ -325,9 +583,14 @@ import Labelset from "~/components/labels/Labelset.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import PulsingRedCircle from "~/components/PulsingRedCircle.vue";
 import GuidancePanel from "~/components/GuidancePanel.vue";
-import { AnnotationLevels, GuidanceSteps, AssignmentStatuses, Origins } from "~/utils/enums";
+import {
+  AnnotationLevels,
+  GuidanceSteps,
+  AssignmentStatuses,
+  Origins,
+} from "~/utils/enums";
 import SearchDocuments from "~/components/SearchDocuments.vue";
-import SelectButton from 'primevue/selectbutton';
+import SelectButton from "primevue/selectbutton";
 
 const { $toast, $trpc } = useNuxtApp();
 
@@ -348,23 +611,23 @@ const uploadHasStarted = ref<boolean>(false);
 const selectedUploadedAssignmentsStatus = ref(AssignmentStatuses.NONE);
 const optionsUploadedAssignmentsStatus = ref([
   {
-    label: 'Done',
+    label: "Done",
     value: AssignmentStatuses.DONE,
-    color: '#10b981', //severity
-    disabled: false
+    color: "#10b981", //severity
+    disabled: false,
   },
   {
-    label: 'Pending',
+    label: "Pending",
     value: AssignmentStatuses.PENDING,
-    color: '#ef4444', //severity danger
-    disabled: false
+    color: "#ef4444", //severity danger
+    disabled: false,
   },
   {
-    label: 'Keep originals',
+    label: "Keep originals",
     value: AssignmentStatuses.NONE,
-    color: '#475569',
-    disabled: false
-  }
+    color: "#475569",
+    disabled: false,
+  },
 ]);
 const activeTabTaskModal = ref<number>(0);
 const activeTabDocumentsModal = ref<number>(0);
@@ -372,7 +635,7 @@ const activeTabDocumentsModal = ref<number>(0);
 const showUploadDocumentsModal = ref<boolean>(false);
 
 const labelsets = ref(await $trpc.labelset.find.query({}));
-const selectedAnnotationLevel = ref<'text' | AnnotationLevels.DOCUMENT>();
+const selectedAnnotationLevel = ref<"text" | AnnotationLevels.DOCUMENT>();
 
 const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
   id: undefined,
@@ -415,17 +678,21 @@ type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 const documentTable = ref<InstanceType<typeof Table>>();
 const taskTable = ref<InstanceType<typeof Table>>();
 
-const new_task = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "annotation_level">>({
+const new_task = reactive<
+  Optional<Task, "id" | "labelset_id" | "project_id" | "annotation_level">
+>({
   name: "",
   desc: "",
   ann_guidelines: "",
   labelset_id: undefined,
   project_id: undefined,
   annotation_level: undefined,
-  ml_model_id: undefined
+  ml_model_id: undefined,
 });
 
-const assignmentsCount = ref<number>((await $trpc.assignment.getCountByProject.query(project.id))!);
+const assignmentsCount = ref<number>(
+  (await $trpc.assignment.getCountByProject.query(project.id))!,
+);
 
 const currentGuidanceStep = computed(() => {
   if (documentTable.value && taskTable.value) {
@@ -446,24 +713,26 @@ const addMyself = () => {
   if (!isMyselfAdded.value) {
     new_annotators.value[0] = user.value?.email!;
   } else {
-    $toast.error("You have been already added!")
+    $toast.error("You have been already added!");
   }
 };
 
 const isMyselfAdded = computed(() => {
   return new_annotators.value.includes(user.value?.email!);
-})
+});
 
 const modelSelected = async (id: number) => {
-
   // remove added labelsets
-  const labelToRemoveIndex = labelsets.value.findIndex(l => !l.editor_id);
-  if (labelToRemoveIndex > 0 && new_task.labelset_id == labelsets.value[labelToRemoveIndex].id) {
+  const labelToRemoveIndex = labelsets.value.findIndex((l) => !l.editor_id);
+  if (
+    labelToRemoveIndex > 0 &&
+    new_task.labelset_id == labelsets.value[labelToRemoveIndex].id
+  ) {
     new_task.labelset_id = undefined;
     labelsets.value.splice(labelToRemoveIndex, 1);
   }
 
-  const model = models.value.find(m => m.id == id);
+  const model = models.value.find((m) => m.id == id);
 
   if (new_task.annotation_level != model?.annotation_level) {
     if (model?.annotation_level == AnnotationLevels.DOCUMENT) {
@@ -475,7 +744,9 @@ const modelSelected = async (id: number) => {
   }
 
   if (model?.labelset_id) {
-    const modelLabelset = await $trpc.labelset.findById.query(model?.labelset_id);
+    const modelLabelset = await $trpc.labelset.findById.query(
+      model?.labelset_id,
+    );
     labelsets.value.push(modelLabelset);
     new_task.labelset_id = modelLabelset.id;
   }
@@ -486,9 +757,13 @@ const labelSelected = async (id: number) => {
     const model = await $trpc.mlModel.findById.query(new_task?.ml_model_id);
     if (model.labelset_id) {
       new_task.ml_model_id = undefined;
-      labelsets.value = labelsets.value.filter(l => l.editor_id);
+      labelsets.value = labelsets.value.filter((l) => l.editor_id);
     }
   }
+};
+
+const handleLabelsetSelection = (id: number | undefined) => {
+  new_task.labelset_id = id;
 };
 
 const annotationLevelSelected = async (value: "span" | AnnotationLevels) => {
@@ -501,7 +776,7 @@ const annotationLevelSelected = async (value: "span" | AnnotationLevels) => {
     const model = await $trpc.mlModel.findById.query(new_task?.ml_model_id);
     if (model.annotation_level != value) {
       new_task.ml_model_id = undefined;
-      labelsets.value = labelsets.value.filter(l => l.editor_id);
+      labelsets.value = labelsets.value.filter((l) => l.editor_id);
     }
     if (model.labelset_id) {
       new_task.labelset_id = undefined;
@@ -511,12 +786,22 @@ const annotationLevelSelected = async (value: "span" | AnnotationLevels) => {
 
 const refreshLabelsets = async () => {
   activeTabTaskModal.value = 0;
-  labelsets.value?.push(labelset.value as any);
-  new_task.labelset_id = labelset.value.id!;
-}
+
+  // Reload all labelsets from database to ensure the newly created one is there
+  labelsets.value = await $trpc.labelset.find.query({});
+
+  // Find the newly created labelset and set it as selected
+  if (labelset.value.id) {
+    const createdLabelset = labelsets.value.find(
+      (l) => l.id === labelset.value.id,
+    );
+    if (createdLabelset) {
+      new_task.labelset_id = createdLabelset.id;
+    }
+  }
+};
 
 const uploadDocuments = async (event: { files: FileList }) => {
-
   const new_docs: Omit<Document, "id" | "hash">[] = [];
   upload_docs_progress.value.loading = true;
   upload_docs_progress.value.total = event.files.length ?? 0;
@@ -524,21 +809,27 @@ const uploadDocuments = async (event: { files: FileList }) => {
   showUploadDocumentsModal.value = false;
 
   for (const file of event.files ?? []) {
-
     // 6mb limit will is checked by the FileUpload component
     // here we check 4mb limit for .pdf, .doc, .docx files
-    if (file.size > DOCUMENT_SIZE_LIMIT_PDF && (file.name.endsWith('.pdf') || file.name.endsWith('.doc') || file.name.endsWith('.docx'))) {
-      $toast.error(`File ${file.name} exceeds the 4mb limit for .pdf, .doc, .docx files.`);
+    if (
+      file.size > DOCUMENT_SIZE_LIMIT_PDF &&
+      (file.name.endsWith(".pdf") ||
+        file.name.endsWith(".doc") ||
+        file.name.endsWith(".docx"))
+    ) {
+      $toast.error(
+        `File ${file.name} exceeds the 4mb limit for .pdf, .doc, .docx files.`,
+      );
       continue;
     }
 
-    const format = file.name.split('.').pop() as DocumentFormats;
+    const format = file.name.split(".").pop() as DocumentFormats;
     let full_text = "";
 
     if (format == DocumentFormats.TXT || format == DocumentFormats.HTML) {
       full_text = await file.text();
     } else {
-      full_text = await getBase64(file) as string;
+      full_text = (await getBase64(file)) as string;
     }
 
     new_docs.push({
@@ -547,10 +838,9 @@ const uploadDocuments = async (event: { files: FileList }) => {
       full_text: full_text,
       project_id: +route.params.project_id,
     });
-  };
+  }
 
   saveDocuments(new_docs, true);
-
 };
 
 function getBase64(file: File) {
@@ -558,7 +848,7 @@ function getBase64(file: File) {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
+    reader.onerror = (error) => reject(error);
   });
 }
 
@@ -582,10 +872,16 @@ const onDocumentsFetched = (docs: Doc[]) => {
   saveDocuments(new_docs);
 };
 
-const saveDocuments = async (new_docs: Omit<Document, "id" | "hash">[], preprocess = false) => {
+const saveDocuments = async (
+  new_docs: Omit<Document, "id" | "hash">[],
+  preprocess = false,
+) => {
   for (const doc of new_docs) {
     try {
-      await $trpc.document.create.mutate({ document: doc, preprocess: preprocess });
+      await $trpc.document.create.mutate({
+        document: doc,
+        preprocess: preprocess,
+      });
       upload_docs_progress.value.current++;
     } catch (error) {
       $toast.error(`Error uploading document: ${doc.name}`);
@@ -618,8 +914,8 @@ const createTask = () => {
       return;
     }
   }
-  if (!new_task.labelset_id) {
-    $toast.error("Task must have a labelset");
+  if (!new_task.labelset_id || new_task.labelset_id === 0) {
+    $toast.error("Task must have a valid labelset");
     return;
   }
   if (!new_task.annotation_level) {
@@ -629,14 +925,18 @@ const createTask = () => {
 
   try {
     // For some reason casting as Omit<Task, "id"> is necessary here.
-    $trpc.task.create.mutate(new_task as Omit<Task, "id">).then(() => {
-      taskTable.value?.refresh();
-      $toast.success("Task created");
-    }).catch((error) => {
-      trpcErrorHandler(error, "creating task")
-    });
+    $trpc.task.create
+      .mutate(new_task as Omit<Task, "id">)
+      .then(() => {
+        taskTable.value?.refresh();
+        $toast.success("Task created");
+      })
+      .catch((error) => {
+        trpcErrorHandler(error, "creating task");
+      });
   } catch (error) {
-    if (error instanceof Error) $toast.error(`Error creating task: ${error.message}`);
+    if (error instanceof Error)
+      $toast.error(`Error creating task: ${error.message}`);
   } finally {
     showCreateTaskModal.value = false;
   }
@@ -667,8 +967,7 @@ const loadExportTaskFile = async (event: { files: FileList }) => {
 
   if (!import_json.value.counts?.assignments) {
     // skip assignment upload page
-  }
-  else if (!import_json.value.documents[0]?.assignments[0]?.status) {
+  } else if (!import_json.value.documents[0]?.assignments[0]?.status) {
     // assumes all documents present, have at least 1 assignment associateedd to it (which is currently the case according to the export function)
     optionsUploadedAssignmentsStatus.value[2].disabled = true;
     selectedUploadedAssignmentsStatus.value = AssignmentStatuses.DONE;
@@ -682,7 +981,7 @@ const loadExportTaskFile = async (event: { files: FileList }) => {
     new_annotators.value.splice(0);
     for (let i = 0; i < new_annotators_number; i++) {
       new_annotators.value.push("");
-    };
+    }
     uploadHasStarted.value = true;
   } else {
     importTask();
@@ -702,7 +1001,7 @@ const importTask = async () => {
       import_progress.value.loading = false;
       return;
     }
-  };
+  }
 
   uploadHasStarted.value = false;
   showCreateTaskModal.value = false;
@@ -728,8 +1027,8 @@ const importTask = async () => {
       desc: import_json.value.desc ?? "Blank",
       ann_guidelines: import_json.value.ann_guidelines ?? "Blank",
       labelset_id: new_labelset_id,
-      annotation_level: import_json.value.annotation_level ?? 'word',
-      ml_model_id: import_json.value.ml_model_id ?? undefined
+      annotation_level: import_json.value.annotation_level ?? "word",
+      ml_model_id: import_json.value.ml_model_id ?? undefined,
     };
 
     const task = await $trpc.task.create.mutate(_new_task);
@@ -740,16 +1039,16 @@ const importTask = async () => {
       import_progress.value.total = import_json.value.documents.length;
       import_progress.value.current = 0;
 
-      const documentIds: number[] = []
+      const documentIds: number[] = [];
 
-      for (const doc of import_json.value.documents as Omit<Document, 'id'>[]) {
+      for (const doc of import_json.value.documents as Omit<Document, "id">[]) {
         const uploadedDoc = await $trpc.document.create.mutate({
           document: {
             name: doc.name,
             full_text: doc.full_text,
             source: Origins.IMPORTED,
             project_id: project.id,
-          }
+          },
         });
 
         documentIds.push(uploadedDoc.id);
@@ -764,7 +1063,7 @@ const importTask = async () => {
         // creating annotators
         import_progress.value.message = "Creating Annotators";
 
-        const usersPromises: Promise<User['id'] | null>[] = [];
+        const usersPromises: Promise<User["id"] | null>[] = [];
         new_annotators.value.map((email) => {
           if (!email || !email.length) {
             usersPromises.push(Promise.resolve(null));
@@ -772,14 +1071,13 @@ const importTask = async () => {
             usersPromises.push(
               $trpc.assignment.assignUserToTask.query({
                 email: email,
-                task_id: task.id
-              })
+                task_id: task.id,
+              }),
             );
           }
-
         });
 
-        const annotator_ids = (await Promise.all(usersPromises));
+        const annotator_ids = await Promise.all(usersPromises);
 
         // creating assignments
         import_progress.value.message = "Creating Assignments";
@@ -793,9 +1091,13 @@ const importTask = async () => {
               document_id: documentIds[i],
               difficulty_rating: ass.difficulty_rating,
               seq_pos: ass.order,
-              status: selectedUploadedAssignmentsStatus.value == AssignmentStatuses.NONE ? ass.status : selectedUploadedAssignmentsStatus.value,
+              status:
+                selectedUploadedAssignmentsStatus.value ==
+                AssignmentStatuses.NONE
+                  ? ass.status
+                  : selectedUploadedAssignmentsStatus.value,
               annotator_number: ass.annotator,
-              origin: Origins.IMPORTED
+              origin: Origins.IMPORTED,
             };
 
             if (ann_id) {
@@ -806,7 +1108,10 @@ const importTask = async () => {
           });
         });
 
-        const assignments = await $trpc.assignment.createMany.mutate({ task_id: task.id, assignments: new_assignments });
+        const assignments = await $trpc.assignment.createMany.mutate({
+          task_id: task.id,
+          assignments: new_assignments,
+        });
 
         if (import_json.value.counts?.annotations) {
           // Creating annotations
@@ -826,7 +1131,7 @@ const importTask = async () => {
                   origin: Origins.IMPORTED,
                   ls_id: ann.ls_id,
                   confidence_rating: ann.confidence_rating,
-                  html_metadata: ann.html_metadata
+                  html_metadata: ann.html_metadata,
                 });
               });
               ass_index++;
@@ -837,8 +1142,10 @@ const importTask = async () => {
           const chunkSize = 100;
           for (let i = 0; i < new_annotations.length; i += chunkSize) {
             const chunk = new_annotations.slice(i, i + chunkSize);
-            annotations.push(...await $trpc.annotation.createMany.mutate(chunk));
-          };
+            annotations.push(
+              ...(await $trpc.annotation.createMany.mutate(chunk)),
+            );
+          }
 
           // create relations
           import_progress.value.message = "Creating Relations";
@@ -869,8 +1176,10 @@ const importTask = async () => {
             const relations: any[] = [];
             for (let i = 0; i < new_relations.length; i += chunkSize) {
               const chunk = new_relations.slice(i, i + chunkSize);
-              relations.push(...await $trpc.relation.createMany.mutate(chunk));
-            };
+              relations.push(
+                ...(await $trpc.relation.createMany.mutate(chunk)),
+              );
+            }
           }
         }
       }
@@ -885,17 +1194,23 @@ const importTask = async () => {
   }
 };
 
-const removeDocuments = (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+const removeDocuments = (
+  ids: string[],
+  finish: (promises: Promise<Boolean>[]) => void,
+) => {
   finish(ids.map((id) => $trpc.document.delete.mutate(+id)));
 };
-const removeAllDocuments = (finish: (promises: (Promise<Boolean>)) => void) => {
+const removeAllDocuments = (finish: (promises: Promise<Boolean>) => void) => {
   finish($trpc.document.deleteAllFromProject.mutate(+project.id));
 };
 
-const removeTasks = (ids: string[], finish: (promises: (Promise<Boolean>[])) => void) => {
+const removeTasks = (
+  ids: string[],
+  finish: (promises: Promise<Boolean>[]) => void,
+) => {
   finish(ids.map((id) => $trpc.task.delete.mutate(+id)));
 };
-const removeAllTasks = (finish: (promises: (Promise<Boolean>)) => void) => {
+const removeAllTasks = (finish: (promises: Promise<Boolean>) => void) => {
   finish($trpc.task.deleteAllFromProject.mutate(project.id));
 };
 
@@ -905,9 +1220,12 @@ onMounted(async () => {
   if (!documentTable?.value?.total) activeTab.value = 1;
 });
 
-watch(() => documentTable?.value?.total, (newTotal) => {
-  if (newTotal) activeTab.value = 0;
-})
+watch(
+  () => documentTable?.value?.total,
+  (newTotal) => {
+    if (newTotal) activeTab.value = 0;
+  },
+);
 
 definePageMeta({
   middleware: [
@@ -929,4 +1247,5 @@ div.tabs-holder {
     @apply inline-block p-4 text-primary border-b-2 border-primary rounded-t-lg;
   }
 }
-</style>~/components/Labelsets.vue
+</style>
+~/components/Labelsets.vue
