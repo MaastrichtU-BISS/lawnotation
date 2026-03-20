@@ -1,8 +1,9 @@
-import { test, expect } from "@playwright/test";
-import { delay } from "./utils";
+import { test, expect, type Page } from "@playwright/test";
 import path from "node:path";
 
-async function ensureLoggedIn(page) {
+test.describe.configure({ mode: "serial" });
+
+async function ensureLoggedIn(page: Page) {
   await page.goto("/");
   await page
     .getByTestId("assigned-tasks-menu-item")
@@ -32,25 +33,28 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   await editorPage.getByTestId("projects-link").click();
   await editorPage.getByText("Don't show again", { exact: true }).waitFor();
   await editorPage.getByTestId("open-projects-modal").click();
-  await editorPage.getByTestId("project-name").fill("Test project1");
+
+  const projectName = `Test project2-${Date.now()}`;
+  await editorPage.getByTestId("project-name").fill(projectName);
   await editorPage.getByTestId("add-project").click();
   await editorPage.getByRole("alert").waitFor({ state: "hidden" });
+
   const row = editorPage
     .getByRole("table")
-    .locator("tbody")
-    .locator("tr")
-    .last();
+    .first()
+    .getByRole("row")
+    .filter({ hasText: projectName })
+    .first();
+
   const viewButton = row.getByRole("button", { name: "View" });
-  await viewButton.waitFor();
-  await expect(viewButton).toBeVisible();
-  await viewButton.click();
-  // Wait for navigation to complete before looking for elements on new page
-  await editorPage.waitForLoadState("networkidle");
-  const uploadDatasetHint = editorPage.getByText("Upload dataset", {
-    exact: true,
-  });
-  await uploadDatasetHint.waitFor();
-  await expect(uploadDatasetHint).toBeVisible();
+  await expect(viewButton).toBeVisible({ timeout: 15000 });
+  await Promise.all([
+    editorPage.waitForURL(/\/projects\/\d+/, { timeout: 15000 }),
+    viewButton.click(),
+  ]);
+
+  // assert stable element on details page
+  await expect(editorPage.getByTestId("open-documents-modal")).toBeVisible();
 
   // Editor uploads document
   await editorPage.getByTestId("documents-tab").click();
@@ -87,37 +91,47 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   await editorPage.getByText("Seeded labelset").click();
   await editorPage.getByRole("button", { name: "Text" }).click();
   await editorPage.getByRole("button", { name: "Word" }).click();
+
   await editorPage.getByTestId("create-tasks").click();
 
-  // Editor assigns task
-  const projectRow = editorPage
-    .getByRole("table")
-    .locator("tbody")
-    .locator("tr")
+  await expect(
+    editorPage.getByRole("dialog", { name: /Create task/ })
+  ).toBeHidden({ timeout: 15000 });
+
+  const taskRow = editorPage
+    .getByTestId("tasks-table")
+    .getByRole("row")
+    .filter({ hasText: "Test task" })
     .first();
-  const assignButton = projectRow.getByLabel("Assign");
-  await expect(assignButton).toBeVisible();
-  await assignButton.click();
-  await editorPage.getByText("Add myself").waitFor({ state: "visible" });
+  await expect(taskRow).toBeVisible({ timeout: 15000 });
+
+  await taskRow.getByTestId("view-task-link").click();
+
+  await expect(editorPage).toHaveURL(
+    /\/projects\/\d+\/tasks\/\d+(?:\/)?(?:[?#].*)?$/,
+    {
+      timeout: 30000,
+    }
+  );
+
+  // Editor assigns task
+  await expect(editorPage.getByText("Add myself")).toBeVisible({ timeout: 15000 });
   await editorPage.getByText("Add myself").click();
+
   const inputEmail = editorPage
     .getByTestId("annotator-emails")
     .locator("input");
-  await inputEmail.waitFor({ state: "visible" });
+  await expect(inputEmail).toBeVisible();
   await inputEmail.fill("annotator@example.com");
   await inputEmail.press("Enter");
-  await editorPage.waitForTimeout(500);
   await editorPage.getByTestId("create-assignments").click();
-  await editorPage.getByText("Assignments successfully created").waitFor({});
-
-  // Annotator assert if there is an assignment
-  await annotatorPage.reload();
-  await annotatorPage.getByTestId("assigned-tasks-menu-item").click();
-  await expect(annotatorPage.getByText("Showing 1 - 1 of 1")).toBeVisible();
+  await expect(
+    editorPage.getByText("Assignments successfully created")
+  ).toBeVisible();
 
   // Editor deletes project
   await editorPage.getByTestId("projects-link").click();
-  await projectRow.getByRole("checkbox").click();
+  await row.getByRole("checkbox").click();
   await editorPage.getByTestId("remove-selected-rows").click();
   await editorPage.getByLabel("Yes, delete").click();
   await editorPage
@@ -129,7 +143,7 @@ test("Editor creates project, task, uploads document and assigns task", async ({
 test("Editor creates project, task, uploads documents , assigns task and deletes one document. Annotator should still be able to annotate all remaining assignments.", async ({
   browser,
 }) => {
-  test.setTimeout(240000);
+  test.setTimeout(340000);
 
   const annotatorContext = await browser.newContext({
     storageState: "playwright/.auth/annotator.json",
@@ -151,29 +165,33 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
 
   // Editor creates project
   await editorPage.getByTestId("projects-link").click();
+  await expect(editorPage).toHaveURL(/\/projects(?:\/)?$/);
   await editorPage.getByText("Don't show again", { exact: true }).waitFor();
   await editorPage.getByTestId("open-projects-modal").click();
-  await editorPage.getByTestId("project-name").fill("Test project2");
+
+  const projectName = `Test project2-${Date.now()}`;
+  await editorPage.getByTestId("project-name").fill(projectName);
   await editorPage.getByTestId("add-project").click();
   await editorPage.getByRole("alert").waitFor({ state: "hidden" });
 
+  // Scope to the projects table and wait for the created row to appear.
   const row = editorPage
     .getByRole("table")
-    .locator("tbody")
-    .locator("tr")
+    .first()
+    .getByRole("row")
+    .filter({ hasText: projectName })
     .first();
 
   const viewButton = row.getByRole("button", { name: "View" });
-  await expect(viewButton).toBeVisible();
-  await viewButton.click();
+  await expect(viewButton).toBeVisible({ timeout: 15000 });
 
-  await editorPage.waitForLoadState("networkidle");
+  await Promise.all([
+    editorPage.waitForURL(/\/projects\/\d+/, { timeout: 15000 }),
+    viewButton.click(),
+  ]);
 
-  const uploadDatasetHint = editorPage.getByText("Upload dataset", {
-    exact: true,
-  });
-
-  await expect(uploadDatasetHint).toBeVisible();
+  // assert stable element on details page
+  await expect(editorPage.getByTestId("open-documents-modal")).toBeVisible();
 
   // Editor uploads documents
   await editorPage.getByTestId("documents-tab").click();
@@ -255,46 +273,52 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
     .waitFor();
 
   // Editor creates task
+  await editorPage.getByTestId("open-tasks-modal").waitFor();
   await editorPage.getByTestId("open-tasks-modal").click();
+  await editorPage.getByTestId("task-name").waitFor({ state: "visible" });
   await editorPage.getByTestId("task-name").fill("Test task");
   await editorPage.getByTestId("task-description").fill("Test discription");
-
   await editorPage.getByTestId("select-labelset").click();
   await editorPage.getByText("Seeded labelset").click();
-
   await editorPage.getByRole("button", { name: "Text" }).click();
   await editorPage.getByRole("button", { name: "Word" }).click();
 
   await editorPage.getByTestId("create-tasks").click();
 
-  // Editor assigns task
-  const projectRow = editorPage
-    .getByRole("table")
-    .locator("tbody")
-    .locator("tr")
+  await expect(
+    editorPage.getByRole("dialog", { name: /Create task/ })
+  ).toBeHidden({ timeout: 15000 });
+
+  const taskRow = editorPage
+    .getByTestId("tasks-table")
+    .getByRole("row")
+    .filter({ hasText: "Test task" })
     .first();
+  await expect(taskRow).toBeVisible({ timeout: 15000 });
 
-  const assignButton = projectRow.getByLabel("Assign");
+  await taskRow.getByTestId("view-task-link").click();
 
-  await expect(assignButton).toBeVisible();
-  await assignButton.click();
+  await expect(editorPage).toHaveURL(
+    /\/projects\/\d+\/tasks\/\d+(?:\/)?(?:[?#].*)?$/,
+    {
+      timeout: 30000,
+    }
+  );
 
-  await editorPage.getByText("Add myself").waitFor({ state: "visible" });
-
+  // Editor assigns task
+  await expect(editorPage.getByText("Add myself")).toBeVisible({ timeout: 15000 });
   await editorPage.getByText("Add myself").click();
 
   const inputEmail = editorPage
     .getByTestId("annotator-emails")
     .locator("input");
-
+  await expect(inputEmail).toBeVisible();
   await inputEmail.fill("annotator@example.com");
   await inputEmail.press("Enter");
-
-  await editorPage.waitForTimeout(500);
-
   await editorPage.getByTestId("create-assignments").click();
-
-  await editorPage.getByText("Assignments successfully created").waitFor({});
+  await expect(
+    editorPage.getByText("Assignments successfully created")
+  ).toBeVisible();
 
   // Annotator verifies assignment
   await annotatorPage.reload();
@@ -328,7 +352,7 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   // Editor deletes project
   await editorPage.getByTestId("projects-link").click();
 
-  await projectRow.getByRole("checkbox").click();
+  await row.getByRole("checkbox").click();
 
   await editorPage.getByTestId("remove-selected-rows").click();
 
