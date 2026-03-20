@@ -398,7 +398,7 @@ import { PublicationStatus } from "~/types"
 import { isDocumentLevel } from "~/utils/levels";
 import Multiselect from "primevue/multiselect";
 import Table from "~/components/Table.vue";
-import * as _ from "lodash";
+import { shuffle, clone } from "es-toolkit"
 import { authorizeClient } from "~/utils/authorize.client";
 import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
@@ -655,12 +655,12 @@ const createAssignments = async () => {
     loading.value = true;
     if (!task) throw new Error("Task not found");
 
-    let sharedDocs = _.clone(selectedSharedDocuments.value);
-    let uniqueDocs = _.clone(selectedTotalDocuments.value.filter(x => !selectedSharedDocuments.value.includes(x)));
+    let sharedDocs = clone(selectedSharedDocuments.value);
+    let uniqueDocs = clone(selectedTotalDocuments.value.filter(x => !selectedSharedDocuments.value.includes(x)));
 
-    if(randomizationSelected.value != RandomizationOptions.NONE) {
-      sharedDocs = _.shuffle(sharedDocs);
-      uniqueDocs = _.shuffle(uniqueDocs);
+    if (randomizationSelected.value != RandomizationOptions.NONE) {
+      sharedDocs = shuffle(clone(sharedDocs));
+      uniqueDocs = shuffle(clone(uniqueDocs));
     }
 
     const docs = sharedDocs.concat(uniqueDocs);
@@ -710,9 +710,9 @@ const createAssignments = async () => {
     const permutations = [];
     for (let i = 0; i < annotators_id.length; ++i) {
       if (randomizationSelected.value == RandomizationOptions.FULL) {
-        permutations.push(_.shuffle(_.clone(unshuffled)));
+        permutations.push(shuffle(clone(unshuffled)));
       } else {
-        permutations.push(_.clone(unshuffled));
+        permutations.push(clone(unshuffled));
       }
     }
 
