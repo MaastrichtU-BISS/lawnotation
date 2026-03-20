@@ -13,13 +13,13 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: "html",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -40,18 +40,39 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
       dependencies: ["editor auth setup"],
+      testIgnore: [
+        "**/setup/*.ts",
+        "**/01-assignments-loggedin.spec.ts",
+        "**/02-labelsets-loggedin.spec.ts",
+        "**/03-projects-loggedin.spec.ts",
+        "**/04-not-loggedin.spec.ts",
+      ],
     },
 
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
       dependencies: ["editor auth setup"],
+      testIgnore: [
+        "**/setup/*.ts",
+        "**/01-assignments-loggedin.spec.ts",
+        "**/02-labelsets-loggedin.spec.ts",
+        "**/03-projects-loggedin.spec.ts",
+        "**/04-not-loggedin.spec.ts",
+      ],
     },
 
     {
       name: "webkit",
       use: { ...devices["Desktop Safari"] },
       dependencies: ["editor auth setup"],
+      testIgnore: [
+        "**/setup/*.ts",
+        "**/01-assignments-loggedin.spec.ts",
+        "**/02-labelsets-loggedin.spec.ts",
+        "**/03-projects-loggedin.spec.ts",
+        "**/04-not-loggedin.spec.ts",
+      ],
     },
     {
       name: "db setup",
@@ -68,13 +89,15 @@ export default defineConfig({
       dependencies: ["annotator auth setup"],
     },
     {
-      name: "e2e tests logged in",
-      testMatch: "**/*-loggedin.spec.ts",
+      name: "logged in flow",
+      testMatch: [
+        "**/01-assignments-loggedin.spec.ts",
+        "**/02-labelsets-loggedin.spec.ts",
+        "**/03-projects-loggedin.spec.ts",
+        "**/04-not-loggedin.spec.ts",
+      ],
       dependencies: ["editor auth setup"],
-      // use: {
-      //   storageState: 'playwright/.auth/editor.json',
-      // },
-    },
+    }
     // this project runs all tests except ones for logged in
     // {
     //   name: 'e2e tests',
