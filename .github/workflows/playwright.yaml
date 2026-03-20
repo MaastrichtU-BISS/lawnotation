@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - playwright
+      - feat-upgrade-packages
   pull_request:
 
 jobs:
