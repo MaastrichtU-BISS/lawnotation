@@ -38,6 +38,7 @@ test("editor creates project, task, a new labelset and edits project and task", 
   // Editor creates task
   await editorPage.getByTestId("tasks-tab").click();
   await editorPage.getByTestId("open-tasks-modal").click();
+  await editorPage.getByRole("tab", { name: "New" }).click();
   await editorPage.getByTestId("task-name").fill("Test");
   await editorPage
     .getByTestId("task-description")

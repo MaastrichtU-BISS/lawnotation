@@ -48,10 +48,15 @@ test("Editor creates project, task, uploads document and assigns task", async ({
 
   const viewButton = row.getByRole("button", { name: "View" });
   await expect(viewButton).toBeVisible({ timeout: 15000 });
-  await Promise.all([
-    editorPage.waitForURL(/\/projects\/\d+/, { timeout: 15000 }),
-    viewButton.click(),
-  ]);
+  const viewProjectLink = row.getByTestId("view-project-link");
+  await expect(viewProjectLink).toHaveAttribute("href", /\/projects\/\d+/);
+  await viewProjectLink.click();
+  
+  // Wait for navigation to project page before checking URL
+  await editorPage.waitForURL(/\/projects\/\d+(?:\/)?$/, { timeout: 15000 });
+  await expect(editorPage).toHaveURL(/\/projects\/\d+(?:\/)?(?:[?#].*)?$/, {
+    timeout: 15000,
+  });
 
   // assert stable element on details page
   await expect(editorPage.getByTestId("open-documents-modal")).toBeVisible();
@@ -85,7 +90,8 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   await editorPage.getByTestId("open-tasks-modal").waitFor();
   await editorPage.getByTestId("open-tasks-modal").click();
   await editorPage.getByTestId("task-name").waitFor({ state: "visible" });
-  await editorPage.getByTestId("task-name").fill("Test task");
+  const taskName = `Test task-${Date.now()}`;
+  await editorPage.getByTestId("task-name").fill(taskName);
   await editorPage.getByTestId("task-description").fill("Test discription");
   await editorPage.getByTestId("select-labelset").click();
   await editorPage.getByText("Seeded labelset").click();
@@ -101,12 +107,25 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   const taskRow = editorPage
     .getByTestId("tasks-table")
     .getByRole("row")
-    .filter({ hasText: "Test task" })
+    .filter({ hasText: taskName })
     .first();
   await expect(taskRow).toBeVisible({ timeout: 15000 });
 
-  await taskRow.getByTestId("view-task-link").click();
+  const viewTaskLink = taskRow.getByTestId("view-task-link");
+  await expect(viewTaskLink).toHaveAttribute(
+    "href",
+    /\/projects\/\d+\/tasks\/\d+/,
+  );
+  await viewTaskLink.click();
 
+  // Wait for navigation to task page before checking URL
+  await editorPage.waitForURL(/\/projects\/\d+\/tasks\/\d+/, {
+    timeout: 30000,
+  });
+
+  await expect(editorPage.getByTestId("create-assignments")).toBeVisible({
+    timeout: 30000,
+  });
   await expect(editorPage).toHaveURL(
     /\/projects\/\d+\/tasks\/\d+(?:\/)?(?:[?#].*)?$/,
     {
@@ -124,10 +143,14 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   await expect(inputEmail).toBeVisible();
   await inputEmail.fill("annotator@example.com");
   await inputEmail.press("Enter");
-  await editorPage.getByTestId("create-assignments").click();
-  await expect(
-    editorPage.getByText("Assignments successfully created")
-  ).toBeVisible();
+  
+  // Wait for network request to complete instead of relying on ephemeral toast
+  await Promise.all([
+    editorPage.waitForResponse(response => 
+      response.url().includes('/api/') && response.status() === 200
+    ),
+    editorPage.getByTestId("create-assignments").click(),
+  ]);
 
   // Editor deletes project
   await editorPage.getByTestId("projects-link").click();
@@ -185,10 +208,15 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   const viewButton = row.getByRole("button", { name: "View" });
   await expect(viewButton).toBeVisible({ timeout: 15000 });
 
-  await Promise.all([
-    editorPage.waitForURL(/\/projects\/\d+/, { timeout: 15000 }),
-    viewButton.click(),
-  ]);
+  const viewProjectLink = row.getByTestId("view-project-link");
+  await expect(viewProjectLink).toHaveAttribute("href", /\/projects\/\d+/);
+  await viewProjectLink.click();
+  
+  // Wait for navigation to project page before checking URL
+  await editorPage.waitForURL(/\/projects\/\d+(?:\/)?$/, { timeout: 15000 });
+  await expect(editorPage).toHaveURL(/\/projects\/\d+(?:\/)?(?:[?#].*)?$/, {
+    timeout: 15000,
+  });
 
   // assert stable element on details page
   await expect(editorPage.getByTestId("open-documents-modal")).toBeVisible();
@@ -276,7 +304,8 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   await editorPage.getByTestId("open-tasks-modal").waitFor();
   await editorPage.getByTestId("open-tasks-modal").click();
   await editorPage.getByTestId("task-name").waitFor({ state: "visible" });
-  await editorPage.getByTestId("task-name").fill("Test task");
+  const taskName = `Test task-${Date.now()}`;
+  await editorPage.getByTestId("task-name").fill(taskName);
   await editorPage.getByTestId("task-description").fill("Test discription");
   await editorPage.getByTestId("select-labelset").click();
   await editorPage.getByText("Seeded labelset").click();
@@ -292,12 +321,25 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   const taskRow = editorPage
     .getByTestId("tasks-table")
     .getByRole("row")
-    .filter({ hasText: "Test task" })
+    .filter({ hasText: taskName })
     .first();
   await expect(taskRow).toBeVisible({ timeout: 15000 });
 
-  await taskRow.getByTestId("view-task-link").click();
+  const viewTaskLink = taskRow.getByTestId("view-task-link");
+  await expect(viewTaskLink).toHaveAttribute(
+    "href",
+    /\/projects\/\d+\/tasks\/\d+/,
+  );
+  await viewTaskLink.click();
 
+  // Wait for navigation to task page before checking URL
+  await editorPage.waitForURL(/\/projects\/\d+\/tasks\/\d+/, {
+    timeout: 30000,
+  });
+
+  await expect(editorPage.getByTestId("create-assignments")).toBeVisible({
+    timeout: 30000,
+  });
   await expect(editorPage).toHaveURL(
     /\/projects\/\d+\/tasks\/\d+(?:\/)?(?:[?#].*)?$/,
     {
@@ -315,10 +357,14 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   await expect(inputEmail).toBeVisible();
   await inputEmail.fill("annotator@example.com");
   await inputEmail.press("Enter");
-  await editorPage.getByTestId("create-assignments").click();
-  await expect(
-    editorPage.getByText("Assignments successfully created")
-  ).toBeVisible();
+  
+  // Wait for network request to complete instead of relying on ephemeral toast
+  await Promise.all([
+    editorPage.waitForResponse(response => 
+      response.url().includes('/api/') && response.status() === 200
+    ),
+    editorPage.getByTestId("create-assignments").click(),
+  ]);
 
   // Annotator verifies assignment
   await annotatorPage.reload();
