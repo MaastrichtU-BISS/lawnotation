@@ -15,12 +15,10 @@
 
   <div v-if="project">
     <GuidancePanel :currentStep="currentGuidanceStep" />
-    <TabView v-model:activeIndex="activeTab">
-      <TabPanel
-        :pt="{
-          headeraction: { 'data-test': 'tasks-tab' },
-        }"
-      >
+    <TabView v-model:activeIndex="activeTab" @tab-click="onTabClick">
+      <TabPanel :pt="{
+        headeraction: { 'data-test': 'tasks-tab' }
+      }">
         <template #header>
           <div class="flex gap-3 items-center h-6">
             <span class="leading-none whitespace-nowrap">Tasks</span>
@@ -35,16 +33,9 @@
             <div data-test="tasks-table">
               <div class="flex justify-end">
                 <div class="relative">
-                  <Button
-                    label="Add"
-                    icon="pi pi-plus"
-                    @click="showCreateTaskModal = true"
-                    icon-pos="right"
-                    data-test="open-tasks-modal"
-                  />
-                  <PulsingRedCircle
-                    v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK"
-                  />
+                  <Button label="Add task" icon="pi pi-plus" @click="openCreateTaskModal()" icon-pos="right"
+                    data-test="open-tasks-modal" />
+                  <PulsingRedCircle v-if="currentGuidanceStep == GuidanceSteps.CREATE_TASK" />
                 </div>
               </div>
               <Table
@@ -406,11 +397,8 @@
                       </div>
                     </div>
                   </TabPanel>
-                  <TabPanel header="Labelset">
-                    <Labelset
-                      v-model="labelset"
-                      @labelset-persisted="refreshLabelsets"
-                    />
+                  <TabPanel header="Labelset" :disabled="!documentTable?.total">
+                    <Labelset v-model="labelset" @labelset-persisted="refreshLabelsets" />
                   </TabPanel>
                 </TabView>
               </Dialog>
@@ -440,7 +428,9 @@
             v-model="upload_docs_progress"
           />
           <div class="dimmer-content">
-            <div class="flex justify-end pt-2">
+            <div class="flex justify-end gap-4 pt-2">
+              <Button label="Import task(s)" outlined icon="pi pi-plus" @click="activeTab = 0; openCreateTaskModal(1)"
+                icon-pos="right" data-test="open-import-task-modal" />
               <div class="relative">
                 <Button
                   label="Add"
@@ -560,6 +550,15 @@
             </TabPanel>
           </TabView>
         </Dialog>
+      </TabPanel>
+      <TabPanel :pt="{
+        headeraction: { 'data-test': 'edit-tab' }
+      }">
+        <template #header>
+          <div class="flex gap-3 items-center h-6">
+            <span class="leading-none whitespace-nowrap">Edit</span>
+          </div>
+        </template>
       </TabPanel>
     </TabView>
   </div>
@@ -708,6 +707,12 @@ const currentGuidanceStep = computed(() => {
   }
   return GuidanceSteps.NONE;
 });
+
+const openCreateTaskModal = (tabIndex?: number) => {
+  if (tabIndex) activeTabTaskModal.value = tabIndex;
+  if (!documentTable.value?.total) activeTabTaskModal.value = 1;
+  showCreateTaskModal.value = true;
+};
 
 const addMyself = () => {
   if (!isMyselfAdded.value) {
@@ -923,6 +928,11 @@ const createTask = () => {
     return;
   }
 
+  if (!Object.values(AnnotationLevels).includes(new_task.annotation_level)) {
+    $toast.error("Task must have an annotation granularity");
+    return;
+  }
+
   try {
     // For some reason casting as Omit<Task, "id"> is necessary here.
     $trpc.task.create
@@ -942,11 +952,11 @@ const createTask = () => {
   }
 };
 
-watch(showCreateTaskModal, (new_val) => {
-  if (new_val) {
-    resetModal();
-  }
-});
+// watch(showCreateTaskModal, (new_val) => {
+//   if (new_val) {
+//     resetModal();
+//   }
+// });
 
 const resetModal = () => {
   uploadHasStarted.value = false;
@@ -1212,6 +1222,14 @@ const removeTasks = (
 };
 const removeAllTasks = (finish: (promises: Promise<Boolean>) => void) => {
   finish($trpc.task.deleteAllFromProject.mutate(project.id));
+};
+
+const onTabClick = (event: { index: number; }) => {
+  if (event.index === 2) {
+    navigateTo(`/projects/${route.params.project_id}/edit`);
+    return;
+  }
+  activeTab.value = event.index;
 };
 
 onMounted(async () => {
