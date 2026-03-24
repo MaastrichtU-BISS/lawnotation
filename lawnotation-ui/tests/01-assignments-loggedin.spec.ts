@@ -219,7 +219,9 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   });
 
   // assert stable element on details page
-  await expect(editorPage.getByTestId("open-documents-modal")).toBeVisible();
+  await expect(editorPage.getByTestId("open-documents-modal")).toBeVisible({
+    timeout: 15000,
+  });
 
   // Editor uploads documents
   await editorPage.getByTestId("documents-tab").click();
@@ -275,9 +277,11 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
     .waitFor({ state: "hidden" });
   await editorPage.waitForTimeout(500);
   const documentsTab = editorPage.getByRole("tab", { name: "Documents" });
-  await documentsTab.click({ force: true });
+  await documentsTab.click();
+  await expect(documentsTab).toHaveAttribute("aria-selected", "true", {
+    timeout: 15000,
+  });
   await editorPage.getByRole("table").waitFor({ state: "visible" });
-  await expect(documentsTab).toHaveAttribute("aria-selected", "true");
   await editorPage.waitForTimeout(300);
   await editorPage
     .getByTestId("checkbox")
@@ -311,32 +315,25 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   await editorPage.getByText("Seeded labelset").click();
   await editorPage.getByRole("button", { name: "Text" }).click();
   await editorPage.getByRole("button", { name: "Word" }).click();
-
   await editorPage.getByTestId("create-tasks").click();
-
   await expect(
     editorPage.getByRole("dialog", { name: /Create task/ })
   ).toBeHidden({ timeout: 15000 });
-
   const taskRow = editorPage
     .getByTestId("tasks-table")
     .getByRole("row")
     .filter({ hasText: taskName })
     .first();
   await expect(taskRow).toBeVisible({ timeout: 15000 });
-
   const viewTaskLink = taskRow.getByTestId("view-task-link");
   await expect(viewTaskLink).toHaveAttribute(
     "href",
     /\/projects\/\d+\/tasks\/\d+/,
   );
   await viewTaskLink.click();
-
-  // Wait for navigation to task page before checking URL
   await editorPage.waitForURL(/\/projects\/\d+\/tasks\/\d+/, {
     timeout: 30000,
   });
-
   await expect(editorPage.getByTestId("create-assignments")).toBeVisible({
     timeout: 30000,
   });
@@ -358,7 +355,6 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   await inputEmail.fill("annotator@example.com");
   await inputEmail.press("Enter");
   
-  // Wait for network request to complete instead of relying on ephemeral toast
   await Promise.all([
     editorPage.waitForResponse(response => 
       response.url().includes('/api/') && response.status() === 200
@@ -369,24 +365,24 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   // Annotator verifies assignment
   await annotatorPage.reload();
   await annotatorPage.getByTestId("assigned-tasks-menu-item").click();
-
   await expect(annotatorPage.getByText("Showing 1 - 1 of 1")).toBeVisible();
-
   await annotatorPage.getByTestId("view-task-link").click();
+  await annotatorPage.waitForURL(/\/tasks\/\d+(?:\/)?/, {
+    timeout: 30000,
+  });
 
   // Annotator annotates text
+  await annotatorPage.getByTestId("annotate-next-assignment-button").waitFor({
+    state: "visible",
+    timeout: 15000,
+  });
   await annotatorPage.getByTestId("annotate-next-assignment-button").click();
-
   const annotateSentence = annotatorPage
     .locator(".lsf-richtext__container.lsf-htx-richtext")
     .first();
-
   await annotateSentence.click({ position: { x: 0, y: 0 } });
-
   await annotatorPage.mouse.down();
-
   const box = await annotateSentence.boundingBox();
-
   if (box) {
     await annotatorPage.mouse.move(box.x + box.width, box.y + 5, {
       steps: 10,
@@ -397,13 +393,9 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
 
   // Editor deletes project
   await editorPage.getByTestId("projects-link").click();
-
   await row.getByRole("checkbox").click();
-
   await editorPage.getByTestId("remove-selected-rows").click();
-
   await editorPage.getByLabel("Yes, delete").click();
-
   await editorPage
     .getByRole("alert")
     .getByText("Items succesfully removed")
