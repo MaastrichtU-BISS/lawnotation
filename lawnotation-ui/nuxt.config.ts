@@ -21,6 +21,39 @@ const customPreset = definePreset(Lara, {
       950: "#05283e",
     },
   },
+  components: {
+    tabs: {
+      tablist: {
+        borderColor: "{surface.300}",
+        borderWidth: "0 0 1px 0",
+      },
+      tab: {
+        color: "{surface.600}",
+        hoverColor: "{primary.300}",
+        activeColor: "{primary.700}",
+        borderWidth: "0 0 2px 0",
+        borderColor: "transparent",
+        activeBorderColor: "{primary.600}",
+        padding: "12px 16px",
+      },
+      colorScheme: {
+        light: {
+          tab: {
+            background: "white",
+            hoverBackground: "white",
+            activeBackground: "white",
+          },
+        },
+      },
+      activeBar: {
+        height: "0",
+        background: "transparent",
+      },
+      tabpanel: {
+        padding: "16px 0 0 0",
+      },
+    },
+  },
 });
 
 export default defineNuxtConfig({
