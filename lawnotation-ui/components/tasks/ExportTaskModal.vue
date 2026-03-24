@@ -5,24 +5,29 @@
     :draggable="false"
     :pt="{
       root: '!w-[80vw] xl:!w-[50vw]',
-      header: '!items-start gap-3',
     }"
     :ptOptions="{ mergeProps: true }"
   >
     <template #header>
       <Stepper
-        v-model:activeStep="active"
+        v-model:value="active"
         linear
-        :pt="{ panelContainer: '' }"
-        :ptOptions="{ mergeProps: false }"
+        class="w-full"
       >
-        <StepperPanel header="Exporting your task" />
-        <StepperPanel header="Instructions" />
-        <StepperPanel header="Publishing your task" />
+        <StepList>
+          <Step value="1">Exporting your task</Step> 
+          <Step value="2">Instructions</Step>
+          <Step value="3">Publishing your task</Step>
+        </StepList>
       </Stepper>
     </template>
-    <div class="items-center justify-center">
-      <div v-if="active === 0" id="export-step-1">
+
+    <Stepper
+      v-model:value="active"
+      linear
+    >
+      <StepPanels>
+        <StepPanel v-slot="{ activateCallback }" value="1">
         <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
           Select what you want to include in your export:
         </h3>
@@ -140,7 +145,7 @@
           />
           <Button
             type="button"
-            @click="active++"
+            @click="activateCallback('2')"
             label="Start publishing"
             icon="pi pi-arrow-right"
             iconPos="right"
@@ -149,8 +154,8 @@
             data-test="start-publishing-button"
           />
         </div>
-      </div>
-      <div v-else-if="active === 1">
+      </StepPanel>
+      <StepPanel v-slot="{ activateCallback }" value="2">
         <h3 class="mb-0">Storing your data</h3>
         <p>
           Lawnotation does not store data for publishing, you will need to do this
@@ -169,7 +174,7 @@
         <div class="flex justify-between my-5">
           <Button
             type="button"
-            @click="active--"
+            @click="activateCallback('1')"
             label="Back"
             icon="pi pi-arrow-left"
             outlined
@@ -177,15 +182,16 @@
           />
           <Button
             type="button"
-            @click="active++"
+            @click="activateCallback('3')"
             label="Continue publishing"
             icon="pi pi-arrow-right"
             iconPos="right"
             data-test="continue-button"
           />
         </div>
-      </div>
-      <form v-else-if="active === 2" id="export-step-2" @submit.prevent="publish">
+      </StepPanel>
+      <StepPanel v-slot="{ activateCallback }" value="3">
+      <form @submit.prevent="publish">
         <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
           Include metadata to make your results be discoverable within the platform.
         </h3>
@@ -327,7 +333,7 @@
         <div class="flex justify-between my-5">
           <Button
             type="button"
-            @click="active--"
+            @click="activateCallback('2')"
             label="Back"
             icon="pi pi-arrow-left"
             outlined
@@ -350,7 +356,9 @@
           />
         </div>
       </form>
-    </div>
+      </StepPanel>
+      </StepPanels>
+    </Stepper>
   </Dialog>
 </template>
 <script setup lang="ts">
@@ -367,7 +375,7 @@ const exportModalVisible = defineModel<boolean>("exportModalVisible", { required
 
 const { $toast, $trpc } = useNuxtApp();
 
-const active = ref<number>(0);
+const active = ref<string>("1");
 
 const emit = defineEmits(["export", "close"]);
 
