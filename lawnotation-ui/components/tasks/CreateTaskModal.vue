@@ -45,7 +45,7 @@
           </span>
         </div>
         <div class="flex items-center pb-4">
-          <Dropdown v-model="newTask.labelset_id" :options="labelsets" filter optionLabel="name"
+          <Select v-model="newTask.labelset_id" :options="labelsets" filter optionLabel="name"
             option-value="id" placeholder="Select Labelset" class="w-full md:w-1/2"
             data-test="select-labelset" @update:model-value="handleLabelsetSelection($event)" />
           <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
@@ -58,7 +58,7 @@
               making it better
             </p>
           </div>
-          <Dropdown data-test="select-mlModel" v-model="newTask.ml_model_id" :options="models" filter
+          <Select data-test="select-mlModel" v-model="newTask.ml_model_id" :options="models" filter
             disabled optionLabel="name" option-value="id" placeholder="Select Model (Optional)"
             class="w-full" @update:model-value="modelSelected($event)" :show-clear="true" />
         </div>
@@ -179,6 +179,7 @@ import type { Task, Labelset as LabelsetType, MlModel } from "~/types";
 import Labelset from "~/components/labels/Labelset.vue";
 import { AnnotationLevels, AssignmentStatuses } from "~/utils/enums";
 import type { TaskImportPayload } from "~/composables/useTaskImport";
+import Select from "primevue/select";
 import SelectButton from "primevue/selectbutton";
 import Tabs from "primevue/tabs";
 import TabList from "primevue/tablist";
