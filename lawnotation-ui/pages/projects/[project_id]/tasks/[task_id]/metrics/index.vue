@@ -27,10 +27,13 @@
           class="fixed left-0 z-40 w-80 side-panel-h transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
           aria-label="Sidebar" style="margin-top: inherit">
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
-            <TabView v-model:activeIndex="metricsTypeActiveTab" v-on:update:active-index="updateUrl($event)">
-              <TabPanel header="Descriptive" :pt="{
-                headerAction: '!py-3',
-              }" :ptOptions="{ mergeProps: true }">
+            <Tabs v-model:value="metricsTypeActiveTab" @update:value="updateUrl($event)">
+              <TabList>
+                <Tab :value="0" class="!py-3">Descriptive</Tab>
+                <Tab :value="1" :disabled="annotatorsOptions.length < 2" class="!py-3">Agreement</Tab>
+              </TabList>
+              <TabPanels>
+              <TabPanel :value="0">
                 <ParametersColumn :metric-type="MetricTypes.DESCRIPTIVE" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="allDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="false" v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
@@ -39,9 +42,7 @@
                   @update-annotations="updateAnnotations">
                 </ParametersColumn>
               </TabPanel>
-              <TabPanel header="Agreement" :disabled="annotatorsOptions.length < 2" :pt="{
-                headerAction: '!py-3',
-              }" :ptOptions="{ mergeProps: true }">
+              <TabPanel :value="1">
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="documentsOptions"
                   :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)" :is-merged-task="isMergedTask"
@@ -54,7 +55,8 @@
                   @update-annotations="updateAnnotations" @merge-tasks="mergeTasks($event)">
                 </ParametersColumn>
               </TabPanel>
-            </TabView>
+              </TabPanels>
+            </Tabs>
           </div>
         </aside>
         <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations"
@@ -67,6 +69,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import Breadcrumb from "~/components/Breadcrumb.vue";
 import AnnotationsList from "~/components/metrics/AnnotationsList.vue";
 import ResultsModal from "~/components/metrics/ResultsModal.vue";
 import ParametersColumn from "~/components/metrics/ParametersColumn.vue";
