@@ -7,7 +7,8 @@
                 <h3 class="my-3 text-sm font-semibold">
                     ECLIs provided: {{ eclis.length }}
                 </h3>
-                <AutoComplete class="w-full" v-model="eclis" multiple :typeahead="false" :suggestions="[]" :pt="{
+                <label for="eclis-input" class="sr-only">ECLI input</label>
+                <AutoComplete class="w-full" inputId="eclis-input" v-model="eclis" multiple :typeahead="false" :suggestions="[]" :pt="{
                     input: {
                         'data-test': 'eclis'
                     },

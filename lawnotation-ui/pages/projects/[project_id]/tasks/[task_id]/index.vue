@@ -285,7 +285,7 @@
                 }
               }" />
             </div>
-            <Accordion value="0">
+            <Accordion value="">
               <AccordionPanel value="0">
                 <AccordionHeader>Advanced Settings</AccordionHeader>
                 <AccordionContent>
