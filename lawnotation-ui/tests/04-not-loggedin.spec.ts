@@ -31,15 +31,11 @@ test("Not logged in user goes to documentation and downloads an ECLI", async ({ 
 
   await expect(page.getByText("Provide ECLIs", { exact: true })).toBeVisible();
 
-  const eclisInput = page.getByTestId("eclis").getByRole("textbox");
+  const eclisInput = page.getByLabel("ECLI input");
   await expect(eclisInput).toBeEditable();
 
   await eclisInput.fill("ECLI:NL:RBLIM:2023:7197");
   await eclisInput.press("Enter");
-
-  const option = page.getByRole("option", { name: "ECLI:NL:RBLIM:2023:7197" }).first();
-  await expect(option).toBeVisible({ timeout: 15000 });
-  await option.click();
 
   const counterLocator = page.getByText(/ECLIs provided:/);
   await expect(counterLocator).toContainText(/ECLIs provided:\s*1/);

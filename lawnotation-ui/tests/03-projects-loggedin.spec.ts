@@ -38,53 +38,49 @@ test("editor creates project, task, a new labelset and edits project and task", 
   // Editor creates task
   await editorPage.getByTestId("tasks-tab").click();
   await editorPage.getByTestId("open-tasks-modal").click();
-  await editorPage.getByRole("tab", { name: "New" }).click();
-  await editorPage.getByTestId("task-name").fill("Test");
-  await editorPage
+  const taskDialog = editorPage.getByRole("dialog", { name: "Create task" });
+  await expect(taskDialog).toBeVisible();
+  await taskDialog.getByRole("tab", { name: "New" }).click();
+  await taskDialog.getByTestId("task-name").fill("Test");
+  await taskDialog
     .getByTestId("task-description")
     .fill("This is a test description");
-  await editorPage.getByRole("button", { name: "text" }).click();
-  await editorPage.getByRole("button", { name: "symbol" }).click();
+  await taskDialog.getByRole("button", { name: "text" }).click();
+  await taskDialog.getByRole("button", { name: "symbol" }).click();
 
   // Editor creates labelset
-  await editorPage.getByTestId("create-new-labelset").click();
-  await editorPage.getByTestId("labelset-description").click();
-  await editorPage.getByTestId("labelset-name").fill("labelset test");
-  await editorPage.getByTestId("labelset-description").fill("test");
-  await editorPage.getByTestId("label-name").fill("First");
-  await editorPage.getByTestId("add-label").click();
-  await editorPage.getByTestId("label-name").fill("Second");
-  await editorPage.getByTestId("add-label").click();
-  await editorPage.getByTestId("label-name").fill("Third");
-  await editorPage.getByTestId("add-label").click();
-  await editorPage.getByTestId("save-labelset").click();
-
-  // Wait for labelset to be saved and refreshed in dropdown
+  await taskDialog.getByTestId("create-new-labelset").click();
+  await taskDialog.getByTestId("labelset-description").click();
+  await taskDialog.getByTestId("labelset-name").fill("labelset test");
+  await taskDialog.getByTestId("labelset-description").fill("test");
+  await taskDialog.getByTestId("label-name").fill("First");
+  await taskDialog.getByTestId("add-label").click();
+  await taskDialog.getByTestId("label-name").fill("Second");
+  await taskDialog.getByTestId("add-label").click();
+  await taskDialog.getByTestId("label-name").fill("Third");
+  await taskDialog.getByTestId("add-label").click();
+  await taskDialog.getByTestId("save-labelset").click();
   await expect(editorPage.getByRole("alert").getByText(/created/i)).toBeVisible(
     { timeout: 10000 },
   );
-
-  // Wait a moment for the dropdown to be updated with the new labelset
   await editorPage.waitForTimeout(500);
 
   // Now select the labelset from dropdown
-  await editorPage.getByTestId("select-labelset").click();
-  await editorPage
-    .getByRole("option", { name: "labelset test" })
-    .waitFor({ state: "visible", timeout: 5000 });
-  await editorPage.getByRole("option", { name: "labelset test" }).click();
-
-  // Wait for dropdown to close and selection to be applied
-  await editorPage.waitForTimeout(1000);
-
-  // Verify the labelset is selected by checking the dropdown now shows it
-  await expect(editorPage.getByTestId("select-labelset")).toContainText(
+  await taskDialog.getByTestId("select-labelset").click();
+  const labelsetOption = editorPage.getByRole("option", { name: "labelset test" });
+  await expect(labelsetOption).toBeVisible({ timeout: 5000 });
+  await labelsetOption.click();
+  await expect(taskDialog.getByTestId("select-labelset")).toContainText(
     "labelset test",
   );
 
-  await editorPage.getByTestId("create-tasks").click();
+  const symbolGranularity = taskDialog.getByRole("button", { name: "symbol", exact: true });
+  await symbolGranularity.click();
+  await expect(symbolGranularity).toHaveAttribute("aria-pressed", "true");
 
-  // Wait for task to be created and appear in the table
+  await taskDialog.getByTestId("create-tasks").click();
+  await expect(taskDialog).toBeHidden({ timeout: 10000 });
+  await editorPage.waitForLoadState("networkidle");
   await editorPage.getByRole("table").locator("tbody tr").first().waitFor();
 
   // Editor edits a task
@@ -97,16 +93,10 @@ test("editor creates project, task, a new labelset and edits project and task", 
   await expect(editsButton).toBeVisible();
   await editsButton.click();
   await editorPage.getByTestId("task-name").fill("Task test");
-
-  // Re-select the labelset in edit form to ensure it's properly set
   await editorPage.getByRole("combobox").click();
   await editorPage.getByRole("option", { name: "labelset test" }).click();
-
   await editorPage.getByTestId("save-changes-button").click();
-  // Wait for dialog to close - the meaningful state change that indicates save completed
   await editorPage.getByRole("dialog").waitFor({ state: "hidden" });
-
-  // Navigate back to project page to verify task edit was successful
   await editorPage.getByTestId("projects-link").click();
 
   // Editor edits project
