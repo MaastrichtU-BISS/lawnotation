@@ -1,5 +1,5 @@
 <template>
-    <div class="mx-auto md:w-1/2">
+    <div class="mx-auto md:w-1/2 w-full">
         <div class="dimmer-wrapper">
             <Dimmer v-model="loading" />
             <div class="dimmer-content">
@@ -7,7 +7,7 @@
                 <h3 class="my-3 text-sm font-semibold">
                     ECLIs provided: {{ eclis.length }}
                 </h3>
-                <Chips v-model="eclis" separator="," addOnBlur @add="addedEclis" :pt="{
+                <AutoComplete class="w-full" v-model="eclis" multiple :typeahead="false" :suggestions="[]" :pt="{
                     input: {
                         'data-test': 'eclis'
                     },
@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { downloadAs } from "~/utils/download_file";
 import type { DocFormat, Doc } from "~/types/archive";
 import JSZip, { file } from "jszip";
@@ -58,16 +58,27 @@ const getText = (node: any): string => {
     return acc;
 }
 
-const addedEclis = ($event: any) => {
+const normalizeEclis = (values: string[]) => {
     const pattern = /(\r\n|\r|\n)/gi;
-    eclis.value = [];
-    $event.value.map((s: string) => {
+    const normalized: string[] = [];
+
+    values.map((s: string) => {
         let formatted = s.replaceAll(pattern, ',');
         formatted = formatted.replaceAll(/\s/gi, '');
         const splitted = formatted.split(',');
-        eclis.value.push(...splitted.filter((s: string) => s.length > 0));
+        normalized.push(...splitted.filter((x: string) => x.length > 0));
     });
+
+    return normalized;
 };
+
+watch(eclis, (value) => {
+    const normalized = normalizeEclis(value);
+
+    if (normalized.join(',') !== value.join(',')) {
+        eclis.value = normalized;
+    }
+}, { deep: true });
 
 const fetchDocuments = async () => {
     loading.value = true;
