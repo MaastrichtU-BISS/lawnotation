@@ -149,6 +149,8 @@ import { type Publication, PublicationStatus } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 import Dimmer from "~/components/Dimmer.vue";
 import { confirmBox } from "~/utils/confirmBox";
+import Breadcrumb from "~/components/Breadcrumb.vue";
+
 
 const { $trpc, $toast } = useNuxtApp();
 

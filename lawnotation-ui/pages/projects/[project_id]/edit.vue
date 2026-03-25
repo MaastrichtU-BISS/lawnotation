@@ -70,6 +70,8 @@ import type {
 } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 import { useConfirm } from "primevue/useconfirm";
+import Breadcrumb from "~/components/Breadcrumb.vue";
+
 
 const { $toast, $trpc } = useNuxtApp();
 const route = useRoute();

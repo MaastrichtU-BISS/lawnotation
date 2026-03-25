@@ -50,6 +50,7 @@
 <script setup lang="ts">
 import type { AssignmentTableData } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
+import Breadcrumb from "~/components/Breadcrumb.vue";
 
 const { $toast, $trpc } = useNuxtApp();
 

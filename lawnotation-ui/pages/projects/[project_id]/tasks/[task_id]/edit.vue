@@ -165,6 +165,7 @@
 import type { Annotator, Labelset, Task, Project } from "~/types";
 import Dimmer from "~/components/Dimmer.vue";
 import Dropdown from "primevue/dropdown";
+import Breadcrumb from "~/components/Breadcrumb.vue";
 import Button from "primevue/button";
 import { authorizeClient } from "~/utils/authorize.client";
 import { useConfirm } from "primevue/useconfirm";
