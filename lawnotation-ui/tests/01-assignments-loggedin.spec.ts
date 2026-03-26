@@ -1,7 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "node:path";
 
-test.describe.configure({ mode: "serial" });
 
 async function ensureLoggedIn(page: Page) {
   await page.goto("/");
@@ -54,12 +53,15 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   
   // Wait for navigation to project page before checking URL
   await editorPage.waitForURL(/\/projects\/\d+(?:\/)?$/, { timeout: 15000 });
+  await editorPage.waitForLoadState("networkidle");
   await expect(editorPage).toHaveURL(/\/projects\/\d+(?:\/)?(?:[?#].*)?$/, {
     timeout: 15000,
   });
 
   // assert stable element on details page
-  await expect(editorPage.getByTestId("open-documents-modal")).toBeVisible();
+  await expect(editorPage.getByTestId("open-documents-modal")).toBeVisible({
+    timeout: 15000,
+  });
 
   // Editor uploads document
   await editorPage.getByTestId("documents-tab").click();
@@ -135,14 +137,15 @@ test("Editor creates project, task, uploads document and assigns task", async ({
 
   // Editor assigns task
   await expect(editorPage.getByText("Add myself")).toBeVisible({ timeout: 15000 });
-  await editorPage.getByText("Add myself").click();
 
-  const inputEmail = editorPage
-    .getByTestId("annotator-emails")
-    .locator("input");
-  await expect(inputEmail).toBeVisible();
+  // Fill emails BEFORE clicking "Add myself" since form closes after any assignment is created
+  const inputEmail = editorPage.getByTestId("annotator-emails");
+  await inputEmail.waitFor({ state: "visible", timeout: 15000 });
   await inputEmail.fill("annotator@example.com");
   await inputEmail.press("Enter");
+
+  // Now click "Add myself" to add your own email
+  await editorPage.getByText("Add myself").click();
   
   // Wait for network request to complete instead of relying on ephemeral toast
   await Promise.all([
@@ -196,29 +199,25 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   await editorPage.getByTestId("project-name").fill(projectName);
   await editorPage.getByTestId("add-project").click();
   await editorPage.getByRole("alert").waitFor({ state: "hidden" });
-
-  // Scope to the projects table and wait for the created row to appear.
   const row = editorPage
     .getByRole("table")
     .first()
     .getByRole("row")
     .filter({ hasText: projectName })
     .first();
-
   const viewButton = row.getByRole("button", { name: "View" });
   await expect(viewButton).toBeVisible({ timeout: 15000 });
-
   const viewProjectLink = row.getByTestId("view-project-link");
   await expect(viewProjectLink).toHaveAttribute("href", /\/projects\/\d+/);
   await viewProjectLink.click();
-  
-  // Wait for navigation to project page before checking URL
   await editorPage.waitForURL(/\/projects\/\d+(?:\/)?$/, { timeout: 15000 });
+  await editorPage.waitForLoadState("networkidle");
   await expect(editorPage).toHaveURL(/\/projects\/\d+(?:\/)?(?:[?#].*)?$/, {
     timeout: 15000,
   });
 
-  // assert stable element on details page
+  // Wait for documents tab to be visible before checking modal button
+  await editorPage.getByTestId("documents-tab").waitFor({ state: "visible" });
   await expect(editorPage.getByTestId("open-documents-modal")).toBeVisible({
     timeout: 15000,
   });
@@ -283,18 +282,15 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   });
   await editorPage.getByRole("table").waitFor({ state: "visible" });
   await editorPage.waitForTimeout(300);
-  await editorPage
-    .getByTestId("checkbox")
-    .first()
-    .waitFor({ state: "visible" });
+  const documentCheckbox = editorPage.locator('[data-test="checkbox"]:visible').first();
+  await documentCheckbox.waitFor({ state: "visible" });
 
   // Editor deletes a document
   await editorPage.waitForLoadState("networkidle");
   await editorPage
     .locator(".dimmer-wrapper > .dimmer")
     .waitFor({ state: "hidden" });
-  const checkbox = editorPage.getByTestId("checkbox").first();
-  await checkbox.click();
+  await documentCheckbox.check();
   await editorPage
     .getByRole("button", { name: "Delete selected row (1)" })
     .click();
@@ -346,15 +342,12 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
 
   // Editor assigns task
   await expect(editorPage.getByText("Add myself")).toBeVisible({ timeout: 15000 });
-  await editorPage.getByText("Add myself").click();
 
-  const inputEmail = editorPage
-    .getByTestId("annotator-emails")
-    .locator("input");
-  await expect(inputEmail).toBeVisible();
+  const inputEmail = editorPage.getByTestId("annotator-emails");
+  await inputEmail.waitFor({ state: "visible", timeout: 15000 });
   await inputEmail.fill("annotator@example.com");
   await inputEmail.press("Enter");
-  
+  await editorPage.getByText("Add myself").click();
   await Promise.all([
     editorPage.waitForResponse(response => 
       response.url().includes('/api/') && response.status() === 200
