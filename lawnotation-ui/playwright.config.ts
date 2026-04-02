@@ -94,9 +94,14 @@ export default defineConfig({
         "**/01-assignments-loggedin.spec.ts",
         "**/02-labelsets-loggedin.spec.ts",
         "**/03-projects-loggedin.spec.ts",
-        "**/04-not-loggedin.spec.ts",
       ],
       dependencies: ["editor auth setup"],
+    },
+    {
+      name: "not logged in flow",
+      testMatch: [
+        "**/04-not-loggedin.spec.ts",
+      ],
     }
     // this project runs all tests except ones for logged in
     // {
