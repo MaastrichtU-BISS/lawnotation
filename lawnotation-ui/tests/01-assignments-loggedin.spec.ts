@@ -257,40 +257,51 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   const uploadButton = editorPage.getByRole("button", { name: "Upload" });
   await expect(uploadButton).toBeVisible();
   await uploadButton.click();
+
+  // Wait for upload success toast to confirm all documents are saved and table is refreshed
+  await expect(editorPage.getByText(/document\(s\) uploaded/)).toBeVisible({
+    timeout: 60000,
+  });
   await editorPage
     .locator(".p-toast")
     .waitFor({ state: "hidden" })
     .catch(() => {});
-  await editorPage.keyboard.press("Escape");
   await editorPage
     .locator(".p-dialog-mask")
     .waitFor({ state: "hidden" })
     .catch(() => {});
-  await editorPage.waitForLoadState("networkidle");
-  await editorPage
-    .locator(".p-toast")
-    .waitFor({ state: "hidden", timeout: 3000 })
-    .catch(() => {});
   await editorPage
     .locator(".dimmer-wrapper > .dimmer")
     .waitFor({ state: "hidden" });
-  await editorPage.waitForTimeout(500);
-  const documentsTab = editorPage.getByRole("tab", { name: "Documents" });
+
+  const tasksTab = editorPage.getByTestId("tasks-tab");
+  await expect(tasksTab).toHaveAttribute("aria-selected", "true", {
+    timeout: 15000,
+  });
+
+  const documentsTab = editorPage.getByTestId("documents-tab");
   await documentsTab.click();
   await expect(documentsTab).toHaveAttribute("aria-selected", "true", {
     timeout: 15000,
   });
-  await editorPage.getByRole("table").waitFor({ state: "visible" });
-  await editorPage.waitForTimeout(300);
-  const documentCheckbox = editorPage.locator('[data-test="checkbox"]:visible').first();
-  await documentCheckbox.waitFor({ state: "visible" });
+  const documentsTable = editorPage.getByRole("table").first();
+  await documentsTable.waitFor({ state: "visible" });
+  const uploadedDocumentRow = documentsTable
+    .getByRole("row")
+    .filter({ hasText: "lorem-ipsum.txt" })
+    .first();
+  await expect(uploadedDocumentRow).toBeVisible({ timeout: 30000 });
+  const documentCheckbox = uploadedDocumentRow
+    .locator('input[data-test="checkbox"]')
+    .first();
+  await expect(documentCheckbox).toBeVisible({ timeout: 30000 });
 
   // Editor deletes a document
   await editorPage.waitForLoadState("networkidle");
   await editorPage
     .locator(".dimmer-wrapper > .dimmer")
     .waitFor({ state: "hidden" });
-  await documentCheckbox.check();
+  await documentCheckbox.setChecked(true);
   await editorPage
     .getByRole("button", { name: "Delete selected row (1)" })
     .click();

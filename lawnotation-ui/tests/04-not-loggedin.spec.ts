@@ -93,13 +93,24 @@ test("Not logged in user can search documents and download results", async ({
 
   const instancesToggle = page.getByRole("button", { name: /Instances/i });
   await instancesToggle.click();
-  const hogeRaadCheckbox = page
-    .locator(".hierarchical-checkboxes .checkbox-label", {
-      hasText: /^Hoge Raad$/i,
-    })
-    .locator("input[type='checkbox']")
-    .first();
-  await hogeRaadCheckbox.check();
+  const instancesPanel = page.locator(".hierarchical-checkboxes").first();
+  await expect(instancesPanel).toBeVisible({ timeout: 30000 });
+
+  const hogeRaadCheckbox = instancesPanel.getByRole("checkbox", {
+    name: /^Hoge Raad$/i,
+  });
+  await expect(hogeRaadCheckbox).toBeVisible({ timeout: 30000 });
+  await hogeRaadCheckbox.scrollIntoViewIfNeeded();
+  await hogeRaadCheckbox
+    .setChecked(true, { timeout: 30000 })
+    .catch(async () => {
+      const hogeRaadRow = instancesPanel
+        .locator(".checkbox-label", { hasText: /^Hoge Raad$/i })
+        .first();
+      await expect(hogeRaadRow).toBeVisible({ timeout: 30000 });
+      await hogeRaadRow.click();
+    });
+  await expect(hogeRaadCheckbox).toBeChecked();
   await runSearchAndExpectZipDownload();
 
   await expect(successMsg).toBeVisible({ timeout: 10000 });

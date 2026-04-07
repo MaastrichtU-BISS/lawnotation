@@ -16,10 +16,23 @@ setup("Authenticate as editor", async ({ context, page }) => {
   await expect(verifyBtn).toBeVisible();
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const magicLinkPage = await context.newPage();
-  await magicLinkPage.goto("http://127.0.0.1:54324/m/editor");
-  await magicLinkPage.getByRole("button", { name: "" }).click();
-  await magicLinkPage.getByText("Your login code for").first().click();
-  const magicCode = await magicLinkPage.locator("#login-code").innerText();
+  await magicLinkPage.goto("http://127.0.0.1:54324/m/editor", {
+    waitUntil: "domcontentloaded",
+  });
+
+  const mailEntry = magicLinkPage.getByText("Your login code for").first();
+  const hasMailEntry = await mailEntry.isVisible({ timeout: 10000 }).catch(() => false);
+  if (!hasMailEntry) {
+    await magicLinkPage.reload({ waitUntil: "domcontentloaded" });
+  }
+
+  await expect(mailEntry).toBeVisible({ timeout: 30000 });
+  await mailEntry.click();
+
+  const loginCode = magicLinkPage.locator("#login-code");
+  await expect(loginCode).toBeVisible({ timeout: 30000 });
+  const magicCode = (await loginCode.innerText()).trim();
+  await expect(magicCode).not.toEqual("");
   await page.getByRole("textbox").first().fill(magicCode);
   await verifyBtn.click();
   await page.getByText("Create new project").waitFor();
