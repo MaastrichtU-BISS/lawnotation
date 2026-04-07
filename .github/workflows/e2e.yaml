@@ -33,6 +33,7 @@ jobs:
         with:
           node-version: lts/*
           cache: pnpm
+          cache-dependency-path: lawnotation-ui/pnpm-lock.yaml
       - name: Install dependencies
         run: pnpm install
       - name: Install Playwright browsers
