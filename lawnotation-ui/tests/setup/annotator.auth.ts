@@ -15,31 +15,36 @@ setup("Authenticate as annotator", async ({ context, page }) => {
   });
   const verifyBtn = page.getByTestId("verify-button");
   await expect(verifyBtn).toBeVisible();
+
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+
   const magicLinkPage = await context.newPage();
   await magicLinkPage.goto("http://127.0.0.1:54324/m/annotator", {
     waitUntil: "domcontentloaded",
   });
 
+  // Wait for the email to arrive; re-query after each reload to avoid stale locators.
+  await expect.poll(
+    async () => {
+      await magicLinkPage.reload({ waitUntil: "domcontentloaded" });
+      return await magicLinkPage.getByText("Your login code for").count();
+    },
+    { timeout: 90_000, intervals: [1000, 2000, 3000, 5000] },
+  ).toBeGreaterThan(0);
+
   const mailEntry = magicLinkPage.getByText("Your login code for").first();
-  await expect
-    .poll(
-      async () => {
-        await magicLinkPage.reload({ waitUntil: "domcontentloaded" });
-        return await mailEntry.isVisible().catch(() => false);
-      },
-      { timeout: 60_000, intervals: [1000, 2000, 3000, 5000] },
-    )
-    .toBe(true);
   await mailEntry.click();
 
   const loginCode = magicLinkPage.locator("#login-code");
-  await expect(loginCode).toHaveText(/\S+/, { timeout: 30000 });
+  await expect(loginCode).toHaveText(/\S+/, { timeout: 30_000 });
   const magicCode = ((await loginCode.textContent()) ?? "").trim();
   await expect(magicCode).not.toEqual("");
+
   await page.getByRole("textbox").first().fill(magicCode);
   await page.getByTestId("verify-button").click();
+
   await page.getByText("Create new project").waitFor();
   await page.getByText("Create new project").isVisible();
+
   await page.context().storageState({ path: annotatorFile });
 });
