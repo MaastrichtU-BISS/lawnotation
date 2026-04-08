@@ -21,17 +21,20 @@ setup("Authenticate as editor", async ({ context, page }) => {
   });
 
   const mailEntry = magicLinkPage.getByText("Your login code for").first();
-  const hasMailEntry = await mailEntry.isVisible({ timeout: 10000 }).catch(() => false);
-  if (!hasMailEntry) {
-    await magicLinkPage.reload({ waitUntil: "domcontentloaded" });
-  }
-
-  await expect(mailEntry).toBeVisible({ timeout: 30000 });
+  await expect
+    .poll(
+      async () => {
+        await magicLinkPage.reload({ waitUntil: "domcontentloaded" });
+        return await mailEntry.isVisible().catch(() => false);
+      },
+      { timeout: 60_000, intervals: [1000, 2000, 3000, 5000] },
+    )
+    .toBe(true);
   await mailEntry.click();
 
   const loginCode = magicLinkPage.locator("#login-code");
-  await expect(loginCode).toBeVisible({ timeout: 30000 });
-  const magicCode = (await loginCode.innerText()).trim();
+  await expect(loginCode).toHaveText(/\S+/, { timeout: 30000 });
+  const magicCode = ((await loginCode.textContent()) ?? "").trim();
   await expect(magicCode).not.toEqual("");
   await page.getByRole("textbox").first().fill(magicCode);
   await verifyBtn.click();
