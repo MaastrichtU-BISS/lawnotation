@@ -42,6 +42,17 @@ jobs:
         uses: supabase/setup-cli@v1
       - name: Start Supabase local stack
         run:  supabase start
+      - name: Wait for Inbucket mail UI
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:54324/ >/dev/null; then
+              echo "Inbucket is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Inbucket did not become ready in time"
+          exit 1
       - name: Run Playwright tests
         run: pnpm playwright
       - name: Upload Playwright report
