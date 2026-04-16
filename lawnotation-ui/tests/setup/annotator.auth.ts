@@ -4,6 +4,27 @@ const annotatorFile = "playwright/.auth/annotator.json";
 
 setup("Authenticate as annotator", async ({ context, page }) => {
   setup.setTimeout(90_000);
+  
+  // Wait for email service to be ready before proceeding
+  let emailServiceReady = false;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    try {
+      const response = await fetch("http://127.0.0.1:54324/api/v1/mailbox");
+      if (response.ok) {
+        emailServiceReady = true;
+        console.log("Email service is ready");
+        break;
+      }
+    } catch (e) {
+      console.log(`Email service check attempt ${attempt + 1}/30 failed, retrying...`);
+    }
+    await page.waitForTimeout(1000);
+  }
+  
+  if (!emailServiceReady) {
+    console.warn("Email service readiness check timed out, proceeding anyway");
+  }
+  
   await page.goto("/");
   const emailField = page.getByTestId("email-field-to-login");
   await expect(emailField).toBeVisible();
