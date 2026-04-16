@@ -20,11 +20,11 @@ jobs:
       run:
         working-directory: ./lawnotation-ui
     env:
-          SUPABASE_URL: "http://localhost:54321"
-          SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
-          SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
-          DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-          SMTP_URL: "smtp://127.0.0.1:54325"
+      SUPABASE_URL: "http://localhost:54321"
+      SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZlcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+      SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZlcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+      DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+      SMTP_URL: "smtp://127.0.0.1:54325"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -42,7 +42,29 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
       - name: Start Supabase local stack
-        run:  supabase start
+        run: supabase start
+      - name: Show running containers
+        if: always()
+        run: docker ps -a
+      - name: Supabase logs (auth + inbucket + db)
+        if: always()
+        run: |
+          docker logs supabase-auth || true
+          docker logs supabase-inbucket || true
+          docker logs supabase-db || true
+      - name: Check Supabase API health
+        run: curl -f http://127.0.0.1:54321/ || exit 1
+      - name: Check SMTP connectivity
+        run: |
+          for i in {1..60}; do
+            if nc -z 127.0.0.1 54325; then
+              echo "SMTP is reachable"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "SMTP is NOT reachable"
+          exit 1
       - name: Wait for Inbucket mail UI
         run: |
           for i in {1..60}; do
@@ -54,8 +76,23 @@ jobs:
           done
           echo "Inbucket did not become ready in time"
           exit 1
+      - name: Dump Supabase auth config
+        if: always()
+        run: docker exec supabase-auth cat /etc/supabase/config.toml || true
       - name: Run Playwright tests
         run: pnpm playwright
+      - name: Capture docker stats (on failure)
+        if: failure()
+        run: docker stats --no-stream > docker-stats.txt
+      - name: Upload debug artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-logs
+          path: |
+            docker-stats.txt
+            test-results/
+            playwright-report/
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
