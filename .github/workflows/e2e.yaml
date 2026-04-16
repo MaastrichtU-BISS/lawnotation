@@ -49,11 +49,11 @@ jobs:
       - name: Supabase logs (auth + inbucket + db)
         if: always()
         run: |
-          docker logs supabase-auth || true
-          docker logs supabase-inbucket || true
-          docker logs supabase-db || true
+          docker logs supabase_auth_lawnotation-ui || true
+          docker logs supabase_inbucket_lawnotation-ui || true
+          docker logs supabase_db_lawnotation-ui || true
       - name: Check Supabase API health
-        run: curl -f http://127.0.0.1:54321/ || exit 1
+        run: curl -f http://127.0.0.1:54321/rest/v1/ || exit 1
       - name: Check SMTP connectivity
         run: |
           for i in {1..60}; do
