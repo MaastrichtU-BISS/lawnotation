@@ -41,8 +41,6 @@ jobs:
         run: pnpm exec playwright install --with-deps
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
-        with:
-          version: 2.90.0
       - name: Start Supabase local stack
         run:  supabase start
       - name: Wait for Inbucket mail UI
