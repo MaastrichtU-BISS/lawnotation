@@ -93,8 +93,8 @@ enable_confirmations = false
 enabled = true
 host = "inbucket"
 port = 2500
-user = ""
-pass = ""
+user = "inbucket"
+pass = "inbucket"
 admin_email = "admin@example.com"
 sender_name = "Lawnotation"
 
