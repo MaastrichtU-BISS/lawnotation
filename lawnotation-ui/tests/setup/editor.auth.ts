@@ -10,7 +10,21 @@ setup("Authenticate as editor", async ({ context, page }) => {
   await expect(emailField).toBeVisible();
   await page.waitForLoadState("networkidle");
   await emailField.fill("editor@example.com");
+
+  const otpLoginResponsePromise = page.waitForResponse((response) => {
+    const url = response.url();
+    return url.includes("/trpc/user.otpLogin") || url.includes("/api/trpc/user.otpLogin");
+  });
+
   await page.getByRole("button", { name: /send code/i }).click();
+  const otpLoginResponse = await otpLoginResponsePromise;
+  if (!otpLoginResponse.ok()) {
+    const bodyText = await otpLoginResponse.text().catch(() => "<unavailable>");
+    throw new Error(
+      `otpLogin failed with status ${otpLoginResponse.status()}: ${bodyText}`,
+    );
+  }
+
   const verifyBtn = page.getByTestId("verify-button");
   await verifyBtn.waitFor();
   await expect(verifyBtn).toBeVisible();

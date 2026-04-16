@@ -9,10 +9,22 @@ setup("Authenticate as annotator", async ({ context, page }) => {
   await expect(emailField).toBeVisible();
   await page.waitForLoadState("networkidle");
   await emailField.fill("annotator@example.com");
-  await page.getByRole("button", { name: /send code/i }).click();
-  await page.waitForSelector('[data-test="verify-button"]', {
-    state: "visible",
+
+  const otpLoginResponsePromise = page.waitForResponse((response) => {
+    const url = response.url();
+    return url.includes("/trpc/user.otpLogin") || url.includes("/api/trpc/user.otpLogin");
   });
+
+  await page.getByRole("button", { name: /send code/i }).click();
+  const otpLoginResponse = await otpLoginResponsePromise;
+  if (!otpLoginResponse.ok()) {
+    const bodyText = await otpLoginResponse.text().catch(() => "<unavailable>");
+    throw new Error(
+      `otpLogin failed with status ${otpLoginResponse.status()}: ${bodyText}`,
+    );
+  }
+
+  await page.waitForSelector('[data-test="verify-button"]', { state: "visible" });
   const verifyBtn = page.getByTestId("verify-button");
   await expect(verifyBtn).toBeVisible();
 
