@@ -91,7 +91,7 @@ enable_confirmations = false
 
 [auth.email.smtp]
 enabled = true
-host = "supabase_inbucket_lawnotation-ui"
+host = "supabase_inbucket"
 port = 2500
 user = "inbucket"
 pass = "inbucket"
