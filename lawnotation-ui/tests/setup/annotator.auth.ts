@@ -2,34 +2,16 @@ import { test as setup, expect } from "@playwright/test";
 
 const annotatorFile = "playwright/.auth/annotator.json";
 
-setup("Authenticate as annotator", async ({ context, page }) => {
-  setup.setTimeout(90_000);
-  
-  // Wait for email service to be ready before proceeding
-  let emailServiceReady = false;
-  for (let attempt = 0; attempt < 30; attempt++) {
-    try {
-      const response = await fetch("http://127.0.0.1:54324/api/v1/mailbox");
-      if (response.ok) {
-        emailServiceReady = true;
-        console.log("Email service is ready");
-        break;
-      }
-    } catch (e) {
-      console.log(`Email service check attempt ${attempt + 1}/30 failed, retrying...`);
-    }
-    await page.waitForTimeout(1000);
-  }
-  
-  if (!emailServiceReady) {
-    console.warn("Email service readiness check timed out, proceeding anyway");
-  }
-  
+setup("Authenticate as annotator", async ({ context, page, request }) => {
+  setup.setTimeout(120_000);
+
+  const email = "annotator@example.com";
+  const mailbox = email.split("@")[0];
+
   await page.goto("/");
   const emailField = page.getByTestId("email-field-to-login");
   await expect(emailField).toBeVisible();
-  await page.waitForLoadState("networkidle");
-  await emailField.fill("annotator@example.com");
+  await emailField.fill(email);
 
   const otpLoginResponsePromise = page.waitForResponse((response) => {
     const url = response.url();
@@ -37,47 +19,43 @@ setup("Authenticate as annotator", async ({ context, page }) => {
   });
 
   await page.getByRole("button", { name: /send code/i }).click();
+
   const otpLoginResponse = await otpLoginResponsePromise;
-  if (!otpLoginResponse.ok()) {
-    const bodyText = await otpLoginResponse.text().catch(() => "<unavailable>");
-    throw new Error(
-      `otpLogin failed with status ${otpLoginResponse.status()}: ${bodyText}`,
-    );
-  }
+  expect(otpLoginResponse.ok()).toBeTruthy();
 
-  await page.waitForSelector('[data-test="verify-button"]', { state: "visible" });
-  const verifyBtn = page.getByTestId("verify-button");
-  await expect(verifyBtn).toBeVisible();
+  await expect(page.getByTestId("verify-button")).toBeVisible();
 
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  const messageId = await expect
+    .poll(
+      async () => {
+        const res = await request.get(`http://127.0.0.1:54324/api/v1/mailbox/${mailbox}`);
+        if (!res.ok()) return null;
+
+        const data = await res.json().catch(() => null);
+        const latest = Array.isArray(data) ? data[0] : null;
+        return latest?.id ?? null;
+      },
+      { timeout: 90_000, intervals: [1000, 2000, 3000, 5000] },
+    )
+    .not.toBeNull();
 
   const magicLinkPage = await context.newPage();
-  await magicLinkPage.goto("http://127.0.0.1:54324/m/annotator", {
-    waitUntil: "domcontentloaded",
-  });
+  await magicLinkPage.goto(`http://127.0.0.1:54324/m/${mailbox}`, { waitUntil: "domcontentloaded" });
 
-  // Wait for the email to arrive; re-query after each reload to avoid stale locators.
-  await expect.poll(
-    async () => {
-      await magicLinkPage.reload({ waitUntil: "domcontentloaded" });
-      return await magicLinkPage.getByText("Your login code for").count();
-    },
-    { timeout: 90_000, intervals: [1000, 2000, 3000, 5000] },
-  ).toBeGreaterThan(0);
-
-  const mailEntry = magicLinkPage.getByText("Your login code for").first();
-  await mailEntry.click();
+  await magicLinkPage.reload({ waitUntil: "domcontentloaded" });
+  await expect(magicLinkPage.getByText("Your login code for")).toHaveCount(1, { timeout: 30_000 });
+  await magicLinkPage.getByText("Your login code for").first().click();
 
   const loginCode = magicLinkPage.locator("#login-code");
   await expect(loginCode).toHaveText(/\S+/, { timeout: 30_000 });
-  const magicCode = ((await loginCode.textContent()) ?? "").trim();
-  await expect(magicCode).not.toEqual("");
+
+  const magicCode = (await loginCode.textContent())?.trim() ?? "";
+  expect(magicCode).not.toEqual("");
 
   await page.getByRole("textbox").first().fill(magicCode);
   await page.getByTestId("verify-button").click();
 
-  await page.getByText("Create new project").waitFor();
-  await page.getByText("Create new project").isVisible();
+  await expect(page.getByText("Create new project")).toBeVisible({ timeout: 60_000 });
 
   await page.context().storageState({ path: annotatorFile });
 });
