@@ -102,7 +102,7 @@ jobs:
 
       - name: Verify Supabase email delivery works
         run: |
-          echo "Waiting for Supabase auth to successfully send emails..."
+          echo "Waiting for Supabase auth to send OTP emails..."
 
           EMAIL="ci-test@example.com"
           MAILBOX=$(echo "$EMAIL" | cut -d'@' -f1)
@@ -119,6 +119,13 @@ jobs:
 
             RESPONSE=$(curl -s http://127.0.0.1:54324/api/v1/mailbox/$MAILBOX)
 
+            if ! echo "$RESPONSE" | jq empty 2>/dev/null; then
+              echo "Mailpit not ready or returned invalid JSON"
+              echo "$RESPONSE"
+              sleep 2
+              continue
+            fi
+
             COUNT=$(echo "$RESPONSE" | jq 'length')
 
             if [ "$COUNT" -gt 0 ]; then
@@ -127,12 +134,11 @@ jobs:
             fi
 
             echo "No email yet, retrying..."
-            docker logs --tail 50 supabase_auth_lawnotation-ui || true
             sleep 2
           done
 
           echo "Supabase email system never became ready"
-          docker logs supabase_auth_lawnotation-ui || true
+          docker logs --tail 50 supabase_auth_lawnotation-ui || true
           exit 1
 
       - name: Run Playwright tests
