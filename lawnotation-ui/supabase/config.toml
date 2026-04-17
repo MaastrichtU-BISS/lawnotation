@@ -97,7 +97,6 @@ user = "inbucket"
 pass = "inbucket"
 admin_email = "admin@example.com"
 sender_name = "Lawnotation"
-allow_unencrypted = true
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
