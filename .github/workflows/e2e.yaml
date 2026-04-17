@@ -100,15 +100,41 @@ jobs:
           echo "Inbucket did not become ready in time"
           exit 1
 
-      - name: Wait for auth service SMTP to be fully initialized
-        run: |
-          echo "Waiting for auth service to fully initialize SMTP..."
-          sleep 5
-          echo "Auth service should be ready now"
-
       - name: Dump Supabase auth config
         if: always()
         run: cat ./supabase/config.toml
+
+      - name: Verify Supabase email delivery works
+        run: |
+          echo "Waiting for Supabase auth to successfully send emails..."
+
+          EMAIL="ci-test@example.com"
+
+          for i in {1..30}; do
+            echo "Attempt $i: triggering OTP email..."
+
+            curl -s -X POST "http://127.0.0.1:54321/auth/v1/otp" \
+              -H "apikey: $SUPABASE_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"email\":\"$EMAIL\",\"create_user\":true}" > /dev/null
+
+            sleep 2
+
+            RESPONSE=$(curl -s http://127.0.0.1:54324/api/v1/messages)
+
+            if echo "$RESPONSE" | grep -q "$EMAIL"; then
+              echo "Email successfully received in Mailpit"
+              exit 0
+            fi
+
+            echo "No email yet, retrying..."
+            docker logs --tail 50 supabase_auth_lawnotation-ui || true
+            sleep 2
+          done
+
+          echo "Supabase email system never became ready"
+          docker logs supabase_auth_lawnotation-ui || true
+          exit 1
 
       - name: Run Playwright tests
         run: pnpm playwright
