@@ -110,14 +110,14 @@ jobs:
           for i in {1..30}; do
             echo "Attempt $i: triggering OTP email..."
 
-            curl -s -X POST "http://127.0.0.1:54321/auth/v1/otp" \
+            curl -s -X POST "http://localhost:54321/auth/v1/otp" \
               -H "apikey: $SUPABASE_KEY" \
               -H "Content-Type: application/json" \
               -d "{\"email\":\"$EMAIL\",\"create_user\":true}" > /dev/null
 
             sleep 2
 
-            RESPONSE=$(curl -s http://127.0.0.1:54324/api/v1/mailbox/$MAILBOX)
+            RESPONSE=$(curl -s http://localhost:54324/api/v1/mailbox/$MAILBOX)
 
             if ! echo "$RESPONSE" | jq empty 2>/dev/null; then
               echo "Mailpit not ready or returned invalid JSON"
