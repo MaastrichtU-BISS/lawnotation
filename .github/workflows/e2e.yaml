@@ -4,12 +4,12 @@ on:
   push:
     branches:
       - main
-      - 'feat-*'
+      - "feat-*"
       - dev
   pull_request:
     branches:
       - main
-      - 'feat-*'
+      - "feat-*"
       - dev
 
 jobs:
@@ -49,6 +49,8 @@ jobs:
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
+        with:
+          version: 1.226.4
 
       - name: Start Supabase local stack
         run: supabase start
@@ -69,14 +71,14 @@ jobs:
         if: always()
         run: docker ps -a
 
-      - name: Supabase logs (auth + mailpit + db)
+      - name: Supabase logs (auth + inbucket + db)
         if: always()
         run: |
           docker logs supabase_auth_lawnotation-ui || true
           docker logs supabase_inbucket_lawnotation-ui || true
           docker logs supabase_db_lawnotation-ui || true
 
-      - name: Check SMTP connectivity
+      - name: Check SMTP connectivity (Inbucket)
         run: |
           for i in {1..60}; do
             if nc -z 127.0.0.1 54325; then
@@ -88,27 +90,27 @@ jobs:
           echo "SMTP is NOT reachable"
           exit 1
 
-      - name: Wait for Mailpit UI
+      - name: Wait for Inbucket UI
         run: |
           for i in {1..60}; do
             if curl -fsS http://127.0.0.1:54324/ >/dev/null; then
-              echo "Mailpit is up"
+              echo "Inbucket is up"
               exit 0
             fi
             sleep 1
           done
-          echo "Mailpit did not become ready in time"
+          echo "Inbucket did not become ready in time"
           exit 1
 
-      - name: Verify Supabase email delivery works
+      - name: Verify Supabase email delivery works (OTP -> Inbucket)
         run: |
           echo "Waiting for Supabase auth to send OTP emails..."
 
-          EMAIL="ci-test@example.com"
+          EMAIL="annotator@example.com"
           MAILBOX=$(echo "$EMAIL" | cut -d'@' -f1)
 
           for i in {1..30}; do
-            echo "Attempt $i: triggering OTP email..."
+            echo "Attempt $i: triggering OTP email for $EMAIL..."
 
             curl -s -X POST "http://localhost:54321/auth/v1/otp" \
               -H "apikey: $SUPABASE_KEY" \
@@ -117,19 +119,30 @@ jobs:
 
             sleep 2
 
-            RESPONSE=$(curl -s http://localhost:54324/api/v1/mailbox/$MAILBOX)
+            URL="http://localhost:54324/api/v1/mailbox/$MAILBOX"
+            # Capture body + status code to avoid jq failing on "File not found"
+            RESPONSE=$(curl -s -w "\n%{http_code}" "$URL")
+            BODY=$(echo "$RESPONSE" | head -n -1)
+            CODE=$(echo "$RESPONSE" | tail -n 1)
 
-            if ! echo "$RESPONSE" | jq empty 2>/dev/null; then
-              echo "Mailpit not ready or returned invalid JSON"
-              echo "$RESPONSE"
+            if [ "$CODE" != "200" ]; then
+              echo "Inbucket mailbox endpoint returned HTTP $CODE"
+              echo "$BODY"
               sleep 2
               continue
             fi
 
-            COUNT=$(echo "$RESPONSE" | jq 'length')
+            if ! echo "$BODY" | jq empty 2>/dev/null; then
+              echo "Inbucket returned invalid JSON"
+              echo "$BODY"
+              sleep 2
+              continue
+            fi
+
+            COUNT=$(echo "$BODY" | jq 'length')
 
             if [ "$COUNT" -gt 0 ]; then
-              echo "Email successfully received in Mailpit"
+              echo "Email successfully received in Inbucket mailbox '$MAILBOX'"
               exit 0
             fi
 
@@ -138,7 +151,8 @@ jobs:
           done
 
           echo "Supabase email system never became ready"
-          docker logs --tail 50 supabase_auth_lawnotation-ui || true
+          docker logs --tail 200 supabase_auth_lawnotation-ui || true
+          docker logs --tail 200 supabase_inbucket_lawnotation-ui || true
           exit 1
 
       - name: Run Playwright tests
