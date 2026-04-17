@@ -23,8 +23,8 @@ jobs:
 
     env:
       SUPABASE_URL: "http://localhost:54321"
-      SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZlcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
-      SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZlcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+      SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
       DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
       SMTP_URL: "smtp://127.0.0.1:54325"
 
@@ -69,7 +69,7 @@ jobs:
         if: always()
         run: docker ps -a
 
-      - name: Supabase logs (auth + inbucket + db)
+      - name: Supabase logs (auth + mailpit + db)
         if: always()
         run: |
           docker logs supabase_auth_lawnotation-ui || true
@@ -88,27 +88,24 @@ jobs:
           echo "SMTP is NOT reachable"
           exit 1
 
-      - name: Wait for Inbucket mail UI
+      - name: Wait for Mailpit UI
         run: |
           for i in {1..60}; do
             if curl -fsS http://127.0.0.1:54324/ >/dev/null; then
-              echo "Inbucket is up"
+              echo "Mailpit is up"
               exit 0
             fi
             sleep 1
           done
-          echo "Inbucket did not become ready in time"
+          echo "Mailpit did not become ready in time"
           exit 1
-
-      - name: Dump Supabase auth config
-        if: always()
-        run: cat ./supabase/config.toml
 
       - name: Verify Supabase email delivery works
         run: |
           echo "Waiting for Supabase auth to successfully send emails..."
 
           EMAIL="ci-test@example.com"
+          MAILBOX=$(echo "$EMAIL" | cut -d'@' -f1)
 
           for i in {1..30}; do
             echo "Attempt $i: triggering OTP email..."
@@ -120,9 +117,11 @@ jobs:
 
             sleep 2
 
-            RESPONSE=$(curl -s http://127.0.0.1:54324/api/v1/messages)
+            RESPONSE=$(curl -s http://127.0.0.1:54324/api/v1/mailbox/$MAILBOX)
 
-            if echo "$RESPONSE" | grep -q "$EMAIL"; then
+            COUNT=$(echo "$RESPONSE" | jq 'length')
+
+            if [ "$COUNT" -gt 0 ]; then
               echo "Email successfully received in Mailpit"
               exit 0
             fi
