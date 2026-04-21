@@ -6,17 +6,24 @@ setup("Authenticate as editor", async ({ context, page }) => {
   setup.setTimeout(90_000);
 
   await page.goto("/");
+
   const emailField = page.getByTestId("email-field-to-login");
   await expect(emailField).toBeVisible();
   await page.waitForLoadState("networkidle");
-  await emailField.fill("editor@example.com");
+
+  const email = "editor@example.com";
+  await emailField.fill(email);
 
   const otpLoginResponsePromise = page.waitForResponse((response) => {
     const url = response.url();
-    return url.includes("/trpc/user.otpLogin") || url.includes("/api/trpc/user.otpLogin");
+    return (
+      url.includes("/trpc/user.otpLogin") ||
+      url.includes("/api/trpc/user.otpLogin")
+    );
   });
 
   await page.getByRole("button", { name: /send code/i }).click();
+
   const otpLoginResponse = await otpLoginResponsePromise;
   if (!otpLoginResponse.ok()) {
     const bodyText = await otpLoginResponse.text().catch(() => "<unavailable>");
@@ -26,30 +33,43 @@ setup("Authenticate as editor", async ({ context, page }) => {
   }
 
   const verifyBtn = page.getByTestId("verify-button");
-  await verifyBtn.waitFor();
   await expect(verifyBtn).toBeVisible();
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  const magicLinkPage = await context.newPage();
-  await magicLinkPage.goto("http://127.0.0.1:54324/m/editor", {
-    waitUntil: "domcontentloaded",
-  });
 
-  const mailEntry = magicLinkPage.getByText("Your login code for").first();
-  await expect
-    .poll(
-      async () => {
-        await magicLinkPage.reload({ waitUntil: "domcontentloaded" });
-        return await mailEntry.isVisible().catch(() => false);
-      },
-      { timeout: 60_000, intervals: [1000, 2000, 3000, 5000] },
-    )
-    .toBe(true);
-  await mailEntry.click();
+  const mailpitApiUrl =
+    "http://127.0.0.1:54324/api/v1/messages?limit=20";
 
-  const loginCode = magicLinkPage.locator("#login-code");
-  await expect(loginCode).toHaveText(/\S+/, { timeout: 30000 });
-  const magicCode = ((await loginCode.textContent()) ?? "").trim();
+  let magicCode = "";
+
+  for (let i = 0; i < 30; i++) {
+    const response = await page.request.get(mailpitApiUrl);
+
+    if (response.ok()) {
+      const data = await response.json();
+      const messages = data.messages ?? [];
+
+      const editorMessages = messages.filter((m: any) =>
+        m.To?.some((t: any) => t.Address === email)
+      );
+
+      if (editorMessages.length > 0) {
+        const latest = editorMessages[0];
+
+        const snippet = latest.Snippet || "";
+
+        const match = snippet.match(/\b\d{6}\b/);
+
+        if (match) {
+          magicCode = match[0];
+          break;
+        }
+      }
+    }
+
+    await page.waitForTimeout(1000);
+  }
+
   await expect(magicCode).not.toEqual("");
+
   await page.getByRole("textbox").first().fill(magicCode);
   await verifyBtn.click();
   await page.getByText("Create new project").waitFor();

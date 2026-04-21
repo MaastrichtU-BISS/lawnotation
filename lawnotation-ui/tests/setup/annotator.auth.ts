@@ -33,46 +33,45 @@ setup("Authenticate as annotator", async ({ context, page }) => {
   }
 
   const verifyBtn = page.getByTestId("verify-button");
-  await verifyBtn.waitFor();
   await expect(verifyBtn).toBeVisible();
 
-  await page.waitForTimeout(2000);
+  const mailpitApiUrl =
+    "http://127.0.0.1:54324/api/v1/messages?limit=20";
 
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  let magicCode = "";
 
-  const magicLinkPage = await context.newPage();
-  await magicLinkPage.goto("http://127.0.0.1:54324/m/annotator", {
-    waitUntil: "domcontentloaded",
-  });
+  for (let i = 0; i < 30; i++) {
+    const response = await page.request.get(mailpitApiUrl);
 
-  await expect
-    .poll(
-      async () => {
-        await magicLinkPage.reload({ waitUntil: "domcontentloaded" });
+    if (response.ok()) {
+      const data = await response.json();
+      const messages = data.messages ?? [];
 
-        const entries = magicLinkPage.getByText("Your login code for");
-        const count = await entries.count();
+      const annotatorMessages = messages.filter((m: any) =>
+        m.To?.some((t: any) => t.Address === email)
+      );
 
-        if (count === 0) return false;
+      if (annotatorMessages.length > 0) {
+        const latest = annotatorMessages[0];
 
-        return await entries.last().isVisible();
-      },
-      { timeout: 60_000, intervals: [1000, 2000, 3000, 5000] },
-    )
-    .toBe(true);
+        const snippet = latest.Snippet || "";
 
-  const mailEntry = magicLinkPage.getByText("Your login code for").last();
-  await mailEntry.click();
+        const match = snippet.match(/\b\d{6}\b/);
 
-  const loginCode = magicLinkPage.locator("#login-code");
-  await expect(loginCode).toHaveText(/\S+/, { timeout: 30_000 });
+        if (match) {
+          magicCode = match[0];
+          break;
+        }
+      }
+    }
 
-  const magicCode = ((await loginCode.textContent()) ?? "").trim();
+    await page.waitForTimeout(1000);
+  }
+
   await expect(magicCode).not.toEqual("");
 
   await page.getByRole("textbox").first().fill(magicCode);
   await verifyBtn.click();
-
   await page.getByText("Create new project").waitFor();
   await expect(page.getByText("Create new project")).toBeVisible();
 
