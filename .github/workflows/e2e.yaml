@@ -26,7 +26,7 @@ jobs:
       SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
       SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
       DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-      SMTP_URL: "smtp://127.0.0.1:54325"
+      SMTP_URL: "smtp://127.0.0.1:1025"
 
     steps:
       - uses: actions/checkout@v4
@@ -71,17 +71,17 @@ jobs:
         if: always()
         run: docker ps -a
 
-      - name: Supabase logs (auth + inbucket + db)
+      - name: Supabase logs (auth + mailpit + db)
         if: always()
         run: |
           docker logs supabase_auth_lawnotation-ui || true
           docker logs supabase_inbucket_lawnotation-ui || true
           docker logs supabase_db_lawnotation-ui || true
 
-      - name: Check SMTP connectivity (Inbucket)
+      - name: Check SMTP connectivity (Mailpit)
         run: |
           for i in {1..60}; do
-            if nc -z 127.0.0.1 54325; then
+            if nc -z 127.0.0.1 1025; then
               echo "SMTP is reachable"
               exit 0
             fi
@@ -90,16 +90,16 @@ jobs:
           echo "SMTP is NOT reachable"
           exit 1
 
-      - name: Wait for Inbucket UI
+      - name: Wait for Mailpit UI
         run: |
           for i in {1..60}; do
             if curl -fsS http://127.0.0.1:54324/ >/dev/null; then
-              echo "Inbucket is up"
+              echo "Mailpit is up"
               exit 0
             fi
             sleep 1
           done
-          echo "Inbucket did not become ready in time"
+          echo "Mailpit did not become ready in time"
           exit 1
       - name: Run Playwright tests
         run: pnpm playwright
