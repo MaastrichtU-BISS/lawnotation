@@ -123,6 +123,9 @@ jobs:
           echo "Supabase API not ready"
           exit 1
 
+      - name: Wait for supabase Storage
+        run: npx wait-on http://127.0.0.1:54321/storage/v1/bucket
+        
       - name: Show running containers
         if: always()
         run: docker ps -a
