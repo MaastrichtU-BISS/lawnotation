@@ -82,7 +82,7 @@ enable_confirmations = false
 
 [auth.email.smtp]
 enabled = true
-host = "localhost"
+host = "supabase_inbucket_lawnotation-ui"
 port = 1025
 user = "mailpit"
 pass = "mailpit"
