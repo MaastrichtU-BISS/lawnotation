@@ -65,35 +65,53 @@ jobs:
           MAIL_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E '^supabase_inbucket' || true)
 
           if [ -z "$MAIL_CONTAINER" ]; then
-             echo "Could not find Supabase Mailpit container"
-             docker ps -a
-             exit 1
+            echo "Could not find Supabase Mailpit container"
+            docker ps -a
+            exit 1
           fi
 
           MAIL_CONTAINER=$(echo "$MAIL_CONTAINER" | head -n1)
-
           echo "Found container: $MAIL_CONTAINER"
 
           IMAGE=$(docker inspect "$MAIL_CONTAINER" --format='{{.Config.Image}}')
 
           if [ -z "$IMAGE" ]; then
-             echo "Could not determine Mailpit image"
-             exit 1
+            echo "Could not determine Mailpit image"
+            exit 1
           fi
 
           echo "Using image: $IMAGE"
+
+          # Get the ORIGINAL network dynamically
+          NETWORK=$(docker inspect "$MAIL_CONTAINER" \
+            --format='{{range $k, $v := .NetworkSettings.Networks}}{{println $k}}{{end}}' | head -n1)
+
+          if [ -z "$NETWORK" ]; then
+            echo "Could not determine network"
+            exit 1
+          fi
+
+          echo "Using network: $NETWORK"
 
           echo "Recreating container with exposed ports..."
 
           docker rm -f "$MAIL_CONTAINER"
 
-          # Remove custom network for debugging, use default bridge
           docker run -d --name "$MAIL_CONTAINER" \
+            --network="$NETWORK" \
             -p 1025:1025 \
             -p 54324:8025 \
             "$IMAGE"
 
           echo "Mailpit restarted with SMTP + UI ports exposed"
+
+          echo "Verifying network attachment..."
+          docker network inspect "$NETWORK" | grep "$MAIL_CONTAINER" || {
+            echo "Mailpit is NOT attached to network!"
+            exit 1
+          }
+
+          echo "Mailpit correctly attached to $NETWORK"
 
       - name: Mailpit logs after restart
         run: docker logs supabase_inbucket_lawnotation-ui || true
