@@ -51,6 +51,44 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 1.226.4
+      - name: Restart Mailpit with SMTP port exposed (safe)
+        run: |
+          set -euo pipefail
+
+          echo "Locating Supabase Mailpit container..."
+
+          MAIL_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E '^supabase_inbucket' || true)
+
+          if [ -z "$MAIL_CONTAINER" ]; then
+             echo "Could not find Supabase Mailpit container"
+             docker ps -a
+             exit 1
+          fi
+
+          MAIL_CONTAINER=$(echo "$MAIL_CONTAINER" | head -n1)
+
+          echo "Found container: $MAIL_CONTAINER"
+
+          IMAGE=$(docker inspect "$MAIL_CONTAINER" --format='{{.Config.Image}}')
+
+          if [ -z "$IMAGE" ]; then
+             echo "Could not determine Mailpit image"
+             exit 1
+          fi
+
+          echo "Using image: $IMAGE"
+
+          echo "Recreating container with exposed ports..."
+
+          docker rm -f "$MAIL_CONTAINER"
+
+          docker run -d --name "$MAIL_CONTAINER" \
+            --network=supabase_network_lawnotation-ui \
+            -p 1025:1025 \
+            -p 54324:8025 \
+            "$IMAGE"
+
+          echo "Mailpit restarted with SMTP + UI ports exposed"
 
       - name: Start Supabase local stack
         run: supabase start
