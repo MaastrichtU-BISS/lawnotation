@@ -50,10 +50,11 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: 1.226.4
+          version: 2.90.0
           
       - name: Start Supabase local stack
         run: supabase start
+
 
       - name: Restart Mailpit with SMTP port exposed
         run: |
@@ -86,13 +87,29 @@ jobs:
 
           docker rm -f "$MAIL_CONTAINER"
 
+          # Remove custom network for debugging, use default bridge
           docker run -d --name "$MAIL_CONTAINER" \
-            --network=supabase_network_lawnotation-ui \
             -p 1025:1025 \
             -p 54324:8025 \
             "$IMAGE"
 
           echo "Mailpit restarted with SMTP + UI ports exposed"
+
+      - name: Mailpit logs after restart
+        run: docker logs supabase_inbucket_lawnotation-ui || true
+
+      - name: Docker ps and ports
+        run: docker ps -a
+
+      - name: Docker networks
+        run: |
+          docker network ls
+          docker network inspect supabase_network_lawnotation-ui || true
+
+      - name: Confirm Mailpit image exposes correct ports
+        run: |
+          docker inspect supabase_inbucket_lawnotation-ui --format='Ports: {{json .NetworkSettings.Ports}}'
+          docker inspect supabase_inbucket_lawnotation-ui --format='ExposedPorts: {{json .Config.ExposedPorts}}'
 
       - name: Wait for Supabase API
         run: |
