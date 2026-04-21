@@ -51,7 +51,11 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 1.226.4
-      - name: Restart Mailpit with SMTP port exposed (safe)
+          
+      - name: Start Supabase local stack
+        run: supabase start
+
+      - name: Restart Mailpit with SMTP port exposed
         run: |
           set -euo pipefail
 
@@ -89,9 +93,6 @@ jobs:
             "$IMAGE"
 
           echo "Mailpit restarted with SMTP + UI ports exposed"
-
-      - name: Start Supabase local stack
-        run: supabase start
 
       - name: Wait for Supabase API
         run: |
