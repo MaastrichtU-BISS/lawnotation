@@ -124,7 +124,16 @@ jobs:
           exit 1
 
       - name: Wait for supabase Storage
-        run: npx wait-on http://127.0.0.1:54321/storage/v1/bucket
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:54321/storage/v1/bucket >/dev/null; then
+              echo "Supabase Storage ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Supabase Storage not ready"
+          exit 1
         
       - name: Show running containers
         if: always()
