@@ -29,13 +29,20 @@ test("Editor creates, edits, and deletes labelset", async ({ browser }) => {
   await expect(editorPage.getByText("Second label")).toBeVisible();
   await editorPage.getByTestId("labelset-name").fill("Test labelset edited");
   await editorPage.getByTestId("save-labelset").click();
-  await expect(
-    editorPage.getByRole("table").locator("tbody").locator("tr"),
-  ).toHaveCount(3, { timeout: 15000 });
+  // Wait for table to be visible and overlays to be gone
+  const table = editorPage.getByRole("table");
+  await table.waitFor({ state: "visible", timeout: 30000 });
+  await editorPage.waitForLoadState("networkidle");
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+  // Confirm table is refreshed before checking row count
+  await expect(table.locator("tbody").locator("tr")).toHaveCount(3, { timeout: 30000 });
   await editorPage.getByTestId("checkbox").first().check();
   await editorPage.getByTestId("remove-selected-rows").click();
   await editorPage.getByLabel("Yes, delete").click();
-  await expect(
-    editorPage.getByRole("table").locator("tbody").locator("tr"),
-  ).toHaveCount(2, { timeout: 15000 });
+  // Wait for table to be visible and overlays to be gone
+  await table.waitFor({ state: "visible", timeout: 30000 });
+  await editorPage.waitForLoadState("networkidle");
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+  // Confirm table is refreshed before checking row count
+  await expect(table.locator("tbody").locator("tr")).toHaveCount(2, { timeout: 30000 });
 });

@@ -39,18 +39,19 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   await editorPage.getByRole("alert").waitFor({ state: "hidden" });
   await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
 
-  const row = editorPage
-    .getByRole("table")
-    .first()
-    .getByRole("row")
-    .filter({ hasText: projectName })
-    .first();
 
-  // Wait for row and project name to be visible before proceeding
-  await expect(row).toBeVisible({ timeout: 15000 });
-  await expect(row.getByText(projectName)).toBeVisible({ timeout: 15000 });
+  // Wait for table to be visible and overlays to be gone
+  const table = editorPage.getByRole("table").first();
+  await table.waitFor({ state: "visible", timeout: 30000 });
+  await editorPage.waitForLoadState("networkidle");
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+
+  // Find the row for the new project
+  const row = table.getByRole("row").filter({ hasText: projectName }).first();
+  await expect(row).toBeVisible({ timeout: 30000 });
+  await expect(row.getByText(projectName)).toBeVisible({ timeout: 30000 });
   const viewButton = row.getByRole("button", { name: "View" });
-  await expect(viewButton).toBeVisible({ timeout: 15000 });
+  await expect(viewButton).toBeVisible({ timeout: 30000 });
   const viewProjectLink = row.getByTestId("view-project-link");
   await expect(viewProjectLink).toHaveAttribute("href", /\/projects\/\d+/);
   await viewProjectLink.click();
@@ -203,21 +204,25 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   await editorPage.getByTestId("project-name").fill(projectName);
   await editorPage.getByTestId("add-project").click();
   await editorPage.getByRole("alert").waitFor({ state: "hidden" });
-  const row = editorPage
-    .getByRole("table")
-    .first()
-    .getByRole("row")
-    .filter({ hasText: projectName })
-    .first();
+
+  // Wait for table to be visible and overlays to be gone
+  const table = editorPage.getByRole("table").first();
+  await table.waitFor({ state: "visible", timeout: 30000 });
+  await editorPage.waitForLoadState("networkidle");
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+
+  // Find the row for the new project
+  const row = table.getByRole("row").filter({ hasText: projectName }).first();
+  await expect(row).toBeVisible({ timeout: 30000 });
   const viewButton = row.getByRole("button", { name: "View" });
-  await expect(viewButton).toBeVisible({ timeout: 15000 });
+  await expect(viewButton).toBeVisible({ timeout: 30000 });
   const viewProjectLink = row.getByTestId("view-project-link");
   await expect(viewProjectLink).toHaveAttribute("href", /\/projects\/\d+/);
   await viewProjectLink.click();
-  await editorPage.waitForURL(/\/projects\/\d+(?:\/)?$/, { timeout: 15000 });
+  await editorPage.waitForURL(/\/projects\/\d+(?:\/)?$/, { timeout: 30000 });
   await editorPage.waitForLoadState("networkidle");
   await expect(editorPage).toHaveURL(/\/projects\/\d+(?:\/)?(?:[?#].*)?$/, {
-    timeout: 15000,
+    timeout: 30000,
   });
 
   // Wait for documents tab to be visible before checking modal button

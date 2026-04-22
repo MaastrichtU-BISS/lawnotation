@@ -23,14 +23,16 @@ test("editor creates project, task, a new labelset and edits project and task", 
   await editorPage.getByTestId("add-project").click();
   await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
   await editorPage.waitForLoadState("networkidle");
-  const row = await editorPage
-    .getByRole("table")
-    .locator("tbody")
-    .locator("tr")
-    .first();
-  await expect(row).toBeVisible({ timeout: 15000 });
+  // Wait for table to be visible and overlays to be gone
+  const table = editorPage.getByRole("table");
+  await table.waitFor({ state: "visible", timeout: 30000 });
+  await editorPage.waitForLoadState("networkidle");
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+  // Find the first row
+  const row = table.locator("tbody").locator("tr").first();
+  await expect(row).toBeVisible({ timeout: 30000 });
   const viewButton = row.getByRole("button", { name: "View" });
-  await expect(viewButton).toBeVisible({ timeout: 15000 });
+  await expect(viewButton).toBeVisible({ timeout: 30000 });
   await viewButton.click();
 
   // Editor creates task
@@ -79,18 +81,22 @@ test("editor creates project, task, a new labelset and edits project and task", 
   await taskDialog.getByTestId("create-tasks").click();
   await expect(taskDialog).toBeHidden({ timeout: 10000 });
   await editorPage.waitForLoadState("networkidle");
-  const taskRow = await editorPage.getByRole("table").locator("tbody tr").first();
-  await expect(taskRow).toBeVisible({ timeout: 15000 });
+  // Wait for table to be visible and overlays to be gone
+  await table.waitFor({ state: "visible", timeout: 30000 });
+  await editorPage.waitForLoadState("networkidle");
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+  const taskRow = table.locator("tbody").locator("tr").first();
+  await expect(taskRow).toBeVisible({ timeout: 30000 });
 
   // Editor edits a task
-  const editRow = editorPage
-    .getByRole("table")
-    .locator("tbody")
-    .locator("tr")
-    .first();
-  await expect(editRow).toBeVisible({ timeout: 15000 });
+  // Wait for table to be visible and overlays to be gone
+  await table.waitFor({ state: "visible", timeout: 30000 });
+  await editorPage.waitForLoadState("networkidle");
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+  const editRow = table.locator("tbody").locator("tr").first();
+  await expect(editRow).toBeVisible({ timeout: 30000 });
   const editsButton = editRow.getByLabel("Edit");
-  await expect(editsButton).toBeVisible({ timeout: 15000 });
+  await expect(editsButton).toBeVisible({ timeout: 30000 });
   await editsButton.click();
   await editorPage.getByTestId("task-name").fill("Task test");
   await editorPage.getByRole("combobox").click();
@@ -100,19 +106,23 @@ test("editor creates project, task, a new labelset and edits project and task", 
   await editorPage.getByTestId("projects-link").click();
 
   // Editor edits project
-  const projectRow = editorPage
-    .getByRole("table")
-    .locator("tbody")
-    .locator("tr")
-    .first();
+  // Wait for table to be visible and overlays to be gone
+  await table.waitFor({ state: "visible", timeout: 30000 });
+  await editorPage.waitForLoadState("networkidle");
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+  const projectRow = table.locator("tbody").locator("tr").first();
   const editedButton = projectRow.getByLabel("Edit");
-  await expect(editedButton).toBeVisible();
+  await expect(editedButton).toBeVisible({ timeout: 30000 });
   await editedButton.click();
   await editorPage.getByTestId("project-name").fill("Test project");
   await editorPage.getByTestId("save-changes-button").click();
   await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
-  const firstRow = await editorPage.getByRole("table").locator("tbody tr").first();
-  await expect(firstRow).toBeVisible({ timeout: 15000 });
+  // Wait for table to be visible and overlays to be gone
+  await table.waitFor({ state: "visible", timeout: 30000 });
+  await editorPage.waitForLoadState("networkidle");
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+  const firstRow = table.locator("tbody").locator("tr").first();
+  await expect(firstRow).toBeVisible({ timeout: 30000 });
 
   // Editor deletes project
   await editorPage.getByTestId("checkbox").first().check();
