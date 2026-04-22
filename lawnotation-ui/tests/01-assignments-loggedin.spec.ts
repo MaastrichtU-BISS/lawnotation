@@ -37,6 +37,7 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   await editorPage.getByTestId("project-name").fill(projectName);
   await editorPage.getByTestId("add-project").click();
   await editorPage.getByRole("alert").waitFor({ state: "hidden" });
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
 
   const row = editorPage
     .getByRole("table")
@@ -45,6 +46,9 @@ test("Editor creates project, task, uploads document and assigns task", async ({
     .filter({ hasText: projectName })
     .first();
 
+  // Wait for row and project name to be visible before proceeding
+  await expect(row).toBeVisible({ timeout: 15000 });
+  await expect(row.getByText(projectName)).toBeVisible({ timeout: 15000 });
   const viewButton = row.getByRole("button", { name: "View" });
   await expect(viewButton).toBeVisible({ timeout: 15000 });
   const viewProjectLink = row.getByTestId("view-project-link");

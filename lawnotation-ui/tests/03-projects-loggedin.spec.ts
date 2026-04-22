@@ -21,18 +21,16 @@ test("editor creates project, task, a new labelset and edits project and task", 
     .getByTestId("project-description")
     .fill("This is the description");
   await editorPage.getByTestId("add-project").click();
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+  await editorPage.waitForLoadState("networkidle");
   const row = await editorPage
     .getByRole("table")
     .locator("tbody")
     .locator("tr")
-    .first()
-    .waitFor();
-  const viewButton = editorPage
-    .getByRole("table")
-    .locator("tbody")
-    .locator("tr")
-    .first()
-    .getByRole("button", { name: "View" });
+    .first();
+  await expect(row).toBeVisible({ timeout: 15000 });
+  const viewButton = row.getByRole("button", { name: "View" });
+  await expect(viewButton).toBeVisible({ timeout: 15000 });
   await viewButton.click();
 
   // Editor creates task
@@ -81,7 +79,8 @@ test("editor creates project, task, a new labelset and edits project and task", 
   await taskDialog.getByTestId("create-tasks").click();
   await expect(taskDialog).toBeHidden({ timeout: 10000 });
   await editorPage.waitForLoadState("networkidle");
-  await editorPage.getByRole("table").locator("tbody tr").first().waitFor();
+  const taskRow = await editorPage.getByRole("table").locator("tbody tr").first();
+  await expect(taskRow).toBeVisible({ timeout: 15000 });
 
   // Editor edits a task
   const editRow = editorPage
@@ -89,8 +88,9 @@ test("editor creates project, task, a new labelset and edits project and task", 
     .locator("tbody")
     .locator("tr")
     .first();
+  await expect(editRow).toBeVisible({ timeout: 15000 });
   const editsButton = editRow.getByLabel("Edit");
-  await expect(editsButton).toBeVisible();
+  await expect(editsButton).toBeVisible({ timeout: 15000 });
   await editsButton.click();
   await editorPage.getByTestId("task-name").fill("Task test");
   await editorPage.getByRole("combobox").click();
@@ -110,7 +110,9 @@ test("editor creates project, task, a new labelset and edits project and task", 
   await editedButton.click();
   await editorPage.getByTestId("project-name").fill("Test project");
   await editorPage.getByTestId("save-changes-button").click();
-  await editorPage.getByRole("table").locator("tbody tr").first().waitFor();
+  await editorPage.locator(".dimmer-wrapper > .dimmer").waitFor({ state: "hidden" }).catch(() => {});
+  const firstRow = await editorPage.getByRole("table").locator("tbody tr").first();
+  await expect(firstRow).toBeVisible({ timeout: 15000 });
 
   // Editor deletes project
   await editorPage.getByTestId("checkbox").first().check();
