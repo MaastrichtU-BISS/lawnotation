@@ -297,9 +297,9 @@
                 </FileUpload>
               </div>
             </TabPanel>
-            <TabPanel header="Find (Rechtspraak)">
+            <!-- <TabPanel header="Find (Rechtspraak)">
               <SearchDocuments :add-documents-to-project="true" @on-documents-fetched="onDocumentsFetched" />
-            </TabPanel>
+            </TabPanel> -->
           </TabView>
         </Dialog>
       </TabPanel>

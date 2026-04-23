@@ -1,5 +1,6 @@
 <template>
     <LegalDocsForm title="Search Legal Documents"
+        type="free"
         :on-submit="handleSubmit" @success="onSuccess" @error="onError" />
 </template>
 
@@ -18,7 +19,9 @@ const { addDocumentsToProject = false } =
         addDocumentsToProject?: boolean
     }>();
 
-const client = createLegalDocsClient({})
+const client = createLegalDocsClient({
+    apiKey: import.meta.env.VITE_CITATIONS_API_KEY,
+})
 
 const handleSubmit = async (queryParams: QueryParameters) => {
     const docs: LegalDocument[] = await client.fetchDocuments(queryParams)
