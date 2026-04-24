@@ -1,10 +1,7 @@
 <template>
-    <LegalDocsForm
-        title="Search Legal Documents"
-        :on-submit="handleSubmit"
-        @success="onSuccess"
-        @error="onError"
-    />
+    <LegalDocsForm title="Search Legal Documents"
+        type="free"
+        :on-submit="handleSubmit" @success="onSuccess" @error="onError" />
 </template>
 
 <script setup lang="ts">
@@ -32,8 +29,10 @@ const emit = defineEmits<{
     ): void;
 }>();
 
-const client = createLegalDocsClient({});
 const loading = ref(false);
+const client = createLegalDocsClient({
+    apiKey: import.meta.env.VITE_CITATIONS_API_KEY,
+})
 
 const handleSubmit = async (queryParams: QueryParameters) => {
     loading.value = true;
