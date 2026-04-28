@@ -2,15 +2,7 @@ name: E2E Tests
 
 on:
   push:
-    branches:
-      - main
-      - "feat-*"
-      - dev
   pull_request:
-    branches:
-      - main
-      - "feat-*"
-      - dev
 
 jobs:
   playwright:
