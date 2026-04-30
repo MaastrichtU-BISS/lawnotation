@@ -22,7 +22,7 @@
                     <LabelCmpt :label="slotProps.option"></LabelCmpt>
                 </template>
             </Multiselect>
-            <Dropdown v-else-if="metricType == MetricTypes.AGREEMENT" v-model="selectedLabelsOrEmpty[0]" optionValue="name"
+            <Select v-else-if="metricType == MetricTypes.AGREEMENT" v-model="selectedLabelsOrEmpty[0]" optionValue="name"
                 class="w-full" filter :autoFilterFocus="true" :filterFields="['name']" :options="labelsOptions"
                 placeholder="Select label" @change="emit('updateAnnotations')">
                 <template #value="slotProps">
@@ -38,7 +38,7 @@
                 <template #option="slotProps">
                     <LabelCmpt :label="slotProps.option"></LabelCmpt>
                 </template>
-            </Dropdown>
+            </Select>
         </li>
         <li>
             <label class="block mb-2 text-sm font-medium text-gray-900">Document(s)</label>
@@ -76,7 +76,7 @@
                     <tr>
                         <td><span class="text-sm font-medium float-right mr-2" :class="isMergedTask ? 'text-gray-900' : 'text-gray-400'">Inter</span></td>
                         <td>
-                            <InputSwitch v-model="intraAnnotatorAgreement" @change="emit('updateAnnotations')" :disabled="!isMergedTask"/>
+                            <ToggleSwitch v-model="intraAnnotatorAgreement" @change="emit('updateAnnotations')" :disabled="!isMergedTask" />
                         </td>
                         <td><span class="text-sm font-medium float-left ml-2" :class="isMergedTask ? 'text-gray-900' : 'text-gray-400'">Intra</span></td>
                         <td> <i class="pi pi-info-circle cursor-pointer border-0"
@@ -86,7 +86,7 @@
                     <tr>
                         <td><span class="text-sm font-medium text-gray-900 float-right mr-2">Annotation</span></td>
                         <td>
-                            <InputSwitch v-model="separate_into_words"
+                            <ToggleSwitch v-model="separate_into_words"
                                 @change="emit('updateAnnotations', props.metricType)" />
                         </td>
                         <td><span class="text-sm font-medium text-gray-900 float-left ml-2">Word</span></td>
@@ -97,7 +97,7 @@
                     <tr>
                         <td><span class="text-sm font-medium text-gray-900 float-right mr-2">Equal</span></td>
                         <td>
-                            <InputSwitch v-model="contained" @change="tolerance = 0" />
+                            <ToggleSwitch v-model="contained" @change="tolerance = 0" />
                         </td>
                         <td><span class="text-sm font-medium text-gray-900 float-left ml-2">Overlap</span></td>
                         <td><i class="pi pi-info-circle cursor-pointer border-0"
@@ -108,7 +108,7 @@
                         <td><span class="text-sm font-medium text-gray-900 float-right mr-2 text-right">Include NTA</span>
                         </td>
                         <td>
-                            <InputSwitch v-model="hideNonText" @change="emit('updateAnnotations')" />
+                            <ToggleSwitch v-model="hideNonText" @change="emit('updateAnnotations')" />
                         </td>
                         <td><span class="ext-sm font-medium text-gray-900 float-left ml-2">Exclude NTA</span></td>
                         <td><i class="pi pi-info-circle cursor-pointer border-0"
@@ -132,12 +132,14 @@
                     v-tooltip="'(Optional). Search for tasks among all your projects that:\n* Have the same annotators as the current task\n * Have the same documents\n* Have the same labelset\nAnd perform the Agreement calculations of the individual annotators\nagainst themselves from task to task.\n(You can create tasks like these by, for example:\nReplicating Tasks or Exporting/Importing Tasks)'"
                     type="text"></i>
             </div>
-            <Accordion>
-                <AccordionTab header="Intra-Annotator-Agreement">
+            <Accordion value="0">
+                <AccordionPanel value="0">
+                    <AccordionHeader>Intra-Annotator-Agreement</AccordionHeader>
+                    <AccordionContent>
                     <Button v-if="!optionSimilarTasks?.length" type="button" label="Find similar tasks" icon="pi pi-search"
                         :loading="loadingSimilarTasks" @click="loadSimilarTasks" class="w-full" />
                     <template v-else>
-                        <Dropdown v-model="selectedSimilarTask" :options="optionSimilarTasks" showClear filter
+                        <Select v-model="selectedSimilarTask" :options="optionSimilarTasks" showClear filter
                             optionLabel="name" optionValue="id" placeholder="Select a task" class="w-full" />
                         <i class="pi pi-info-circle cursor-pointer border-0 self-center float-end"
                         v-tooltip="'This will create a replica of the current task.\n After that, the replica will be merged with the similar task. \n Then you will be redirected to the metrics#agreement page of the newly created task\nThere you will have the option to compute intra-annotator-agreement-metrics.'"
@@ -145,20 +147,23 @@
                         <Button :disabled="!selectedSimilarTask" class="w-full" label="Merge tasks" outlined size="small"
                             @click="emit('mergeTasks', selectedSimilarTask)"/>
                     </template>
-                </AccordionTab>
+                    </AccordionContent>
+                </AccordionPanel>
             </Accordion>
         </div>
     </ul>
 </template>
 <script setup lang="ts">
 import { MetricTypes } from "~/utils/enums";
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
 import Multiselect from "primevue/multiselect";
 import LabelCmpt from "~/components/labels/Label.vue";
-import InputSwitch from 'primevue/inputswitch';
+import ToggleSwitch from 'primevue/toggleswitch';
 import InputNumber from 'primevue/inputnumber';
 import Accordion from 'primevue/accordion';
-import AccordionTab from 'primevue/accordiontab';
+import AccordionPanel from 'primevue/accordionpanel';
+import AccordionHeader from 'primevue/accordionheader';
+import AccordionContent from 'primevue/accordioncontent';
 import Divider from 'primevue/divider';
 
 const { $trpc } = useNuxtApp();
@@ -182,8 +187,15 @@ const selectedSimilarTask = ref<number>();
 
 const loadSimilarTasks = async () => {
     loadingSimilarTasks.value = true;
+    const taskIdParam = route.params.task_id;
+    const taskId = Array.isArray(taskIdParam) ? taskIdParam[0] : taskIdParam;
+    if (!taskId) {
+        loadingSimilarTasks.value = false;
+        return;
+    }
+
     optionSimilarTasks.value = await $trpc.task.findSimilarTasks.query({
-        task_id: +route.params.task_id,
+        task_id: +taskId,
         annotators: props.annotatorsOptions
     });
     loadingSimilarTasks.value = false;

@@ -37,11 +37,13 @@
     --surface-950: 3 6 23;
 }
 
-a.base {
-    @apply text-primary-high;
-
-    &:hover {
-        @apply underline text-primary;
+@layer {
+    a.base {
+        @apply text-primary-high;
+    
+        &:hover {
+            @apply underline text-primary;
+        }
     }
 }
 

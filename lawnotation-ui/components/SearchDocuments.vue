@@ -1,123 +1,87 @@
 <template>
-    <div class="mx-auto md:w-1/2">
-        <div class="dimmer-wrapper">
-            <Dimmer v-model="loading" />
-            <div class="dimmer-content">
-                <h3 class="mt-3 text-lg font-semibold text-center">Provide ECLIs</h3>
-                <h3 class="my-3 text-sm font-semibold">
-                    ECLIs provided: {{ eclis.length }}
-                </h3>
-                <Chips v-model="eclis" separator="," addOnBlur @add="addedEclis" :pt="{
-                    input: {
-                        'data-test': 'eclis'
-                    },
-                }" />
-                <div class="my-4 text-center">
-                    <Button type="button" @click="fetchDocuments"
-                        :label="addDocumentsToProject ? 'Confirm' : 'Download'"
-                        :icon="addDocumentsToProject ? 'pi pi-check' : 'pi pi-download'" iconPos="right"
-                        :disabled="!eclis.length || loading" data-test="download-button" />
-                </div>
-            </div>
-        </div>
-    </div>
+    <LegalDocsForm title="Search Legal Documents"
+        type="free"
+        :on-submit="handleSubmit" @success="onSuccess" @error="onError" />
 </template>
 
 <script setup lang="ts">
+import { LegalDocsForm, createLegalDocsClient } from "vue-legal-query-builder";
+import type {
+    FullTextDocument,
+    LegalDocument,
+    QueryParameters,
+} from "vue-legal-query-builder";
+import "vue-legal-query-builder/style.css";
+import JSZip from "jszip";
 import { ref } from "vue";
 import { downloadAs } from "~/utils/download_file";
-import type { DocFormat, Doc } from "~/types/archive";
-import JSZip, { file } from "jszip";
 
-const { $toast, $trpc } = useNuxtApp();
+const { $toast } = useNuxtApp();
 
-const { addDocumentsToProject = false } =
-    defineProps<{
-        addDocumentsToProject?: boolean
-    }>();
+const { addDocumentsToProject = false } = defineProps<{
+    addDocumentsToProject?: boolean;
+}>();
 
-const emit = defineEmits(["onDocumentsFetched"]);
+const emit = defineEmits<{
+    (
+        event: "onDocumentsFetched",
+        docs: Array<{ content: string; name: string; format: string }>
+    ): void;
+}>();
 
-const eclis = ref<string[]>([]);
-const format = ref<DocFormat>("text/plain");
-const loading = ref<boolean>(false);
+const loading = ref(false);
+const client = createLegalDocsClient({
+    apiKey: import.meta.env.VITE_CITATIONS_API_KEY,
+})
 
-// ECLI:NL:RBLIM:2023:7197,ECLI:NL:OGEAC:2021:280,ECLI:NL:RVS:2011:BU7101
-
-// Recursively gets the text from the xml
-const getText = (node: any): string => {
-    if (node.nodeType === 3) {
-        return node.nodeValue;
-    }
-
-    let acc = "";
-
-    for (let child of node.childNodes)
-        acc += getText(child);
-
-    return acc;
-}
-
-const addedEclis = ($event: any) => {
-    const pattern = /(\r\n|\r|\n)/gi;
-    eclis.value = [];
-    $event.value.map((s: string) => {
-        let formatted = s.replaceAll(pattern, ',');
-        formatted = formatted.replaceAll(/\s/gi, '');
-        const splitted = formatted.split(',');
-        eclis.value.push(...splitted.filter((s: string) => s.length > 0));
-    });
-};
-
-const fetchDocuments = async () => {
+const handleSubmit = async (queryParams: QueryParameters) => {
     loading.value = true;
 
-    let docs: Doc[] = [];
-
     try {
-        const xmls = await $trpc.archive.getXMLFromRechtspraak.query({ eclis: eclis.value });
-
-        docs = xmls.map((xml: string, index: number) => {
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xml, "text/xml");
-            const text = getText(xmlDoc);
-            return {
-                name: `${eclis.value[index]}.${format.value == "text/plain" ? "txt" : ""}`,
-                content: text ?? "",
-                format: format.value
-            }
-        });
-
-    } catch (error) {
+        const docs: LegalDocument[] = await client.fetchDocuments(queryParams);
+        const fullTexts: FullTextDocument[] = await client.getFullText(
+            docs.map((doc) => doc.id)
+        );
+        return fullTexts;
+    } finally {
         loading.value = false;
-        $toast.error(error as string);
     }
-
-    if (addDocumentsToProject) {
-        emit("onDocumentsFetched", docs);
-    } else {
-        download(docs);
-    }
-
-    return docs;
 };
 
-const download = async (docs: Doc[]) => {
-    const zip = JSZip();
+const onSuccess = (data: FullTextDocument[]) => {
+    if (addDocumentsToProject) {
+        emit(
+            "onDocumentsFetched",
+            data.map((doc) => ({
+                content: doc.fullText,
+                name: `${doc.ecli}.txt`,
+                format: "text/plain",
+            }))
+        );
+        return;
+    }
+
+    download(data);
+};
+
+const onError = (error: Error) => {
+    loading.value = false;
+    $toast.error(error.message);
+};
+
+const download = async (docs: FullTextDocument[]) => {
+    const zip = new JSZip();
+
     try {
-        docs.map((doc: Doc) => {
-            zip.file(doc.name, new Blob([doc.content]));
+        docs.forEach((doc) => {
+            zip.file(`${doc.ecli}.txt`, new Blob([doc.fullText], { type: "text/plain" }));
         });
 
-        const blob_zip = await zip.generateAsync({ type: "blob" });
-
-        downloadAs(blob_zip, "documents.zip", "blob");
-
+        const blobZip = await zip.generateAsync({ type: "blob" });
+        downloadAs(blobZip, "documents.zip", "blob");
         $toast.success(`One .zip file containing ${docs.length} documents has been downloaded!`);
     } catch (error) {
         $toast.error(error as string);
     }
-
-    loading.value = false;
-}
+};
 </script>

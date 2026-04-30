@@ -6,9 +6,6 @@ import type { Context } from "../context";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { AnnotationLevels } from "~/utils/enums";
 
-
-const config = useRuntimeConfig();
-
 const ZMlModelFields = z.object({
   name: z.string().min(3),
   type: z.string(),
@@ -80,6 +77,7 @@ export const mlModelRouter = router({
       })
     )
     .query(async ({ input }) => {
+      const config = useRuntimeConfig();
       
       try {
         const response = fetch(`${config.public.mlBackendURL}/predict`, {
@@ -102,9 +100,9 @@ export const mlModelRouter = router({
     )
     // .use(hookAuthorizer)
     .query(async ({ ctx, input }) => {
+      const config = useRuntimeConfig();
       
       try {
-
         const promises: Promise<any>[] = [];
         input.map((task_id: number) => {
           const response = fetch(`${config.public.mlBackendURL}/task_status`, {

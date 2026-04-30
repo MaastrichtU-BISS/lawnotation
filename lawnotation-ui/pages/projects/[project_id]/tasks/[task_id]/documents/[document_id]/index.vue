@@ -45,6 +45,8 @@ import type {
 } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 import { isDocumentLevel, getDocFormat } from "~/utils/levels";
+import Breadcrumb from "~/components/Breadcrumb.vue";
+
 
 const user = useSupabaseUser();
 

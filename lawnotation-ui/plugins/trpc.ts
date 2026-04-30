@@ -25,7 +25,7 @@ export default defineNuxtPlugin(async (app) => {
               observer.error(err)
               if (err.data?.code == "UNAUTHORIZED" && process.client) {
                 sbclient.auth.signOut().then(() => {
-                  useNuxtApp().$toast.info("You have been signed out. Please sign-in again.")
+                  (useNuxtApp() as any).$toast.info("You have been signed out. Please sign-in again.")
                   if (process.client) location.href='/auth/login';
                 });
               }

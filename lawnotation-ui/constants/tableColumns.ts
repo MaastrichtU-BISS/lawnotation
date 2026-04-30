@@ -1,4 +1,4 @@
-import { AppRouter } from "~/server/trpc/routers";
+import type { AppRouter } from "~/server/trpc/routers";
 
 export type TableColumn = {
   field: string,

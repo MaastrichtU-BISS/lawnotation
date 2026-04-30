@@ -135,6 +135,8 @@
 </template>
 <script setup lang="ts">
 import type { Publication } from "~/types";
+import Breadcrumb from "~/components/Breadcrumb.vue";
+
 
 const { $trpc } = useNuxtApp();
 const user = useSupabaseUser();

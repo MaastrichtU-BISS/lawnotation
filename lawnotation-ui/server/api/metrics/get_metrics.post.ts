@@ -28,6 +28,7 @@ export default eventHandler(async (event) => {
     annotations = await $fetch(`/api/metrics/get_annotations`, {
       method: "POST",
       body: ann_body,
+      timeout: 120000, // 2 minutes
     });
   }
 
@@ -51,6 +52,7 @@ export default eventHandler(async (event) => {
     return [await $fetch(`/api/metrics/cohens_kappa`, {
       method: "POST",
       body: metric_body,
+      timeout: 120000,
     })];
   }
 
@@ -67,6 +69,7 @@ export default eventHandler(async (event) => {
       $fetch(`/api/metrics/${m}`, {
         method: "POST",
         body: metric_body,
+        timeout: 120000, // 2 minutes per metric
       })
     );
   });

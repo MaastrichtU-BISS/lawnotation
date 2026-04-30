@@ -26,6 +26,7 @@
 import type { Project, Document } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 import { getDocFormat } from "~/utils/levels";
+import Breadcrumb from "~/components/Breadcrumb.vue";
 
 const { $trpc } = useNuxtApp();
 

@@ -33,4 +33,4 @@ export async function createContext(event: H3Event) {
   }
 }
 
-export type Context = inferAsyncReturnType<typeof createContext>
+export type Context = Awaited<ReturnType<typeof createContext>>;

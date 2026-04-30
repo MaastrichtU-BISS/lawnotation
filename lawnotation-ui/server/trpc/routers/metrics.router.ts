@@ -194,7 +194,7 @@ async function findAnnotationsByTaskLabelDocumentsAnnotators(
       return {
         start: ann.start_index,
         end: ann.end_index,
-        text: ann.text.replaceAll("\\n", ""),
+        text: ann.text?.replaceAll("\\n", ""),
         label: ann.label,
         annotator: ann.assignment.annotator.email,
         hidden: false,

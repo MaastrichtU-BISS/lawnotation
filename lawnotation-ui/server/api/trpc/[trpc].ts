@@ -1,9 +1,9 @@
-import { createNuxtApiHandler } from 'trpc-nuxt'
+import { createTRPCNuxtHandler } from 'trpc-nuxt/server'
+import { createContext } from '~/server/trpc'
 import { appRouter } from '~/server/trpc/routers'
-import { createContext } from '~/server/trpc/context'
 
-// export API handler
-export default createNuxtApiHandler({
+export default createTRPCNuxtHandler({
+  endpoint: '/api/trpc',
   router: appRouter,
-  createContext,
-});
+  createContext: createContext,
+})

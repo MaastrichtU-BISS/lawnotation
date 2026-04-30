@@ -1,7 +1,12 @@
 <template>
   <!-- <div class="flex items-center justify-between px-4 py-4 bg-neutral-100"> -->
   <div class="">
-    <Menubar class="p-3 justify-between" :pt="{ end: { class: '' } }" :model="[
+    <Menubar class="p-3 w-full" :pt="{
+      root: { class: 'relative flex items-center' },
+      start: { class: 'z-10 shrink-0' },
+      rootList: { class: 'flex-nowrap w-full justify-center' },
+      end: { class: 'ml-auto z-10 shrink-0' }
+    }" :model="[
       {
         label: 'Projects',
         icon: 'pi pi-list',

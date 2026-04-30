@@ -1,4 +1,5 @@
-import Swal, { SweetAlertIcon } from "sweetalert2";
+import Swal from "sweetalert2";
+import type { SweetAlertIcon } from "sweetalert2";
 export function confirmBox(
   title: string = "Are you sure?",
   text: string = "",

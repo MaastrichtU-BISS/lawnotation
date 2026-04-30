@@ -27,10 +27,13 @@
           class="fixed left-0 z-40 w-80 side-panel-h transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
           aria-label="Sidebar" style="margin-top: inherit">
           <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
-            <TabView v-model:activeIndex="metricsTypeActiveTab" v-on:update:active-index="updateUrl($event)">
-              <TabPanel header="Descriptive" :pt="{
-                headerAction: '!py-3',
-              }" :ptOptions="{ mergeProps: true }">
+            <Tabs v-model:value="metricsTypeActiveTab" @update:value="updateUrl($event)">
+              <TabList>
+                <Tab :value="0" class="!py-3">Descriptive</Tab>
+                <Tab :value="1" :disabled="annotatorsOptions.length < 2" class="!py-3">Agreement</Tab>
+              </TabList>
+              <TabPanels>
+              <TabPanel :value="0">
                 <ParametersColumn :metric-type="MetricTypes.DESCRIPTIVE" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="allDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="false" v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
@@ -39,9 +42,7 @@
                   @update-annotations="updateAnnotations">
                 </ParametersColumn>
               </TabPanel>
-              <TabPanel header="Agreement" :disabled="annotatorsOptions.length < 2" :pt="{
-                headerAction: '!py-3',
-              }" :ptOptions="{ mergeProps: true }">
+              <TabPanel :value="1">
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="documentsOptions"
                   :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)" :is-merged-task="isMergedTask"
@@ -54,7 +55,8 @@
                   @update-annotations="updateAnnotations" @merge-tasks="mergeTasks($event)">
                 </ParametersColumn>
               </TabPanel>
-            </TabView>
+              </TabPanels>
+            </Tabs>
           </div>
         </aside>
         <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations"
@@ -67,6 +69,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import Breadcrumb from "~/components/Breadcrumb.vue";
 import AnnotationsList from "~/components/metrics/AnnotationsList.vue";
 import ResultsModal from "~/components/metrics/ResultsModal.vue";
 import ParametersColumn from "~/components/metrics/ParametersColumn.vue";
@@ -313,6 +316,9 @@ const compute_metrics = async (
   return $fetch("/api/metrics/get_metrics", {
     method: "POST",
     body: body,
+    timeout: 300000, // 5 minutes timeout
+    retry: 2,
+    retryDelay: 1000,
   });
 };
 
@@ -603,89 +609,107 @@ async function createWorkBooks(data: any, document?: any) {
 
   for (let i = 0; i < data.labelsOptions.length; i++) {
     const label = data.labelsOptions[i];
-    const { metrics_sheet, annotations_sheet, descriptive_anns_sheet } = await getAllInter(data, label, document);
+    
+    try {
+      const { metrics_sheet, annotations_sheet, descriptive_anns_sheet } = await getAllInter(data, label, document);
 
-    let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
+      let sheetName = label.substring(0, 31).replace(/[\*\?\/\\\[\]]/g, '-');
 
-    // works as long as there are less than 100 labels
-    if (label.length > 31) {
-      const range = i + 1 > 9 ? 12 : 13;
-      sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+      // works as long as there are less than 100 labels
+      if (label.length > 31) {
+        const range = i + 1 > 9 ? 12 : 13;
+        sheetName = `${i + 1}-${label.substring(0, 13)}...${label.substring(label.length - range)}`;
+      }
+
+      XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, sheetName);
+      XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
+      XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, sheetName);
+
+      download_progress.value.current++;
+      
+      // Small delay to avoid overwhelming the server
+      if (i < data.labelsOptions.length - 1) {
+        await sleep(100);
+      }
+    } catch (error) {
+      console.error(`Failed to process label ${label}:`, error);
+      // Continue with next label instead of failing completely
+      download_progress.value.current++;
     }
-
-    XLSX.utils.book_append_sheet(workbookMetrics, metrics_sheet, sheetName);
-    XLSX.utils.book_append_sheet(workbookAnnotations, annotations_sheet, sheetName);
-    XLSX.utils.book_append_sheet(workbookDescriptive, descriptive_anns_sheet, sheetName);
-
-    download_progress.value.current++;
   }
 
   return { workBookConfidence, workbookMetrics, workbookAnnotations, workbookDescriptive };
 }
 
 async function getAllInter(data: any, label: string, document?: any) {
-  const annotations = await getAnnotations(
-    data.task_id,
-    [label],
-    document ? [document] : data.documentsOrEmpty,
-    data.annotators,
-    data.byWords,
-    data.hideNonText,
-    data.documentLevel,
-    data.intra
-  );
+  try {
+    const annotations = await getAnnotations(
+      data.task_id,
+      [label],
+      document ? [document] : data.documentsOrEmpty,
+      data.annotators,
+      data.byWords,
+      data.hideNonText,
+      data.documentLevel,
+      data.intra
+    );
 
-  const metrics = await compute_metrics(
-    data.task_id,
-    label,
-    document ? [document] : data.documentsOrEmpty,
-    data.annotators,
-    data.annotatorsOrEmpty,
-    data.tolerance,
-    data.byWords,
-    data.hideNonText,
-    data.contained,
-    data.documentLevel,
-    data.documentsData,
-    data.documentsOptions,
-    undefined,
-    annotations
-  );
+    const metrics = await compute_metrics(
+      data.task_id,
+      label,
+      document ? [document] : data.documentsOrEmpty,
+      data.annotators,
+      data.annotatorsOrEmpty,
+      data.tolerance,
+      data.byWords,
+      data.hideNonText,
+      data.contained,
+      data.documentLevel,
+      data.documentsData,
+      data.documentsOptions,
+      undefined,
+      annotations
+    );
 
-  const metrics_sheet = await getMetricsSheet(
-    metrics,
-    label,
-    document ? [document] : data.documentsOrEmpty,
-    data
-  );
+    const metrics_sheet = await getMetricsSheet(
+      metrics,
+      label,
+      document ? [document] : data.documentsOrEmpty,
+      data
+    );
 
-  const metrics_sample = metrics[0].table ?? metrics[2].table!;
+    const metrics_sample = metrics[0].table ?? metrics[2].table!;
 
-  const annotations_sheet = getAnnotationsSheet(metrics_sample?.length ?
-    metrics_sample :
-    annotations.map(annotation => {
-      return {
-        start: annotation.start,
-        end: annotation.end,
-        label: annotation.label,
-        text: annotation.text,
-        annotators: { [annotation.annotator]: Number(annotation.label !== "NOT ANNOTATED") },
-        doc_id: annotation.doc_id.toString(),
-        doc_name: annotation?.doc_name!,
-        zeros: 0,
-        ones: 0,
-        confidences: {
-          [annotation.annotator]: annotation.confidence
+    const annotations_sheet = getAnnotationsSheet(metrics_sample?.length ?
+      metrics_sample :
+      annotations.map(annotation => {
+        return {
+          start: annotation.start,
+          end: annotation.end,
+          label: annotation.label,
+          text: annotation.text,
+          annotators: { [annotation.annotator]: Number(annotation.label !== "NOT ANNOTATED") },
+          doc_id: annotation.doc_id.toString(),
+          doc_name: annotation?.doc_name!,
+          zeros: 0,
+          ones: 0,
+          confidences: {
+            [annotation.annotator]: annotation.confidence
+          }
         }
-      }
-    }));
+      }));
 
-  const descriptive_anns_sheet = getDescriptiveAnnotatorSheet(
-    metrics_sample,
-    data.annotators
-  );
+    const descriptive_anns_sheet = getDescriptiveAnnotatorSheet(
+      metrics_sample,
+      data.annotators
+    );
 
-  return { metrics_sheet, annotations_sheet, descriptive_anns_sheet }
+    return { metrics_sheet, annotations_sheet, descriptive_anns_sheet }
+  } catch (error) {
+    console.error(`Error processing label "${label}":`, error);
+    $toast.error(`Failed to process label: ${label}`);
+    throw error;
+  }
 }
 
 async function getMetricsSheet(
@@ -717,28 +741,45 @@ async function getMetricsSheet(
   });
 
   if (data.annotators.length > 2) {
+    // Batch pairwise comparisons to run in parallel (limit concurrency to avoid overwhelming server)
+    const pairwisePromises: Promise<{ metrics: MetricResult[], pair: string }>[] = [];
+    
     for (let i = 0; i < data.annotators.length; i++) {
       for (let j = i + 1; j < data.annotators.length; j++) {
-        const metrics = await compute_metrics(
-          data.task_id,
-          label,
-          documents,
-          [data.annotators[i], data.annotators[j]],
-          [data.annotators[i], data.annotators[j]],
-          data.tolerance,
-          data.byWords,
-          data.hideNonText,
-          data.contained,
-          data.documentLevel,
-          data.documentsData,
-          data.documentsOptions
+        const annotatorPair = [data.annotators[i], data.annotators[j]];
+        const pairName = annotatorPair.join(",");
+        
+        pairwisePromises.push(
+          compute_metrics(
+            data.task_id,
+            label,
+            documents,
+            annotatorPair,
+            annotatorPair,
+            data.tolerance,
+            data.byWords,
+            data.hideNonText,
+            data.contained,
+            data.documentLevel,
+            data.documentsData,
+            data.documentsOptions
+          ).then(metrics => ({ metrics, pair: pairName }))
         );
+      }
+    }
 
-        metrics.map((m) => {
+    // Process in batches of 3 to avoid overwhelming the server
+    const batchSize = 3;
+    for (let i = 0; i < pairwisePromises.length; i += batchSize) {
+      const batch = pairwisePromises.slice(i, i + batchSize);
+      const results = await Promise.all(batch);
+      
+      results.forEach(({ metrics: pairMetrics, pair }) => {
+        pairMetrics.map((m) => {
           if (m.result !== undefined) {
             rows.push({
               metric: m.name,
-              annotators: data.annotators[i] + "," + data.annotators[j],
+              annotators: pair,
               value: m.result,
               p0: m.po,
               pe: m.pe
@@ -752,9 +793,8 @@ async function getMetricsSheet(
                 })
             }
           }
-
         });
-      }
+      });
     }
   }
 

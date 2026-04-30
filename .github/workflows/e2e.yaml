@@ -1,0 +1,201 @@
+name: E2E Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    defaults:
+      run:
+        working-directory: ./lawnotation-ui
+
+    env:
+      SUPABASE_URL: "http://localhost:54321"
+      SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+      SMTP_URL: "smtp://127.0.0.1:1025"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+          cache-dependency-path: lawnotation-ui/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.90.0
+          
+      - name: Start Supabase local stack
+        run: supabase start
+
+
+      - name: Restart Mailpit with SMTP port exposed
+        run: |
+          set -euo pipefail
+
+          echo "Locating Supabase Mailpit container..."
+
+          MAIL_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E '^supabase_inbucket' || true)
+
+          if [ -z "$MAIL_CONTAINER" ]; then
+            echo "Could not find Supabase Mailpit container"
+            docker ps -a
+            exit 1
+          fi
+
+          MAIL_CONTAINER=$(echo "$MAIL_CONTAINER" | head -n1)
+          echo "Found container: $MAIL_CONTAINER"
+
+          IMAGE=$(docker inspect "$MAIL_CONTAINER" --format='{{.Config.Image}}')
+
+          if [ -z "$IMAGE" ]; then
+            echo "Could not determine Mailpit image"
+            exit 1
+          fi
+
+          echo "Using image: $IMAGE"
+
+          # Get the ORIGINAL network dynamically
+          NETWORK=$(docker inspect "$MAIL_CONTAINER" \
+            --format='{{range $k, $v := .NetworkSettings.Networks}}{{println $k}}{{end}}' | head -n1)
+
+          if [ -z "$NETWORK" ]; then
+            echo "Could not determine network"
+            exit 1
+          fi
+
+          echo "Using network: $NETWORK"
+
+          echo "Recreating container with exposed ports..."
+
+          docker rm -f "$MAIL_CONTAINER"
+
+          docker run -d --name "$MAIL_CONTAINER" \
+            --network="$NETWORK" \
+            -p 1025:1025 \
+            -p 54324:8025 \
+            "$IMAGE"
+
+          echo "Mailpit restarted with SMTP + UI ports exposed"
+
+          echo "Verifying network attachment..."
+          docker network inspect "$NETWORK" | grep "$MAIL_CONTAINER" || {
+            echo "Mailpit is NOT attached to network!"
+            exit 1
+          }
+
+          echo "Mailpit correctly attached to $NETWORK"
+
+      - name: Mailpit logs after restart
+        run: docker logs supabase_inbucket_lawnotation-ui || true
+
+      - name: Docker ps and ports
+        run: docker ps -a
+
+      - name: Docker networks
+        run: |
+          docker network ls
+          docker network inspect supabase_network_lawnotation-ui || true
+
+      - name: Confirm Mailpit image exposes correct ports
+        run: |
+          docker inspect supabase_inbucket_lawnotation-ui --format='Ports: {{json .NetworkSettings.Ports}}'
+          docker inspect supabase_inbucket_lawnotation-ui --format='ExposedPorts: {{json .Config.ExposedPorts}}'
+
+      - name: Wait for Supabase API
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:54321/auth/v1/health >/dev/null; then
+              echo "Supabase API ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Supabase API not ready"
+          exit 1
+        
+      - name: Show running containers
+        if: always()
+        run: docker ps -a
+
+      - name: Supabase logs (auth + mailpit + db)
+        if: always()
+        run: |
+          docker logs supabase_auth_lawnotation-ui || true
+          docker logs supabase_inbucket_lawnotation-ui || true
+          docker logs supabase_db_lawnotation-ui || true
+
+      - name: Check SMTP connectivity (Mailpit)
+        run: |
+          for i in {1..60}; do
+            if nc -z 127.0.0.1 1025; then
+              echo "SMTP is reachable"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "SMTP is NOT reachable"
+          exit 1
+
+      - name: Wait for Mailpit UI
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:54324/ >/dev/null; then
+              echo "Mailpit is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mailpit did not become ready in time"
+          exit 1
+      - name: Run Playwright tests
+        run: pnpm playwright
+
+      - name: Capture docker stats (on failure)
+        if: failure()
+        run: docker stats --no-stream > docker-stats.txt
+
+      - name: Upload debug artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-logs
+          path: |
+            docker-stats.txt
+            test-results/
+            playwright-report/
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: lawnotation-ui/playwright-report
+          retention-days: 30
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: lawnotation-ui/test-results
+          retention-days: 30

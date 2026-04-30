@@ -16,7 +16,7 @@
         class="base"
         type="text"
         v-model="labelset.name"
-        placeholder="Labelset name"
+        placeholder="Labelset name*"
         data-test="labelset-name"
         required
       />
@@ -24,7 +24,7 @@
         class="base"
         :value="labelset.desc"
         @input="labelset.desc = ($event.target as HTMLTextAreaElement)?.value"
-        placeholder="Labelset description"
+        placeholder="Labelset description*"
         data-test="labelset-description"
         required
       ></textarea>
@@ -46,9 +46,10 @@
       <input
         class="base grow"
         v-model="newLabel.name"
-        placeholder="Label name"
+        placeholder="Label name*"
         type="text"
         data-test="label-name"
+        required
       />
       <Button
         type="submit"

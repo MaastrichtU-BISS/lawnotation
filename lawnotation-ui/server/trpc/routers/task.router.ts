@@ -22,7 +22,7 @@ import {
   taskEditorAuthorizer,
   taskEditorOrAnnotatorAuthorizer,
 } from "../authorizers";
-import _ from "lodash";
+import * as _ from "lodash";
 
 const ZTaskFields = z.object({
   name: z.string(),
