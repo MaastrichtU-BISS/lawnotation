@@ -456,13 +456,39 @@ async function readWordFile(base64: string): Promise<string> {
 
 async function getPdfText(data: string) {
   try {
-    const { PDFParse } = await import("pdf-parse");
-    const binary = Buffer.from(data, 'base64')
-    const parser = new PDFParse({ data: binary });
-    const result = await parser.getText();
-    await parser.destroy();
+    const { PdfReader } = await import("pdfreader");
+    const binary = Buffer.from(data, "base64");
+    const pageText: string[] = [];
+    let currentPage = 0;
 
-    const cleanedText = result.text
+    await new Promise<void>((resolve, reject) => {
+      new PdfReader().parseBuffer(binary, (err: unknown, item: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (!item) {
+          resolve();
+          return;
+        }
+
+        if (typeof item.page === "number") {
+          currentPage = item.page;
+          if (!pageText[currentPage - 1]) pageText[currentPage - 1] = "";
+          return;
+        }
+
+        if (typeof item.text === "string") {
+          if (!pageText[currentPage - 1]) pageText[currentPage - 1] = "";
+          pageText[currentPage - 1] += `${item.text}\n`;
+        }
+      });
+    });
+
+    const cleanedText = pageText
+      .filter(Boolean)
+      .join("\n")
       .replace(/--\s*\d+\s*of\s*\d+\s*--/g, "")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
