@@ -11,7 +11,7 @@
         <Tabs v-model:value="activeTabDocumentsModal" class="min-h-[565px]">
             <TabList>
                 <Tab :value="0" :pt="{ root: { 'data-test': 'upload-documents-tab' } }">Upload</Tab>
-                <Tab :value="1">Find (Rechtspraak)</Tab>
+                <!-- <Tab :value="1">Find (Rechtspraak)</Tab> -->
             </TabList>
             <TabPanels>
             <TabPanel :value="0">
@@ -58,10 +58,10 @@
                 </div>
             </TabPanel>
 
-            <TabPanel :value="1">
+            <!-- <TabPanel :value="1">
                 <SearchDocuments :add-documents-to-project="true"
                     @on-documents-fetched="emit('documents-fetched', $event)" />
-            </TabPanel>
+            </TabPanel> -->
             </TabPanels>
         </Tabs>
     </Dialog>
