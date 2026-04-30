@@ -15,7 +15,6 @@ import {
   projectEditorAuthorizer,
   taskEditorAuthorizer,
 } from "../authorizers";
-import { PDFParse } from 'pdf-parse';
 import WordExtractor from "word-extractor";
 import { DocumentFormats } from "~/utils/enums";
 
@@ -457,6 +456,7 @@ async function readWordFile(base64: string): Promise<string> {
 
 async function getPdfText(data: string) {
   try {
+    const { PDFParse } = await import("pdf-parse");
     const binary = Buffer.from(data, 'base64')
     const parser = new PDFParse({ data: binary });
     const result = await parser.getText();
