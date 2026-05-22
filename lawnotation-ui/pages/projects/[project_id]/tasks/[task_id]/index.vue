@@ -127,7 +127,7 @@
                         </div>
                       </template>
                       <template v-else-if="node.type == 'document'">
-                        <div class="flex justify-between items-center">
+                        <div class="w-full flex justify-between items-center">
                           <div class="space-x-3">
                             <Badge :value="node.data.status"
                               :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />

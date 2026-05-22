@@ -2,7 +2,8 @@ name: E2E Tests
 
 on:
   push:
-  pull_request:
+    branches:
+      - none
 
 jobs:
   playwright:
