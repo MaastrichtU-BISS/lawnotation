@@ -25,6 +25,16 @@
       <IndexCard url="/projects" title="Create new project" icon="pi pi-file"/>
       <IndexCard url="/published" title="Browse published data" icon="pi pi-search" />
     </section>
+    <section>
+      <h3 class="font-bold">Update</h3>
+      <ul>
+        <li>
+          Lawnotation v1.1.0 is now live! This update uses the latest 
+          <a class="underline" href="https://github.com/MaastrichtU-BISS/vue-legal-query-builder">vue-legal-query-builder</a> on 
+          <a class="underline" href="https://app.lawnotation.org/archives">the Archives page</a> and adds some interface improvements.
+        </li>
+      </ul>
+    </section>
   </div>
 </template>
 <script setup lang="ts">
