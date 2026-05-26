@@ -26,7 +26,7 @@
       <IndexCard url="/published" title="Browse published data" icon="pi pi-search" />
     </section>
     <section>
-      <h3 class="font-bold">Update</h3>
+      <h3 class="font-bold m-0">Update</h3>
       <ul>
         <li>
           Lawnotation v1.1.0 is now live! This update uses the latest 
