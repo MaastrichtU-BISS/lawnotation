@@ -48,7 +48,7 @@ jobs:
             playwright-${{ runner.os }}-
 
       - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
