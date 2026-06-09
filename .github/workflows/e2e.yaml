@@ -6,6 +6,7 @@ on:
       - main
       - "feat-*"
       - dev
+
 jobs:
   playwright:
     runs-on: ubuntu-latest
@@ -16,9 +17,9 @@ jobs:
         working-directory: ./lawnotation-ui
 
     env:
-      SUPABASE_URL: "http://localhost:54321"
-      SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-      SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      SUPABASE_URL: "http://127.0.0.1:54321"
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
       SMTP_URL: "smtp://127.0.0.1:1025"
 
@@ -38,32 +39,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('lawnotation-ui/pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: 2.90.0
-          
+
       - name: Start Supabase local stack
         run: supabase start
 
-      - name: Mailpit logs after restart
-        run: docker logs supabase_inbucket_lawnotation-ui || true
-
-      - name: Docker ps and ports
+      - name: Show running containers
         run: docker ps -a
-
-      - name: Docker networks
-        run: |
-          docker network ls
-          docker network inspect supabase_network_lawnotation-ui || true
-
-      - name: Confirm Mailpit image exposes correct ports
-        run: |
-          docker inspect supabase_inbucket_lawnotation-ui --format='Ports: {{json .NetworkSettings.Ports}}'
-          docker inspect supabase_inbucket_lawnotation-ui --format='ExposedPorts: {{json .Config.ExposedPorts}}'
 
       - name: Wait for Supabase API
         run: |
@@ -75,20 +71,10 @@ jobs:
             sleep 1
           done
           echo "Supabase API not ready"
+          docker ps -a
           exit 1
-        
-      - name: Show running containers
-        if: always()
-        run: docker ps -a
 
-      - name: Supabase logs (auth + mailpit + db)
-        if: always()
-        run: |
-          docker logs supabase_auth_lawnotation-ui || true
-          docker logs supabase_inbucket_lawnotation-ui || true
-          docker logs supabase_db_lawnotation-ui || true
-
-      - name: Check SMTP connectivity (Mailpit)
+      - name: Check SMTP connectivity
         run: |
           for i in {1..60}; do
             if nc -z 127.0.0.1 1025; then
@@ -98,6 +84,8 @@ jobs:
             sleep 1
           done
           echo "SMTP is NOT reachable"
+          docker ps -a
+          docker logs supabase_inbucket_lawnotation-ui || true
           exit 1
 
       - name: Wait for Mailpit UI
@@ -110,13 +98,23 @@ jobs:
             sleep 1
           done
           echo "Mailpit did not become ready in time"
+          docker ps -a
+          docker logs supabase_inbucket_lawnotation-ui || true
           exit 1
+
       - name: Run Playwright tests
         run: pnpm playwright
 
-      - name: Capture docker stats (on failure)
+      - name: Capture docker stats
         if: failure()
         run: docker stats --no-stream > docker-stats.txt
+
+      - name: Supabase logs
+        if: failure()
+        run: |
+          docker logs supabase_auth_lawnotation-ui > supabase-auth.log 2>&1 || true
+          docker logs supabase_inbucket_lawnotation-ui > supabase-mailpit.log 2>&1 || true
+          docker logs supabase_db_lawnotation-ui > supabase-db.log 2>&1 || true
 
       - name: Upload debug artifacts
         if: failure()
@@ -124,9 +122,12 @@ jobs:
         with:
           name: debug-logs
           path: |
-            docker-stats.txt
-            test-results/
-            playwright-report/
+            lawnotation-ui/docker-stats.txt
+            lawnotation-ui/supabase-auth.log
+            lawnotation-ui/supabase-mailpit.log
+            lawnotation-ui/supabase-db.log
+            lawnotation-ui/test-results/
+            lawnotation-ui/playwright-report/
 
       - name: Upload Playwright report
         if: always()
