@@ -2,119 +2,93 @@ import { test as setup, expect } from "@playwright/test";
 
 const annotatorFile = "playwright/.auth/annotator.json";
 
-setup("Authenticate as annotator", async ({ context, page }) => {
+setup("Authenticate as annotator", async ({ page, request }) => {
   setup.setTimeout(90_000);
 
   const email = "annotator@example.com";
 
   console.log("Starting annotator auth flow");
 
-  await page.goto("/");
-
-  const emailField = page.getByTestId("email-field-to-login");
-  await expect(emailField).toBeVisible();
-
-  await emailField.fill(email);
-  console.log("Filled email:", email);
-
-  const otpLoginResponsePromise = page.waitForResponse((response) => {
-    const url = response.url();
-    return (
-      url.includes("/trpc/user.otpLogin") ||
-      url.includes("/api/trpc/user.otpLogin")
-    );
+  await page.goto("/auth/login", {
+    waitUntil: "networkidle",
   });
 
-  await page.getByRole("button", { name: /send code/i }).click();
-  console.log("Triggered OTP request");
+  const emailField = page.getByTestId("email-field-to-login");
+  const sendCodeBtn = page.getByTestId("login-button");
 
-  const otpLoginResponse = await otpLoginResponsePromise;
+  await expect(emailField).toBeVisible();
+  await expect(sendCodeBtn).toBeVisible();
+  await expect(sendCodeBtn).toBeEnabled();
 
-  const otpBody = await otpLoginResponse.text().catch(() => "<unavailable>");
-  console.log("OTP response status:", otpLoginResponse.status());
-  console.log("OTP response body:", otpBody);
+  await emailField.fill(email);
+  await expect(emailField).toHaveValue(email);
 
-  if (!otpLoginResponse.ok()) {
-    throw new Error(
-      `OTP request failed: ${otpLoginResponse.status()} → ${otpBody}`
-    );
-  }
+  await sendCodeBtn.click();
 
-  const verifyBtn = page.getByTestId("verify-button");
+  await expect(page.getByText("Enter the 6-digit code")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  const verifyBtn = page.getByRole("button", { name: "Verify" });
+
   await expect(verifyBtn).toBeVisible();
+  await expect(verifyBtn).toBeEnabled();
 
-  console.log("Waiting for email in Mailpit...");
+  const mailpitResponse = await request.get(
+    "http://127.0.0.1:54324/api/v1/messages",
+  );
 
-  const mailpitApiUrl =
-    "http://127.0.0.1:54324/api/v1/messages?limit=20";
+  expect(mailpitResponse.ok()).toBeTruthy();
 
-  let magicCode = "";
+  const mailpitData = await mailpitResponse.json();
 
-  for (let i = 0; i < 30; i++) {
-    console.log(`Poll attempt ${i + 1}`);
+  const message = mailpitData.messages.find((message: unknown) => {
+    return JSON.stringify(message).includes(email);
+  });
 
-    const response = await page.request.get(mailpitApiUrl);
+  expect(message).toBeTruthy();
 
-    if (!response.ok()) {
-      console.log("Mailpit API failed:", response.status());
-      await page.waitForTimeout(1000);
-      continue;
-    }
+  const messageId = message.ID;
 
-    const data = await response.json();
-    const messages = data.messages ?? [];
+  const messageResponse = await request.get(
+    `http://127.0.0.1:54324/api/v1/message/${messageId}`,
+  );
 
-    console.log(`Total messages: ${messages.length}`);
+  expect(messageResponse.ok()).toBeTruthy();
 
-    const annotatorMessages = messages.filter((m: any) =>
-      m.To?.some((t: any) => t.Address === email)
-    );
+  const messageData = await messageResponse.json();
 
-    console.log(`Annotator messages: ${annotatorMessages.length}`);
+  const messageBody = [messageData.Text, messageData.HTML, messageData.Subject]
+    .filter(Boolean)
+    .join("\n");
 
-    if (annotatorMessages.length > 0) {
-      const latest = annotatorMessages[0];
+  const magicCodeMatch = messageBody.match(/\b\d{6}\b/);
 
-      console.log("Latest message subject:", latest.Subject);
-      console.log("Latest message snippet:", latest.Snippet);
-      console.log("Created at:", latest.Created);
+  expect(magicCodeMatch).toBeTruthy();
 
-      const snippet = latest.Snippet || "";
-      const match = snippet.match(/\b\d{6}\b/);
+  const magicCode = magicCodeMatch![0];
 
-      if (match) {
-        magicCode = match[0];
-        console.log("OTP extracted:", magicCode);
-        break;
-      } else {
-        console.log("No OTP found in snippet");
-      }
-    } else {
-      console.log("No messages for annotator yet");
-    }
+  expect(magicCode).toHaveLength(6);
 
-    await page.waitForTimeout(1000);
+  const otpInputs = page.getByRole("textbox");
+
+  await expect(otpInputs).toHaveCount(6);
+
+  for (let i = 0; i < 6; i++) {
+    await otpInputs.nth(i).fill(magicCode.charAt(i));
   }
 
-  if (!magicCode) {
-    console.log("No OTP received after polling Mailpit");
-
-    const debugRes = await page.request.get(mailpitApiUrl);
-    const debugData = await debugRes.json();
-
-    console.log("FULL MAILPIT DUMP:");
-    console.log(JSON.stringify(debugData, null, 2));
-
-    throw new Error("OTP email never arrived in Mailpit");
-  }
-
-  await page.getByRole("textbox").first().fill(magicCode);
   await verifyBtn.click();
 
-  await page.getByText("Create new project").waitFor();
+  await page.getByText("Create new project").waitFor({
+    timeout: 15_000,
+  });
+
   await expect(page.getByText("Create new project")).toBeVisible();
 
-  console.log("Auth successful, saving session");
+  console.log("Annotator auth successful, saving session");
 
-  await page.context().storageState({ path: annotatorFile });
+  await page.context().storageState({
+    path: annotatorFile,
+  });
 });

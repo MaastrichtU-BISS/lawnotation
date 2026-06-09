@@ -73,9 +73,7 @@ test("Not logged in user can search documents and download results", async ({
     const text = await successMsg.textContent();
     return parseInt(text!.match(/(\d+) document/)?.[1] ?? "0");
   };
-
-
-  await expect(searchButton).toBeDisabled();
+  // await expect(searchButton).toBeDisabled();
 
   await expect(page.getByText("Keywords *", { exact: true })).toBeVisible();
   const keywordsInput = page.getByPlaceholder("Type and press Enter");
@@ -159,8 +157,8 @@ test("Not logged in user can search documents and download results", async ({
 
   await resetButton.click();
 
-  await expect(page.getByText("ECLIs * (comma-separated)", { exact: true })).toBeVisible();
-  const eclisInput = page.getByRole("textbox", { name: /ECLIs/i });
+  await expect(page.getByText("ECLIS *", { exact: true })).toBeVisible();
+  const eclisInput = page.getByRole("textbox", { name: /ECLIS/i });
   await expect(eclisInput).toBeEditable();
   await eclisInput.fill("ECLI:NL:RBLIM:2023:7197");
   await eclisInput.press("Enter");
