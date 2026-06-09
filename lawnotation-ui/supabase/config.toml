@@ -80,6 +80,25 @@ double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = false
 
+# Supabase local email test server.
+# The web UI/API is exposed on 54324 so we can inspect emails in the browser
+# and from Playwright via http://127.0.0.1:54324.
+#
+# The SMTP port is explicitly exposed on 1025 because our Nuxt/Nodemailer code
+# runs on the host machine, outside the Supabase Docker network. Without this,
+# only Supabase Auth containers can reach Mailpit internally, while app-level
+# emails fail with ECONNREFUSED on 127.0.0.1:1025.
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 1025
+admin_email = "admin@example.com"
+sender_name = "Lawnotation"
+
+# SMTP configuration used by Supabase Auth/Gotrue inside the Docker network.
+# This uses the container name because Supabase Auth runs in Docker and can
+# reach Mailpit through Docker DNS. Do not replace this with 127.0.0.1 here,
+# because inside the auth container that would point to the auth container itself.
 [auth.email.smtp]
 enabled = true
 host = "supabase_inbucket_lawnotation-ui"
@@ -88,7 +107,6 @@ user = "mailpit"
 pass = "mailpit"
 admin_email = "admin@example.com"
 sender_name = "Lawnotation"
-
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
