@@ -1,7 +1,12 @@
 <template>
     <div class="space-y-4 text-sm">
         <section>
-            <h4 class="mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Filter</h4>
+            <h4 class="mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                Filter
+                <i class="pi pi-info-circle cursor-pointer border-0 normal-case"
+                    v-tooltip="'Only changes which annotations are shown in the list on the right.\nMetric computation always uses all labels, documents, and annotators.'"
+                    type="text"></i>
+            </h4>
             <ul class="space-y-2">
                 <li>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Label(s)</label>
