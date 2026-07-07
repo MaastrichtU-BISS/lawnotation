@@ -41,7 +41,7 @@
                     <tr>
                         <td><span class="text-sm font-medium text-gray-900 float-right mr-2">Character</span></td>
                         <td>
-                            <ToggleSwitch v-model="wordGranularity" @change="emit('updateAnnotations', props.metricType)" />
+                            <ToggleSwitch v-model="wordGranularity" @change="emit('updateAnnotations')" />
                         </td>
                         <td><span class="text-sm font-medium text-gray-900 float-left ml-2">Word</span></td>
                         <td> <i class="pi pi-info-circle cursor-pointer border-0"
@@ -61,17 +61,15 @@
                 </tbody>
             </table>
         </li>
-        <li v-if="metricType == MetricTypes.AGREEMENT">
+        <li>
             <Button class="w-full mt-4" label="Compute Metrics" size="small" @click="emit('clickComputeMetrics', $event)" />
         </li>
         <li>
-            <Button class="w-full" :class="metricType == MetricTypes.DESCRIPTIVE ? 'mt-4' : ''" label="Download All"
-                outlined size="small" @click="emit('clickDownloadAll')" />
+            <Button class="w-full" label="Download All" outlined size="small" @click="emit('clickDownloadAll')" />
         </li>
     </ul>
 </template>
 <script setup lang="ts">
-import { MetricTypes } from "~/utils/enums";
 import Multiselect from "primevue/multiselect";
 import LabelCmpt from "~/components/labels/Label.vue";
 import ToggleSwitch from 'primevue/toggleswitch';
@@ -84,8 +82,7 @@ const selectedAnnotatorsOrEmpty = defineModel('selectedAnnotatorsOrEmpty', { typ
 const contained = defineModel('contained', { type: Boolean, required: false });
 const wordGranularity = defineModel('wordGranularity', { type: Boolean, required: false });
 
-const props = defineProps<{
-    metricType: MetricTypes,
+defineProps<{
     showNonDocumentLevelAgreementParams: boolean,
     labelsOptions: {
         color: string;
