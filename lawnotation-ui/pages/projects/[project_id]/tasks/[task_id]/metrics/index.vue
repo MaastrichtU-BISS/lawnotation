@@ -45,7 +45,7 @@
       </div>
     </div>
     <ResultsModal v-if="metricsResult" v-model:visible="metricsModalVisible" :metricResults="metricsResult"
-      :loading="computingMetrics"></ResultsModal>
+      :labelsOptions="labelsOptions" :loading="computingMetrics"></ResultsModal>
   </div>
 </template>
 <script setup lang="ts">

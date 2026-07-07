@@ -6,7 +6,19 @@
         <template v-else>
             <div class="flex justify-between items-center mb-4">
                 <label class="text-sm font-medium text-gray-900">Label</label>
-                <Select v-model="selectedLabel" :options="labels" class="w-2/3" />
+                <Select v-model="selectedLabel" optionLabel="name" optionValue="name" :options="labelOptions" class="w-2/3">
+                    <template #value="slotProps">
+                        <LabelCmpt v-if="slotProps.value"
+                            :label="{ color: labelOptions.find((l) => l.name == slotProps.value)?.color!, name: slotProps.value }">
+                        </LabelCmpt>
+                        <span v-else>
+                            {{ slotProps.placeholder }}
+                        </span>
+                    </template>
+                    <template #option="slotProps">
+                        <LabelCmpt :label="slotProps.option"></LabelCmpt>
+                    </template>
+                </Select>
             </div>
 
             <div v-if="currentLabel" class="space-y-6">
@@ -80,15 +92,21 @@
 </template>
 <script setup lang="ts">
 import Select from 'primevue/select';
+import LabelCmpt from "~/components/labels/Label.vue";
 import type { IaaReport } from "~/utils/iaa";
 import { stripAnnotatorPrefix, formatNullableFloat } from "~/utils/iaa";
 
 const props = defineProps<{
     report: IaaReport | undefined;
+    labelsOptions: { name: string, color: string }[];
     loading: boolean;
 }>();
 
 const labels = computed(() => Object.keys(props.report?.per_label ?? {}));
+const labelOptions = computed(() => labels.value.map((name) => ({
+    name,
+    color: props.labelsOptions.find((l) => l.name == name)?.color ?? "gray",
+})));
 const selectedLabel = ref<string>();
 
 watch(labels, (newLabels) => {
