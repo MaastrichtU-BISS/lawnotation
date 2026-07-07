@@ -110,23 +110,18 @@ const loading = computed((): boolean => {
 });
 
 const getAnnotations = async (
-  task_id: string,
+  task_id: number,
   labels: string[],
-  documents: string[],
+  documents: number[],
   annotators: string[],
   intra: boolean = false
 ) => {
-  const body = JSON.stringify({
-    task_id: task_id,
-    labels: labels,
-    documents: documents,
-    annotators: annotators,
-    intra: intra
-  });
-
-  return $fetch("/api/metrics/get_annotations", {
-    method: "POST",
-    body: body,
+  return $trpc.metrics.get_annotations.query({
+    task_id,
+    labels,
+    documents,
+    annotators,
+    intra,
   });
 };
 
@@ -140,9 +135,9 @@ const updateAnnotations = async () => {
   try {
     annotations.splice(0);
     const anns = await getAnnotations(
-      task.value?.id.toString()!,
+      task.value!.id,
       selectedLabelsOrEmpty.value!,
-      selectedDocumentsOrEmpty.value!,
+      selectedDocumentsOrEmpty.value!.map(Number),
       selectedAnnotatorsOrEmpty.value!
     );
     if (anns.length < annotations_limit) annotations.push(...anns);
