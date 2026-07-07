@@ -88,15 +88,8 @@ const loading_options = ref(false);
 const labelsOptions = reactive<{ name: string, color: string }[]>([]);
 const selectedLabelsOrEmpty = ref<string[]>([]);
 
-const allDocumentsCount = ref(0);
 const documentsOptions = reactive<{ value: string; label: string }[]>([]);
 const selectedDocumentsOrEmpty = ref<string[]>([]);
-const selectedDocumentsOptQuery = computed((): string[] => {
-  if (!selectedDocumentsOrEmpty.value?.length && documentsOptions.length < allDocumentsCount.value) {
-    return documentsOptions.map(d => d.value);
-  }
-  return selectedDocumentsOrEmpty.value;
-});
 
 const annotatorsOptions = reactive<string[]>([]);
 const selectedAnnotatorsOrEmpty = ref<string[]>([]);
@@ -143,32 +136,28 @@ const updateAnnotations = async () => {
     throw new Error("Task does not exist");
   }
 
-  // the browsing panel only supports previewing a single label at a time
-  if (selectedLabelsOrEmpty.value.length == 1) {
-    loading_annotations.value = true;
-    try {
-      annotations.splice(0);
-      const anns = await getAnnotations(
-        task.value?.id.toString()!,
-        selectedLabelsOrEmpty.value!,
-        selectedDocumentsOptQuery.value!,
-        selectedAnnotatorsOrEmpty.value!
-      );
-      if (anns.length < annotations_limit) annotations.push(...anns);
-      loading_annotations.value = false;
-    } catch (error) {
-      loading_annotations.value = false;
-    }
+  loading_annotations.value = true;
+  try {
+    annotations.splice(0);
+    const anns = await getAnnotations(
+      task.value?.id.toString()!,
+      selectedLabelsOrEmpty.value!,
+      selectedDocumentsOrEmpty.value!,
+      selectedAnnotatorsOrEmpty.value!
+    );
+    if (anns.length < annotations_limit) annotations.push(...anns);
+    loading_annotations.value = false;
+  } catch (error) {
+    loading_annotations.value = false;
   }
 };
 
+// Compute Metrics / Download All always analyze the whole task - they
+// ignore the filters above, which only affect what's browsable on the right.
 const iaaRequestBody = () => ({
   task_id: task.value!.id,
   labelset_id: task.value!.labelset_id,
   annotation_level: isDocumentLevel(task.value!) ? "document" : undefined,
-  documents: selectedDocumentsOptQuery.value.map((d) => +d),
-  annotators: selectedAnnotatorsOrEmpty.value,
-  labels: selectedLabelsOrEmpty.value,
   criterion: contained.value ? "contained" : "exact",
   granularity: wordGranularity.value ? "word" : "char",
 });
@@ -234,17 +223,15 @@ onMounted(async () => {
     ...(await $trpc.user.findUsersByTask.query(+task.value.id)).map((a) => a.email!)
   );
 
-  allDocumentsCount.value = (await $trpc.document.findDocumentsByTask.query(+task.value.id)).length;
-
-  if (annotatorsOptions.length > 1) {
-    documentsOptions.push(
-      ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map((d) => {
-        return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
-      })
-    );
-  }
+  documentsOptions.push(
+    ...(await $trpc.document.findDocumentsByTask.query(+task.value.id)).map((d) => {
+      return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
+    })
+  );
 
   loading_options.value = false;
+
+  updateAnnotations();
 });
 
 definePageMeta({
