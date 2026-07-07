@@ -61,6 +61,7 @@ import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
 import fileSaver from "file-saver";
 import { authorizeClient } from "~/utils/authorize.client";
+import { confirmAnonymizeAnnotators } from "~/utils/confirmBox";
 
 const saveAs = fileSaver.saveAs;
 
@@ -167,6 +168,22 @@ const iaaParams = () => ({
   granularity: wordGranularity.value ? "word" : "char",
 });
 
+// Replaces each annotator email with a sequential number (first-seen order,
+// starting at 1) so the downloaded report doesn't contain real emails.
+const anonymizeAnnotators = (input: NonNullable<typeof cachedInput.value>) => {
+  const indices = new Map<string, number>();
+  return {
+    ...input,
+    documents: input.documents.map((doc) => ({
+      ...doc,
+      assignments: doc.assignments.map((ass) => {
+        if (!indices.has(ass.annotator)) indices.set(ass.annotator, indices.size + 1);
+        return { ...ass, annotator: indices.get(ass.annotator)! };
+      }),
+    })),
+  };
+};
+
 const clickComputeMetrics = async () => {
   if (!task.value) {
     $toast.error("Task does not exist");
@@ -194,6 +211,9 @@ const clickDownloadAll = async () => {
     throw new Error("Task does not exist");
   }
 
+  const anonymize = await confirmAnonymizeAnnotators();
+  if (anonymize === undefined) return;
+
   download_progress.value.current = 0;
   download_progress.value.loading = true;
   try {
@@ -201,7 +221,10 @@ const clickDownloadAll = async () => {
     const input = await getIaaInput();
     const blob = await $fetch<Blob>("/api/iaa/report-zip", {
       method: "POST",
-      body: JSON.stringify({ input, ...iaaParams() }),
+      body: JSON.stringify({
+        input: anonymize ? anonymizeAnnotators(input) : input,
+        ...iaaParams(),
+      }),
       timeout: 300000, // 5 minutes timeout
       responseType: "blob",
     });
