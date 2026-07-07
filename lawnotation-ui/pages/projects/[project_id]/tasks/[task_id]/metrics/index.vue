@@ -19,8 +19,7 @@
       },
     ]" />
     <div class="dimmer-wrapper">
-      <DimmerProgress v-if="download_progress.loading" v-model="download_progress" />
-      <Dimmer v-else v-model="loading" />
+      <Dimmer v-model="loading" />
       <div class="dimmer-content">
         <!-- left column -->
         <aside
@@ -44,7 +43,7 @@
           :documentUrl="`/projects/${project.id}/tasks/${task.id}/documents`"></AnnotationsList>
       </div>
     </div>
-    <ResultsModal v-if="metricsResult" v-model:visible="metricsModalVisible" :metricResults="metricsResult"
+    <ResultsModal v-model:visible="metricsModalVisible" :metricResults="metricsResult"
       :labelsOptions="labelsOptions" :loading="computingMetrics"></ResultsModal>
   </div>
 </template>
@@ -57,7 +56,6 @@ import type { Task, Project } from "~/types";
 import type { RichAnnotation } from "~/utils/metrics";
 import type { IaaMetricsResponse } from "~/utils/iaa";
 import { isDocumentLevel } from "~/utils/levels";
-import DimmerProgress from "~/components/DimmerProgress.vue";
 import Dimmer from "~/components/Dimmer.vue";
 import fileSaver from "file-saver";
 import { authorizeClient } from "~/utils/authorize.client";
@@ -71,12 +69,7 @@ const route = useRoute();
 const task = ref<Task>();
 const project = ref<Project>();
 
-const download_progress = ref<{ current: number; total: number; loading: boolean; message: string }>({
-  current: 0,
-  total: 0,
-  loading: false,
-  message: ""
-});
+const downloading = ref(false);
 
 // metrics
 const metricsModalVisible = ref<boolean>(false);
@@ -103,10 +96,13 @@ const annotations_limit = 10 ** 6;
 const loading_annotations = ref(false);
 const annotations = reactive<RichAnnotation[]>([]);
 
+// Only reflects state that actually affects the page behind the modal
+// (sidebar/annotations list). Compute Metrics has its own loading state,
+// shown inside ResultsModal itself - it must stay out of this, otherwise
+// the page-level dimmer competes with the modal for the same screen space.
 const loading = computed((): boolean => {
   return (loading_annotations.value ||
-    download_progress.value.loading ||
-    computingMetrics.value ||
+    downloading.value ||
     loading_options.value) as boolean;
 });
 
@@ -214,10 +210,8 @@ const clickDownloadAll = async () => {
   const anonymize = await confirmAnonymizeAnnotators();
   if (anonymize === undefined) return;
 
-  download_progress.value.current = 0;
-  download_progress.value.loading = true;
+  downloading.value = true;
   try {
-    download_progress.value.message = "Generating report...";
     const input = await getIaaInput();
     const blob = await $fetch<Blob>("/api/iaa/report-zip", {
       method: "POST",
@@ -229,12 +223,10 @@ const clickDownloadAll = async () => {
       responseType: "blob",
     });
 
-    download_progress.value.message = "Downloading...";
     saveAs(blob, `${task.value.name}.zip`);
-    download_progress.value.loading = false;
     $toast.success(`One .zip file has been downloaded!`);
-  } catch (error) {
-    download_progress.value.loading = false;
+  } finally {
+    downloading.value = false;
   }
 };
 
