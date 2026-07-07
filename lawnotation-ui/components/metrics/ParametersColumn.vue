@@ -2,7 +2,7 @@
     <ul class="space-y-2 text-sm">
         <li>
             <label class="block mb-2 text-sm font-medium text-gray-900">Label(s)</label>
-            <Multiselect v-if="metricType == MetricTypes.DESCRIPTIVE" v-model="selectedLabelsOrEmpty" optionValue="name"
+            <Multiselect v-model="selectedLabelsOrEmpty" optionValue="name"
                 class="w-full" filter :autoFilterFocus="true" :filterFields="['name']" :maxSelectedLabels="1"
                 :options="labelsOptions" placeholder="All" @change="emit('updateAnnotations')">
                 <template #value="slotProps">
@@ -22,23 +22,6 @@
                     <LabelCmpt :label="slotProps.option"></LabelCmpt>
                 </template>
             </Multiselect>
-            <Select v-else-if="metricType == MetricTypes.AGREEMENT" v-model="selectedLabelsOrEmpty[0]" optionValue="name"
-                class="w-full" filter :autoFilterFocus="true" :filterFields="['name']" :options="labelsOptions"
-                placeholder="Select label" @change="emit('updateAnnotations')">
-                <template #value="slotProps">
-                    <div v-if="slotProps.value?.length">
-                        <LabelCmpt class="mr-2"
-                            :label="{ color: labelsOptions.find((l) => l.name == slotProps.value)?.color!, name: slotProps.value }">
-                        </LabelCmpt>
-                    </div>
-                    <span v-else>
-                        {{ slotProps.placeholder }}
-                    </span>
-                </template>
-                <template #option="slotProps">
-                    <LabelCmpt :label="slotProps.option"></LabelCmpt>
-                </template>
-            </Select>
         </li>
         <li>
             <label class="block mb-2 text-sm font-medium text-gray-900">Document(s)</label>
@@ -53,24 +36,6 @@
         </li>
         <li v-if="showNonDocumentLevelAgreementParams">
             <!-- Only for span annotations -->
-            <div>
-                <div class="flex justify-between">
-                    <label for="small-input"
-                        class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tolerance</label>
-                    <i class="pi pi-info-circle cursor-pointer border-0 self-center"
-                        v-tooltip="'A tolerance of 1 allows for small differences of one character\n while still considering them as agreements.\n Higher tolerance offers more flexibility in matching.'"
-                        type="text"></i>
-                </div>
-                <InputNumber v-model="tolerance" class="w-full" showButtons buttonLayout="horizontal" inputId="small-input"
-                    :min="0" :max="10" :step="1">
-                    <template #incrementbuttonicon>
-                        <span class="pi pi-plus" />
-                    </template>
-                    <template #decrementbuttonicon>
-                        <span class="pi pi-minus" />
-                    </template>
-                </InputNumber>
-            </div>
             <table>
                 <tbody>
                     <tr>
@@ -84,35 +49,23 @@
                                 type="text"></i></td>
                     </tr>
                     <tr>
-                        <td><span class="text-sm font-medium text-gray-900 float-right mr-2">Annotation</span></td>
+                        <td><span class="text-sm font-medium text-gray-900 float-right mr-2">Character</span></td>
                         <td>
-                            <ToggleSwitch v-model="separate_into_words"
-                                @change="emit('updateAnnotations', props.metricType)" />
+                            <ToggleSwitch v-model="wordGranularity" @change="emit('updateAnnotations', props.metricType)" />
                         </td>
                         <td><span class="text-sm font-medium text-gray-900 float-left ml-2">Word</span></td>
                         <td> <i class="pi pi-info-circle cursor-pointer border-0"
-                                v-tooltip="'Choose between comparing entire chunks with annotations\n or individual words\' annotations.'"
+                                v-tooltip="'Coverage agreement (Krippendorff / Cohen\'s kappa) is computed over character\n or word units of the document text.'"
                                 type="text"></i></td>
                     </tr>
                     <tr>
-                        <td><span class="text-sm font-medium text-gray-900 float-right mr-2">Equal</span></td>
+                        <td><span class="text-sm font-medium text-gray-900 float-right mr-2">Exact</span></td>
                         <td>
-                            <ToggleSwitch v-model="contained" @change="tolerance = 0" />
+                            <ToggleSwitch v-model="contained" />
                         </td>
-                        <td><span class="text-sm font-medium text-gray-900 float-left ml-2">Overlap</span></td>
+                        <td><span class="text-sm font-medium text-gray-900 float-left ml-2">Contained</span></td>
                         <td><i class="pi pi-info-circle cursor-pointer border-0"
-                                v-tooltip="`With 'Equal Overlap\', annotations must match exactly. \nWith \'Overlapping Annotations\', any degree of overlap counts as agreement.`"
-                                type="text"></i></td>
-                    </tr>
-                    <tr>
-                        <td><span class="text-sm font-medium text-gray-900 float-right mr-2 text-right">Include NTA</span>
-                        </td>
-                        <td>
-                            <ToggleSwitch v-model="hideNonText" @change="emit('updateAnnotations')" />
-                        </td>
-                        <td><span class="ext-sm font-medium text-gray-900 float-left ml-2">Exclude NTA</span></td>
-                        <td><i class="pi pi-info-circle cursor-pointer border-0"
-                                v-tooltip="'Decide whether to factor in non-text annotations (NTA) \n(e.g., \'. 2.\') that do not consist of regular text.\n When \'Include\' is chosen, these annotations contribute to agreement calculations.\n When \'Ignore\' is chosen, they are excluded from calculations.'"
+                                v-tooltip="`With 'Exact', span matching requires identical start/end offsets. \nWith \'Contained\', one span being fully inside the other counts as a match.`"
                                 type="text"></i></td>
                     </tr>
                 </tbody>
@@ -159,7 +112,6 @@ import Select from 'primevue/select';
 import Multiselect from "primevue/multiselect";
 import LabelCmpt from "~/components/labels/Label.vue";
 import ToggleSwitch from 'primevue/toggleswitch';
-import InputNumber from 'primevue/inputnumber';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
@@ -175,10 +127,8 @@ const selectedLabelsOrEmpty = defineModel('selectedLabelsOrEmpty', { type: Array
 const selectedDocumentsOrEmpty = defineModel('selectedDocumentsOrEmpty', { type: Array<String>, required: true });
 const selectedAnnotatorsOrEmpty = defineModel('selectedAnnotatorsOrEmpty', { type: Array<String>, required: true });
 const intraAnnotatorAgreement = defineModel('intraAnnotatorAgreement', { type: Boolean, required: false });
-const tolerance = defineModel('tolerance', { type: Number, required: false });
 const contained = defineModel('contained', { type: Boolean, required: false });
-const hideNonText = defineModel('hideNonText', { type: Boolean, required: false });
-const separate_into_words = defineModel('separate_into_words', { type: Boolean, required: false });
+const wordGranularity = defineModel('wordGranularity', { type: Boolean, required: false });
 
 //#region Intra-Annotator-Agreement
 const loadingSimilarTasks = ref<boolean>(false);
