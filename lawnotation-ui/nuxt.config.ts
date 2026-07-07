@@ -73,6 +73,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     smtpUrl: process.env.SMTP_URL,
+    iaaServiceUrl: process.env.IAA_SERVICE_URL || "http://127.0.0.1:8080",
     public: {
       mlBackendURL: process.env.MLBACKEND_URL,
       baseURL:
@@ -135,6 +136,11 @@ export default defineNuxtConfig({
     },
     routeRules: {
       "/api/metrics/**": {
+        headers: {
+          Connection: "keep-alive",
+        },
+      },
+      "/api/iaa/**": {
         headers: {
           Connection: "keep-alive",
         },
