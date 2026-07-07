@@ -30,7 +30,9 @@
           </div>
           <div class="flex justify-center gap-6 my-3">
             <Button type="button" label="Analyze Metrics" data-test="metrics-button" icon="pi pi-chart-bar"
-              iconPos="right" @click="selectMetricModalVisible = true" />
+              iconPos="right" :disabled="amountAnnotators < 2"
+              v-tooltip="amountAnnotators < 2 ? 'A task must have at least two assigned annotators to compute agreement metrics.' : undefined"
+              @click="navigateTo(`/projects/${task?.project_id}/tasks/${task?.id}/metrics`)" />
             <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true"
               data-test="export-publish-button" icon="pi pi-file-export" iconPos="right" />
             <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => optionsMenu.toggle(event)"
@@ -405,9 +407,6 @@
         </div>
         <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible"
           @export="exportTask" />
-        <SelectMetricModal v-model:visible="selectMetricModalVisible"
-          :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`" :disable-agreement="amountAnnotators < 2"
-          :disable-descriptive="amountAnnotators == 0" />
       </div>
     </div>
   </div>
@@ -436,7 +435,6 @@ import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
 import { Origins, AssignmentStatuses, RandomizationOptions } from "~/utils/enums";
 import ExportTaskModal from "~/components/tasks/ExportTaskModal.vue";
-import SelectMetricModal from "~/components/tasks/SelectMetricModal.vue";
 import { watch } from 'vue';
 
 const { $toast, $trpc } = useNuxtApp();
@@ -454,8 +452,6 @@ const selectedTotalDocuments = ref<{ id: number; name: string }[]>(optionsTotalD
 const selectedSharedDocuments = ref<{ id: number; name: string }[]>(selectedTotalDocuments.value);
 
 const optionsMenu = ref()
-
-const selectMetricModalVisible = ref(false);
 
 const randomizationSelected = ref(RandomizationOptions.FULL);
 
