@@ -135,11 +135,6 @@ export default defineNuxtConfig({
       asyncContext: true,
     },
     routeRules: {
-      "/api/metrics/**": {
-        headers: {
-          Connection: "keep-alive",
-        },
-      },
       "/api/iaa/**": {
         headers: {
           Connection: "keep-alive",
