@@ -59,7 +59,7 @@
           </div>
         </aside>
         <AnnotationsList v-model:annotations="annotations" v-model:loading_annotations="loading_annotations"
-          :labels="labelsOptions" :loading="loading" :documentsData="documentsData" :metricType="metricType"
+          :labels="labelsOptions" :loading="loading"
           :documentUrl="`/projects/${project.id}/tasks/${task.id}/documents`"></AnnotationsList>
       </div>
     </div>
@@ -166,7 +166,6 @@ const contained = ref(false);
 const annotations_limit = 10 ** 6;
 const loading_annotations = ref(false);
 const annotations = reactive<RichAnnotation[]>([]);
-const documentsData = ref<any>({});
 const documentsNames = ref<any>({});
 
 const loading = computed((): boolean => {
@@ -437,9 +436,6 @@ onMounted(async () => {
   if (annotatorsOptions.length > 1) {
     sharedDocumentsOptions.push(
       ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map((d) => {
-        if (!(d.id in documentsData.value)) {
-          documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
-        }
         return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
       })
     );

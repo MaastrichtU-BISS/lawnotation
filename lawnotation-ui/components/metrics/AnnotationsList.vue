@@ -11,7 +11,6 @@
             <DynamicScrollerItem :item="item" :active="active" :size-dependencies="[
               item.id,
               item.label,
-              item.hidden,
               item.text
             ]" :data-index="index">
               <NuxtLink v-if="isNewDoc(index)" :to="`${documentUrl}/${item.doc_id}`">
@@ -19,9 +18,7 @@
                   icon="pi pi-file" class="mb-2"></Button>
               </NuxtLink>
               <AnnotationComponent :annotation="item" :labelColor="labelColor(item.label)" :index="index"
-                :is-new-doc="isNewDoc(index)" :can-merge-up="canMergeUp(index)" :can-merge-down="canMergeDown(index)"
-                @separate="emitSeparate" @mergeUp="emitMergeUp" @mergeDown="emitMergeDown" @set-hidden="emitSetHidden"
-                :key="item.id" :metricType="metricType">
+                :is-new-doc="isNewDoc(index)" :key="item.id">
               </AnnotationComponent>
             </DynamicScrollerItem>
           </template>
@@ -40,16 +37,12 @@
   </div>
 </template>
 <script setup lang="ts">
-import * as _ from "lodash";
 import type { RichAnnotation } from "~/utils/metrics";
 import AnnotationComponent from "./Annotation.vue";
-import { MetricTypes } from "~/utils/enums";
 
 const props = defineProps<{
   labels: { name: string, color: string }[];
   loading: boolean;
-  documentsData: any;
-  metricType: MetricTypes;
   documentUrl: string;
 }>();
 
@@ -57,80 +50,8 @@ const annotations = defineModel<RichAnnotation[]>('annotations', { required: tru
 const loading_annotations = defineModel('loading_annotations', { type: Boolean, required: true });
 
 const mappedAnnotations = computed(() => annotations.value.map((item) => (
-  { ...item, id: `${item.ann_id}_${item.start}_${item.end}_${item.text}_${item.hidden}` }
+  { ...item, id: `${item.ann_id}_${item.start}_${item.end}_${item.text}` }
 )));
-
-const emitMergeDown = (ann_index: number): void => {
-  loading_annotations.value = true;
-  const current = _.clone(annotations.value[ann_index]);
-  const next = _.clone(annotations.value[ann_index + 1]);
-
-  annotations.value[ann_index + 1].start = current.start;
-  annotations.value[ann_index + 1].text = props.documentsData[
-    current.doc_id
-  ].full_text.substring(current.start, next.end);
-
-  annotations.value[ann_index].hidden = false;
-  annotations.value.splice(ann_index, 1);
-  loading_annotations.value = false;
-};
-
-const emitSetHidden = (ann_index: number, hidden: boolean): void => {
-  annotations.value[ann_index].hidden = hidden;
-};
-
-const emitMergeUp = (ann_index: number): void => {
-  loading_annotations.value = true;
-  const current = _.clone(annotations.value[ann_index]);
-  const previous = _.clone(annotations.value[ann_index - 1]);
-
-  annotations.value[ann_index - 1].end = current.end;
-  annotations.value[ann_index - 1].text = props.documentsData[
-    current.doc_id
-  ].full_text.substring(previous.start, current.end);
-
-  annotations.value[ann_index].hidden = false;
-  annotations.value.splice(ann_index, 1);
-  loading_annotations.value = false;
-};
-
-const canMergeUp = (index: number): Boolean => {
-  return (
-    index > 0 &&
-    annotations.value[index - 1].doc_id == annotations.value[index].doc_id &&
-    annotations.value[index - 1].ann_id == annotations.value[index].ann_id
-  );
-};
-
-const canMergeDown = (index: number): Boolean => {
-  return (
-    index < annotations.value.length - 1 &&
-    annotations.value[index + 1].doc_id == annotations.value[index].doc_id &&
-    annotations.value[index + 1].ann_id == annotations.value[index].ann_id
-  );
-};
-
-const emitSeparate = (ann_index: number, split_pos: number) => {
-  loading_annotations.value = true;
-  const current = _.clone(annotations.value[ann_index]);
-
-  annotations.value[ann_index].end = current.start + split_pos;
-  annotations.value[ann_index].text = current.text.substring(0, split_pos);
-
-  annotations.value.splice(ann_index + 1, 0, {
-    start: current.start + split_pos,
-    end: current.end,
-    label: current.label,
-    text: current.text.substring(split_pos, current.end),
-    annotator: current.annotator,
-    hidden: false,
-    ann_id: current.ann_id,
-    doc_id: current.doc_id,
-    doc_name: current.doc_name,
-    confidence: current.confidence
-  });
-  loading_annotations.value = false;
-};
 
 const isNewDoc = (index: number): Boolean => {
   return (
