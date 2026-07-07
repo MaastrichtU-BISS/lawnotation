@@ -7,7 +7,7 @@
             </TabList>
             <TabPanels>
             <TabPanel value="agreement">
-                <ResultsAgreement :report="metricResults?.annotation_metrics" :loading="loading" class="mt-10" />
+                <ResultsAgreement :report="metricResults?.annotation_metrics" :labelsOptions="labelsOptions" :loading="loading" class="mt-10" />
             </TabPanel>
             <TabPanel value="confidence">
                 <ResultsConfidence :results="metricResults?.confidence_metrics" :loading="loading" class="mt-2" />
@@ -26,7 +26,7 @@ const visible = defineModel('visible', { type: Boolean, required: true });
 
 const props = defineProps<{
     metricResults: IaaMetricsResponse | undefined,
+    labelsOptions: { name: string, color: string }[],
     loading: boolean;
 }>();
 </script>
-  
