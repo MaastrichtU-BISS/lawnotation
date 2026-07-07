@@ -1,6 +1,9 @@
 <template>
     <Dialog v-model:visible="visible" modal header="Results" class="w-1/2">
-        <Tabs value="agreement" class="min-h-[420px]">
+        <div v-if="loading" class="min-h-[420px] flex items-center justify-center">
+            <HollowDotsSpinner :animation-duration="1000" :size="60" color="#0D5984" />
+        </div>
+        <Tabs v-else value="agreement" class="min-h-[420px]">
             <TabList>
                 <Tab value="agreement">Inter-Annotator Agreement</Tab>
                 <Tab value="confidence">Confidence</Tab>
@@ -19,6 +22,7 @@
 <script setup lang="ts">
 import type { IaaMetricsResponse } from "~/utils/iaa";
 import Dialog from 'primevue/dialog';
+import { HollowDotsSpinner } from "epic-spinners";
 import ResultsAgreement from "./ResultsAgreement.vue";
 import ResultsConfidence from "./ResultsConfidence.vue";
 
