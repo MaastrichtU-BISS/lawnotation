@@ -3,8 +3,26 @@ import { z } from 'zod'
 import { protectedProcedure, router, authorizer } from '~/server/trpc'
 import { sortByDocumentAndRange, type RichAnnotation } from '~/utils/metrics';
 import { taskEditorAuthorizer } from '../authorizers';
+import { buildTaskExportData } from '~/server/utils/task_export';
+import { toIaaInputData, type IaaInputData } from '~/server/utils/iaa';
 
 export const metricsRouter = router({
+  // Builds the same data the IAA Go service needs as input. The metrics page
+  // calls this once (on first Compute Metrics/Download All click) and caches
+  // the result client-side, reusing it for subsequent calls instead of
+  // re-querying here every time.
+  get_input_data: protectedProcedure
+    .input(z.object({ task_id: z.number() }))
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input }): Promise<IaaInputData> => {
+      const data = await buildTaskExportData(ctx.supabase, input.task_id);
+      return toIaaInputData(data);
+    }),
+
   get_annotations: protectedProcedure
     .input(
       z.object({

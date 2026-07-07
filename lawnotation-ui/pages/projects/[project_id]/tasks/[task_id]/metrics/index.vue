@@ -149,10 +149,20 @@ const updateAnnotations = async () => {
 
 // Compute Metrics / Download All always analyze the whole task - they
 // ignore the filters above, which only affect what's browsable on the right.
-const iaaRequestBody = () => ({
-  task_id: task.value!.id,
-  labelset_id: task.value!.labelset_id,
-  annotation_level: isDocumentLevel(task.value!) ? "document" : undefined,
+//
+// The input JSON the IAA service needs is only built once, on whichever of
+// these two actions is clicked first, then cached here and reused for the
+// rest of this page visit (a refresh/navigation drops the cache).
+const cachedInput = ref<Awaited<ReturnType<typeof $trpc.metrics.get_input_data.query>>>();
+
+const getIaaInput = async () => {
+  if (!cachedInput.value) {
+    cachedInput.value = await $trpc.metrics.get_input_data.query({ task_id: task.value!.id });
+  }
+  return cachedInput.value;
+};
+
+const iaaParams = () => ({
   criterion: contained.value ? "contained" : "exact",
   granularity: wordGranularity.value ? "word" : "char",
 });
@@ -165,9 +175,10 @@ const clickComputeMetrics = async () => {
   metricsModalVisible.value = true;
   computingMetrics.value = true;
   try {
+    const input = await getIaaInput();
     metricsResult.value = await $fetch<IaaMetricsResponse>("/api/iaa/metrics", {
       method: "POST",
-      body: JSON.stringify(iaaRequestBody()),
+      body: JSON.stringify({ input, ...iaaParams() }),
       timeout: 300000, // 5 minutes timeout
     });
   } catch (error) {
@@ -187,9 +198,10 @@ const clickDownloadAll = async () => {
   download_progress.value.loading = true;
   try {
     download_progress.value.message = "Generating report...";
+    const input = await getIaaInput();
     const blob = await $fetch<Blob>("/api/iaa/report-zip", {
       method: "POST",
-      body: JSON.stringify(iaaRequestBody()),
+      body: JSON.stringify({ input, ...iaaParams() }),
       timeout: 300000, // 5 minutes timeout
       responseType: "blob",
     });
