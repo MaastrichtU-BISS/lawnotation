@@ -3,7 +3,7 @@
     <div id="annotations_list">
       <div v-if="!loading">
         <span class="text-2xl font-bold text-center flex justify-center pt-2">
-          Annotations: {{ annotations.length }}
+          Annotations: {{ annotations.length >= 10000 ? "more than 10000" : annotations.length }}
         </span>
         <DynamicScroller v-if="annotations.length" page-mode :items="mappedAnnotations" :min-item-size="153" keyField="id"
           class="h-full">
