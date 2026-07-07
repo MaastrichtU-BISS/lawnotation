@@ -1,17 +1,11 @@
-import { buildIaaInputData } from "~/server/utils/iaa";
-
+// The metrics page builds `input` once (via the authorized
+// metrics.get_input_data trpc procedure) and caches it client-side, so this
+// route is a thin proxy: it never touches Supabase itself.
 export default eventHandler(async (event) => {
   const data = await readBody(event);
   const config = useRuntimeConfig();
 
-  const input = await buildIaaInputData(event, {
-    task_id: data.task_id,
-    labelset_id: data.labelset_id,
-    annotation_level: data.annotation_level,
-    documentIds: data.documents,
-    annotatorEmails: data.annotators,
-    labelNames: data.labels,
-  });
+  const input = data.input;
 
   const criterion = data.criterion ?? "exact";
   const granularity = data.granularity ?? "word";
