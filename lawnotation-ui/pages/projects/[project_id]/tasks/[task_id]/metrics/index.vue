@@ -37,7 +37,7 @@
                 <ParametersColumn :metric-type="MetricTypes.DESCRIPTIVE" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="allDocumentsOptions"
                   :showNonDocumentLevelAgreementParams="false" v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
-                  :is-merged-task="isMergedTask" v-model:selectedDocumentsOrEmpty="allSelectedDocumentsOrEmpty"
+                  v-model:selectedDocumentsOrEmpty="allSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty" @click-download-all="clickDownloadAll"
                   @update-annotations="updateAnnotations">
                 </ParametersColumn>
@@ -45,14 +45,13 @@
               <TabPanel :value="1">
                 <ParametersColumn :metric-type="MetricTypes.AGREEMENT" :labels-options="labelsOptions"
                   :annotators-options="annotatorsOptions" :documents-options="documentsOptions"
-                  :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)" :is-merged-task="isMergedTask"
+                  :showNonDocumentLevelAgreementParams="task && !isDocumentLevel(task)"
                   v-model:selectedLabelsOrEmpty="selectedLabelsOrEmpty"
                   v-model:selectedDocumentsOrEmpty="sharedSelectedDocumentsOrEmpty"
                   v-model:selectedAnnotatorsOrEmpty="selectedAnnotatorsOrEmpty"
                   v-model:contained="contained" v-model:wordGranularity="wordGranularity"
-                  @click-compute-metrics="clickComputeMetrics"
-                  v-model:intraAnnotatorAgreement="intraAnnotatorAgreement" @click-download-all="clickDownloadAll"
-                  @update-annotations="updateAnnotations" @merge-tasks="mergeTasks($event)">
+                  @click-compute-metrics="clickComputeMetrics" @click-download-all="clickDownloadAll"
+                  @update-annotations="updateAnnotations">
                 </ParametersColumn>
               </TabPanel>
               </TabPanels>
@@ -115,7 +114,6 @@ const updateUrl = (activeIndex: number) => {
   } else {
     router.push({ hash: '#descriptive' });
   }
-  intraAnnotatorAgreement.value = false;
   selectedLabelsOrEmpty.value.splice(0);
   selectedDocumentsOrEmpty.value.splice(0);
   selectedAnnotatorsOrEmpty.value.splice(0);
@@ -131,15 +129,8 @@ const selectedLabelsOrEmpty = ref<string[]>([]);
 
 const allDocumentsOptions = reactive<{ value: string; label: string }[]>([]);
 const sharedDocumentsOptions = reactive<{ value: string; label: string }[]>([]);
-const sharedDocumentsIntraOptions = reactive<{ value: string; label: string }[]>([]);
 const documentsOptions = computed(() => {
-  if(metricType.value == MetricTypes.DESCRIPTIVE) {
-    return allDocumentsOptions;
-  } else if(intraAnnotatorAgreement.value) {
-    return sharedDocumentsIntraOptions;
-  } else {
-    return sharedDocumentsOptions;
-  }
+  return metricType.value == MetricTypes.DESCRIPTIVE ? allDocumentsOptions : sharedDocumentsOptions;
 });
 const allSelectedDocumentsOrEmpty = ref<string[]>([]);
 const sharedSelectedDocumentsOrEmpty = ref<string[]>([]);
@@ -153,16 +144,9 @@ const selectedDocuments = computed((): string[] => {
 });
 const selectedDocumentsOptQuery = computed((): string[] => {
   if (metricType.value == MetricTypes.AGREEMENT &&
-    !sharedSelectedDocumentsOrEmpty.value?.length) {
-    
-    if (intraAnnotatorAgreement.value) {
-      if(sharedDocumentsIntraOptions.length < allDocumentsOptions.length) {
-        return sharedDocumentsIntraOptions.map(d => d.value);
-      }
-    }
-    else if(sharedDocumentsOptions.length < allDocumentsOptions.length) {
-      return sharedDocumentsOptions.map(d => d.value);
-    } 
+    !sharedSelectedDocumentsOrEmpty.value?.length &&
+    sharedDocumentsOptions.length < allDocumentsOptions.length) {
+    return sharedDocumentsOptions.map(d => d.value);
   }
   return selectedDocumentsOrEmpty.value;
 });
@@ -175,14 +159,8 @@ const selectedAnnotators = computed((): string[] => {
     : annotatorsOptions;
 });
 
-const intraAnnotatorAgreement = ref(false);
 const wordGranularity = ref(false);
 const contained = ref(false);
-
-const isMergedTask = computed(() => {
-  if (!task.value) return false;
-  return task.value.origin_task_2_id != null;
-});
 
 // annotations
 const annotations_limit = 10 ** 6;
@@ -234,8 +212,7 @@ const updateAnnotations = async () => {
         task.value?.id.toString()!,
         selectedLabelsOrEmpty.value!,
         selectedDocumentsOptQuery.value!,
-        selectedAnnotatorsOrEmpty.value!,
-        intraAnnotatorAgreement.value
+        selectedAnnotatorsOrEmpty.value!
       );
       if (anns.length < annotations_limit) annotations.push(...anns);
       loading_annotations.value = false;
@@ -417,37 +394,6 @@ async function createBlobs(data: any, document?: any) {
 
 //#endregion
 
-//#region INTRA-ANNOTATOR-AGREEMENT
-const mergeTasks = async (similarTaskId: number) => {
-  if (!task.value) {
-    $toast.error("Task does not exist");
-    throw new Error("Task does not exist");
-  }
-
-  download_progress.value.current = 0;
-  download_progress.value.loading = true;
-  download_progress.value.message = "Replicating current task..."
-  try {
-
-    const replica = await $trpc.task.replicateTask.mutate({
-      task_id: task.value.id,
-      originalTaskId2: similarTaskId
-    });
-
-    download_progress.value.message = "Merging similar task and replica..."
-    const mergedTask = await $trpc.task.mergeTasks.mutate({ originalTaskId: replica.id, similarTaskId: similarTaskId });
-
-    download_progress.value.loading = false;
-    $toast.success(`Tasks succesfully merged!`);
-    router.push(router.currentRoute.value.fullPath.replace(`tasks/${task.value.id}`, `tasks/${mergedTask.id}`));
-  } catch (error) {
-    download_progress.value.loading = false;
-    $toast.error(`Tasks could not be merged: ${error}`);
-  }
-};
-
-//#endregion
-
 function getZippeableBlob(workBook: XLSX.WorkBook) {
   const b64Data = XLSX.write(workBook, {
     bookType: "xlsx",
@@ -491,17 +437,6 @@ onMounted(async () => {
   if (annotatorsOptions.length > 1) {
     sharedDocumentsOptions.push(
       ...(await $trpc.document.findSharedDocumentsByTask.query(+task.value.id)).map((d) => {
-        if (!(d.id in documentsData.value)) {
-          documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
-        }
-        return { value: d.id.toString(), label: d.id.toString() + " - " + d.name };
-      })
-    );
-  }
-
-  if(isMergedTask.value) {
-    sharedDocumentsIntraOptions.push(
-      ...(await $trpc.document.findSharedDocumentsByTaskIntra.query(+task.value.id)).map((d) => {
         if (!(d.id in documentsData.value)) {
           documentsData.value[d.id] = { full_text: d.full_text, name: d.name };
         }
