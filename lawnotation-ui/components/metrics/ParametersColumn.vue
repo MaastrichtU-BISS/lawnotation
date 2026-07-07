@@ -39,16 +39,6 @@
             <table>
                 <tbody>
                     <tr>
-                        <td><span class="text-sm font-medium float-right mr-2" :class="isMergedTask ? 'text-gray-900' : 'text-gray-400'">Inter</span></td>
-                        <td>
-                            <ToggleSwitch v-model="intraAnnotatorAgreement" @change="emit('updateAnnotations')" :disabled="!isMergedTask" />
-                        </td>
-                        <td><span class="text-sm font-medium float-left ml-2" :class="isMergedTask ? 'text-gray-900' : 'text-gray-400'">Intra</span></td>
-                        <td> <i class="pi pi-info-circle cursor-pointer border-0"
-                                v-tooltip="'This option is enabled only for tasks that are the merge of 2 similar tasks.\nTo create merged tasks scroll down to the section Intra-Annotator-Agreement.\n* Inter-Annotator-Agreement will compute agreement metrics \nby comparing each annotator to one another\n* Intra-Annotator-Agreement will compute agreement metrics \nby comparing each annotator to themselves from a different original task.'"
-                                type="text"></i></td>
-                    </tr>
-                    <tr>
                         <td><span class="text-sm font-medium text-gray-900 float-right mr-2">Character</span></td>
                         <td>
                             <ToggleSwitch v-model="wordGranularity" @change="emit('updateAnnotations', props.metricType)" />
@@ -72,85 +62,27 @@
             </table>
         </li>
         <li v-if="metricType == MetricTypes.AGREEMENT">
-            <Button class="w-full mt-4" :disabled="intraAnnotatorAgreement" label="Compute Metrics" size="small" @click="emit('clickComputeMetrics', $event)" />
+            <Button class="w-full mt-4" label="Compute Metrics" size="small" @click="emit('clickComputeMetrics', $event)" />
         </li>
         <li>
             <Button class="w-full" :class="metricType == MetricTypes.DESCRIPTIVE ? 'mt-4' : ''" label="Download All"
                 outlined size="small" @click="emit('clickDownloadAll')" />
         </li>
-        <div v-if="metricType == MetricTypes.AGREEMENT && !isMergedTask">
-            <Divider class="py-6" />
-            <div class="flex justify-end">
-                <i class="pi pi-info-circle cursor-pointer border-0 self-center"
-                    v-tooltip="'(Optional). Search for tasks among all your projects that:\n* Have the same annotators as the current task\n * Have the same documents\n* Have the same labelset\nAnd perform the Agreement calculations of the individual annotators\nagainst themselves from task to task.\n(You can create tasks like these by, for example:\nReplicating Tasks or Exporting/Importing Tasks)'"
-                    type="text"></i>
-            </div>
-            <Accordion value="0">
-                <AccordionPanel value="0">
-                    <AccordionHeader>Intra-Annotator-Agreement</AccordionHeader>
-                    <AccordionContent>
-                    <Button v-if="!optionSimilarTasks?.length" type="button" label="Find similar tasks" icon="pi pi-search"
-                        :loading="loadingSimilarTasks" @click="loadSimilarTasks" class="w-full" />
-                    <template v-else>
-                        <Select v-model="selectedSimilarTask" :options="optionSimilarTasks" showClear filter
-                            optionLabel="name" optionValue="id" placeholder="Select a task" class="w-full" />
-                        <i class="pi pi-info-circle cursor-pointer border-0 self-center float-end"
-                        v-tooltip="'This will create a replica of the current task.\n After that, the replica will be merged with the similar task. \n Then you will be redirected to the metrics#agreement page of the newly created task\nThere you will have the option to compute intra-annotator-agreement-metrics.'"
-                            type="text"></i>
-                        <Button :disabled="!selectedSimilarTask" class="w-full" label="Merge tasks" outlined size="small"
-                            @click="emit('mergeTasks', selectedSimilarTask)"/>
-                    </template>
-                    </AccordionContent>
-                </AccordionPanel>
-            </Accordion>
-        </div>
     </ul>
 </template>
 <script setup lang="ts">
 import { MetricTypes } from "~/utils/enums";
-import Select from 'primevue/select';
 import Multiselect from "primevue/multiselect";
 import LabelCmpt from "~/components/labels/Label.vue";
 import ToggleSwitch from 'primevue/toggleswitch';
-import Accordion from 'primevue/accordion';
-import AccordionPanel from 'primevue/accordionpanel';
-import AccordionHeader from 'primevue/accordionheader';
-import AccordionContent from 'primevue/accordioncontent';
-import Divider from 'primevue/divider';
 
-const { $trpc } = useNuxtApp();
-const route = useRoute();
-
-const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations', 'mergeTasks']);
+const emit = defineEmits(['clickComputeMetrics', 'clickDownloadAll', 'updateAnnotations']);
 
 const selectedLabelsOrEmpty = defineModel('selectedLabelsOrEmpty', { type: Array<String>, required: true });
 const selectedDocumentsOrEmpty = defineModel('selectedDocumentsOrEmpty', { type: Array<String>, required: true });
 const selectedAnnotatorsOrEmpty = defineModel('selectedAnnotatorsOrEmpty', { type: Array<String>, required: true });
-const intraAnnotatorAgreement = defineModel('intraAnnotatorAgreement', { type: Boolean, required: false });
 const contained = defineModel('contained', { type: Boolean, required: false });
 const wordGranularity = defineModel('wordGranularity', { type: Boolean, required: false });
-
-//#region Intra-Annotator-Agreement
-const loadingSimilarTasks = ref<boolean>(false);
-const optionSimilarTasks = ref<{ id: number; name: string }[]>([]);
-const selectedSimilarTask = ref<number>();
-
-const loadSimilarTasks = async () => {
-    loadingSimilarTasks.value = true;
-    const taskIdParam = route.params.task_id;
-    const taskId = Array.isArray(taskIdParam) ? taskIdParam[0] : taskIdParam;
-    if (!taskId) {
-        loadingSimilarTasks.value = false;
-        return;
-    }
-
-    optionSimilarTasks.value = await $trpc.task.findSimilarTasks.query({
-        task_id: +taskId,
-        annotators: props.annotatorsOptions
-    });
-    loadingSimilarTasks.value = false;
-};
-//#endregion
 
 const props = defineProps<{
     metricType: MetricTypes,
@@ -161,7 +93,6 @@ const props = defineProps<{
     }[],
     documentsOptions: { value: string; label: string }[],
     annotatorsOptions: string[],
-    isMergedTask: boolean
 }>();
 
 </script>
