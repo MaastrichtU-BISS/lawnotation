@@ -23,6 +23,7 @@ import {
   taskEditorOrAnnotatorAuthorizer,
 } from "../authorizers";
 import * as _ from "lodash";
+import { buildTaskExportData, toExportJson } from "~/server/utils/task_export";
 
 const ZTaskFields = z.object({
   name: z.string(),
@@ -34,6 +35,15 @@ const ZTaskFields = z.object({
   annotation_level: z.nativeEnum(AnnotationLevels),
   origin_task_1_id: z.number().int().nullable().optional(),
   origin_task_2_id: z.number().int().nullable().optional(),
+});
+
+const ZExportTaskOptions = z.object({
+  name: z.boolean(),
+  desc: z.boolean(),
+  ann_guidelines: z.boolean(),
+  labelset: z.boolean(),
+  documents: z.boolean(),
+  annotations: z.boolean(),
 });
 
 export const taskRouter = router({
@@ -707,6 +717,23 @@ export const taskRouter = router({
         }
       }
     ),
+
+  exportData: protectedProcedure
+    .input(
+      z.object({
+        task_id: z.number(),
+        options: ZExportTaskOptions,
+      })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input }) => {
+      const data = await buildTaskExportData(ctx.supabase, input.task_id);
+      return toExportJson(data, input.options);
+    }),
 });
 
 export type TaskRouter = typeof taskRouter;
