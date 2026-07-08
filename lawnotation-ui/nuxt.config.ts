@@ -74,6 +74,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     smtpUrl: process.env.SMTP_URL,
     iaaServiceUrl: process.env.IAA_SERVICE_URL || "http://127.0.0.1:8080",
+    iaaApiKey: process.env.IAA_API_KEY,
     public: {
       mlBackendURL: process.env.MLBACKEND_URL,
       baseURL:
