@@ -15,7 +15,10 @@ export default eventHandler(async (event) => {
   try {
     response = await fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${config.iaaApiKey}`,
+      },
       body: JSON.stringify(input),
     });
   } catch (error) {
