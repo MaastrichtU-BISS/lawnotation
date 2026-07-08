@@ -30,7 +30,9 @@
           </div>
           <div class="flex justify-center gap-6 my-3">
             <Button type="button" label="Analyze Metrics" data-test="metrics-button" icon="pi pi-chart-bar"
-              iconPos="right" @click="selectMetricModalVisible = true" />
+              iconPos="right" :disabled="amountAnnotators < 2"
+              v-tooltip="amountAnnotators < 2 ? 'A task must have at least two assigned annotators to compute agreement metrics.' : undefined"
+              @click="navigateTo(`/projects/${task?.project_id}/tasks/${task?.id}/metrics`)" />
             <Button type="button" label="Export / Publish" outlined @click="exportModalVisible = true"
               data-test="export-publish-button" icon="pi pi-file-export" iconPos="right" />
             <Button type="button" icon="pi pi-ellipsis-v" link @click="(event) => optionsMenu.toggle(event)"
@@ -405,9 +407,6 @@
         </div>
         <ExportTaskModal v-model:form-values="formValues" v-model:export-modal-visible="exportModalVisible"
           @export="exportTask" />
-        <SelectMetricModal v-model:visible="selectMetricModalVisible"
-          :baseUrl="`/projects/${task?.project_id}/tasks/${task?.id}/metrics`" :disable-agreement="amountAnnotators < 2"
-          :disable-descriptive="amountAnnotators == 0" />
       </div>
     </div>
   </div>
@@ -436,7 +435,6 @@ import { downloadAs } from "~/utils/download_file";
 import type { ExportTaskOptions } from "~/utils/io";
 import { Origins, AssignmentStatuses, RandomizationOptions } from "~/utils/enums";
 import ExportTaskModal from "~/components/tasks/ExportTaskModal.vue";
-import SelectMetricModal from "~/components/tasks/SelectMetricModal.vue";
 import { watch } from 'vue';
 
 const { $toast, $trpc } = useNuxtApp();
@@ -454,8 +452,6 @@ const selectedTotalDocuments = ref<{ id: number; name: string }[]>(optionsTotalD
 const selectedSharedDocuments = ref<{ id: number; name: string }[]>(selectedTotalDocuments.value);
 
 const optionsMenu = ref()
-
-const selectMetricModalVisible = ref(false);
 
 const randomizationSelected = ref(RandomizationOptions.FULL);
 
@@ -816,124 +812,26 @@ const replicateTask = async () => {
 
 const exportTask = async () => {
   formValues.value.modalOperations.loading = true;
-  let json: any = {};
-
-  if (formValues.value.export_options.name) {
-    json.name = task?.name!;
-  }
-
-  if (formValues.value.export_options.desc) {
-    json.desc = task?.desc!;
-  }
-
-  if (formValues.value.export_options.labelset) {
-    const labelset = await $trpc.labelset.findById.query(+task?.labelset_id!);
-    json.labelset = {
-      name: labelset.name,
-      desc: labelset.desc,
-      labels: labelset.labels,
-    };
-
-    if (formValues.value.export_options.ann_guidelines) {
-      json.ann_guidelines = task?.ann_guidelines!;
-    }
-  }
-
-  if (formValues.value.export_options.documents) {
-    let doc_pos: any = {};
-    let ass_pos: any = {};
-    let ann_pos: any = {};
-    let annotators: any = {};
-    let annotators_index: number = 0;
-
-    //Documents
-    const documents = await $trpc.document.findDocumentsByTask.query(+task?.id!);
-
-    json.documents = [];
-    documents.map((d, index) => {
-      doc_pos[d.id] = index;
-      json.documents.push({ name: d.name, full_text: d.full_text, assignments: [] });
+  try {
+    const json = await $trpc.task.exportData.query({
+      task_id: task!.id,
+      options: formValues.value.export_options,
     });
 
-    json.counts = {};
-    json.counts.documents = documents.length;
-    formValues.value.publication.documents = documents.length;
-
-    // Assignments
-    const assignments = await $trpc.assignment.findAssignmentsByTask.query(+task?.id!);
-
-    assignments.map(ass => {
-      const doc_assignments = json.documents[doc_pos[ass.document_id]].assignments;
-      ass_pos[ass.id] = doc_assignments.length;
-      if (!(ass.annotator_id in annotators)) {
-        annotators[ass.annotator_id] = ++annotators_index;
-      }
-      doc_assignments.push({
-        annotator: annotators[ass.annotator_id],
-        order: ass.seq_pos,
-        status: ass.status,
-        difficulty_rating: ass.difficulty_rating,
-        annotations: []
-      })
-    });
-
-    json.counts.assignments = assignments.length;
-    formValues.value.publication.assignments = assignments.length;
-    json.counts.annotators = annotators_index;
-    formValues.value.publication.annotators = annotators_index;
-
-
-    if (formValues.value.export_options.annotations && formValues.value.export_options.labelset) {
-
-      // export annotation level (only needed if exporting annotations)
-      json.annotation_level = task.annotation_level;
-
-      // Annotations
-      const annotations = await $trpc.annotation.findAnnotationsByTask.query(
-        +task?.id!
-      );
-
-      annotations.map((a) => {
-        const doc_anns = json.documents[doc_pos[a.assignment.document_id]].assignments[ass_pos[a.assignment_id]].annotations;
-        ann_pos[a.id] = doc_anns.length
-
-        doc_anns.push({
-          start: a.start_index,
-          end: a.end_index,
-          label: a.label,
-          text: a.text,
-          relations: [],
-          ls_id: a.ls_id,
-          confidence_rating: a.confidence_rating,
-          html_metadata: a.html_metadata
-        });
-      });
-
-      json.counts.annotations = annotations.length;
-      formValues.value.publication.annotations = annotations.length;
-
-      // Relations
-      const relations = await $trpc.relation.findRelationsByTask.query(+task?.id!);
-
-      relations.map((r) => {
-        let doc_anns = json.documents[doc_pos[r.annotation.assignment.document_id]].assignments[ass_pos[r.annotation.assignment.id]].annotations;
-        let ann_rels = doc_anns[ann_pos[r.from_id]].relations;
-        ann_rels.push({
-          to: ann_pos[r.to_id],
-          direction: r.direction,
-          labels: r.labels,
-        });
-      });
-
-      json.counts.relations = relations.length;
-      formValues.value.publication.relations = relations.length;
+    if (json.counts) {
+      formValues.value.publication.documents = json.counts.documents ?? 0;
+      formValues.value.publication.assignments = json.counts.assignments ?? 0;
+      formValues.value.publication.annotators = json.counts.annotators ?? 0;
+      formValues.value.publication.annotations = json.counts.annotations ?? 0;
+      formValues.value.publication.relations = json.counts.relations ?? 0;
     }
-  }
 
-  downloadAs(JSON.stringify(json), `${json.name}.json`);
-  formValues.value.modalOperations.loaded = true;
-  formValues.value.modalOperations.loading = false;
-  $toast.success(`Task has been exported!`);
+    downloadAs(JSON.stringify(json), `${json.name}.json`);
+    formValues.value.modalOperations.loaded = true;
+    $toast.success(`Task has been exported!`);
+  } finally {
+    formValues.value.modalOperations.loading = false;
+  }
 };
 
 const resetForm = () => {

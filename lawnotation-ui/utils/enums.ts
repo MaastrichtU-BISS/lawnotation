@@ -42,11 +42,6 @@ export enum RandomizationOptions {
   NONE = "none"
 }
 
-export enum MetricTypes {
-  DESCRIPTIVE = 'descriptive',
-  AGREEMENT = 'agreement'
-}
-
 export enum DocumentFormats {
   TXT = "txt",
   HTML = "html",
