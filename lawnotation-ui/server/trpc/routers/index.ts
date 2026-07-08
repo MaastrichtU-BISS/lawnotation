@@ -29,8 +29,8 @@ export const appRouter = router({
   hook: hookRouter,
   user: userRouter,
   table: tableRouter,
-  archive: archiveRouter
-  // metrics: metricsRouter,
+  archive: archiveRouter,
+  metrics: metricsRouter,
 })
 
 // export type definition of API

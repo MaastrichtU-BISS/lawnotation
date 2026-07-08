@@ -37,6 +37,20 @@
     --surface-950: 3 6 23;
 }
 
+// PrimeVue positions an invisible native input over the visible control
+// (ToggleSwitch, Checkbox, ...) and sizes it to 100% of its parent so the
+// whole control is clickable. Tailwind's preflight also targets
+// [type="checkbox"]/[type="radio"] with a fixed 1rem size at the same
+// selector specificity, and depending on stylesheet injection order can win
+// the cascade - shrinking the real click target down to a ~16px corner while
+// the visible switch/box stays full size. Raise specificity so these native
+// inputs always fill their PrimeVue-sized parent regardless of order.
+.p-toggleswitch .p-toggleswitch-input,
+.p-checkbox .p-checkbox-input {
+    width: 100%;
+    height: 100%;
+}
+
 @layer {
     a.base {
         @apply text-primary-high;
