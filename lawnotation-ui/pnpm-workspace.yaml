@@ -1,8 +1,0 @@
-allowBuilds:
-  '@parcel/watcher': true
-  cypress: true
-  esbuild: true
-  supabase: true
-minimumReleaseAgeExclude:
-  - legal-docs-client@1.0.0
-  - vue-legal-query-builder@1.0.2
