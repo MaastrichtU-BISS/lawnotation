@@ -1,6 +1,7 @@
 {
   "name": "nuxt-app",
   "private": true,
+  "packageManager": "pnpm@11.10.0",
   "scripts": {
     "build": "nuxt build",
     "cypress": "npx cypress open",
