@@ -7,9 +7,9 @@
 <script setup lang="ts">
 import { LegalDocsForm, createLegalDocsClient } from "vue-legal-query-builder";
 import type {
-    FullTextDocument,
-    LegalDocument,
-    QueryParameters,
+    LegalDocsQuery,
+    RechtspraakFullTextDocument,
+    EchrFullTextDocument,
 } from "vue-legal-query-builder";
 import "vue-legal-query-builder/style.css";
 import JSZip from "jszip";
@@ -29,20 +29,24 @@ const emit = defineEmits<{
     ): void;
 }>();
 
+type FullTextDocument = RechtspraakFullTextDocument | EchrFullTextDocument;
+
 const loading = ref(false);
 const client = createLegalDocsClient({
     apiKey: import.meta.env.VITE_CITATIONS_API_KEY,
 })
 
-const handleSubmit = async (queryParams: QueryParameters) => {
+const handleSubmit = async (query: LegalDocsQuery): Promise<FullTextDocument[]> => {
     loading.value = true;
 
     try {
-        const docs: LegalDocument[] = await client.fetchDocuments(queryParams);
-        const fullTexts: FullTextDocument[] = await client.getFullText(
-            docs.map((doc) => doc.id)
-        );
-        return fullTexts;
+        if (query.dataset === "ECHR") {
+            const docs = await client.fetchEchr(query.params);
+            return await client.getEchrFullText(docs.map((doc) => doc.id));
+        }
+
+        const docs = await client.fetchRechtspraak(query.params);
+        return await client.getRechtspraakFullText(docs.map((doc) => doc.id));
     } finally {
         loading.value = false;
     }
@@ -53,7 +57,7 @@ const onSuccess = (data: FullTextDocument[]) => {
         emit(
             "onDocumentsFetched",
             data.map((doc) => ({
-                content: doc.fullText,
+                content: doc.fullText ?? "",
                 name: `${doc.ecli}.txt`,
                 format: "text/plain",
             }))
@@ -74,7 +78,7 @@ const download = async (docs: FullTextDocument[]) => {
 
     try {
         docs.forEach((doc) => {
-            zip.file(`${doc.ecli}.txt`, new Blob([doc.fullText], { type: "text/plain" }));
+            zip.file(`${doc.ecli}.txt`, new Blob([doc.fullText ?? ""], { type: "text/plain" }));
         });
 
         const blobZip = await zip.generateAsync({ type: "blob" });
