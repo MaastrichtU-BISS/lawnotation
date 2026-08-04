@@ -93,8 +93,8 @@ importers:
         specifier: ^0.6.0
         version: 0.6.1(@types/sortablejs@1.15.9)
       vue-iaa-metrics:
-        specifier: ^1.0.1
-        version: 1.0.1(vue@3.5.30(typescript@5.9.3))
+        specifier: ^1.0.2
+        version: 1.0.2(vue@3.5.30(typescript@5.9.3))
       vue-legal-query-builder:
         specifier: ^1.0.2
         version: 1.0.2(vue@3.5.30(typescript@5.9.3))
@@ -5536,8 +5536,8 @@ packages:
       '@vue/composition-api':
         optional: true
 
-  vue-iaa-metrics@1.0.1:
-    resolution: {integrity: sha512-x31QwUKOR+IiIA7y3XElBe8O104sL90U4b2YzBHAO9mUht3SklNBbjOxGkxkp0AWJIeCevnxrIh1tVD1HOIdMg==}
+  vue-iaa-metrics@1.0.2:
+    resolution: {integrity: sha512-oAbHdBtxuak6bPo9M/IBEmkH2nyeO0ES6vbaOFr4aJPwSSwDBcycM/8P38DXIiHwV8LEvPhNHPjnIshWomjhhw==}
     peerDependencies:
       vue: ^3.4.0
 
@@ -11716,7 +11716,7 @@ snapshots:
     dependencies:
       '@types/sortablejs': 1.15.9
 
-  vue-iaa-metrics@1.0.1(vue@3.5.30(typescript@5.9.3)):
+  vue-iaa-metrics@1.0.2(vue@3.5.30(typescript@5.9.3)):
     dependencies:
       vue: 3.5.30(typescript@5.9.3)
 
