@@ -61,7 +61,7 @@
     "utility-types": "^3.11.0",
     "vue-countup-v3": "^1.4.1",
     "vue-draggable-plus": "^0.6.0",
-    "vue-iaa-metrics": "^1.0.1",
+    "vue-iaa-metrics": "^1.0.2",
     "vue-legal-query-builder": "^1.0.2",
     "vue-toastification": "2.0.0-rc.5",
     "vue3-apexcharts": "^1.5.2",
