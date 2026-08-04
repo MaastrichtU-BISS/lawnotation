@@ -1,10 +1,10 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router, authorizer } from '~/server/trpc'
-import { sortByDocumentAndRange, type RichAnnotation } from '~/utils/metrics';
+import { sortByDocumentAndRange, type RichAnnotation, type IaaInputData } from 'vue-iaa-metrics';
 import { taskEditorAuthorizer } from '../authorizers';
 import { buildTaskExportData } from '~/server/utils/task_export';
-import { toIaaInputData, type IaaInputData } from '~/server/utils/iaa';
+import { toIaaInputData } from '~/server/utils/iaa';
 
 export const metricsRouter = router({
   // Builds the same data the IAA Go service needs as input. The metrics page
@@ -64,21 +64,19 @@ export const metricsRouter = router({
 
       const annotations = data.map((ann) => {
         return {
-          start: ann.start_index,
-          end: ann.end_index,
-          text: ann.text,
-          label: ann.label,
+          start: ann.start_index!,
+          end: ann.end_index!,
+          text: ann.text!,
+          label: ann.label!,
           annotator: input.intra
             ? `${ann.assignment!.original_task_id}-${ann.assignment!.annotator!.email}`
-            : ann.assignment!.annotator!.email,
-          hidden: false,
+            : ann.assignment!.annotator!.email!,
           ann_id: ann.id,
-          doc_id: ann.assignment!.document_id,
-          doc_name: ann.assignment!.document!.name,
+          doc_id: String(ann.assignment!.document_id),
+          doc_name: ann.assignment!.document!.name ?? undefined,
           confidence: ann.confidence_rating,
-          original_task_id: ann.assignment!.original_task_id,
-          metadata: ann.metadata,
-        } as RichAnnotation;
+          metadata: ann.metadata ?? undefined,
+        } satisfies RichAnnotation;
       });
 
       sortByDocumentAndRange(annotations);

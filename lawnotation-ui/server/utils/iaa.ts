@@ -1,29 +1,5 @@
+import type { IaaInputData } from "vue-iaa-metrics";
 import type { TaskExportData } from "~/server/utils/task_export";
-
-export type IaaAnnotation = {
-  start: number;
-  end: number;
-  label: string;
-  text: string;
-};
-
-export type IaaAssignment = {
-  annotator: string;
-  difficulty_rating: number;
-  annotations: IaaAnnotation[];
-};
-
-export type IaaDocument = {
-  name: string;
-  full_text: string;
-  assignments: IaaAssignment[];
-};
-
-export type IaaInputData = {
-  labelset: { labels: { name: string }[] };
-  documents: IaaDocument[];
-  annotation_level?: "document";
-};
 
 export function toIaaInputData(data: TaskExportData): IaaInputData {
   return {
