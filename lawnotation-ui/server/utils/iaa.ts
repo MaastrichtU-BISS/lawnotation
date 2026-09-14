@@ -7,6 +7,9 @@ export function toIaaInputData(data: TaskExportData): IaaInputData {
       labels: data.labelset.labels.map((label) => ({ name: label.name })),
     },
     documents: data.documents.map((doc) => ({
+      // Matches the document filter's option values (see metricsSource.ts),
+      // so vue-iaa-metrics can narrow the input to the selected documents.
+      id: doc.id.toString(),
       name: doc.name,
       full_text: doc.full_text,
       assignments: doc.assignments.map((ass) => ({
