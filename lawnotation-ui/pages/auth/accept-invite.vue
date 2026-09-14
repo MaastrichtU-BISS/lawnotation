@@ -156,7 +156,10 @@ definePageMeta({
     const client = useSupabaseClient();
     const {data: {user: user}} = await client.auth.getUser();
 
-    if (user) location.href = '/';
+    // Route middleware also runs during server rendering, where `location`
+    // doesn't exist. External navigation redirects there, and does a hard
+    // reload in the browser so the tRPC plugin picks up the session token.
+    if (user) return navigateTo('/', { external: true });
   }
 });
 </script>
