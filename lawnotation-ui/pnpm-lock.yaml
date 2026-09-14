@@ -59,6 +59,9 @@ importers:
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
+      legal-docs-types:
+        specifier: ^1.0.0
+        version: 1.0.0
       node-legal-docs-client:
         specifier: ^1.0.0
         version: 1.0.0
@@ -99,8 +102,8 @@ importers:
         specifier: ^1.2.0
         version: 1.2.0(vue@3.5.30(typescript@5.9.3))
       vue-legal-query-builder:
-        specifier: ^1.0.2
-        version: 1.0.2(vue@3.5.30(typescript@5.9.3))
+        specifier: ^2.1.0
+        version: 2.1.0(vue@3.5.30(typescript@5.9.3))
       vue-toastification:
         specifier: 2.0.0-rc.5
         version: 2.0.0-rc.5(vue@3.5.30(typescript@5.9.3))
@@ -3662,9 +3665,6 @@ packages:
     resolution: {integrity: sha512-b94GiNHQNy6JNTrt5w6zNyffMrNkXZb3KTkCZJb2V1xaEGCk093vkZ2jk3tpaeP33/OiXC+WvK9AxUebnf5nbw==}
     engines: {node: '>= 0.6.3'}
 
-  legal-docs-client@1.0.0:
-    resolution: {integrity: sha512-7cMKx9rdIWhj4QMQPXggjj5zCAaurVD/ByGOAJe9+FySgqtROkUyaAE0hxeFGix+Q0PtAKVyJ34XMGUhiNcTGA==}
-
   legal-docs-types@1.0.0:
     resolution: {integrity: sha512-IKKNaAMwf4V+xolmSTiamz++0vKt2O5F2zE0C07TBkC6J5kMeSpgFm7Nd/cRNbtKHmDLM8z9bUeB1LpBNa4UNw==}
 
@@ -5551,8 +5551,8 @@ packages:
     peerDependencies:
       vue: ^3.4.0
 
-  vue-legal-query-builder@1.0.2:
-    resolution: {integrity: sha512-35kXGi4GPXPRAnHQhAjDvUwYd3rh0z53wDWAiAR0WrubNeRxOQ5PpSNQRJFuvQVkNu2UGog9qn7Cz0aUe06p+g==}
+  vue-legal-query-builder@2.1.0:
+    resolution: {integrity: sha512-XRmZBGyDsy8g2XXKsYeyb3rzNXA77/86lmYz6zPJGBobNA8PRJzCXVvOas4uzthWNjIuWoCeCw+bFwTYIER8VA==}
     peerDependencies:
       vue: ^3.4.0
 
@@ -9609,12 +9609,6 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  legal-docs-client@1.0.0:
-    dependencies:
-      axios: 1.13.6
-    transitivePeerDependencies:
-      - debug
-
   legal-docs-types@1.0.0: {}
 
   leven@3.1.0: {}
@@ -11739,13 +11733,11 @@ snapshots:
     dependencies:
       vue: 3.5.30(typescript@5.9.3)
 
-  vue-legal-query-builder@1.0.2(vue@3.5.30(typescript@5.9.3)):
+  vue-legal-query-builder@2.1.0(vue@3.5.30(typescript@5.9.3)):
     dependencies:
-      legal-docs-client: 1.0.0
+      legal-docs-types: 1.0.0
       lucide-vue-next: 1.0.0(vue@3.5.30(typescript@5.9.3))
       vue: 3.5.30(typescript@5.9.3)
-    transitivePeerDependencies:
-      - debug
 
   vue-router@5.0.4(@vue/compiler-sfc@3.5.30)(vue@3.5.30(typescript@5.9.3)):
     dependencies:
