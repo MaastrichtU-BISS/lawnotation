@@ -59,6 +59,9 @@ importers:
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
+      node-legal-docs-client:
+        specifier: ^1.0.0
+        version: 1.0.0
       nodemailer:
         specifier: '>=7.0.11'
         version: 9.0.3
@@ -3662,6 +3665,9 @@ packages:
   legal-docs-client@1.0.0:
     resolution: {integrity: sha512-7cMKx9rdIWhj4QMQPXggjj5zCAaurVD/ByGOAJe9+FySgqtROkUyaAE0hxeFGix+Q0PtAKVyJ34XMGUhiNcTGA==}
 
+  legal-docs-types@1.0.0:
+    resolution: {integrity: sha512-IKKNaAMwf4V+xolmSTiamz++0vKt2O5F2zE0C07TBkC6J5kMeSpgFm7Nd/cRNbtKHmDLM8z9bUeB1LpBNa4UNw==}
+
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
     engines: {node: '>=6'}
@@ -3947,6 +3953,10 @@ packages:
   node-gyp-build@4.8.4:
     resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
     hasBin: true
+
+  node-legal-docs-client@1.0.0:
+    resolution: {integrity: sha512-HDHnhIAMMq/IX+REbg/oJV27eg1URufVzJ8IgocJwAX1a1BKWwsHc3aKBRq/jqhC+zYALt9OVkcLfCzJigEd2Q==}
+    engines: {node: '>=18'}
 
   node-mock-http@1.0.4:
     resolution: {integrity: sha512-8DY+kFsDkNXy1sJglUfuODx1/opAGJGyrTuFqEoN90oRc2Vk0ZbD4K2qmKXBBEhZQzdKHIVfEJpDU8Ak2NJEvQ==}
@@ -9605,6 +9615,8 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  legal-docs-types@1.0.0: {}
+
   leven@3.1.0: {}
 
   levenary@1.1.1:
@@ -9972,6 +9984,13 @@ snapshots:
   node-forge@1.4.0: {}
 
   node-gyp-build@4.8.4: {}
+
+  node-legal-docs-client@1.0.0:
+    dependencies:
+      axios: 1.13.6
+      legal-docs-types: 1.0.0
+    transitivePeerDependencies:
+      - debug
 
   node-mock-http@1.0.4: {}
 

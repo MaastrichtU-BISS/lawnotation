@@ -50,6 +50,7 @@
     "file-saver": "^2.0.5",
     "flowbite": "^1.8.1",
     "jszip": "^3.10.1",
+    "node-legal-docs-client": "^1.0.0",
     "nodemailer": "^6.9.16",
     "pdfreader": "^3.0.8",
     "postgres": "^3.4.4",

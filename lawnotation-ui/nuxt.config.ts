@@ -79,6 +79,8 @@ export default defineNuxtConfig({
         ? "https://iaa.lawnotation.org"
         : "http://127.0.0.1:8080"),
     iaaApiKey: process.env.IAA_API_KEY,
+    // Server-only: never expose this through `public` or a VITE_ variable.
+    citationsApiKey: process.env.CITATIONS_API_KEY,
     public: {
       mlBackendURL: process.env.MLBACKEND_URL,
       baseURL:
