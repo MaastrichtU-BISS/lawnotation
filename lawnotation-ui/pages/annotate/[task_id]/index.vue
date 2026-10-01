@@ -1,5 +1,5 @@
 <template>
-  <Breadcrumb v-if="task && doc" :crumbs="[
+  <Breadcrumb v-if="task && currentName" :crumbs="[
     {
       name: 'Tasks',
       link: '/tasks',
@@ -9,198 +9,156 @@
       link: `/tasks/${task.id}`,
     },
     {
-      name: `${doc.name}`,
-      link: `/annotate/${task.id}?seq=${seq_pos}`,
+      name: currentName,
+      link: `/annotate/${task.id}?seq=${currentSeq}`,
     },
   ]" />
 
-  <template v-if="task && totalCount">
-    <div class="dimmer-wrapper min-h-0">
-      <Dimmer v-model="loading" />
-      <div class="dimmer-content h-full">
-        <LabelStudio v-if="loadedData" :assignment="assignment" :previousCount="previousCount" :totalCount="totalCount" :user="user" :isEditor="isEditor" :text="doc?.full_text"
-          :annotations="ls_annotations" :relations="ls_relations" :labels="labels" :guidelines="task?.ann_guidelines"
-          :annotation_level="task.annotation_level" :isHtml="isHtml" :key="key" @nextAssignment="loadNext" @previousAssignment="loadPrevious">
-        </LabelStudio>
-      </div>
+  <div class="dimmer-wrapper min-h-0">
+    <Dimmer v-model="loading" />
+    <div class="dimmer-content h-full">
+      <ClientOnly>
+        <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset"
+          :annotation-level="toKitLevel(task.annotation_level)" :guidelines-url="task.ann_guidelines || undefined"
+          :start-position="startPosition" :url-param="false" @complete="onComplete" @save-error="onSaveError"
+          @unsaved="unsaved = $event" />
+      </ClientOnly>
     </div>
-  </template>
+  </div>
+  <ConfirmBox />
 </template>
 <script setup lang="ts">
-import type {
-  Assignment,
-  LSSerializedAnnotations,
-  Document,
-  Task,
-  Labelset,
-  LsLabels,
-  AnnotationRelation,
-  LSSerializedRelation,
-} from "~/types";
-import { Direction } from "~/utils/enums";
+import { AnnotatorQueue, createLazySource } from "legal-annotation-kit";
+import type { AnnotationSource, Labelset } from "legal-annotation-kit";
+import type { Task } from "~/types";
+import { useConfirm } from "primevue/useconfirm";
 import Breadcrumb from "~/components/Breadcrumb.vue";
-import { isDocumentLevel, getDocFormat } from "~/utils/levels";
+import ConfirmBox from "~/components/ConfirmBox.vue";
 import { authorizeClient } from "~/utils/authorize.client";
+import { clearLabelStudioDraft, saveKitAssignment, toKitBundle, withLabelStudioDraft } from "~/utils/annotator";
+import { toKitLevel } from "~/utils/levels";
 
 const user = useSupabaseUser();
-
 const { $toast, $trpc } = useNuxtApp();
-
 const route = useRoute();
 const router = useRouter();
-const assignment = ref<Assignment>();
+
+type QueueEntry = { assignment_id: number; seq_pos: number; status: string; document_name: string };
+
 const task = ref<Task>();
-const doc = ref<Document>();
-const loadedData = ref(false);
+const labelset = ref<Labelset>();
+const source = shallowRef<AnnotationSource>();
+const startPosition = ref(1);
+const loading = ref(true);
+const unsaved = ref(false);
 
-const ls_annotations = reactive<LSSerializedAnnotations>([]);
-const ls_relations = reactive<LSSerializedRelation[]>([]);
-const labels = reactive<LsLabels>([]);
-const isEditor = ref<boolean>();
-const previousCount = ref<number>(0);
-const totalCount = ref<number>(0);
+// What the breadcrumb and the `seq` query param show. `seq` is the
+// assignment's seq_pos, as every link into this page has always used — not
+// the kit's 1-based position, which is why the kit is told to leave the URL
+// alone (url-param="false") and this page keeps it instead.
+const currentName = ref<string>();
+const currentSeq = ref<number>();
 
-const loading = ref(false);
-const key = ref("ls-default");
+// Assignments whose content came from Label Studio's unsaved local work, to
+// clear once they have been saved through the kit.
+const fromLabelStudioDraft = new Set<number>();
 
-const isHtml = computed(() => {
-  return getDocFormat(doc?.value?.name!) == 'html';
-});
-
-const seq_pos = ref<number>(assignment.value?.seq_pos ?? 0);
-watch(seq_pos, (val) => {
-  if (!Array.isArray(route.query.seq) && route.query.seq == val?.toString()) return;
-
-  router.replace({
-    path: route.path,
-    query: { seq: val },
-  });
-});
-
-const loadPrevious = async () => {
-  if (!assignment.value) throw Error("Assignment not found");
-
-  if (previousCount.value < 1) throw Error("Already at first item");
-  previousCount.value--;
-  await loadData(Direction.PREVIOUS);
-};
-
-const loadNext = async () => {
-  if (!assignment.value) throw Error("Assignment not found");
-  if (!totalCount.value) throw Error("Assignment Counts not found");
-
-  if (previousCount.value >= totalCount.value) {
-    $toast.success(`All assignments were completed!`);
-    if (task.value)
-      navigateTo(`/tasks/${task.value.id}`)
-  } else {
-    previousCount.value++;
-    await loadData(Direction.NEXT);
-  }
-};
-
-const loadData = async (dir: Direction = Direction.CURRENT) => {
-  try {
-    if (!user.value) throw new Error("Must be logged in");
-
-    loading.value = true;
-    key.value = `ls-${seq_pos.value}`;
-
-    assignment.value = await $trpc.assignment.findAssignmentsByUserTaskSeq.query({
-      task_id: +route.params.task_id,
-      seq_pos: seq_pos.value,
-      dir: dir
-    });
-
-    seq_pos.value = assignment?.value?.seq_pos!;
-
-    if (!assignment.value) throw Error("Assignment not found");
-
-    doc.value = await $trpc.document.findById.query(assignment.value.document_id);
-    if (!doc.value) throw Error("Document not found");
-
-    if (!assignment.value.task_id) throw Error("Document not found");
-    task.value = await $trpc.task.findById.query(assignment.value.task_id);
-    if (!task.value) throw Error("Task not found");
-
-    const _labelset: Labelset = await $trpc.labelset.findById.query(
-      task.value.labelset_id
-    );
-
-    labels.splice(0);
-    labels.push(..._labelset.labels.map((l) => l));
-
-    const _annotations = await $trpc.annotation.findByAssignment.query(
-      assignment.value.id
-    );
-
-    ls_annotations.splice(0);
-    if (_annotations.length) {
-      const db2ls_anns = convert_annotation_db2ls(_annotations, !isDocumentLevel(task.value), isHtml.value);
-      ls_annotations.push(...db2ls_anns);
-    }
-
-    const _relations = await $trpc.relation.findFromAnnotationIds.query(
-      _annotations.map((a) => a.id)
-    );
-
-    ls_relations.splice(0);
-    if (_relations.length) {
-      const db2ls_rels = _relations.map((r: AnnotationRelation) =>
-        convert_relation_db2ls(r)
-      );
-      ls_relations.push(...db2ls_rels);
-    }
-
-    isEditor.value = user.value.id != assignment.value.annotator_id;
-
-    loadedData.value = true;
-    loading.value = false;
-    key.value = "ls-" + assignment.value.id;
-  } catch (error) {
-    loading.value = false;
-  }
-};
-
-const loadCounters = async () => {
-  try {
-    if (!user.value) throw new Error("Must be logged in");
-    if (!route.params.task_id || Array.isArray(route.params.task_id))
-      throw new Error("Invalid task");
-
-    const counts = await $trpc.assignment.countAssignmentsByUserAndTask.query({
-      task_id: +route.params.task_id,
-      seq_pos: seq_pos.value
-    });
-
-    totalCount.value = counts.total;
-    previousCount.value = counts.previous + 1;
-
-  } catch (error) {
-    throw new Error(error.message);
-  }
-};
+// The markup of legacy HTML documents, by assignment, for saveKitAssignment.
+const legacyHtml = new Map<number, string>();
 
 const init = async () => {
-  if (
-    route.query.seq &&
-    !Array.isArray(route.query.seq) &&
-    parseInt(route.query.seq) > 0
-  ) {
-    seq_pos.value = parseInt(route.query.seq);
+  try {
+    const taskId = +route.params.task_id;
+    task.value = await $trpc.task.findById.query(taskId);
+    if (!task.value) throw new Error("Task not found");
+
+    const set = await $trpc.labelset.findById.query(task.value.labelset_id);
+    labelset.value = { name: set.name, desc: set.desc ?? "", labels: set.labels };
+
+    const queue: QueueEntry[] = await $trpc.annotator.queue.query({ task_id: taskId });
+    if (!queue.length) throw new Error("You have no documents to annotate in this task");
+
+    // Resume where the link says, else at the first document not yet done.
+    const seq = Number(route.query.seq);
+    const linked = queue.findIndex((e) => e.seq_pos === seq);
+    const unfinished = queue.findIndex((e) => e.status !== "done");
+    startPosition.value = (linked >= 0 ? linked : unfinished >= 0 ? unfinished : 0) + 1;
+
+    source.value = await createLazySource({
+      total: async () => queue.length,
+      load: async (position) => {
+        const entry = queue[position - 1];
+        if (!entry) throw new Error(`No document at position ${position}`);
+        const raw = await $trpc.annotator.load.query(entry.assignment_id);
+        if (raw.legacy_html) legacyHtml.set(entry.assignment_id, raw.document.full_text);
+        const loaded = withLabelStudioDraft(toKitBundle(raw));
+        if (loaded.fromDraft) fromLabelStudioDraft.add(entry.assignment_id);
+
+        currentName.value = entry.document_name;
+        currentSeq.value = entry.seq_pos;
+        router.replace({ query: { ...route.query, seq: entry.seq_pos } });
+        return loaded.bundle;
+      },
+      save: async (assignment) => {
+        const id = Number(assignment.id);
+        await saveKitAssignment($trpc, assignment, legacyHtml.get(Number(assignment.id)));
+        const entry = queue.find((e) => e.assignment_id === id);
+        if (entry) entry.status = assignment.status;
+        if (fromLabelStudioDraft.delete(id)) clearLabelStudioDraft(id);
+      },
+    });
+  } catch (error) {
+    $toast.error(`Could not open this task: ${(error as Error)?.message}`);
+  } finally {
+    loading.value = false;
   }
-  await loadCounters();
-  loadData(Direction.CURRENT);
 };
 
-onMounted(async () => {
+// Set once the last document is saved. The kit reports `complete` before it
+// has cleared its own unsaved flag, so the guard below must not hold up the
+// navigation that follows.
+let completed = false;
+
+const onComplete = () => {
+  completed = true;
+  $toast.success("All assignments were completed!");
+  if (task.value) navigateTo(`/tasks/${task.value.id}`);
+};
+
+const onSaveError = (error: unknown) => {
+  console.error("Failed to save annotations:", error);
+  $toast.error(
+    "Annotations could not be saved into the db. They still exist locally, so you can safely reload the page without losing progress and try again."
+  );
+};
+
+onMounted(() => {
   if (user.value) {
     init();
   } else {
-    watch(user, async () => {
-      if (user.value) init();
+    const stop = watch(user, () => {
+      if (user.value) {
+        stop();
+        init();
+      }
     });
   }
+});
+
+// The kit warns on reload and tab close; leaving through the app's own links
+// needs the router's guard. The work stays in the kit's local draft either way.
+const confirm = useConfirm();
+onBeforeRouteLeave((to, from, next) => {
+  if (!unsaved.value || completed) return next();
+  confirm.require({
+    group: "headless",
+    header: "Are you sure you want to leave?",
+    message: "You have unsaved changes. They stay on this device and come back when you return to this document.",
+    rejectLabel: "No, stay",
+    acceptLabel: "Yes, leave",
+    accept: () => next(),
+    reject: () => next(false),
+  });
 });
 
 definePageMeta({

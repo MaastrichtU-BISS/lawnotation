@@ -17,8 +17,8 @@ describe('Testing projects and tasks with the editor account', () => {
 
         cy.get('a[data-test="view-project-link"]').first().click()
         cy.get('button[data-test="open-documents-modal"]').click()
-        cy.get('input[data-test="choose-documents"]').selectFile('./cypress/support/Test.txt', { force: true })
-        cy.get('button[data-test="upload-documents"]').click()
+        // One button: choosing the files uploads them.
+        cy.get('[data-test="upload-documents-panel"] input[type="file"]').selectFile('./cypress/support/Test.txt', { force: true })
         cy.get('td').contains('Test.txt').should('exist')
 
         cy.get('a[data-test="tasks-tab"]').click()
@@ -59,8 +59,8 @@ describe('Testing projects and tasks with the editor account', () => {
 
         cy.get('a[data-test="view-project-link"]').eq(0).click()
         cy.get('button[data-test="open-documents-modal"]').click()
-        cy.get('input[data-test="choose-documents"]').selectFile('./cypress/support/Test.txt', { force: true })
-        cy.get('button[data-test="upload-documents"]').click()
+        // One button: choosing the files uploads them.
+        cy.get('[data-test="upload-documents-panel"] input[type="file"]').selectFile('./cypress/support/Test.txt', { force: true })
         cy.get('td').contains('Test.txt').should('exist')
 
         cy.get('a[data-test="tasks-tab"]').click()

@@ -8,15 +8,16 @@ import {
 } from "~/server/trpc";
 import type { Document } from "~/types";
 import type { Context } from "../context";
-import sanitizeHtml from "sanitize-html";
 import {
   documentEditorAuthorizer,
   documentEditorOrAnnotatorAuthorizer,
   projectEditorAuthorizer,
   taskEditorAuthorizer,
 } from "../authorizers";
-import WordExtractor from "word-extractor";
-import { DocumentFormats } from "~/utils/enums";
+import { extractDocumentText } from "~/server/utils/document_import";
+
+// 6 MB of file, as base64 (4 characters per 3 bytes).
+const EXTRACT_MAX_BASE64 = Math.ceil((6_000_000 / 3) * 4);
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -76,11 +77,26 @@ export const documentRouter = router({
       return data as Document;
     }),
 
+  /**
+   * Turns one uploaded file into the text that gets stored and annotated.
+   * Files arrive base64-encoded; nothing is stored here — the client creates
+   * the document afterwards with the text this returns.
+   */
+  extractText: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1),
+        data: z.string().max(EXTRACT_MAX_BASE64),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return { full_text: await extractDocumentText(input.name, Buffer.from(input.data, "base64")) };
+    }),
+
   create: protectedProcedure
     .input(
       z.object({
         document: ZDocumentFields,
-        preprocess: z.boolean().optional().default(false),
       })
     )
     .use((opts) =>
@@ -93,10 +109,6 @@ export const documentRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      if (input.preprocess) {
-        await preProcessText(input.document);
-      }
-
       const { data, error } = await ctx.supabase
         .from("documents")
         .insert(input.document)
@@ -412,141 +424,3 @@ export const documentRouter = router({
       return true;
     }),
 });
-
-async function preProcessText(input: { full_text: string; name: string }) {
-  const format = input.name.split(".").pop() as DocumentFormats;
-
-  switch (format) {
-    case DocumentFormats.TXT:
-      input.full_text = input.full_text;
-      break;
-    case DocumentFormats.HTML:
-      input.full_text = sanitizeFullText(input.full_text);
-      break;
-    case DocumentFormats.PDF:
-      const fullText = input.full_text.replace("data:application/pdf;base64,", "")
-      const pdfText = await getPdfText(fullText);
-      input.full_text = pdfText;
-      break;
-    case DocumentFormats.DOC:
-      input.full_text = await readWordFile(
-        input.full_text.replace("data:application/msword;base64,", "")
-      );
-      break;
-    case DocumentFormats.DOCX:
-      input.full_text = await readWordFile(
-        input.full_text.replace(
-          "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,",
-          ""
-        )
-      );
-      break;
-    default:
-      throw new Error("Unsupported format");
-  }
-}
-
-async function readWordFile(base64: string): Promise<string> {
-  const buffer = Buffer.from(base64, "base64");
-  const extractor = new WordExtractor();
-  const extracted = extractor.extract(buffer);
-  const doctext = (await extracted).getBody();
-  return doctext;
-}
-
-async function getPdfText(data: string) {
-  try {
-    const { PdfReader } = await import("pdfreader");
-    const binary = Buffer.from(data, "base64");
-    const pageText: string[] = [];
-    let currentPage = 0;
-
-    await new Promise<void>((resolve, reject) => {
-      new PdfReader().parseBuffer(binary, (err: unknown, item: any) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        if (!item) {
-          resolve();
-          return;
-        }
-
-        if (typeof item.page === "number") {
-          currentPage = item.page;
-          if (!pageText[currentPage - 1]) pageText[currentPage - 1] = "";
-          return;
-        }
-
-        if (typeof item.text === "string") {
-          if (!pageText[currentPage - 1]) pageText[currentPage - 1] = "";
-          pageText[currentPage - 1] += `${item.text}\n`;
-        }
-      });
-    });
-
-    const cleanedText = pageText
-      .filter(Boolean)
-      .join("\n")
-      .replace(/--\s*\d+\s*of\s*\d+\s*--/g, "")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-    return cleanedText;
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: `PDF text extraction is unavailable in this runtime. ${reason}`,
-    });
-  }
-}
-
-function sanitizeFullText(full_text: string) {
-  const sanitized = sanitizeHtml(full_text, {
-    allowedAttributes: {
-      "*": [
-        "style",
-        "height",
-        "width",
-        "valign",
-        "border",
-        "cellspacing",
-        "cellpadding",
-      ],
-    },
-    allowedStyles: {
-      "*": {
-        color: [
-          /^#(0x)?[0-9a-f]+$/i,
-          /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
-        ],
-        "background-color": [
-          /^#(0x)?[0-9a-f]+$/i,
-          /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
-        ],
-        background: [
-          /^#(0x)?[0-9a-f]+$/i,
-          /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
-        ],
-        "text-align": [/^left$/, /^right$/, /^center$/],
-        display: [/^inline$/, /^block$/, /^flex$/, /^inline-block$/, /^grid$/],
-        "font-size": [/^\d+(?:px|em|%|rem)$/],
-        padding: [/^^\d+(?:px|em|%|rem|)(\s\d+(?:px|em|%|rem|)?)?$/],
-        margin: [/^\d+(?:px|em|%|rem|)(\s\d+(?:px|em|%|rem|)?)?$/],
-        "border-radius": [/^\d+(?:px|em|%|rem|)(\s\d+(?:px|em|%|rem|)?)?$/],
-        float: [/^left$/, /^right$/, /^top$/, /^bottom$/],
-        clear: [/^none$/, /^left$/, /^right$/, /^both$/],
-        width: [/^\d+(?:px|em|%|rem|)$/],
-        "max-width": [/^\d+(?:px|em|%|rem|)$/],
-        height: [/^\d+(?:px|em|%|rem|)$/],
-        "max-height": [/^\d+(?:px|em|%|rem|)$/],
-      },
-    },
-  });
-
-  return sanitized;
-}
-
-export type DocumentRouter = typeof documentRouter;

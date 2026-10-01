@@ -18,11 +18,3 @@ export type AnnotationRelation = {
   direction: RelationDirection,
   labels: RelationLabel[]
 }
-
-export type LSSerializedRelation = {
-  from_id: string,
-  to_id: string,
-  direction: RelationDirection,
-  labels: RelationLabel[],
-  type: string
-};

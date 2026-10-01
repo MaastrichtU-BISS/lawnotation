@@ -135,6 +135,7 @@
         <UploadDocumentsModal
           v-model:visible="showUploadDocumentsModal"
           :document-size-limit-txt="DOCUMENT_SIZE_LIMIT_TXT"
+          :document-size-limit-pdf="DOCUMENT_SIZE_LIMIT_PDF"
           @upload-documents="uploadDocuments($event)"
           @documents-fetched="onDocumentsFetched($event)"
         />
@@ -184,8 +185,8 @@ const createTaskInitialTab = ref<number | undefined>(undefined);
 
 const showUploadDocumentsModal = ref<boolean>(false);
 
-const DOCUMENT_SIZE_LIMIT_TXT = 6000000; // 6MB for .txt and .html files
-const DOCUMENT_SIZE_LIMIT_PDF = 4000000; // 4MB for .pdf, .doc, .docx files
+const DOCUMENT_SIZE_LIMIT_TXT = 6000000; // 6MB for .txt files
+const DOCUMENT_SIZE_LIMIT_PDF = 4000000; // 4MB for .html, .pdf, .doc, .docx files (parsed on the server)
 
 const documentTable = ref<InstanceType<typeof Table>>();
 const taskTable = ref<InstanceType<typeof Table>>();
@@ -201,7 +202,6 @@ const { uploadDocsProgress: upload_docs_progress, uploadDocuments, onDocumentsFe
     refreshDocuments: () => {
       documentTable.value?.refresh();
     },
-    documentSizeLimitPdf: DOCUMENT_SIZE_LIMIT_PDF,
   });
 
 const { importProgress: import_progress, importTask } = useTaskImport({

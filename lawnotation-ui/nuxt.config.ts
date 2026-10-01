@@ -108,7 +108,7 @@ export default defineNuxtConfig({
     transpile: ["trpc-nuxt"],
   },
 
-  css: ["@/assets/styles/main.scss", "epic-spinners/css"],
+  css: ["@/assets/styles/main.scss", "epic-spinners/css", "legal-annotation-kit/style.css"],
 
   supabase: {
     redirect: false,

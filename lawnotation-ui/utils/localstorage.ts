@@ -1,4 +1,5 @@
-import type { LSSerializedAnnotations } from "~/types";
+// Where the Label Studio editor kept unsaved work. Nothing writes here any
+// more; utils/annotator.ts reads what is left once and hands it to the kit.
 import CryptoJS from 'crypto-js';
 
 export class AnnotationsLocalStorage {
@@ -18,12 +19,6 @@ export class AnnotationsLocalStorage {
   private baseName: string;
   private key: string;
   isStored: boolean;
-
-  store(annotations: LSSerializedAnnotations) {
-    const encryptedValue = CryptoJS.AES.encrypt(JSON.stringify(annotations), this.assignment_id);
-    localStorage.setItem(this.key, encryptedValue.toString());
-    this.isStored = true;
-  }
 
   get() {
     const item = localStorage.getItem(this.key);

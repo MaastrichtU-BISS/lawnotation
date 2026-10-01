@@ -255,50 +255,6 @@ export const annotationRouter = router({
         });
       return data as Annotation[];
     }),
-
-  updateAssignmentAnnotations: protectedProcedure
-    .input(
-      z.object({
-        assignment_id: z.number().int(),
-        annotations: z.array(ZAnnotationFields),
-      })
-    )
-    .use((opts) =>
-      authorizer(opts, () =>
-        assignmentEditorOrAnnotatorAuthorizer(opts.input.assignment_id, opts.ctx.user.id, opts.ctx)
-      )
-    )
-    .mutation(async ({ ctx, input }) => {
-
-      // throw new TRPCError({message: 'HALT', code: 'NOT_IMPLEMENTED'});
-
-      const query_delete = await ctx.supabase
-        .from("annotations")
-        .delete()
-        .eq("assignment_id", input.assignment_id);
-
-      if (query_delete.error)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Unable to delete old annotations on update: ${query_delete.error.message}`,
-        });
-
-      const query_insert = await ctx.supabase
-        .from("annotations")
-        .insert(input.annotations)
-        .select();
-
-      if (query_insert.error)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Unable to insert old annotations on update: ${query_insert.error.message}`,
-        });
-
-      // annotations.push(...query_insert.data as Annotation[]); // Reason for this is unclear to me? Seems to edit arg by reference, while also returning. This would make no sense in backend so commented to prevent lost computation
-      // console.log("updated annotations: ", query_insert.data);
-
-      return query_insert.data as Annotation[];
-    }),
 });
 
 export type AnnotationRouter = typeof annotationRouter;

@@ -2,7 +2,6 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, disabledProcedure, router, authorizer } from '~/server/trpc'
 import type { AnnotationRelation } from '~/types';
-import { convert_relation_ls2db } from '~/utils/serialize';
 import { annotationEditorOrAnnotatorAuthorizer } from '../authorizers/annotation.auth';
 import { TRPCForbidden } from '../errors';
 import { taskEditorAuthorizer } from '../authorizers';
@@ -19,14 +18,6 @@ const ZRelationLabel = z.enum([
   "Part of",
 ]);
 
-const ZRelationCreateSerialized = z.object({
-  from_id: z.string(),
-  to_id: z.string(),
-  direction: ZRelationDirection,
-  labels: z.array(ZRelationLabel),
-  type: z.string()
-})
-
 const ZRelationFields = z.object({
   // id: z.number,
   from_id: z.number().int(),
@@ -38,30 +29,6 @@ const ZRelationFields = z.object({
 });
 
 export const relationRouter = router({
-  create: protectedProcedure
-    .input(
-      z.object({
-        fields: ZRelationCreateSerialized,
-        from_id: z.number(),
-        to_id: z.number()
-      })
-    )
-    .use((opts) =>
-      authorizer(opts, () => Promise.resolve([
-          annotationEditorOrAnnotatorAuthorizer(opts.input.from_id, opts.ctx.user.id, opts.ctx),
-          annotationEditorOrAnnotatorAuthorizer(opts.input.to_id, opts.ctx.user.id, opts.ctx),
-        ].every(async v => await v == true))
-      )
-    )
-    .mutation(async ({ ctx, input }) => {
-      const converted_input = convert_relation_ls2db(input.fields, input.from_id, input.to_id)
-      const { data, error } = await ctx.supabase.from("annotation_relations").insert(converted_input).select().single();
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in create: ${error.message}`});
-      return data as AnnotationRelation;
-    }),
-
   createMany: protectedProcedure
     .input(
       z.array(ZRelationFields)
@@ -84,7 +51,6 @@ export const relationRouter = router({
         }
       }
 
-      // const converted_input = convert_relation_ls2db(input.fields, input.from_id, input.to_id)
       const { data, error } = await ctx.supabase.from("annotation_relations").insert(input).select();
 
       if (error)

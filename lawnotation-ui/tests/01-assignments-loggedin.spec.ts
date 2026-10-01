@@ -73,19 +73,11 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   await editorPage.getByTestId("open-documents-modal").click();
   const dialog = editorPage.getByRole("dialog", { name: /Add documents/ });
   await expect(dialog).toBeVisible({});
+  // One button: choosing the files uploads them.
   const fileChooserPromise = editorPage.waitForEvent("filechooser");
-  await dialog.getByText("Select", { exact: true }).click();
+  await dialog.getByRole("button", { name: "Upload documents" }).click();
   const fileChooser = await fileChooserPromise;
   await fileChooser.setFiles(path.join(__dirname, "input", "lorem-ipsum.txt"));
-  const uploadedFile = editorPage.locator(".p-fileupload-file").first();
-  await expect(uploadedFile).toContainText("lorem-ipsum.txt", {});
-  await editorPage
-    .locator(".p-toast")
-    .waitFor({ state: "hidden" })
-    .catch(() => {});
-  const uploadButton = editorPage.getByRole("button", { name: "Upload" });
-  await uploadButton.waitFor({ state: "visible" });
-  await uploadButton.click();
 
   // Wait for upload to complete
   await editorPage
@@ -239,33 +231,15 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
     state: "visible",
   });
 
-  // Upload 1
-  const fc1 = editorPage.waitForEvent("filechooser");
-  await editorPage.getByText("Select", { exact: true }).click();
-  await (await fc1).setFiles(path.join(__dirname, "input", "lorem-ipsum.txt"));
-
-  // Upload 2
-  const fc2 = editorPage.waitForEvent("filechooser");
-  await editorPage.getByText("Select", { exact: true }).click();
-  await (await fc2).setFiles(path.join(__dirname, "input", "casablanca.txt"));
-
-  // Upload 3
-  const fc3 = editorPage.waitForEvent("filechooser");
-  await editorPage.getByText("Select", { exact: true }).click();
-  await (
-    await fc3
-  ).setFiles(path.join(__dirname, "input", "the-godfather.txt"));
-
-  // Upload 4
-  const fc4 = editorPage.waitForEvent("filechooser");
-  await editorPage.getByText("Select", { exact: true }).click();
-  await (
-    await fc4
-  ).setFiles(path.join(__dirname, "input", "the-wizard-of-oz.txt"));
-
-  const uploadButton = editorPage.getByRole("button", { name: "Upload" });
-  await expect(uploadButton).toBeVisible();
-  await uploadButton.click();
+  // One button: choosing the files uploads them.
+  const fileChooser = editorPage.waitForEvent("filechooser");
+  await editorPage.getByRole("button", { name: "Upload documents" }).click();
+  await (await fileChooser).setFiles([
+    path.join(__dirname, "input", "lorem-ipsum.txt"),
+    path.join(__dirname, "input", "casablanca.txt"),
+    path.join(__dirname, "input", "the-godfather.txt"),
+    path.join(__dirname, "input", "the-wizard-of-oz.txt"),
+  ]);
 
   // Wait for upload success toast to confirm all documents are saved and table is refreshed
   await expect(editorPage.getByText(/document\(s\) uploaded/)).toBeVisible({
@@ -391,7 +365,7 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   });
   await annotatorPage.getByTestId("annotate-next-assignment-button").click();
   const annotateSentence = annotatorPage
-    .locator(".lsf-richtext__container.lsf-htx-richtext")
+    .locator(".lak-annotator .document__text")
     .first();
   await annotateSentence.click({ position: { x: 0, y: 0 } });
   await annotatorPage.mouse.down();

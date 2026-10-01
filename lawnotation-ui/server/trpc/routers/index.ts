@@ -15,6 +15,7 @@ import { metricsRouter } from './metrics.router';
 import { tableRouter } from './table.router';
 import { hookRouter } from './hook.router';
 import { archiveRouter } from './archive.router';
+import { annotatorRouter } from './annotator.router';
 
 export const appRouter = router({
   relation: relationRouter,
@@ -31,6 +32,7 @@ export const appRouter = router({
   table: tableRouter,
   archive: archiveRouter,
   metrics: metricsRouter,
+  annotator: annotatorRouter,
 })
 
 // export type definition of API

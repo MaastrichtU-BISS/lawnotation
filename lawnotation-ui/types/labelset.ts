@@ -10,5 +10,3 @@ export type Label = {
   name: string;
   color: string;
 }
-
-export type LsLabels =Label[];

@@ -15,46 +15,12 @@
             </TabList>
             <TabPanels>
             <TabPanel :value="0">
-                <div class="pt-6">
-                    <FileUpload customUpload @uploader="emit('upload-documents', $event)" :multiple="true"
-                        :maxFileSize="documentSizeLimitTxt" accept=".txt,.html,.pdf,.doc,.docx" :pt="{
-                            input: {
-                                'data-test': 'choose-documents',
-                            },
-                            fileThumbnail: {
-                                class: 'hidden',
-                            },
-                        }">
-                        <template #header="{ chooseCallback, uploadCallback, clearCallback, files }">
-                            <div class="flex gap-2">
-                                <Button label="Select" icon="pi pi-plus"
-                                    :severity="files?.length ? 'secondary' : 'primary'" :class="files?.length
-                                        ? '!bg-slate-100 !text-slate-600 hover:!bg-sky-900 hover:!text-white'
-                                        : '!bg-sky-800 !text-white hover:!bg-sky-900'" data-test="choose-documents" @click="chooseCallback()" />
-                                <Button label="Upload" icon="pi pi-upload"
-                                    :severity="files?.length ? 'primary' : 'secondary'" :disabled="!files?.length"
-                                    data-test="upload-documents" @click="uploadCallback()" />
-                                <Button label="Cancel" icon="pi pi-times" severity="secondary"
-                                    :disabled="!files?.length" @click="clearCallback()" />
-                            </div>
-                        </template>
-
-                        <template #empty>
-                            <div class="flex items-center justify-center flex-col">
-                                <i
-                                    class="pi pi-cloud-upload border-2 rounded-full p-5 text-8xl text-surface-400 dark:text-surface-600 border-surface-400 dark:border-surface-600" />
-                                <p class="mt-4 mb-0">
-                                    Drag and drop files to here to upload.
-                                </p>
-                                <p class="text-gray-400 text-xs mb-0">
-                                    .txt .html file(s) (up to 6MB each)
-                                </p>
-                                <p class="text-gray-400 text-xs">
-                                    .pdf .doc .docx file(s) (up to 4MB each)
-                                </p>
-                            </div>
-                        </template>
-                    </FileUpload>
+                <div class="pt-6" data-test="upload-documents-panel">
+                    <LegalDocsImport :readers="readers" :on-import="onImport" auto-import
+                        import-label="Upload documents" />
+                    <p class="text-gray-400 text-xs mt-3 mb-0">
+                        .txt file(s) up to 6MB each; .html, .pdf, .doc, .docx file(s) up to 4MB each
+                    </p>
                 </div>
             </TabPanel>
 
@@ -68,6 +34,9 @@
 </template>
 
 <script setup lang="ts">
+import { LegalDocsImport, textReader } from "vue-legal-docs-import";
+import type { FormatReader, ImportedDocument } from "vue-legal-docs-import";
+import "vue-legal-docs-import/style.css";
 import type { Doc } from "~/types/archive";
 import SearchDocuments from "~/components/SearchDocuments.vue";
 import Tabs from "primevue/tabs";
@@ -76,16 +45,77 @@ import Tab from "primevue/tab";
 import TabPanels from "primevue/tabpanels";
 import TabPanel from "primevue/tabpanel";
 
-defineProps<{
+const props = defineProps<{
     visible: boolean;
     documentSizeLimitTxt: number;
+    documentSizeLimitPdf: number;
 }>();
 
 const emit = defineEmits<{
     "update:visible": [value: boolean];
-    "upload-documents": [event: { files: File | File[] | FileList }];
+    "upload-documents": [documents: ImportedDocument[]];
     "documents-fetched": [docs: Doc[]];
 }>();
 
+const { $trpc, $toast } = useNuxtApp();
+
 const activeTabDocumentsModal = ref(0);
+
+const megabytes = (bytes: number) => `${Math.round(bytes / 1_000_000)}MB`;
+
+// Plain text is read here, in the browser. Everything else is parsed on the
+// server by node-legal-docs-import, so offsets into the stored text are the
+// same whichever way a document arrived.
+const baseReaders: FormatReader[] = [
+    {
+        ...textReader,
+        extensions: [".txt"],
+        async read(file) {
+            if (file.size > props.documentSizeLimitTxt)
+                throw new Error(`larger than the ${megabytes(props.documentSizeLimitTxt)} limit for .txt files`);
+            return textReader.read(file);
+        },
+    },
+    {
+        extensions: [".html", ".htm", ".pdf", ".doc", ".docx"],
+        label: "HTML, PDF, Word",
+        async read(file) {
+            if (file.size > props.documentSizeLimitPdf)
+                throw new Error(`larger than the ${megabytes(props.documentSizeLimitPdf)} limit for this kind of file`);
+            const { full_text } = await $trpc.document.extractText.mutate({
+                name: file.name,
+                data: await toBase64(file),
+            });
+            return full_text;
+        },
+    },
+];
+
+async function toBase64(file: File): Promise<string> {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000)
+        binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(binary);
+}
+
+// The modal closes as soon as the readable files are handed on, taking the
+// list of skipped ones with it — so each one is also said in a toast.
+const readers: FormatReader[] = baseReaders.map((reader) => ({
+    ...reader,
+    async read(file) {
+        try {
+            return await reader.read(file);
+        } catch (e) {
+            $toast.error(`${file.name} was not uploaded: ${(e as Error)?.message ?? "it could not be read"}`);
+            throw e;
+        }
+    },
+}));
+
+// Everything read is handed straight on: the project page closes this modal
+// and shows the upload's progress itself.
+const onImport = (documents: ImportedDocument[]) => {
+    emit("upload-documents", documents);
+};
 </script>

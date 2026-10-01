@@ -1,7 +1,6 @@
 import type { Document } from "~/types";
 import type { Doc } from "~/types/archive";
-
-type UploadEvent = { files: File | File[] | FileList };
+import type { ImportedDocument } from "vue-legal-docs-import";
 
 type DocumentUploadDeps = {
 	projectId: number;
@@ -9,7 +8,6 @@ type DocumentUploadDeps = {
 	toast: { error: (msg: string) => void; success: (msg: string) => void };
 	closeModal: () => void;
 	refreshDocuments: () => void;
-	documentSizeLimitPdf: number;
 };
 
 export const useDocumentUpload = ({
@@ -18,7 +16,6 @@ export const useDocumentUpload = ({
 	toast,
 	closeModal,
 	refreshDocuments,
-	documentSizeLimitPdf,
 }: DocumentUploadDeps) => {
 	const uploadDocsProgress = ref({
 		loading: false,
@@ -27,31 +24,10 @@ export const useDocumentUpload = ({
 		message: "Uploading documents",
 	});
 
-	const normalizeFiles = (files: File | File[] | FileList): File[] => {
-		if (Array.isArray(files)) return files;
-		if (files instanceof FileList) return Array.from(files);
-		return [files];
-	};
-
-	const getBase64 = (file: File) => {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.readAsDataURL(file);
-			reader.onload = () => resolve(reader.result);
-			reader.onerror = (error) => reject(error);
-		});
-	};
-
-	const saveDocuments = async (
-		newDocs: Omit<Document, "id" | "hash">[],
-		preprocess = false,
-	) => {
+	const saveDocuments = async (newDocs: Omit<Document, "id" | "hash">[]) => {
 		for (const doc of newDocs) {
 			try {
-				await trpc.document.create.mutate({
-					document: doc,
-					preprocess,
-				});
+				await trpc.document.create.mutate({ document: doc });
 				uploadDocsProgress.value.current++;
 			} catch {
 				toast.error(`Error uploading document: ${doc.name}`);
@@ -63,46 +39,23 @@ export const useDocumentUpload = ({
 		uploadDocsProgress.value.loading = false;
 	};
 
-	const uploadDocuments = async (event: UploadEvent) => {
-		const files = normalizeFiles(event.files);
-		const newDocs: Omit<Document, "id" | "hash">[] = [];
-
+	// The documents arrive already read: plain text in the browser, other
+	// formats parsed on the server (see UploadDocumentsModal). Named after the
+	// file they came from, extension included, as documents always have been.
+	const uploadDocuments = async (documents: ImportedDocument[]) => {
 		uploadDocsProgress.value.loading = true;
-		uploadDocsProgress.value.total = files.length;
+		uploadDocsProgress.value.total = documents.length;
 		uploadDocsProgress.value.current = 0;
 		closeModal();
 
-		for (const file of files) {
-			if (
-				file.size > documentSizeLimitPdf &&
-				(file.name.endsWith(".pdf") ||
-					file.name.endsWith(".doc") ||
-					file.name.endsWith(".docx"))
-			) {
-				toast.error(
-					`File ${file.name} exceeds the 4mb limit for .pdf, .doc, .docx files.`,
-				);
-				continue;
-			}
-
-			const format = file.name.split(".").pop() as DocumentFormats;
-			let fullText = "";
-
-			if (format == DocumentFormats.TXT || format == DocumentFormats.HTML) {
-				fullText = await file.text();
-			} else {
-				fullText = (await getBase64(file)) as string;
-			}
-
-			newDocs.push({
-				name: file.name,
+		await saveDocuments(
+			documents.map((doc) => ({
+				name: doc.source,
 				source: "local_upload",
-				full_text: fullText,
+				full_text: doc.full_text,
 				project_id: projectId,
-			});
-		}
-
-		await saveDocuments(newDocs, true);
+			})),
+		);
 	};
 
 	const onDocumentsFetched = async (docs: Doc[]) => {
