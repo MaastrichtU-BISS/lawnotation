@@ -26,7 +26,6 @@ interface Task {
           "direction": string,
           "labels": string[]
         }[],
-        "ls_id": string,
         "confidence_rating": number,
       }
     }[]
@@ -58,7 +57,6 @@ class Annotation(TypedDict):
     label: str
     text: str
     relations: List[Relation]
-    ls_id: str
     confidence_rating: float
 class Assignment(TypedDict):
     annotations: List[Annotation]

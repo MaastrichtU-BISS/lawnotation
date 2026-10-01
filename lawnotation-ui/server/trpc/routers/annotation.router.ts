@@ -13,21 +13,7 @@ const ZAnnotationFields = z.object({
   end_index: z.number().int(),
   text: z.string(),
   origin: z.nativeEnum(Origins).nullable().optional(),
-  ls_id: z.string().nullable().optional(),
   metadata: z.string().nullable().optional(),
-  html_metadata: z
-    .object({
-      start: z.string(),
-      end: z.string(),
-      startOffset: z.number().int(),
-      endOffset: z.number().int(),
-      globalOffsets: z.object({
-        start: z.number().int(),
-        end: z.number().int(),
-      }),
-    })
-    .nullable()
-    .optional(),
   confidence_rating: z.number().int().optional()
 });
 

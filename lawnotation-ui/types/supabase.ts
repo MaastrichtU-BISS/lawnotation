@@ -41,8 +41,6 @@ export type Database = {
           from_id: number | null
           id: number
           labels: Database["public"]["Enums"]["relation_labels"][] | null
-          ls_from: string | null
-          ls_to: string | null
           to_id: number | null
         }
         Insert: {
@@ -51,8 +49,6 @@ export type Database = {
           from_id?: number | null
           id?: number
           labels?: Database["public"]["Enums"]["relation_labels"][] | null
-          ls_from?: string | null
-          ls_to?: string | null
           to_id?: number | null
         }
         Update: {
@@ -61,8 +57,6 @@ export type Database = {
           from_id?: number | null
           id?: number
           labels?: Database["public"]["Enums"]["relation_labels"][] | null
-          ls_from?: string | null
-          ls_to?: string | null
           to_id?: number | null
         }
         Relationships: [
@@ -88,10 +82,8 @@ export type Database = {
           confidence_rating: number
           created_at: string | null
           end_index: number | null
-          html_metadata: Json | null
           id: number
           label: string | null
-          ls_id: string | null
           metadata: string | null
           origin: Database["public"]["Enums"]["origins"] | null
           start_index: number | null
@@ -102,10 +94,8 @@ export type Database = {
           confidence_rating?: number
           created_at?: string | null
           end_index?: number | null
-          html_metadata?: Json | null
           id?: number
           label?: string | null
-          ls_id?: string | null
           metadata?: string | null
           origin?: Database["public"]["Enums"]["origins"] | null
           start_index?: number | null
@@ -116,10 +106,8 @@ export type Database = {
           confidence_rating?: number
           created_at?: string | null
           end_index?: number | null
-          html_metadata?: Json | null
           id?: number
           label?: string | null
-          ls_id?: string | null
           metadata?: string | null
           origin?: Database["public"]["Enums"]["origins"] | null
           start_index?: number | null

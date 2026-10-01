@@ -35,7 +35,7 @@ import { useConfirm } from "primevue/useconfirm";
 import Breadcrumb from "~/components/Breadcrumb.vue";
 import ConfirmBox from "~/components/ConfirmBox.vue";
 import { authorizeClient } from "~/utils/authorize.client";
-import { clearLabelStudioDraft, saveKitAssignment, toKitBundle, withLabelStudioDraft } from "~/utils/annotator";
+import { saveKitAssignment, toKitBundle } from "~/utils/annotator";
 import { toKitLevel } from "~/utils/levels";
 
 const user = useSupabaseUser();
@@ -59,12 +59,6 @@ const unsaved = ref(false);
 const currentName = ref<string>();
 const currentSeq = ref<number>();
 
-// Assignments whose content came from Label Studio's unsaved local work, to
-// clear once they have been saved through the kit.
-const fromLabelStudioDraft = new Set<number>();
-
-// The markup of legacy HTML documents, by assignment, for saveKitAssignment.
-const legacyHtml = new Map<number, string>();
 
 const init = async () => {
   try {
@@ -89,15 +83,12 @@ const init = async () => {
       load: async (position) => {
         const entry = queue[position - 1];
         if (!entry) throw new Error(`No document at position ${position}`);
-        const raw = await $trpc.annotator.load.query(entry.assignment_id);
-        if (raw.legacy_html) legacyHtml.set(entry.assignment_id, raw.document.full_text);
-        const loaded = withLabelStudioDraft(toKitBundle(raw));
-        if (loaded.fromDraft) fromLabelStudioDraft.add(entry.assignment_id);
+        const bundle = toKitBundle(await $trpc.annotator.load.query(entry.assignment_id));
 
         currentName.value = entry.document_name;
         currentSeq.value = entry.seq_pos;
         router.replace({ query: { ...route.query, seq: entry.seq_pos } });
-        return loaded.bundle;
+        return bundle;
       },
       // Document-level links: targets are the other documents in this queue,
       // keyed by assignment id because names are not unique in a task.
@@ -106,10 +97,9 @@ const init = async () => {
       listIncomingRelations: async (key) => $trpc.annotator.incoming.query(Number(key)),
       save: async (assignment) => {
         const id = Number(assignment.id);
-        await saveKitAssignment($trpc, assignment, legacyHtml.get(Number(assignment.id)));
+        await saveKitAssignment($trpc, assignment);
         const entry = queue.find((e) => e.assignment_id === id);
         if (entry) entry.status = assignment.status;
-        if (fromLabelStudioDraft.delete(id)) clearLabelStudioDraft(id);
       },
     });
   } catch (error) {

@@ -13,8 +13,6 @@ export type AnnotationRelation = {
   id: number,
   from_id: number,
   to_id: number,
-  ls_to: string,
-  ls_from: string,
   direction: RelationDirection,
   labels: RelationLabel[]
 }

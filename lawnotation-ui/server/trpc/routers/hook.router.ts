@@ -30,7 +30,6 @@ export const hookRouter = router({
             end_index: z.number().int(),
             text: z.string(),
             origin: z.nativeEnum(Origins),
-            ls_id: z.string(),
           })
         )
       })

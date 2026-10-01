@@ -9,10 +9,8 @@ export type RichAnnotation = {
   end: number;
   label: string;
   text: string;
-  ls_id: string | null;
   confidence_rating: number;
   metadata: string | null;
-  html_metadata: unknown;
   relations: { to: number; direction: string; labels: string[] }[];
 };
 
@@ -80,7 +78,7 @@ export async function buildTaskExportData(
       supabase
         .from("annotations")
         .select(
-          "id, assignment_id, start_index, end_index, label, text, ls_id, confidence_rating, metadata, html_metadata, assignment:assignments!inner(task_id)"
+          "id, assignment_id, start_index, end_index, label, text, confidence_rating, metadata, assignment:assignments!inner(task_id)"
         )
         .eq("assignment.task_id", task_id)
         .order("id"),
@@ -151,10 +149,8 @@ export async function buildTaskExportData(
       end: ann.end_index ?? 0,
       label: ann.label ?? "",
       text: ann.text ?? "",
-      ls_id: ann.ls_id,
       confidence_rating: ann.confidence_rating,
       metadata: ann.metadata,
-      html_metadata: ann.html_metadata,
       relations: [],
     };
     annotationsById.set(ann.id, richAnnotation);
@@ -246,10 +242,8 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
                   direction: rel.direction,
                   labels: rel.labels,
                 })),
-              ls_id: ann.ls_id,
               confidence_rating: ann.confidence_rating,
               metadata: ann.metadata,
-              html_metadata: ann.html_metadata,
             }))
           : [];
 

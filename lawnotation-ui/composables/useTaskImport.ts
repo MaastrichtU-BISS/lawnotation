@@ -168,10 +168,8 @@ export const useTaskImport = ({
 										text: ann.text,
 										assignment_id: assignment.id,
 										origin: Origins.IMPORTED,
-										ls_id: ann.ls_id,
 										confidence_rating: ann.confidence_rating,
 										metadata: ann.metadata ?? null,
-										html_metadata: ann.html_metadata,
 									});
 								});
 								assIndex++;
@@ -200,8 +198,6 @@ export const useTaskImport = ({
 												to_id: annotations[annIndex + rel.to].id,
 												labels: rel.labels,
 												direction: rel.direction,
-												ls_from: annotations[annIndex + currentAnn].ls_id,
-												ls_to: annotations[annIndex + rel.to].ls_id,
 											});
 										});
 										currentAnn++;

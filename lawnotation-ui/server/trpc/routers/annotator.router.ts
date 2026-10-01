@@ -6,7 +6,7 @@ import {
   taskEditorAuthorizer,
   taskEditorOrAnnotatorAuthorizer,
 } from "../authorizers";
-import { isLegacyHtml, toKitLevel } from "~/utils/levels";
+import { toKitLevel } from "~/utils/levels";
 import {
   assignmentKey,
   storeKitAssignment,
@@ -45,17 +45,6 @@ const ZKitAssignment = z.object({
       text: z.string(),
       confidence: ZConfidence,
       metadata: z.string().nullable().optional(),
-      // Only sent for spans on a legacy HTML document; see legacyHtmlMetadata.
-      html_metadata: z
-        .object({
-          start: z.string(),
-          end: z.string(),
-          startOffset: z.number().int(),
-          endOffset: z.number().int(),
-          globalOffsets: z.object({ start: z.number().int(), end: z.number().int() }),
-        })
-        .nullable()
-        .optional(),
       relations: z.array(
         z.object({
           to: z.number().int(),
@@ -112,7 +101,7 @@ async function loadBundle(sql: any, assignmentId: number) {
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Assignment not found" });
 
   const annotations = await sql<DbAnnotation[]>`
-    SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.ls_id, an.metadata, an.html_metadata, an.confidence_rating::int AS confidence_rating
+    SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.metadata, an.confidence_rating::int AS confidence_rating
     FROM annotations AS an
     WHERE an.assignment_id = ${assignmentId}
     ORDER BY an.id
@@ -139,7 +128,6 @@ async function loadBundle(sql: any, assignmentId: number) {
     document: { name: row.document_name, full_text: row.full_text, key: assignmentKey(row.id) },
     assignment: toKitAssignment(row, annotations, relations, documentLevel, documentRelations),
     annotation_level: toKitLevel(row.annotation_level),
-    legacy_html: isLegacyHtml(row.document_name, row.full_text),
   };
 }
 
@@ -260,7 +248,7 @@ export const annotatorRouter = router({
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
 
       const annotations = await ctx.sql<DbAnnotation[]>`
-        SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.ls_id, an.metadata, an.html_metadata, an.confidence_rating::int AS confidence_rating
+        SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.metadata, an.confidence_rating::int AS confidence_rating
         FROM annotations AS an
         INNER JOIN assignments AS a ON (an.assignment_id = a.id)
         WHERE a.task_id = ${input.task_id} AND a.document_id = ${input.document_id}
@@ -308,7 +296,6 @@ export const annotatorRouter = router({
         assignment: { ...merged, document_relations: outgoing },
         incoming_relations: incoming,
         annotation_level: toKitLevel(row.annotation_level),
-        legacy_html: isLegacyHtml(row.name, row.full_text),
       };
     }),
 });

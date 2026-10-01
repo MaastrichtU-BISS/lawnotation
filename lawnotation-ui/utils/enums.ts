@@ -41,11 +41,3 @@ export enum RandomizationOptions {
   PARTIAL = "partial",
   NONE = "none"
 }
-
-export enum DocumentFormats {
-  TXT = "txt",
-  HTML = "html",
-  PDF = "pdf",
-  DOC = "doc",
-  DOCX = "docx"
-}

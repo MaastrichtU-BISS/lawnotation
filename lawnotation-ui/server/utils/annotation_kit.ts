@@ -1,11 +1,6 @@
 // The boundary between lawnotation's tables and legal-annotation-kit's JSON
 // format. Everything that renames a column or reshapes a row for the kit lives
 // here, so the rest of the app talks in one vocabulary or the other, never both.
-//
-// The database is deliberately left as it is. The columns Label Studio needed
-// (annotations.ls_id, annotation_relations.ls_from/ls_to, html_metadata) keep
-// being written, so the previous release can still read everything this one
-// saves if it ever has to be rolled back to.
 import type { Sql } from "postgres";
 import type {
   Annotation as KitAnnotation,
@@ -22,9 +17,7 @@ export type DbAnnotation = {
   text: string;
   label: string;
   origin: Origins | null;
-  ls_id: string | null;
   metadata: string | null;
-  html_metadata: unknown;
   confidence_rating: number | null;
 };
 
@@ -106,25 +99,17 @@ export function toKitAssignment(
   };
 }
 
-/** The same shape of id Label Studio gave its regions, for rows it never saw. */
-function newLsId(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
-  let id = "";
-  for (let i = 0; i < 10; i++) id += chars[Math.floor(Math.random() * chars.length)];
-  return id;
-}
-
 /**
  * Stores what the kit sent as the assignment's annotations and relations,
  * plus its confidence and status — in one transaction, so a save that fails
  * part-way leaves the previous state untouched.
  *
  * Annotations the kit sent back with an existing id are updated in place, not
- * recreated: their id stays stable across saves, and so do the columns the kit
- * does not carry — origin (a pre-annotation stays marked as one), ls_id and
- * html_metadata (what the previous release needs to draw it). Anything with an
- * id the assignment does not have is new and inserted; existing rows the kit
- * no longer sent are deleted. Relations are rewritten wholesale.
+ * recreated: their id stays stable across saves, and so does their origin,
+ * which the kit does not carry (a pre-annotation stays marked as one).
+ * Anything with an id the assignment does not have is new and inserted;
+ * existing rows the kit no longer sent are deleted. Relations are rewritten
+ * wholesale.
  */
 export async function storeKitAssignment(
   sql: Sql,
@@ -136,10 +121,10 @@ export async function storeKitAssignment(
     // postgres.js types a transaction without the call signature it has at
     // runtime; this restores it.
     const tx = transaction as unknown as Sql;
-    const existing = await tx<{ id: number; ls_id: string | null }[]>`
-      SELECT id::int AS id, ls_id FROM annotations WHERE assignment_id = ${assignmentId}
+    const existing = await tx<{ id: number }[]>`
+      SELECT id::int AS id FROM annotations WHERE assignment_id = ${assignmentId}
     `;
-    const previous = new Map(existing.map((a) => [a.id, a]));
+    const previous = new Set(existing.map((a) => a.id));
 
     const rows = documentLevel
       ? kit.document_annotations.map((d) => ({
@@ -150,7 +135,6 @@ export async function storeKitAssignment(
           text: "",
           confidence: d.confidence,
           metadata: d.metadata ?? null,
-          htmlMetadata: null as unknown,
         }))
       : kit.annotations.map((a) => ({
           kitId: a.id,
@@ -160,8 +144,6 @@ export async function storeKitAssignment(
           text: a.text,
           confidence: a.confidence,
           metadata: a.metadata ?? null,
-          // Sent by the client for spans on a legacy HTML document only.
-          htmlMetadata: (a as KitAnnotation & { html_metadata?: unknown }).html_metadata ?? null,
         }));
 
     if (existing.length) {
@@ -175,61 +157,41 @@ export async function storeKitAssignment(
       if (dropped.length) await tx`DELETE FROM annotations WHERE id IN ${tx(dropped)}`;
     }
 
-    // kit id -> the row's id and ls_id, to point relations at.
-    const stored = new Map<number, { id: number; lsId: string }>();
+    // kit id -> the row's id, to point relations at.
+    const stored = new Map<number, number>();
     for (const row of rows) {
-      const before = previous.get(row.kitId);
-      if (before) {
+      if (previous.has(row.kitId)) {
         await tx`
           UPDATE annotations
           SET start_index = ${row.start}, end_index = ${row.end}, text = ${row.text},
-              label = ${row.label}, metadata = ${row.metadata}, confidence_rating = ${row.confidence},
-              -- Label Studio's own html_metadata is kept; it is only filled in where missing.
-              html_metadata = COALESCE(html_metadata, ${row.htmlMetadata ? tx.json(row.htmlMetadata as any) : null})
-          WHERE id = ${before.id}
+              label = ${row.label}, metadata = ${row.metadata}, confidence_rating = ${row.confidence}
+          WHERE id = ${row.kitId}
         `;
-        const lsId = before.ls_id ?? newLsId();
-        if (!before.ls_id) await tx`UPDATE annotations SET ls_id = ${lsId} WHERE id = ${before.id}`;
-        stored.set(row.kitId, { id: before.id, lsId });
+        stored.set(row.kitId, row.kitId);
         continue;
       }
-      const lsId = newLsId();
       const [inserted] = await tx<{ id: number }[]>`
         INSERT INTO annotations
-          (assignment_id, start_index, end_index, text, label, origin, ls_id, metadata, html_metadata, confidence_rating)
+          (assignment_id, start_index, end_index, text, label, origin, metadata, confidence_rating)
         VALUES
           (${assignmentId}, ${row.start}, ${row.end}, ${row.text}, ${row.label},
-           ${Origins.MANUAL}::origins, ${lsId}, ${row.metadata},
-           ${row.htmlMetadata ? tx.json(row.htmlMetadata as any) : null}, ${row.confidence})
+           ${Origins.MANUAL}::origins, ${row.metadata}, ${row.confidence})
         RETURNING id::int AS id
       `;
-      stored.set(row.kitId, { id: inserted!.id, lsId });
+      stored.set(row.kitId, inserted!.id);
     }
 
     if (!documentLevel) {
-      const relations = kit.annotations.flatMap((a) =>
-        a.relations.flatMap((r) => {
+      for (const a of kit.annotations) {
+        for (const r of a.relations) {
           const from = stored.get(a.id);
           const to = stored.get(r.to);
-          if (!from || !to) return [];
-          return [
-            {
-              from_id: from.id,
-              to_id: to.id,
-              ls_from: from.lsId,
-              ls_to: to.lsId,
-              direction: r.direction,
-              labels: r.labels,
-            },
-          ];
-        })
-      );
-      for (const r of relations) {
-        await tx`
-          INSERT INTO annotation_relations (from_id, to_id, ls_from, ls_to, direction, labels)
-          VALUES (${r.from_id}, ${r.to_id}, ${r.ls_from}, ${r.ls_to},
-                  ${r.direction}::relation_directions, ${r.labels}::text[]::relation_labels[])
-        `;
+          if (from === undefined || to === undefined) continue;
+          await tx`
+            INSERT INTO annotation_relations (from_id, to_id, direction, labels)
+            VALUES (${from}, ${to}, ${r.direction}::relation_directions, ${r.labels}::text[]::relation_labels[])
+          `;
+        }
       }
     }
 

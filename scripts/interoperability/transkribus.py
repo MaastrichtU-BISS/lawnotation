@@ -1,4 +1,3 @@
-import string
 import os, sys
 import json
 import re
@@ -12,10 +11,6 @@ def element_tag(element):
 
 def generate_random_hex_color():
     return "#{:06x}".format(random.randint(0, 0xFFFFFF))
-
-def random_string(length):
-    characters = string.ascii_letters + string.digits
-    return ''.join(random.choice(characters) for _ in range(length))
 
 class TranskribusConverter(Converter):
 
@@ -145,7 +140,6 @@ class TranskribusConverter(Converter):
         'start': ann['start'],
         'end': ann['end'],
         'text': ann['text'],
-        'ls_id': random_string(10),
         'relations': [],
         'confidence_rating': 0
       } for ann in result

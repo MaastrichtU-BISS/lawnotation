@@ -44,7 +44,7 @@ import type { AppRouter } from "~/server/trpc/routers";
 import type { Project, Task, Document } from "~/types";
 import { useConfirm } from "primevue/useconfirm";
 import { authorizeClient } from "~/utils/authorize.client";
-import { clearLabelStudioDraft, saveKitAssignment, toKitBundle, withLabelStudioDraft } from "~/utils/annotator";
+import { saveKitAssignment, toKitBundle } from "~/utils/annotator";
 import { toKitLevel } from "~/utils/levels";
 import Breadcrumb from "~/components/Breadcrumb.vue";
 import ConfirmBox from "~/components/ConfirmBox.vue";
@@ -69,9 +69,6 @@ const bundle = shallowRef<AssignmentBundle>();
 const otherDocuments = ref<DocumentRef[]>([]);
 const incomingRelations = ref<IncomingRelation[]>([]);
 const labelset = ref<Labelset>();
-let fromLabelStudioDraft = false;
-// The markup of a legacy HTML document, for saveKitAssignment.
-const legacyHtml = new Map<number, string>();
 
 const loadData = async () => {
   try {
@@ -104,12 +101,8 @@ const loadData = async () => {
       .map((e) => ({ name: e.document_name, order: e.seq_pos, key: String(e.assignment_id) }));
     incomingRelations.value = incoming;
 
-    const raw = await $trpc.annotator.load.query(+assignment.value.id);
-    if (raw.legacy_html) legacyHtml.set(+assignment.value.id, raw.document.full_text);
-    const loaded = withLabelStudioDraft(toKitBundle(raw));
-    fromLabelStudioDraft = loaded.fromDraft;
-    doc.value = { name: loaded.bundle.document.name };
-    bundle.value = loaded.bundle;
+    bundle.value = toKitBundle(await $trpc.annotator.load.query(assignmentId));
+    doc.value = { name: bundle.value.document.name };
   } catch (error) {
     $toast.error(`Could not load this assignment: ${(error as Error)?.message}`);
   } finally {
@@ -118,12 +111,7 @@ const loadData = async () => {
 };
 
 const save = async (kitAssignment: KitAssignment) => {
-  const id = Number(kitAssignment.id);
-  await saveKitAssignment($trpc, kitAssignment, legacyHtml.get(Number(kitAssignment.id)));
-  if (fromLabelStudioDraft) {
-    clearLabelStudioDraft(id);
-    fromLabelStudioDraft = false;
-  }
+  await saveKitAssignment($trpc, kitAssignment);
   $toast.success("Changes were successfully saved!");
 };
 

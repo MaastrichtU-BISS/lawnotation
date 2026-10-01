@@ -23,8 +23,6 @@ const ZRelationFields = z.object({
   // id: z.number,
   from_id: z.number().int(),
   to_id: z.number().int(),
-  ls_to: z.string(),
-  ls_from: z.string(),
   direction: ZRelationDirection,
   labels: z.array(ZRelationLabel)
 });
