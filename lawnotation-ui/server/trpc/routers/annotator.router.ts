@@ -8,10 +8,12 @@ import {
 } from "../authorizers";
 import { isLegacyHtml, toKitLevel } from "~/utils/levels";
 import {
+  assignmentKey,
   storeKitAssignment,
   toKitAssignment,
   type DbAnnotation,
   type DbAssignment,
+  type DbDocumentRelation,
   type DbRelation,
 } from "~/server/utils/annotation_kit";
 import { AnnotationLevels } from "~/utils/enums";
@@ -71,7 +73,27 @@ const ZKitAssignment = z.object({
       metadata: z.string().nullable().optional(),
     })
   ),
+  // Document-level links; `to` is the target's assignment id (assignmentKey).
+  document_relations: z
+    .array(z.object({ to: z.string(), labels: z.array(ZRelationLabel) }))
+    .default([]),
 });
+
+/** One document in an annotator's queue for a task, keyed for the kit. */
+type QueueRow = { assignment_id: number; seq_pos: number; status: string; document_name: string };
+
+async function queueOfAssignment(sql: any, assignmentId: number): Promise<QueueRow[]> {
+  return await sql`
+    SELECT other.id::int AS assignment_id, other.seq_pos::int AS seq_pos,
+           other.status::text AS status, d.name AS document_name
+    FROM assignments AS self
+    INNER JOIN assignments AS other
+      ON (other.task_id = self.task_id AND other.annotator_number = self.annotator_number)
+    INNER JOIN documents AS d ON (other.document_id = d.id)
+    WHERE self.id = ${assignmentId}
+    ORDER BY other.seq_pos, other.id
+  `;
+}
 
 export type AnnotatorBundle = Awaited<ReturnType<typeof loadBundle>>;
 
@@ -104,10 +126,18 @@ async function loadBundle(sql: any, assignmentId: number) {
       `
     : [];
 
+  const documentRelations = await sql<DbDocumentRelation[]>`
+    SELECT from_assignment_id::int AS from_assignment_id, to_assignment_id::int AS to_assignment_id,
+           labels::text[] AS labels
+    FROM document_relations
+    WHERE from_assignment_id = ${assignmentId}
+    ORDER BY id
+  `;
+
   const documentLevel = row.annotation_level === AnnotationLevels.DOCUMENT;
   return {
-    document: { name: row.document_name, full_text: row.full_text },
-    assignment: toKitAssignment(row, annotations, relations, documentLevel),
+    document: { name: row.document_name, full_text: row.full_text, key: assignmentKey(row.id) },
+    assignment: toKitAssignment(row, annotations, relations, documentLevel, documentRelations),
     annotation_level: toKitLevel(row.annotation_level),
     legacy_html: isLegacyHtml(row.document_name, row.full_text),
   };
@@ -132,6 +162,39 @@ export const annotatorRouter = router({
         INNER JOIN documents AS d ON (a.document_id = d.id)
         WHERE a.task_id = ${input.task_id} AND a.annotator_id = ${ctx.user.id}
         ORDER BY a.seq_pos, a.id
+      `;
+    }),
+
+  /**
+   * The queue of the annotator an assignment belongs to, in that task — the
+   * documents its links may point at. For views that open one assignment
+   * outside the annotate queue (an editor reviewing someone's work).
+   */
+  queueOf: protectedProcedure
+    .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentEditorOrAnnotatorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input }) => queueOfAssignment(ctx.sql, input)),
+
+  /** Links other documents in the same queue made to this one ("Linked by"). */
+  incoming: protectedProcedure
+    .input(z.number().int())
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentEditorOrAnnotatorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input }) => {
+      return await ctx.sql<{ from: string; labels: string[] }[]>`
+        SELECT d.name || ' (#' || a.seq_pos || ')' AS "from", r.labels::text[] AS labels
+        FROM document_relations AS r
+        INNER JOIN assignments AS a ON (r.from_assignment_id = a.id)
+        INNER JOIN documents AS d ON (a.document_id = d.id)
+        WHERE r.to_assignment_id = ${input}
+        ORDER BY a.seq_pos, r.id
       `;
     }),
 
@@ -163,7 +226,7 @@ export const annotatorRouter = router({
         await storeKitAssignment(
           ctx.sql,
           input.assignment_id,
-          { ...input.assignment, annotator: "", order: 0, document_relations: [] } as any,
+          { ...input.assignment, annotator: "", order: 0 } as any,
           task.annotation_level === AnnotationLevels.DOCUMENT
         );
       } catch (e) {
@@ -212,15 +275,38 @@ export const annotatorRouter = router({
           `
         : [];
 
+      // Every annotator's links from and to this document. Shown read-only
+      // and by document name, since there is no single queue to key them by.
+      const outgoing = await ctx.sql<{ to: string; labels: string[] }[]>`
+        SELECT td.name AS "to", r.labels::text[] AS labels
+        FROM document_relations AS r
+        INNER JOIN assignments AS fa ON (r.from_assignment_id = fa.id)
+        INNER JOIN assignments AS ta ON (r.to_assignment_id = ta.id)
+        INNER JOIN documents AS td ON (ta.document_id = td.id)
+        WHERE fa.task_id = ${input.task_id} AND fa.document_id = ${input.document_id}
+        ORDER BY r.id
+      `;
+      const incoming = await ctx.sql<{ from: string; labels: string[] }[]>`
+        SELECT fd.name AS "from", r.labels::text[] AS labels
+        FROM document_relations AS r
+        INNER JOIN assignments AS fa ON (r.from_assignment_id = fa.id)
+        INNER JOIN assignments AS ta ON (r.to_assignment_id = ta.id)
+        INNER JOIN documents AS fd ON (fa.document_id = fd.id)
+        WHERE ta.task_id = ${input.task_id} AND ta.document_id = ${input.document_id}
+        ORDER BY r.id
+      `;
+
       const documentLevel = row.annotation_level === AnnotationLevels.DOCUMENT;
+      const merged = toKitAssignment(
+        { id: 0, annotator_id: null, seq_pos: 0, status: "", difficulty_rating: 0 },
+        annotations,
+        relations,
+        documentLevel
+      );
       return {
         document: { name: row.name, full_text: row.full_text },
-        assignment: toKitAssignment(
-          { id: 0, annotator_id: null, seq_pos: 0, status: "", difficulty_rating: 0 },
-          annotations,
-          relations,
-          documentLevel
-        ),
+        assignment: { ...merged, document_relations: outgoing },
+        incoming_relations: incoming,
         annotation_level: toKitLevel(row.annotation_level),
         legacy_html: isLegacyHtml(row.name, row.full_text),
       };

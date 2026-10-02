@@ -99,6 +99,11 @@ const init = async () => {
         router.replace({ query: { ...route.query, seq: entry.seq_pos } });
         return loaded.bundle;
       },
+      // Document-level links: targets are the other documents in this queue,
+      // keyed by assignment id because names are not unique in a task.
+      listDocuments: async () =>
+        queue.map((e) => ({ name: e.document_name, order: e.seq_pos, key: String(e.assignment_id) })),
+      listIncomingRelations: async (key) => $trpc.annotator.incoming.query(Number(key)),
       save: async (assignment) => {
         const id = Number(assignment.id);
         await saveKitAssignment($trpc, assignment, legacyHtml.get(Number(assignment.id)));

@@ -36,6 +36,17 @@ export type DbRelation = {
   labels: string[];
 };
 
+/** A link from one assignment's document to another's (document-level). */
+export type DbDocumentRelation = {
+  from_assignment_id: number;
+  to_assignment_id: number;
+  labels: string[];
+};
+
+/** How the kit refers to a document in lawnotation: by its assignment, since
+ * document names are not unique within a task. */
+export const assignmentKey = (assignmentId: number) => String(assignmentId);
+
 export type DbAssignment = {
   id: number;
   annotator_id: string | null;
@@ -49,7 +60,8 @@ export function toKitAssignment(
   assignment: DbAssignment,
   annotations: DbAnnotation[],
   relations: DbRelation[],
-  documentLevel: boolean
+  documentLevel: boolean,
+  documentRelations: DbDocumentRelation[] = []
 ): KitAssignment {
   const base = {
     id: assignment.id,
@@ -57,7 +69,10 @@ export function toKitAssignment(
     order: assignment.seq_pos,
     status: assignment.status,
     confidence: assignment.difficulty_rating ?? 0,
-    document_relations: [],
+    document_relations: documentRelations.map((r) => ({
+      to: assignmentKey(r.to_assignment_id),
+      labels: r.labels,
+    })),
   };
 
   if (documentLevel) {
@@ -215,6 +230,29 @@ export async function storeKitAssignment(
       }
     }
 
+    if (documentLevel) {
+      // A link may only point at another document in the same annotator's
+      // queue for this task; anything else is dropped rather than stored.
+      const queue = await tx<{ id: number }[]>`
+        SELECT other.id::int AS id
+        FROM assignments AS self
+        INNER JOIN assignments AS other
+          ON (other.task_id = self.task_id AND other.annotator_number = self.annotator_number)
+        WHERE self.id = ${assignmentId} AND other.id <> self.id
+      `;
+      const allowed = new Set(queue.map((q) => q.id));
+      await tx`DELETE FROM document_relations WHERE from_assignment_id = ${assignmentId}`;
+      for (const r of kit.document_relations) {
+        const to = Number(r.to);
+        if (!allowed.has(to)) continue;
+        await tx`
+          INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)
+          VALUES (${assignmentId}, ${to}, ${r.labels}::text[]::relation_labels[])
+          ON CONFLICT (from_assignment_id, to_assignment_id) DO UPDATE SET labels = EXCLUDED.labels
+        `;
+      }
+    }
+
     // Status only ever moves forward to done: a plain Save, or an editor
     // reviewing someone's work, must not reopen a finished assignment.
     if (kit.status === AssignmentStatuses.DONE) {
@@ -227,4 +265,33 @@ export async function storeKitAssignment(
       await tx`UPDATE assignments SET difficulty_rating = ${kit.confidence} WHERE id = ${assignmentId}`;
     }
   });
+}
+
+/**
+ * Copies the document-level links among the assignments in `copies` (original
+ * id -> new id) onto their copies. Links whose target was not copied are left
+ * behind. For replicating and merging tasks.
+ */
+export async function copyDocumentRelations(
+  sql: Sql,
+  copies: Record<number, number>
+): Promise<void> {
+  const ids = Object.keys(copies).map(Number);
+  if (!ids.length) return;
+  const rows = await sql<DbDocumentRelation[]>`
+    SELECT from_assignment_id::int AS from_assignment_id, to_assignment_id::int AS to_assignment_id,
+           labels::text[] AS labels
+    FROM document_relations
+    WHERE from_assignment_id IN ${sql(ids)}
+  `;
+  for (const r of rows) {
+    const from = copies[r.from_assignment_id];
+    const to = copies[r.to_assignment_id];
+    if (!from || !to) continue;
+    await sql`
+      INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)
+      VALUES (${from}, ${to}, ${r.labels}::text[]::relation_labels[])
+      ON CONFLICT (from_assignment_id, to_assignment_id) DO NOTHING
+    `;
+  }
 }

@@ -24,7 +24,8 @@
         <AnnotatorView v-if="bundle && labelset" :document="bundle.document" :assignment="bundle.assignment"
           :labelset="labelset" :annotation-level="toKitLevel(task.annotation_level)"
           :guidelines-url="task.ann_guidelines || undefined" :position="{ current: 1, total: 1 }"
-          :navigation="false" @save="save" @save-error="onSaveError" @unsaved="unsaved = $event" />
+          :navigation="false" :other-documents="otherDocuments" :incoming-relations="incomingRelations"
+          @save="save" @save-error="onSaveError" @unsaved="unsaved = $event" />
       </ClientOnly>
     </div>
   </div>
@@ -32,7 +33,13 @@
 </template>
 <script setup lang="ts">
 import { AnnotatorView } from "legal-annotation-kit";
-import type { Assignment as KitAssignment, AssignmentBundle, Labelset } from "legal-annotation-kit";
+import type {
+  Assignment as KitAssignment,
+  AssignmentBundle,
+  DocumentRef,
+  IncomingRelation,
+  Labelset,
+} from "legal-annotation-kit";
 import type { AppRouter } from "~/server/trpc/routers";
 import type { Project, Task, Document } from "~/types";
 import { useConfirm } from "primevue/useconfirm";
@@ -57,6 +64,10 @@ const loading = ref(false);
 const unsaved = ref(false);
 
 const bundle = shallowRef<AssignmentBundle>();
+// For document-level links: the rest of this annotator's queue in the task,
+// and the links its other documents made to this one.
+const otherDocuments = ref<DocumentRef[]>([]);
+const incomingRelations = ref<IncomingRelation[]>([]);
 const labelset = ref<Labelset>();
 let fromLabelStudioDraft = false;
 // The markup of a legacy HTML document, for saveKitAssignment.
@@ -82,6 +93,16 @@ const loadData = async () => {
 
     const set = await $trpc.labelset.findById.query(+task.value.labelset_id);
     labelset.value = { name: set.name, desc: set.desc ?? "", labels: set.labels };
+
+    const assignmentId = +assignment.value.id;
+    const [queue, incoming] = await Promise.all([
+      $trpc.annotator.queueOf.query(assignmentId),
+      $trpc.annotator.incoming.query(assignmentId),
+    ]);
+    otherDocuments.value = queue
+      .filter((e) => e.assignment_id !== assignmentId)
+      .map((e) => ({ name: e.document_name, order: e.seq_pos, key: String(e.assignment_id) }));
+    incomingRelations.value = incoming;
 
     const raw = await $trpc.annotator.load.query(+assignment.value.id);
     if (raw.legacy_html) legacyHtml.set(+assignment.value.id, raw.document.full_text);

@@ -58,6 +58,49 @@ export const relationRouter = router({
       return data as AnnotationRelation[];
     }),
 
+  /**
+   * Document-level links, for task import. Both ends must be assignments of
+   * the same task and annotator, and the caller must edit that task; rows that
+   * break the first rule are skipped.
+   */
+  createDocumentRelations: protectedProcedure
+    .input(
+      z.object({
+        task_id: z.number().int(),
+        relations: z.array(
+          z.object({
+            from_assignment_id: z.number().int(),
+            to_assignment_id: z.number().int(),
+            labels: z.array(ZRelationLabel),
+          })
+        ),
+      })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .mutation(async ({ ctx, input }) => {
+      let created = 0;
+      await ctx.sql.begin(async (tx) => {
+        for (const r of input.relations) {
+          const inserted = await tx`
+            INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)
+            SELECT f.id, t.id, ${r.labels}::text[]::relation_labels[]
+            FROM assignments AS f, assignments AS t
+            WHERE f.id = ${r.from_assignment_id} AND t.id = ${r.to_assignment_id}
+              AND f.id <> t.id
+              AND f.task_id = ${input.task_id} AND t.task_id = ${input.task_id}
+              AND f.annotator_number = t.annotator_number
+            ON CONFLICT (from_assignment_id, to_assignment_id) DO NOTHING
+          `;
+          created += inserted.count;
+        }
+      });
+      return created;
+    }),
+
   findById: disabledProcedure
     .input(
       z.number().int()

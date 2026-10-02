@@ -119,7 +119,7 @@ export function legacyHtmlMetadata(html: string, start: number, end: number): Ht
  * right, so the offsets win and the corrected text is stored on the next save.
  */
 export function toKitBundle(loaded: {
-  document: { name: string; full_text: string };
+  document: { name: string; full_text: string; key?: string };
   assignment: Assignment;
   legacy_html: boolean;
 }): AssignmentBundle {
@@ -127,7 +127,7 @@ export function toKitBundle(loaded: {
     ? legacyHtmlToText(loaded.document.full_text)
     : loaded.document.full_text;
   return {
-    document: { name: loaded.document.name, full_text: fullText },
+    document: { ...loaded.document, full_text: fullText },
     assignment: {
       ...loaded.assignment,
       annotations: loaded.assignment.annotations.map((a) => ({

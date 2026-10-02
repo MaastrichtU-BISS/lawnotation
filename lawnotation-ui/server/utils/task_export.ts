@@ -24,6 +24,8 @@ export type RichAssignment = {
   status: string;
   difficulty_rating: number;
   annotations: RichAnnotation[];
+  /** Document-level links this assignment made, by target assignment. */
+  document_relations: { to_assignment_id: number; labels: string[] }[];
 };
 
 export type RichDocument = {
@@ -60,7 +62,7 @@ export async function buildTaskExportData(
   if (taskError || !task)
     throw new Error(`Error fetching task for export: ${taskError?.message}`);
 
-  const [labelsetRes, documentsRes, assignmentsRes, annotationsRes, relationsRes] =
+  const [labelsetRes, documentsRes, assignmentsRes, annotationsRes, relationsRes, documentRelationsRes] =
     await Promise.all([
       supabase
         .from("labelsets")
@@ -88,6 +90,12 @@ export async function buildTaskExportData(
           "from_id, to_id, direction, labels, annotation:from_id!inner(id, assignment:assignments!inner(id, task_id, document_id))"
         )
         .eq("from_id.assignments.task_id", task_id),
+      supabase
+        .from("document_relations")
+        .select(
+          "from_assignment_id, to_assignment_id, labels, from:assignments!document_relations_from_assignment_id_fkey!inner(task_id)"
+        )
+        .eq("from.task_id", task_id),
     ]);
 
   if (labelsetRes.error)
@@ -100,6 +108,8 @@ export async function buildTaskExportData(
     throw new Error(`Error fetching annotations for export: ${annotationsRes.error.message}`);
   if (relationsRes.error)
     throw new Error(`Error fetching relations for export: ${relationsRes.error.message}`);
+  if (documentRelationsRes.error)
+    throw new Error(`Error fetching document relations for export: ${documentRelationsRes.error.message}`);
 
   const documentsById = new Map<number, RichDocument>();
   for (const doc of documentsRes.data ?? []) {
@@ -124,6 +134,7 @@ export async function buildTaskExportData(
       status: ass.status ?? "",
       difficulty_rating: ass.difficulty_rating ?? 0,
       annotations: [],
+      document_relations: [],
     };
     assignmentsById.set(ass.id, richAssignment);
     doc.assignments.push(richAssignment);
@@ -157,6 +168,13 @@ export async function buildTaskExportData(
     fromAnnotation.relations.push({
       to: rel.to_id!,
       direction: rel.direction ?? "",
+      labels: rel.labels ?? [],
+    });
+  }
+
+  for (const rel of documentRelationsRes.data ?? []) {
+    assignmentsById.get(rel.from_assignment_id)?.document_relations.push({
+      to_assignment_id: rel.to_assignment_id,
       labels: rel.labels ?? [],
     });
   }
@@ -199,6 +217,12 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
     const includeAnnotations = options.annotations && options.labelset;
     const annotatorIndices = new Map<string, number>();
 
+    // Link targets, written as the target's document name (for reading) and
+    // its order in the same annotator's queue (what import resolves).
+    const targets = new Map<number, { name: string; order: number }>();
+    for (const doc of data.documents)
+      for (const ass of doc.assignments) targets.set(ass.id, { name: doc.name, order: ass.order });
+
     json.documents = data.documents.map((doc) => ({
       name: doc.name,
       full_text: doc.full_text,
@@ -229,12 +253,23 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
             }))
           : [];
 
+        const document_relations = includeAnnotations
+          ? ass.document_relations
+              .filter((rel) => targets.has(rel.to_assignment_id))
+              .map((rel) => ({
+                to: targets.get(rel.to_assignment_id)!.name,
+                to_order: targets.get(rel.to_assignment_id)!.order,
+                labels: rel.labels,
+              }))
+          : [];
+
         return {
           annotator: annotatorIndices.get(ass.annotator_id),
           order: ass.order,
           status: ass.status,
           difficulty_rating: ass.difficulty_rating,
           annotations,
+          document_relations,
         };
       }),
     }));
@@ -258,6 +293,10 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
             (s, a) => s + a.annotations.reduce((r, ann) => r + ann.relations.length, 0),
             0
           ),
+        0
+      );
+      json.counts.document_relations = data.documents.reduce(
+        (sum, d) => sum + d.assignments.reduce((s, a) => s + a.document_relations.length, 0),
         0
       );
     }

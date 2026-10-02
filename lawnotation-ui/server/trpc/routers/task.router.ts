@@ -24,6 +24,7 @@ import {
 } from "../authorizers";
 import * as _ from "lodash";
 import { buildTaskExportData, toExportJson } from "~/server/utils/task_export";
+import { copyDocumentRelations } from "~/server/utils/annotation_kit";
 
 const ZTaskFields = z.object({
   name: z.string(),
@@ -555,6 +556,8 @@ export const taskRouter = router({
             .select()
         ).data as AnnotationRelation[];
 
+        await copyDocumentRelations(ctx.sql, dicAssignments);
+
         return new_task;
       }
     ),
@@ -705,6 +708,8 @@ export const taskRouter = router({
               .insert(relationsWithoutId)
               .select()
           ).data;
+
+          await copyDocumentRelations(ctx.sql, dicAssignments);
 
           const mergedTask = await caller.task.findById(originalTaskId);
 

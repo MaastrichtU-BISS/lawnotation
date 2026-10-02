@@ -199,6 +199,45 @@ export type Database = {
           },
         ]
       }
+      document_relations: {
+        Row: {
+          created_at: string
+          from_assignment_id: number
+          id: number
+          labels: Database["public"]["Enums"]["relation_labels"][]
+          to_assignment_id: number
+        }
+        Insert: {
+          created_at?: string
+          from_assignment_id: number
+          id?: number
+          labels?: Database["public"]["Enums"]["relation_labels"][]
+          to_assignment_id: number
+        }
+        Update: {
+          created_at?: string
+          from_assignment_id?: number
+          id?: number
+          labels?: Database["public"]["Enums"]["relation_labels"][]
+          to_assignment_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_relations_from_assignment_id_fkey"
+            columns: ["from_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_relations_to_assignment_id_fkey"
+            columns: ["to_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string | null

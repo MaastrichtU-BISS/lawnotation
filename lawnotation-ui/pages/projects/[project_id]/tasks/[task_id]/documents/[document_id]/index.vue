@@ -23,14 +23,15 @@
             <ClientOnly>
                 <AnnotatorView v-if="bundle && labelset" :document="bundle.document" :assignment="bundle.assignment"
                     :labelset="labelset" :annotation-level="toKitLevel(task.annotation_level)"
-                    :position="{ current: 1, total: 1 }" :navigation="false" readonly />
+                    :position="{ current: 1, total: 1 }" :navigation="false"
+                    :incoming-relations="incomingRelations" readonly />
             </ClientOnly>
         </div>
     </div>
 </template>
 <script setup lang="ts">
 import { AnnotatorView } from "legal-annotation-kit";
-import type { AssignmentBundle, Labelset } from "legal-annotation-kit";
+import type { AssignmentBundle, IncomingRelation, Labelset } from "legal-annotation-kit";
 import type { Project, Task, Document } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 import { toKitBundle } from "~/utils/annotator";
@@ -49,6 +50,7 @@ const doc = ref<Pick<Document, "id" | "name">>();
 const loading = ref(false);
 
 const bundle = shallowRef<AssignmentBundle>();
+const incomingRelations = ref<IncomingRelation[]>([]);
 const labelset = ref<Labelset>();
 
 const loadData = async () => {
@@ -69,6 +71,7 @@ const loadData = async () => {
         });
         doc.value = { id: +route.params.document_id, name: merged.document.name };
         bundle.value = toKitBundle(merged);
+        incomingRelations.value = merged.incoming_relations;
     } catch (error) {
         $toast.error(`Could not load this document: ${(error as Error)?.message}`);
     } finally {

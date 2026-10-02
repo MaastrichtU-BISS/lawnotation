@@ -216,6 +216,40 @@ export const useTaskImport = ({
 							}
 						}
 					}
+
+					// Document-level links point at a document by its order in
+					// the same annotator's queue; resolved against the
+					// assignments just created, which follow the file's order.
+					if (json.counts?.document_relations) {
+						importProgress.value.message = "Creating Document Relations";
+						const byAnnotatorAndOrder = new Map<string, number>();
+						let k = 0;
+						json.documents.forEach((d: any) => {
+							d.assignments.forEach((ass: any) => {
+								if (assignments[k]) byAnnotatorAndOrder.set(`${ass.annotator}:${ass.order}`, assignments[k].id);
+								k++;
+							});
+						});
+
+						const documentRelations: { from_assignment_id: number; to_assignment_id: number; labels: any[] }[] = [];
+						json.documents.forEach((d: any) => {
+							d.assignments.forEach((ass: any) => {
+								const from = byAnnotatorAndOrder.get(`${ass.annotator}:${ass.order}`);
+								for (const rel of ass.document_relations ?? []) {
+									const to = byAnnotatorAndOrder.get(`${ass.annotator}:${rel.to_order}`);
+									if (from && to) documentRelations.push({ from_assignment_id: from, to_assignment_id: to, labels: rel.labels ?? [] });
+								}
+							});
+						});
+
+						const batch = 100;
+						for (let i = 0; i < documentRelations.length; i += batch) {
+							await trpc.relation.createDocumentRelations.mutate({
+								task_id: task.id,
+								relations: documentRelations.slice(i, i + batch),
+							});
+						}
+					}
 				}
 			}
 
