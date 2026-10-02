@@ -29,8 +29,8 @@ export const useDocumentUpload = ({
 			try {
 				await trpc.document.create.mutate({ document: doc });
 				uploadDocsProgress.value.current++;
-			} catch {
-				toast.error(`Error uploading document: ${doc.name}`);
+			} catch (e) {
+				toast.error(`Error uploading document ${doc.name}: ${(e as Error)?.message ?? "unknown error"}`);
 			}
 		}
 

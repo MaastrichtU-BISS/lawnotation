@@ -19,8 +19,9 @@ describe('Assign a project to annotators as the editor', () => {
         cy.get('a[data-test="view-project-link"]').first().click()
 
         cy.get('button[data-test="open-documents-modal"]').click()
-        // One button: choosing the files uploads them.
+        // Choose the files, then one Upload button.
         cy.get('[data-test="upload-documents-panel"] input[type="file"]').selectFile(['./cypress/support/Test.txt', './cypress/support/xssattack.html'], { force: true })
+        cy.get('button').contains('Upload documents').click()
         cy.get('td').contains('Test.txt').should('exist')
         cy.get('td').contains('xssattack.html').should('exist')
 

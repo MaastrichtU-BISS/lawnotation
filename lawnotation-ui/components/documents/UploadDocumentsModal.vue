@@ -16,8 +16,7 @@
             <TabPanels>
             <TabPanel :value="0">
                 <div class="pt-6" data-test="upload-documents-panel">
-                    <LegalDocsImport :readers="readers" :on-import="onImport" auto-import
-                        import-label="Upload documents" />
+                    <LegalDocsImport :readers="readers" :on-import="onImport" import-label="Upload documents" />
                     <p class="text-gray-400 text-xs mt-3 mb-0">
                         .txt file(s) up to 6MB each; .html, .pdf, .doc, .docx file(s) up to 4MB each
                     </p>

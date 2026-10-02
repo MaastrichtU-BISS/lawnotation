@@ -73,11 +73,13 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   await editorPage.getByTestId("open-documents-modal").click();
   const dialog = editorPage.getByRole("dialog", { name: /Add documents/ });
   await expect(dialog).toBeVisible({});
-  // One button: choosing the files uploads them.
+  // Choose the files, check the list, then one Upload button.
   const fileChooserPromise = editorPage.waitForEvent("filechooser");
-  await dialog.getByRole("button", { name: "Upload documents" }).click();
+  await dialog.getByRole("button", { name: "Choose files" }).click();
   const fileChooser = await fileChooserPromise;
   await fileChooser.setFiles(path.join(__dirname, "input", "lorem-ipsum.txt"));
+  await expect(dialog.getByText("1 document ready")).toBeVisible();
+  await dialog.getByRole("button", { name: "Upload documents" }).click();
 
   // Wait for upload to complete
   await editorPage
@@ -231,15 +233,17 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
     state: "visible",
   });
 
-  // One button: choosing the files uploads them.
+  // Choose the files, check the list, then one Upload button.
   const fileChooser = editorPage.waitForEvent("filechooser");
-  await editorPage.getByRole("button", { name: "Upload documents" }).click();
+  await editorPage.getByRole("button", { name: "Choose files" }).click();
   await (await fileChooser).setFiles([
     path.join(__dirname, "input", "lorem-ipsum.txt"),
     path.join(__dirname, "input", "casablanca.txt"),
     path.join(__dirname, "input", "the-godfather.txt"),
     path.join(__dirname, "input", "the-wizard-of-oz.txt"),
   ]);
+  await expect(editorPage.getByText("4 documents ready")).toBeVisible();
+  await editorPage.getByRole("button", { name: "Upload documents" }).click();
 
   // Wait for upload success toast to confirm all documents are saved and table is refreshed
   await expect(editorPage.getByText(/document\(s\) uploaded/)).toBeVisible({

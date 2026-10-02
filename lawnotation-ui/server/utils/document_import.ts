@@ -39,5 +39,8 @@ export async function extractDocumentText(name: string, data: Uint8Array): Promi
       message: skipped[0]?.reason ?? "This file could not be read.",
     });
   }
-  return documents[0].full_text;
+  // Postgres text cannot hold NUL, and pdfjs emits it for glyphs some fonts
+  // leave unmapped; the document insert would fail on it. Removing it here,
+  // before anything is stored, keeps offsets consistent with what is saved.
+  return documents[0].full_text.replace(/\u0000/g, "");
 }
