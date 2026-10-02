@@ -29,6 +29,20 @@ const ZAssignmentFields = z.object({
   original_task_id: z.number().int().nullable().optional()
 });
 
+type AnnotatorAssignmentNode = {
+  type: "document";
+  key: string;
+  data: {
+    assignment_id: number;
+    seq_pos: number;
+    document_id: number;
+    document_name: string;
+    annotator_name: string;
+    difficulty_rating: number;
+    status: string;
+  };
+};
+
 export const assignmentRouter = router({
   /**
    * This method creates inivites an email to create an account if it doesn't
@@ -735,6 +749,12 @@ export const assignmentRouter = router({
       };
     }),
 
+  /**
+   * One row per annotator of a task, with their progress — counted in the
+   * database, not by fetching every assignment. Their documents are loaded
+   * separately (getAnnotatorAssignments) when a row is expanded, so the page
+   * costs the same with ten documents or ten thousand.
+   */
   getGroupByAnnotators: protectedProcedure
     .input(
       z.object({
@@ -753,117 +773,151 @@ export const assignmentRouter = router({
     .query(async ({ ctx, input }) => {
       const rowsPerPage = 10;
 
-      type TreeItem = {
-        type: "annotator";
-        key: string;
-        data: {
+      const sanitizedFilter = input.filter.name.replace(/[%_]/g, "");
+      const annotatorName = ctx.sql.unsafe(
+        "COALESCE(MAX(u.email), CONCAT('annotator ', a.annotator_number))"
+      );
+      const nameFilter = sanitizedFilter
+        ? ctx.sql`HAVING ${annotatorName} ILIKE ${"%" + sanitizedFilter + "%"}`
+        : ctx.sql``;
+      const unfinished = [
+        AssignmentStatuses.PENDING,
+        AssignmentStatuses.PREANNOTATED,
+        AssignmentStatuses.FAILED,
+      ];
+
+      const rows = await ctx.sql<
+        {
+          annotator_number: number;
           name: string;
           amount_done: number;
           amount_total: number;
-          next_seq_pos: number;
-        };
-        children: {
-          type: "document";
-          key: string;
-          data: {
-            assignment_id: number;
-            seq_pos: number;
-            document_id: number;
-            document_name: string;
-            annotator_name: string;
-            difficulty_rating: number;
-            status: string;
-          };
-        }[];
-      };
-
-      const grouped: TreeItem[] = [];
-
-      const count = (
-        await ctx.sql`SELECT DISTINCT annotator_number FROM assignments WHERE task_id = ${input.task_id}`
-      ).count;
-
-      const sanitizedFilter = input.filter.name.replace(/[%_]/g, "");
-      const annotatorNameComputation = ctx.sql.unsafe(
-        "COALESCE(u.email, CONCAT('annotator ', a.annotator_number))"
-      );
-
-      const queryAnnotators = ctx.sql<
-        { annotator_number: number; email?: string; annotator_name: string }[]
+          next_seq_pos: number | null;
+          total_annotators: number;
+        }[]
       >`
-          SELECT DISTINCT a.annotator_number, u.email, ${annotatorNameComputation} as annotator_name
-          FROM assignments AS a
-          LEFT JOIN users AS u
-            ON (a.annotator_id = u.id)
-          WHERE a.task_id = ${input.task_id}
-          ${
-            sanitizedFilter
-              ? ctx.sql`AND ${annotatorNameComputation} ILIKE ${
-                  "%" + sanitizedFilter + "%"
-                }`
-              : ctx.sql``
-          }
-          ORDER BY annotator_number
-          LIMIT ${rowsPerPage} OFFSET ${(input.page - 1) * rowsPerPage}
-        `;
+        SELECT a.annotator_number::int AS annotator_number,
+               ${annotatorName} AS name,
+               (COUNT(*) FILTER (WHERE a.status = ${AssignmentStatuses.DONE}::assignment_status))::int AS amount_done,
+               COUNT(*)::int AS amount_total,
+               (MIN(a.seq_pos) FILTER (WHERE a.status::text IN ${ctx.sql(unfinished)}))::int AS next_seq_pos,
+               (COUNT(*) OVER ())::int AS total_annotators
+        FROM assignments AS a
+        LEFT JOIN users AS u ON (a.annotator_id = u.id)
+        WHERE a.task_id = ${input.task_id}
+        GROUP BY a.annotator_number
+        ${nameFilter}
+        ORDER BY a.annotator_number
+        LIMIT ${rowsPerPage} OFFSET ${(input.page - 1) * rowsPerPage}
+      `;
 
-      await queryAnnotators.cursor(async ([dbAnnotator]) => {
-        const dbAssignments = await ctx.sql`
-              SELECT a.*, u.email, d.name AS document_name
-              FROM assignments AS a
-              INNER JOIN documents AS d
-                ON (a.document_id = d.id)
-              LEFT JOIN users AS u
-                ON (a.annotator_id = u.id)
-              WHERE annotator_number = ${dbAnnotator.annotator_number}
-              AND a.task_id = ${input.task_id}
-              ORDER BY a.seq_pos
-            `;
+      // The total is only on the rows of a page; a page past the end has none,
+      // so ask for it on its own then.
+      const total = rows.length
+        ? rows[0].total_annotators
+        : (
+            await ctx.sql`
+              SELECT DISTINCT annotator_number FROM assignments WHERE task_id = ${input.task_id}
+            `
+          ).count;
 
-        const children: TreeItem["children"] = [];
+      const grouped = rows.map((r) => ({
+        type: "annotator" as const,
+        key: `ann-${r.annotator_number}`,
+        // Not a leaf: the tree shows an expander and asks for the children.
+        leaf: false,
+        data: {
+          annotator_number: r.annotator_number,
+          name: r.name,
+          amount_done: r.amount_done,
+          amount_total: r.amount_total,
+          next_seq_pos: r.next_seq_pos ?? 0,
+        },
+        children: [] as AnnotatorAssignmentNode[],
+      }));
 
-        for (const dbAssignment of dbAssignments) {
-          children.push({
-            type: "document",
-            key: `ass-${dbAssignment.id}`,
-            data: {
-              assignment_id: dbAssignment.id,
-              seq_pos: dbAssignment.seq_pos,
-              document_id: dbAssignment.document_id,
-              document_name: dbAssignment.document_name,
-              annotator_name: dbAnnotator.annotator_name,
-              difficulty_rating: dbAssignment.difficulty_rating,
-              status: dbAssignment.status,
-            },
-          });
-        }
+      return { data: grouped, total: total ?? 0 };
+    }),
 
-        grouped.push({
-          type: "annotator",
-          key: `ann-${dbAnnotator.annotator_number}`,
-          data: {
-            name: dbAnnotator.annotator_name, // dbAnnotator.email ?? `annotator ${dbAnnotator.annotator_number}`,
-            amount_done: dbAssignments.filter(
-              (ass) => ass.status == AssignmentStatuses.DONE
-            ).length,
-            amount_total: dbAssignments.length,
-            next_seq_pos: Math.min(
-              ...dbAssignments
-                .filter((ass) =>
-                  [
-                    AssignmentStatuses.PENDING,
-                    AssignmentStatuses.PREANNOTATED,
-                    AssignmentStatuses.FAILED,
-                  ].includes(ass.status)
-                )
-                .map((ass) => ass.seq_pos!)
-            ),
-          },
-          children,
-        });
-      });
+  /** One page of an annotator's documents in a task, in queue order. */
+  getAnnotatorAssignments: protectedProcedure
+    .input(
+      z.object({
+        task_id: z.number().int(),
+        annotator_number: z.number().int(),
+        offset: z.number().int().min(0),
+        limit: z.number().int().min(1).max(200),
+      })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.sql<
+        {
+          id: number;
+          seq_pos: number;
+          document_id: number;
+          document_name: string;
+          annotator_name: string;
+          difficulty_rating: number;
+          status: string;
+          total: number;
+        }[]
+      >`
+        SELECT a.id::int AS id, a.seq_pos::int AS seq_pos, a.document_id::int AS document_id,
+               d.name AS document_name,
+               COALESCE(u.email, CONCAT('annotator ', a.annotator_number)) AS annotator_name,
+               a.difficulty_rating::int AS difficulty_rating, a.status::text AS status,
+               (COUNT(*) OVER ())::int AS total
+        FROM assignments AS a
+        INNER JOIN documents AS d ON (a.document_id = d.id)
+        LEFT JOIN users AS u ON (a.annotator_id = u.id)
+        WHERE a.task_id = ${input.task_id} AND a.annotator_number = ${input.annotator_number}
+        ORDER BY a.seq_pos, a.id
+        LIMIT ${input.limit} OFFSET ${input.offset}
+      `;
 
-      return { data: grouped ?? [], total: count ?? 0 };
+      const data: AnnotatorAssignmentNode[] = rows.map((r) => ({
+        type: "document",
+        key: `ass-${r.id}`,
+        data: {
+          assignment_id: r.id,
+          seq_pos: r.seq_pos,
+          document_id: r.document_id,
+          document_name: r.document_name,
+          annotator_name: r.annotator_name,
+          difficulty_rating: r.difficulty_rating,
+          status: r.status,
+        },
+      }));
+      return { data, total: rows[0]?.total ?? 0 };
+    }),
+
+  /**
+   * Removes every assignment of the given annotators in a task — what ticking
+   * an annotator means, whether or not all their documents were loaded.
+   */
+  deleteByAnnotators: protectedProcedure
+    .input(
+      z.object({
+        task_id: z.number().int(),
+        annotator_numbers: z.array(z.number().int()).min(1),
+      })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        taskEditorAuthorizer(opts.input.task_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .mutation(async ({ ctx, input }) => {
+      const deleted = await ctx.sql`
+        DELETE FROM assignments
+        WHERE task_id = ${input.task_id} AND annotator_number IN ${ctx.sql(input.annotator_numbers)}
+      `;
+      return deleted.count;
     }),
 
   getGroupByDocuments: protectedProcedure

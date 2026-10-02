@@ -69,11 +69,11 @@
                     'data-test': 'remove-all'
                   }
                 }" :ptOptions="{ mergeProps: true }" />
-                  <Button v-if="groupByAnnotatorsSelectedAssignmentIds.length"
-                    @click="removeAssignments(groupByAnnotatorsSelectedAssignmentIds, refreshGroupByAnnotators)"
+                  <Button v-if="groupByAnnotatorsSelectedCount"
+                    @click="removeSelectedFromAnnotatorTree()"
                     severity="danger" outlined :pt="{ label: 'text-xs' }" :ptOptions="{ mergeProps: true }"
                     data-test="remove-selected-rows" class="ml-3" size="small">
-                    Remove selected assignments ({{ groupByAnnotatorsSelectedAssignmentIds.length }})
+                    Remove selected assignments ({{ groupByAnnotatorsSelectedCount }})
                   </Button>
                 </div>
 
@@ -87,7 +87,8 @@
                     }
                   }" v-model:selection-keys="groupByAnnotatorsSelection" selectionMode="checkbox"
                   id="tableGroupByAnnotators" :lazy="true" :paginator="true" :rows="10"
-                  :loading="groupByAnnotatorsLoading" @page="groupByAnnotatorsPaginate">
+                  :loading="groupByAnnotatorsLoading" @page="groupByAnnotatorsPaginate"
+                  @node-expand="onAnnotatorExpand">
                   <Column columnKey="name" header="Name" expander style="white-space: nowrap; padding-right: 3rem">
                     <template #filter>
                       <InputText v-model="groupByAnnotatorsArgs.filter.name" size="small" type="text"
@@ -102,6 +103,9 @@
                       </template>
                       <template v-else-if="node.type == 'annotator'">
                         <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.name }}
+                      </template>
+                      <template v-else-if="node.type == 'more'">
+                        <span class="ml-2 text-surface-500">{{ node.data.remaining }} more…</span>
                       </template>
                       <template v-else-if="node.type == 'document'">
                         <i class="pi pi-file mr-3 ml-2" />
@@ -127,6 +131,11 @@
                             <Button label="Annotate Next" size="small" icon="pi pi-pencil" />
                           </NuxtLink>
                         </div>
+                      </template>
+                      <template v-else-if="node.type == 'more'">
+                        <Button :label="`Load ${Math.min(node.data.remaining, ANNOTATOR_DOCUMENTS_PAGE)} more`" size="small"
+                          text icon="pi pi-angle-down" :loading="loadingAnnotatorDocuments[node.data.annotator_key]"
+                          @click="loadAnnotatorDocuments(node.data.annotator_key)" />
                       </template>
                       <template v-else-if="node.type == 'document'">
                         <div class="w-full flex justify-between items-center">
@@ -183,7 +192,7 @@
                   An error occured when loading the assignments.{{ groupByDocuments.error.value }}
                   <Button label="retry" @click="refreshGroupByDocuments" />
                 </span>
-                <TreeTable v-else :value="groupByDocuments.data.value!.data"
+                <TreeTable v-else-if="groupByDocuments.data.value" :value="groupByDocuments.data.value!.data"
                   :totalRecords="groupByDocuments.data.value!.total" :pt="{
                     table: {
                       class: 'border-collapse w-full'
@@ -261,6 +270,7 @@
                     </template>
                   </Column>
                 </TreeTable>
+                <div v-else class="p-3 text-surface-500">Loading…</div>
               </TabPanel>
               <TabPanel value="edit">
               </TabPanel>
@@ -442,12 +452,16 @@ const { $toast, $trpc } = useNuxtApp();
 const user = useSupabaseUser();
 
 const route = useRoute();
-const task = await $trpc.task.findById.query(+route.params.task_id);
-const project = await $trpc.project.findById.query(+route.params.project_id);
-
-const totalAssignments = await $trpc.table.assignments.useQuery({ filter: { task_id: task.id } });
-
-const optionsTotalDocuments: { id: number; name: string }[] = await $trpc.document.findByProject.query(+route.params.project_id);
+// Independent of each other, so asked for together rather than one by one.
+const taskId = +route.params.task_id;
+const [task, project, totalAssignments, optionsTotalDocuments, initialMlStatus, allAnnotators] = await Promise.all([
+  $trpc.task.findById.query(taskId),
+  $trpc.project.findById.query(+route.params.project_id),
+  $trpc.table.assignments.useQuery({ filter: { task_id: taskId } }),
+  $trpc.document.findByProject.query(+route.params.project_id) as Promise<{ id: number; name: string }[]>,
+  $trpc.assignment.countMLStatus.query(taskId),
+  $trpc.task.getAllAnnotatorsFromTask.query(taskId),
+]);
 const selectedTotalDocuments = ref<{ id: number; name: string }[]>(optionsTotalDocuments);
 const selectedSharedDocuments = ref<{ id: number; name: string }[]>(selectedTotalDocuments.value);
 
@@ -476,7 +490,7 @@ const verifyShared = () => {
 
 //#region  ml variables
 const mlIntervalId = ref();
-const predicting = ref<number>((await $trpc.assignment.countMLStatus.query(task.id)).predicting);
+const predicting = ref<number>(initialMlStatus.predicting);
 
 const showPredictionProgressBar = computed(() => {
   return task.ml_model_id && predicting.value;
@@ -522,12 +536,31 @@ watch(showPredictionProgressBar, (new_value) => {
 
 const annotatorsSelectionMenu = ref();
 const groupByAnnotatorsSelection = ref<Record<string, { checked: boolean, partialChecked: boolean }>>({});
+// Ticking an annotator means all of their assignments, loaded or not; those
+// are removed by annotator. Documents ticked one by one are removed by id.
+const groupByAnnotatorsSelectedAnnotators = computed(() =>
+  Object.entries(groupByAnnotatorsSelection.value)
+    .filter(([key, value]) => key.startsWith('ann-') && value.checked)
+    .map(([key]) => +key.replace('ann-', ''))
+)
 const groupByAnnotatorsSelectedAssignmentIds = computed(() => {
+  const wholeAnnotators = new Set(groupByAnnotatorsSelectedAnnotators.value.map((n) => `ann-${n}`));
+  const underWholeAnnotator = new Set(
+    (groupByAnnotators.data.value?.data ?? [])
+      .filter((node) => wholeAnnotators.has(node.key))
+      .flatMap((node) => node.children.map((child) => child.key))
+  );
   return Object
     .entries(groupByAnnotatorsSelection.value)
-    .filter(x => x[0].startsWith('ass-') && x[1].checked)
-    .map(x => x[0].replace('ass-', ''))
+    .filter(([key, value]) => key.startsWith('ass-') && value.checked && !underWholeAnnotator.has(key))
+    .map(([key]) => key.replace('ass-', ''))
 })
+const groupByAnnotatorsSelectedCount = computed(() =>
+  (groupByAnnotators.data.value?.data ?? [])
+    .filter((node) => groupByAnnotatorsSelectedAnnotators.value.includes(node.data.annotator_number))
+    .reduce((sum, node) => sum + node.data.amount_total, 0)
+  + groupByAnnotatorsSelectedAssignmentIds.value.length
+)
 const groupByAnnotatorsArgs = reactive({ task_id: task.id, page: 1, filter: { name: '' } });
 const groupByAnnotators = await $trpc.assignment.getGroupByAnnotators.useQuery(groupByAnnotatorsArgs);
 const groupByAnnotatorsLoading = ref(false);
@@ -541,6 +574,44 @@ const groupByAnnotatorsPaginate = ({ page }: { page: number }) => {
   refreshGroupByAnnotators()
 }
 watch(() => groupByAnnotatorsArgs.filter.name, refreshGroupByAnnotators)
+
+// An annotator's documents are fetched when their row is expanded, a page at
+// a time, with a last row offering the rest.
+const ANNOTATOR_DOCUMENTS_PAGE = 50;
+const loadingAnnotatorDocuments = ref<Record<string, boolean>>({});
+const loadAnnotatorDocuments = async (annotatorKey: string) => {
+  const node = groupByAnnotators.data.value?.data.find((n) => n.key === annotatorKey);
+  if (!node || loadingAnnotatorDocuments.value[annotatorKey]) return;
+  loadingAnnotatorDocuments.value[annotatorKey] = true;
+  try {
+    const loaded = node.children.filter((c: any) => c.type === 'document');
+    const page = await $trpc.assignment.getAnnotatorAssignments.query({
+      task_id: task.id,
+      annotator_number: node.data.annotator_number,
+      offset: loaded.length,
+      limit: ANNOTATOR_DOCUMENTS_PAGE,
+    });
+    const documents = [...loaded, ...page.data];
+    const remaining = page.total - documents.length;
+    const children = remaining > 0
+      ? [...documents, { type: 'more', key: `more-${annotatorKey}`, data: { annotator_key: annotatorKey, remaining } } as any]
+      : documents;
+    // The query's data is a shallow ref (Nuxt 4), so the change has to be a
+    // new value rather than an edit inside the old one.
+    const current = groupByAnnotators.data.value!;
+    groupByAnnotators.data.value = {
+      ...current,
+      data: current.data.map((n) => (n.key === annotatorKey ? { ...n, children } : n)),
+    };
+  } catch (error) {
+    $toast.error(`Could not load the documents: ${(error as Error)?.message}`);
+  } finally {
+    loadingAnnotatorDocuments.value[annotatorKey] = false;
+  }
+}
+const onAnnotatorExpand = (node: { key: string; type: string; children: unknown[] }) => {
+  if (node.type === 'annotator' && !node.children.length) loadAnnotatorDocuments(node.key);
+}
 
 // end
 
@@ -560,7 +631,7 @@ const groupByDocumentsArgs = reactive({
   page: 1,
   filter: { document: '' }
 });
-const groupByDocuments = await $trpc.assignment.getGroupByDocuments.useQuery(groupByDocumentsArgs);
+const groupByDocuments = await $trpc.assignment.getGroupByDocuments.useQuery(groupByDocumentsArgs, { immediate: false });
 const groupByDocumentsLoading = ref(false);
 const refreshGroupByDocuments = () => {
   groupByDocumentsSelection.value = {}
@@ -575,7 +646,7 @@ watch(() => groupByDocumentsArgs.filter.document, refreshGroupByDocuments)
 
 // end
 
-const amountAnnotators = (await $trpc.task.getAllAnnotatorsFromTask.query(+task?.id!)).filter(x => x.id).length
+const amountAnnotators = allAnnotators.filter(x => x.id).length
 
 const activeTab = ref('annotators');
 
@@ -598,6 +669,27 @@ const removeAssignments = async (ids: string[], finish: () => void) => {
           $toast.success(`Assignment${ids.length > 0 ? 's' : ''} have been succesfully removed`);
         });
     }
+  });
+};
+const removeSelectedFromAnnotatorTree = async () => {
+  const annotators = groupByAnnotatorsSelectedAnnotators.value;
+  const ids = groupByAnnotatorsSelectedAssignmentIds.value;
+  const count = groupByAnnotatorsSelectedCount.value;
+  confirmBox(
+    `Are you sure you want to delete ${count} assignment${count > 1 ? "s" : ""}?`,
+    "You won't be able to revert this!",
+    "warning"
+  ).then(async (result) => {
+    if (!result.isConfirmed) return;
+    await Promise.all([
+      annotators.length
+        ? $trpc.assignment.deleteByAnnotators.mutate({ task_id: task.id, annotator_numbers: annotators })
+        : Promise.resolve(0),
+      ...ids.map((id) => $trpc.assignment.delete.mutate(+id)),
+    ]);
+    refreshGroupByAnnotators();
+    totalAssignments.refresh();
+    $toast.success(`Assignment${count > 1 ? 's' : ''} have been succesfully removed`);
   });
 };
 const removeAllAssignments = async (finish: () => void) => {

@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
+import type { Sql } from 'postgres'
 import { protectedProcedure, disabledProcedure, router, authorizer } from '~/server/trpc'
 import type { AnnotationRelation } from '~/types';
 import { annotationEditorOrAnnotatorAuthorizer } from '../authorizers/annotation.auth';
@@ -83,7 +84,10 @@ export const relationRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       let created = 0;
-      await ctx.sql.begin(async (tx) => {
+      await ctx.sql.begin(async (transaction) => {
+    // postgres.js types a transaction without the call signature it has at
+    // runtime; this restores it.
+    const tx = transaction as unknown as Sql;
         for (const r of input.relations) {
           const inserted = await tx`
             INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)

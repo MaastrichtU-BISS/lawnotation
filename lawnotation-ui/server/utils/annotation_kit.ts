@@ -132,7 +132,10 @@ export async function storeKitAssignment(
   kit: KitAssignment,
   documentLevel: boolean
 ): Promise<void> {
-  await sql.begin(async (tx) => {
+  await sql.begin(async (transaction) => {
+    // postgres.js types a transaction without the call signature it has at
+    // runtime; this restores it.
+    const tx = transaction as unknown as Sql;
     const existing = await tx<{ id: number; ls_id: string | null }[]>`
       SELECT id::int AS id, ls_id FROM annotations WHERE assignment_id = ${assignmentId}
     `;
@@ -200,7 +203,7 @@ export async function storeKitAssignment(
            ${row.htmlMetadata ? tx.json(row.htmlMetadata as any) : null}, ${row.confidence})
         RETURNING id::int AS id
       `;
-      stored.set(row.kitId, { id: inserted.id, lsId });
+      stored.set(row.kitId, { id: inserted!.id, lsId });
     }
 
     if (!documentLevel) {
