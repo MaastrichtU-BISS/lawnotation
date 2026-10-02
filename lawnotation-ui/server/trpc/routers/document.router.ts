@@ -109,9 +109,14 @@ export const documentRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
+      // Postgres text cannot hold NUL (the insert fails with "unsupported
+      // Unicode escape sequence"), and it turns up in real uploads: pdfjs emits
+      // it for glyphs some fonts leave unmapped, and a .txt can contain it.
+      // Removed before storing, so annotation offsets match what is saved.
+      const document = { ...input.document, full_text: input.document.full_text.replace(/\u0000/g, "") };
       const { data, error } = await ctx.supabase
         .from("documents")
-        .insert(input.document)
+        .insert(document)
         .select()
         .single();
 
