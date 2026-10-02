@@ -68,6 +68,7 @@ export function toKitAssignment(
         id: a.id,
         label: a.label,
         confidence: a.confidence_rating ?? 0,
+        metadata: a.metadata ?? null,
       })),
     };
   }
@@ -130,7 +131,7 @@ export async function storeKitAssignment(
           end: 0,
           text: "",
           confidence: d.confidence,
-          metadata: null as string | null,
+          metadata: d.metadata ?? null,
           htmlMetadata: null as unknown,
         }))
       : kit.annotations.map((a) => ({

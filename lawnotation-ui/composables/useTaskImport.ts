@@ -170,6 +170,7 @@ export const useTaskImport = ({
 										origin: Origins.IMPORTED,
 										ls_id: ann.ls_id,
 										confidence_rating: ann.confidence_rating,
+										metadata: ann.metadata ?? null,
 										html_metadata: ann.html_metadata,
 									});
 								});

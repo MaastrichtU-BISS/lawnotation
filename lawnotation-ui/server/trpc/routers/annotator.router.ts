@@ -68,6 +68,7 @@ const ZKitAssignment = z.object({
       id: z.number().int(),
       label: z.string(),
       confidence: ZConfidence,
+      metadata: z.string().nullable().optional(),
     })
   ),
 });
