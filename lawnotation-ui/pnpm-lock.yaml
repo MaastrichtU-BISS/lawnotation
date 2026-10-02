@@ -57,8 +57,8 @@ importers:
         specifier: ^3.10.1
         version: 3.10.1
       legal-annotation-kit:
-        specifier: ^1.1.1
-        version: 1.1.1(vue@3.5.30(typescript@5.9.3))
+        specifier: ^1.2.0
+        version: 1.2.0(vue@3.5.30(typescript@5.9.3))
       legal-docs-types:
         specifier: ^1.0.0
         version: 1.0.0
@@ -3189,8 +3189,8 @@ packages:
     resolution: {integrity: sha512-b94GiNHQNy6JNTrt5w6zNyffMrNkXZb3KTkCZJb2V1xaEGCk093vkZ2jk3tpaeP33/OiXC+WvK9AxUebnf5nbw==}
     engines: {node: '>= 0.6.3'}
 
-  legal-annotation-kit@1.1.1:
-    resolution: {integrity: sha512-1m13a6UcvUiJvQb6wSmQxBMAcQ/fF/2GDHRA2a65yF608kzWo9NKWzVNdC+bFZA6obeP1Gb+TZ+ogriG2Z2P2A==}
+  legal-annotation-kit@1.2.0:
+    resolution: {integrity: sha512-apPgW8DqmKHEpFTqtIqkcOCvy+Bg+6pkrefcxub7YGPf0b6TZwMKgyAz/LEAcxhiWsYq0TM63/ZVhZLkoAXZlQ==}
     peerDependencies:
       vue: ^3.4.0
 
@@ -8259,7 +8259,7 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  legal-annotation-kit@1.1.1(vue@3.5.30(typescript@5.9.3)):
+  legal-annotation-kit@1.2.0(vue@3.5.30(typescript@5.9.3)):
     dependencies:
       vue: 3.5.30(typescript@5.9.3)
 

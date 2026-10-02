@@ -52,7 +52,7 @@
     "file-saver": "^2.0.5",
     "flowbite": "^1.8.1",
     "jszip": "^3.10.1",
-    "legal-annotation-kit": "^1.1.1",
+    "legal-annotation-kit": "^1.2.0",
     "legal-docs-types": "^1.0.0",
     "node-legal-docs-client": "^1.0.0",
     "node-legal-docs-import": "^1.1.0",
