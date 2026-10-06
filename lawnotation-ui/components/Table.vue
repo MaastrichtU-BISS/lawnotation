@@ -343,7 +343,7 @@
 import { useConfirm } from "primevue/useconfirm";
 import ConfirmBox from "~/components/ConfirmBox.vue";
 import type { AppRouter } from "~/server/trpc/routers";
-import { tableColumns } from "~/constants/tableColumns";
+import { defaultSortColumn, tableColumns } from "~/constants/tableColumns";
 
 const { $trpc, $toast } = useNuxtApp();
 
@@ -416,7 +416,7 @@ const args = reactive<{
   items_per_page: number;
 }>({
   sort: {
-    column: Object.values(sortableColumns)[0],
+    column: defaultSortColumn[props.endpoint] ?? Object.values(sortableColumns)[0],
     dir: "DESC",
   },
   search: {

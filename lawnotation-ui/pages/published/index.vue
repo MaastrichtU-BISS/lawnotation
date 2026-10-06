@@ -15,9 +15,6 @@
                 </div>
             </template>
             <template #row="{ item }: { item: Publication }">
-                <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-                    {{ item.id }}
-                </td>
                 <td class="px-6 py-2">
                     <template v-if="myPublications">
                         <span v-if="item.status == PublicationStatus.PUBLISHED" title="Published" class="inline-flex outline text-blue-600 bg-blue-600 w-3 h-3 me-2 rounded-full"></span>

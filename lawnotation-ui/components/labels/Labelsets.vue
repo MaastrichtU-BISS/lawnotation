@@ -28,9 +28,6 @@
       @remove-rows="removeLabelsets"
     >
       <template #row="{ item }: { item: Labelset }">
-        <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-          {{ item.id }}
-        </th>
         <td class="px-6 py-2">
           {{ item.name }}
         </td>

@@ -13,9 +13,6 @@
     <Table endpoint="projects" ref="projectTable" :sort="true" :search="true" :selectable="true"
       @remove-rows="removeProjects" @remove-all-rows="removeAllProjects">
       <template #row="{ item }: { item: Project }">
-        <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-          {{ item.id }}
-        </td>
         <td class="px-6 py-2">
           {{ item.name }}
         </td>

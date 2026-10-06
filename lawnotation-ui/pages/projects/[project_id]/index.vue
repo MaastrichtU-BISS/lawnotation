@@ -52,9 +52,6 @@
                 }: {
                   item: Task & { assignments: [{ count: number }] };
                 }">
-                  <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-                    {{ item.id }}
-                  </td>
                   <td class="px-6 py-2">
                     {{ item.name }}
                   </td>
@@ -117,9 +114,6 @@
               :search="true" :selectable="true" :skipConfirmDialog="true" @remove-rows="removeDocuments"
               @remove-all-rows="removeAllDocuments">
               <template #row="{ item }: { item: Document }">
-                <td scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap">
-                  {{ item.id }}
-                </td>
                 <td class="px-6 py-2">
                   {{ item.name }}
                 </td>

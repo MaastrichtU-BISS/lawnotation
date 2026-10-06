@@ -8,10 +8,6 @@ export type TableColumn = {
 
 export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures'], Record<string, TableColumn>> = {
   'labelsets': {
-    Id: {
-      field: 'id',
-      sortable: true
-    },
     Name: {
       field: 'name',
       searchable: true,
@@ -26,10 +22,6 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
   },
   
   'projects': {
-    Id: {
-      field: "id",
-      sortable: true,
-    },
     Name: {
       field: "name",
       sortable: true,
@@ -44,10 +36,6 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
   },
 
   'documents': {
-    Id: {
-      field: "id",
-      sortable: true,
-    },
     Name: {
       field: "name",
       sortable: true,
@@ -57,10 +45,6 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
   },
 
   'tasks': {
-    Id: {
-      field: "id",
-      sortable: true,
-    },
     Name: {
       field: "name",
       sortable: true,
@@ -77,10 +61,6 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
   },
 
   'publications': {
-    Id: {
-      field: "id",
-      sortable: true,
-    },
     Task: {
       field: "task_name",
       sortable: true,
@@ -99,10 +79,6 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
   },
 
   'assignments': {
-    Id: {
-      field: "id",
-      sortable: true,
-    },
     Annotator: {
       field: "annotator.email",
       searchable: true
@@ -124,10 +100,6 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
 
 
   'assignedTasks': {
-    Id: {
-      field: 'id',
-      sortable: true,
-    },
     Name: {
       field: 'name',
       sortable: true,
@@ -164,5 +136,21 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
     Action: null
   },
 }
+
+/**
+ * What a table is sorted by before anyone clicks a header. Most are sorted
+ * newest first by id, which is no longer shown as a column — ids mean nothing
+ * to the people using the tables. Endpoints left out sort by their first
+ * sortable column.
+ */
+export const defaultSortColumn: Partial<Record<keyof typeof tableColumns, string>> = {
+  labelsets: "id",
+  projects: "id",
+  documents: "id",
+  tasks: "id",
+  publications: "id",
+  assignments: "id",
+  assignedTasks: "id",
+};
 
 export default tableColumns
