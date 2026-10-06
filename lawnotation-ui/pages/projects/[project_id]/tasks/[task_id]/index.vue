@@ -83,13 +83,13 @@
                 <TreeTable v-else :value="groupByAnnotators.data.value!.data"
                   :totalRecords="groupByAnnotators.data.value!.total" :pt="{
                     table: {
-                      class: 'border-collapse w-full'
+                      class: 'border-collapse w-full table-fixed'
                     }
                   }" v-model:selection-keys="groupByAnnotatorsSelection" selectionMode="checkbox"
                   id="tableGroupByAnnotators" :lazy="true" :paginator="true" :rows="10"
                   :loading="groupByAnnotatorsLoading" @page="groupByAnnotatorsPaginate"
                   @node-expand="onAnnotatorExpand">
-                  <Column columnKey="name" header="Name" expander style="white-space: nowrap; padding-right: 3rem">
+                  <Column columnKey="name" header="Name" expander style="width: 45%; white-space: nowrap; padding-right: 2rem">
                     <template #filter>
                       <InputText v-model="groupByAnnotatorsArgs.filter.name" size="small" type="text"
                         class="p-column-filter font-medium" placeholder="Filter by email" />
@@ -98,36 +98,36 @@
                       <template v-if="node.type == 'annotator' && node.data.name == user!.email">
                         <i class="pi pi-user mr-3 ml-2"></i>
                         <span
-                          class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{
+                          class="px-3 bg-primary-500/20 truncate leading-[1.5rem] rounded-full" :title="node.data.name">{{
                             node.data.name }}</span>
                       </template>
                       <template v-else-if="node.type == 'annotator'">
-                        <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.name }}
+                        <i class="pi pi-user mr-3 ml-2"></i><span class="truncate" :title="node.data.name">{{ node.data.name }}</span>
                       </template>
                       <template v-else-if="node.type == 'more'">
                         <span class="ml-2 text-surface-500">{{ node.data.remaining }} more…</span>
                       </template>
                       <template v-else-if="node.type == 'document'">
                         <i class="pi pi-file mr-3 ml-2" />
-                        <Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />{{ node.data.document_name
-                        }}
+                        <Badge :value="node.data.seq_pos" severity="secondary" class="mr-2" />
+                        <span class="truncate" :title="node.data.document_name">{{ node.data.document_name }}</span>
                       </template>
                     </template>
                   </Column>
-                  <Column columnKey="progress" header="Progress" style="width: 99%;">
+                  <Column columnKey="progress" header="Progress" style="width: 55%;">
                     <template #body="{ node }">
                       <template v-if="node.type == 'annotator'">
-                        <div class="flex justify-between items-center">
-                          <div class="flex">
+                        <div class="w-full flex justify-between items-center gap-4">
+                          <div class="flex items-center flex-1 min-w-0">
                             <span class="whitespace-nowrap mr-4">
                               {{ node.data.amount_done }} / {{ node.data.amount_total }}
                             </span>
-                            <ProgressBar class="w-80" :showValue="false"
+                            <ProgressBar class="flex-1 max-w-80" :showValue="false"
                               :value="Math.round((node.data.amount_done / node.data.amount_total) * 100)" />
                           </div>
                           <NuxtLink
                             v-if="node.data.amount_done < node.data.amount_total && node.data.name == user!.email"
-                            class="ml-5" :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`">
+                            class="shrink-0" :to="`/annotate/${task.id}?seq=${node.data.next_seq_pos}`">
                             <Button label="Annotate Next" size="small" icon="pi pi-pencil" />
                           </NuxtLink>
                         </div>
@@ -138,15 +138,15 @@
                           @click="loadAnnotatorDocuments(node.data.annotator_key)" />
                       </template>
                       <template v-else-if="node.type == 'document'">
-                        <div class="w-full flex justify-between items-center">
-                          <div class="space-x-3">
+                        <div class="w-full flex justify-between items-center gap-4">
+                          <div class="flex items-center gap-3 shrink-0">
                             <Badge :value="node.data.status"
                               :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
-                            <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
+                            <Badge severity="yellow" class="px-2 whitespace-nowrap" v-if="node.data.difficulty_rating > 0">
                               <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
                             </Badge>
                           </div>
-                          <div class="space-x-3">
+                          <div class="flex items-center gap-3 shrink-0">
                             <NuxtLink
                               v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
                               :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
@@ -195,13 +195,13 @@
                 <TreeTable v-else-if="groupByDocuments.data.value" :value="groupByDocuments.data.value!.data"
                   :totalRecords="groupByDocuments.data.value!.total" :pt="{
                     table: {
-                      class: 'border-collapse w-full'
+                      class: 'border-collapse w-full table-fixed'
                     }
                   }" v-model:selection-keys="groupByDocumentsSelection" selectionMode="checkbox"
                   id="tableGroupByDocuments" :lazy="true" :paginator="true" :rows="10"
                   :loading="groupByDocumentsLoading" @page="groupByDocumentsPaginate">
                   <Column columnKey="name" header="Name" sortable expander
-                    style="white-space: nowrap; padding-right: 3rem">
+                    style="width: 45%; white-space: nowrap; padding-right: 2rem">
                     <template #filter>
                       <InputText v-model="groupByDocumentsArgs.filter.document" size="small" type="text"
                         class="p-column-filter font-medium" placeholder="Filter by document" />
@@ -210,25 +210,26 @@
                       <template v-if="node.type == 'annotator' && node.data.name == user!.email">
                         <i class="pi pi-user mr-3 ml-2"></i>
                         <span
-                          class="px-3 bg-primary-500/20 inline-block px-2 leading-[1.5rem] text-center inline-block rounded-full">{{
+                          class="px-3 bg-primary-500/20 truncate leading-[1.5rem] rounded-full" :title="node.data.name">{{
                             node.data.name }}</span>
                       </template>
                       <template v-else-if="node.type == 'annotator'">
-                        <i class="pi pi-user mr-3 ml-2"></i>{{ node.data.name }}
+                        <i class="pi pi-user mr-3 ml-2"></i><span class="truncate" :title="node.data.name">{{ node.data.name }}</span>
                       </template>
                       <template v-else-if="node.type == 'document'">
-                        <i class="pi pi-file mr-2 ml-2" />{{ node.data.document_name }}
-                        <NuxtLink v-if="user?.id == project.editor_id"
+                        <i class="pi pi-file mr-2 ml-2" />
+                        <span class="truncate" :title="node.data.document_name">{{ node.data.document_name }}</span>
+                        <NuxtLink v-if="user?.id == project.editor_id" class="shrink-0"
                           :to="`/projects/${project.id}/tasks/${task.id}/documents/${node.data.document_id}`">
                           <Button label="annotations" link class="text-xs underline" icon=""></Button>
                         </NuxtLink>
                       </template>
                     </template>
                   </Column>
-                  <Column columnKey="progress" header="Progress" sortable style="width: 99%;">
+                  <Column columnKey="progress" header="Progress" sortable style="width: 55%;">
                     <template #body="{ node }">
                       <template v-if="node.type == 'document'">
-                        <div class="flex items-center">
+                        <div class="w-full flex items-center">
                           <span class="whitespace-nowrap mr-4">
                             {{ node.data.amount_done }} / {{ node.data.amount_total }}
                           </span>
@@ -244,16 +245,16 @@
                         </div>
                       </template>
                       <template v-else-if="node.type == 'annotator'">
-                        <div class="flex justify-between items-center">
-                          <div class="space-x-3">
+                        <div class="w-full flex justify-between items-center gap-4">
+                          <div class="flex items-center gap-3 shrink-0">
                             <Badge :value="node.data.status"
                               :severity="node.data.status == AssignmentStatuses.DONE ? 'success' : 'danger'"
                               class="capitalize px-2" />
-                            <Badge value="0" severity="yellow" class="px-2" v-if="node.data.difficulty_rating > 0">
+                            <Badge severity="yellow" class="px-2 whitespace-nowrap" v-if="node.data.difficulty_rating > 0">
                               <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
                             </Badge>
                           </div>
-                          <div class="space-x-3">
+                          <div class="flex items-center gap-3 shrink-0">
                             <NuxtLink
                               v-if="node.data.status == AssignmentStatuses.DONE && node.data.name == user?.email"
                               :to="`/annotate/${task.id}?seq=${node.data.seq_pos}`">
@@ -948,6 +949,14 @@ definePageMeta({
 </script>
 
 <style lang="scss">
+/* long names truncate; the toggle, checkbox and icons beside them keep their size */
+#tableGroupByAnnotators,
+#tableGroupByDocuments {
+  .p-treetable-body-cell-content > :not(.truncate) {
+    flex-shrink: 0;
+  }
+}
+
 /* hide the header columns, but not the filter column (https://stackoverflow.com/a/57236693/17864167) */
 #tableGroupByAnnotators table thead,
 #tableGroupByDocuments table thead {
