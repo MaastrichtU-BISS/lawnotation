@@ -1,5 +1,5 @@
 <template>
-    <div class="max-w-screen-lg mx-auto my-4">
+    <div class="max-w-screen-xl mx-auto my-4">
         <h3 class="mb-2 text-lg font-semibold">Published Data</h3>
         <Table endpoint="publications" :filter="filter" ref="publicationTable" :sort="true" :search="true">
             <template #heading>

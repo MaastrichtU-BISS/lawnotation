@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-screen-lg mx-auto my-8">
+  <div class="max-w-screen-xl mx-auto my-8">
     <GuidancePanel :currentStep="currentGuidanceStep" />
     <div class="flex justify-between">
       <h1 class="mb-2 text-lg font-semibold">Projects</h1>

@@ -22,7 +22,7 @@
                     </button>
                 </a>
             </div>
-            <div class="max-w-screen-lg mx-auto my-4">
+            <div class="max-w-screen-xl mx-auto my-4">
                 <div class="flex items-center justify-center">
                     <label class="relative inline-flex items-center cursor-pointer mb-5">
                         <input type="checkbox" value="" class="sr-only peer" v-model="status">
