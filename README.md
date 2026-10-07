@@ -17,6 +17,15 @@ Some of the most significant features are: assignment allocation, annotation met
 The easiest and quickest way to get started using Lawnotation is to use the hosted version of the platform. You can sign up for free at [lawnotation.org](lawnotation.org). 
 After first sign-in, hints guide you through the application. Refer to the [documentation](https://docs.lawnotation.org/) if additional help is needed.
 
+## Importing tasks
+A task, with its labels, documents, annotators' assignments and existing annotations (pre-annotations, for example), can be imported from a JSON file: in a project, **Add task → Import**. It is the format Lawnotation exports tasks in. Files made by other tools or scripts must follow it exactly: the whole file is checked before anything is created, and a file with any problem is refused with every problem listed.
+
+The format, field by field, with an example and a checklist for generated files, is in [TASK_IMPORT_FORMAT.md](TASK_IMPORT_FORMAT.md). To check a file before uploading it, run this from `lawnotation-ui` (Node.js 22.13 or later):
+
+```
+node --experimental-strip-types scripts/validate-task-import.mjs task.json
+```
+
 ## Self-hosting
 
 > [!NOTE]

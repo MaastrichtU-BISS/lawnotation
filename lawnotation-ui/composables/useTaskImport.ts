@@ -6,7 +6,8 @@ import type {
 	Task,
 	User,
 } from "~/types";
-import { AssignmentStatuses, Origins } from "~/utils/enums";
+import { AnnotationLevels, AssignmentStatuses, Origins } from "~/utils/enums";
+import { validateTaskImport } from "~/utils/taskImportFormat";
 
 export type TaskImportPayload = {
 	json: any;
@@ -41,6 +42,15 @@ export const useTaskImport = ({
 
 	const importTask = async (payload: TaskImportPayload) => {
 		const { json, annotators, assignmentStatus, defaultLabelsetId } = payload;
+		// Checked when the file was picked; checked again so nothing is
+		// created from a file that would only partly import.
+		const problems = validateTaskImport(json);
+		if (problems.length) {
+			toast.error(`This file cannot be imported: ${problems.join("; ")}`);
+			return;
+		}
+		// Document-level tags have no position in the text.
+		const documentLevel = json.annotation_level === AnnotationLevels.DOCUMENT;
 		importProgress.value.loading = true;
 		importProgress.value.message = "Creating Task";
 		importProgress.value.total = 0;
@@ -119,12 +129,12 @@ export const useTaskImport = ({
 					const newAssignments: Omit<Assignment, "id">[] = [];
 
 					json.documents.forEach((d: any, i: number) => {
-						d.assignments.forEach((ass: any) => {
+						(d.assignments ?? []).forEach((ass: any) => {
 							const annotatorId = annotatorIds[ass.annotator - 1] ?? null;
 
 							const newAss: any = {
 								document_id: documentIds[i],
-								difficulty_rating: ass.difficulty_rating,
+								difficulty_rating: ass.difficulty_rating ?? 0,
 								seq_pos: ass.order,
 								status:
 									assignmentStatus == AssignmentStatuses.NONE
@@ -153,22 +163,22 @@ export const useTaskImport = ({
 						let assIndex = 0;
 
 						json.documents.forEach((d: any) => {
-							d.assignments.forEach((ass: any) => {
+							(d.assignments ?? []).forEach((ass: any) => {
 								const assignment = assignments[assIndex];
 								if (!assignment) {
 									assIndex++;
 									return;
 								}
 
-								ass.annotations.forEach((ann: any) => {
+								(ass.annotations ?? []).forEach((ann: any) => {
 									newAnnotations.push({
-										start_index: ann.start,
-										end_index: ann.end,
+										start_index: documentLevel ? 0 : ann.start,
+										end_index: documentLevel ? 0 : ann.end,
 										label: ann.label,
-										text: ann.text,
+										text: documentLevel ? "" : ann.text,
 										assignment_id: assignment.id,
 										origin: Origins.IMPORTED,
-										confidence_rating: ann.confidence_rating,
+										confidence_rating: ann.confidence_rating ?? 0,
 										metadata: ann.metadata ?? null,
 									});
 								});
@@ -189,10 +199,10 @@ export const useTaskImport = ({
 							let annIndex = 0;
 
 							json.documents.forEach((d: any) => {
-								d.assignments.forEach((ass: any) => {
+								(d.assignments ?? []).forEach((ass: any) => {
 									let currentAnn = 0;
-									ass.annotations.forEach((ann: any) => {
-										ann.relations.forEach((rel: any) => {
+									(ass.annotations ?? []).forEach((ann: any) => {
+										(ann.relations ?? []).forEach((rel: any) => {
 											newRelations.push({
 												from_id: annotations[annIndex + currentAnn].id,
 												to_id: annotations[annIndex + rel.to].id,
@@ -221,7 +231,7 @@ export const useTaskImport = ({
 						const byAnnotatorAndOrder = new Map<string, number>();
 						let k = 0;
 						json.documents.forEach((d: any) => {
-							d.assignments.forEach((ass: any) => {
+							(d.assignments ?? []).forEach((ass: any) => {
 								if (assignments[k]) byAnnotatorAndOrder.set(`${ass.annotator}:${ass.order}`, assignments[k].id);
 								k++;
 							});
@@ -229,7 +239,7 @@ export const useTaskImport = ({
 
 						const documentRelations: { from_assignment_id: number; to_assignment_id: number; labels: any[] }[] = [];
 						json.documents.forEach((d: any) => {
-							d.assignments.forEach((ass: any) => {
+							(d.assignments ?? []).forEach((ass: any) => {
 								const from = byAnnotatorAndOrder.get(`${ass.annotator}:${ass.order}`);
 								for (const rel of ass.document_relations ?? []) {
 									const to = byAnnotatorAndOrder.get(`${ass.annotator}:${rel.to_order}`);

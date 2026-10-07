@@ -14,7 +14,7 @@ const ZAnnotationFields = z.object({
   text: z.string(),
   origin: z.nativeEnum(Origins).nullable().optional(),
   metadata: z.string().nullable().optional(),
-  confidence_rating: z.number().int().optional()
+  confidence_rating: z.number().int().min(0).max(5).optional()
 });
 
 export const annotationRouter = router({

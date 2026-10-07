@@ -179,7 +179,7 @@ export const assignmentRouter = router({
             document_id: z.number().int(),
             status: z.nativeEnum(AssignmentStatuses).optional(),
             seq_pos: z.number().int().optional(),
-            difficulty_rating: z.number().int().optional(),
+            difficulty_rating: z.number().int().min(0).max(5).optional(),
             annotator_number: z.number().int().optional(),
             origin: z.nativeEnum(Origins).optional(),
             original_task_id: z.number().int().nullable().optional()

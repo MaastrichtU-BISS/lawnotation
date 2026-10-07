@@ -13,6 +13,7 @@
     "generate": "nuxt generate",
     "playwright": "pnpm exec playwright test",
     "playwright-ui": "pnpm exec playwright test --ui",
+    "test:unit": "node --test --experimental-strip-types --no-warnings tests/unit/*.test.mjs",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "supabase-studio": "open-cli http://localhost:54323",

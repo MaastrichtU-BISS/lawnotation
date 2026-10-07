@@ -94,7 +94,7 @@
       </TabPanel>
       <TabPanel :value="1">
         <div v-if="!uploadHasStarted" class="pt-6">
-          <FileUpload customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
+          <FileUpload ref="taskFileUpload" customUpload @uploader="loadExportTaskFile($event)" :multiple="false" accept=".json"
             chooseLabel="Select" :pt="{
               chooseButton: {
                 'data-test': 'choose-task',
@@ -121,6 +121,15 @@
               </div>
             </template>
           </FileUpload>
+          <div v-if="importErrors.length" data-test="import-errors"
+            class="mt-4 p-3 border border-red-300 bg-red-50 text-red-800 rounded-md text-sm">
+            <p class="font-semibold mb-2">
+              This file cannot be imported. Nothing was created. Fix the following and upload it again:
+            </p>
+            <ul class="list-disc pl-5 space-y-1 max-h-64 overflow-y-auto break-words font-mono text-xs">
+              <li v-for="error in importErrors" :key="error">{{ error }}</li>
+            </ul>
+          </div>
         </div>
         <div v-else>
           <div class="text-center">
@@ -179,6 +188,7 @@ import type { Task, Labelset as LabelsetType, MlModel } from "~/types";
 import Labelset from "~/components/labels/Labelset.vue";
 import { AnnotationLevels, AssignmentStatuses } from "~/utils/enums";
 import type { TaskImportPayload } from "~/composables/useTaskImport";
+import { validateTaskImport } from "~/utils/taskImportFormat";
 import Select from "primevue/select";
 import SelectButton from "primevue/selectbutton";
 import Tabs from "primevue/tabs";
@@ -228,6 +238,9 @@ const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
 });
 
 const importJson = ref<any>(null);
+// Why the selected file was refused, one line per kind of problem.
+const importErrors = ref<string[]>([]);
+const taskFileUpload = ref<{ clear: () => void }>();
 const newAnnotators = ref<string[]>([]);
 
 const newTask = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "annotation_level">>({
@@ -351,6 +364,7 @@ const createTask = async () => {
 
 const resetModal = () => {
   uploadHasStarted.value = false;
+  importErrors.value = [];
   newAnnotators.value.splice(0);
   activeTabTaskModal.value = 0;
   newTask.name = "";
@@ -368,12 +382,31 @@ const loadExportTaskFile = async (event: { files: File | File[] | FileList }) =>
     : event.files instanceof FileList
       ? Array.from(event.files)
       : [event.files];
-  const file = files[0];
+  const file = files[files.length - 1];
   if (!file) {
     return;
   }
+  // A refused file leaves the picker empty, so the corrected one is read next.
+  const refuse = (errors: string[]) => {
+    importErrors.value = errors;
+    taskFileUpload.value?.clear();
+  };
 
-  importJson.value = JSON.parse(await file.text());
+  importErrors.value = [];
+  importJson.value = null;
+  let json: unknown;
+  try {
+    json = JSON.parse(await file.text());
+  } catch (error) {
+    refuse([`The file is not valid JSON: ${(error as Error).message}`]);
+    return;
+  }
+  const errors = validateTaskImport(json);
+  if (errors.length) {
+    refuse(errors);
+    return;
+  }
+  importJson.value = json;
 
   if (importJson.value.counts?.assignments) {
     if (!importJson.value.documents[0]?.assignments[0]?.status) {
