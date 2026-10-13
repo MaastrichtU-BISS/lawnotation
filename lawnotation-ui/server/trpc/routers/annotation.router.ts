@@ -3,7 +3,7 @@ import { z } from "zod";
 import { protectedProcedure, disabledProcedure, router, authorizer } from "~/server/trpc";
 import type { Annotation } from "~/types";
 import { Origins } from "~/utils/enums";
-import { assignmentEditorOrAnnotatorAuthorizer, taskEditorAuthorizer } from "../authorizers";
+import { assignmentEditorOrAnnotatorAuthorizer, assignmentsEditorOrAnnotatorAuthorizer, taskEditorAuthorizer } from "../authorizers";
 import { TRPCForbidden } from "../errors"
 
 const ZAnnotationFields = z.object({
@@ -100,13 +100,11 @@ export const annotationRouter = router({
     .input(z.array(ZAnnotationFields))
     .mutation(async ({ ctx, input }) => {
 
-      // authorization
-      const assignmentIds = [...new Set(input.map(x => x.assignment_id))];
-      for (let assId of assignmentIds) {
-        const access = await assignmentEditorOrAnnotatorAuthorizer(assId, ctx.user.id, ctx)
-        if (!access) {
-          throw TRPCForbidden()
-        }
+      const access = await assignmentsEditorOrAnnotatorAuthorizer(
+        input.map(x => x.assignment_id), ctx.user.id, ctx
+      )
+      if (!access) {
+        throw TRPCForbidden()
       }
 
       const { data, error } = await ctx.supabase
