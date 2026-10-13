@@ -26,6 +26,15 @@ const ZDocumentFields = z.object({
   full_text: z.string()
 });
 
+// Postgres text cannot hold NUL (the insert fails with "unsupported
+// Unicode escape sequence"), and it turns up in real uploads: pdfjs emits
+// it for glyphs some fonts leave unmapped, and a .txt can contain it.
+// Removed before storing, so annotation offsets match what is saved.
+const withoutNul = <T extends { full_text: string }>(document: T): T => ({
+  ...document,
+  full_text: document.full_text.replace(/\u0000/g, ""),
+});
+
 export const documentRouter = router({
   /* General Crud Definitions */
   find: disabledProcedure
@@ -109,14 +118,9 @@ export const documentRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      // Postgres text cannot hold NUL (the insert fails with "unsupported
-      // Unicode escape sequence"), and it turns up in real uploads: pdfjs emits
-      // it for glyphs some fonts leave unmapped, and a .txt can contain it.
-      // Removed before storing, so annotation offsets match what is saved.
-      const document = { ...input.document, full_text: input.document.full_text.replace(/\u0000/g, "") };
       const { data, error } = await ctx.supabase
         .from("documents")
-        .insert(document)
+        .insert(withoutNul(input.document))
         .select()
         .single();
 
@@ -126,6 +130,39 @@ export const documentRouter = router({
           message: `Error in documents.create: ${error.message}`,
         });
       return data as Document;
+    }),
+
+  // Returns the documents in the order given, which the task import relies on
+  // to attach assignments to the right document.
+  createMany: protectedProcedure
+    .input(
+      z.object({
+        project_id: z.number().int(),
+        documents: z.array(ZDocumentFields.omit({ project_id: true })).min(1),
+      })
+    )
+    .use((opts) =>
+      authorizer(opts, () =>
+        projectEditorAuthorizer(opts.input.project_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .mutation(async ({ ctx, input }) => {
+      const documents = input.documents.map((d) =>
+        withoutNul({ ...d, project_id: input.project_id })
+      );
+      const { data, error } = await ctx.supabase
+        .from("documents")
+        .insert(documents)
+        .select();
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in documents.createMany: ${error.message}`,
+        });
+      // Ids come from a sequence in row order, so sorting by id restores
+      // the input order whatever order Postgres returns the rows in.
+      return (data as Document[]).sort((a, b) => a.id - b.id);
     }),
 
   update: disabledProcedure
