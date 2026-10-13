@@ -87,19 +87,22 @@ export const useTaskImport = ({
 				importProgress.value.current = 0;
 
 				const documentIds: number[] = [];
+				const documentChunkSize = 50;
+				const docs = json.documents as Omit<Document, "id">[];
 
-				for (const doc of json.documents as Omit<Document, "id">[]) {
-					const uploadedDoc = await trpc.document.create.mutate({
-						document: {
+				for (let i = 0; i < docs.length; i += documentChunkSize) {
+					const chunk = docs.slice(i, i + documentChunkSize);
+					const uploadedDocs = await trpc.document.createMany.mutate({
+						project_id: projectId,
+						documents: chunk.map((doc) => ({
 							name: doc.name,
 							full_text: doc.full_text,
 							source: Origins.IMPORTED,
-							project_id: projectId,
-						},
+						})),
 					});
 
-					documentIds.push(uploadedDoc.id);
-					importProgress.value.current++;
+					documentIds.push(...uploadedDocs.map((d: Document) => d.id));
+					importProgress.value.current += chunk.length;
 				}
 
 				importProgress.value.total = 0;
