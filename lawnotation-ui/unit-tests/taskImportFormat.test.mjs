@@ -1,7 +1,7 @@
 // pnpm test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateTaskImport } from "../../utils/taskImportFormat.ts";
+import { validateTaskImport } from "../utils/taskImportFormat.ts";
 
 const TEXT = "The Seller shall deliver the goods. The Buyer shall pay.";
 
