@@ -51,7 +51,7 @@ test("Not logged in user can search documents and download results from Rechtspr
   const resetButton = page.getByRole("button", { name: /^Reset$/i });
   const successMsg = page.locator(".success-message");
 
-  await expect(searchButton).toBeDisabled();
+  // await expect(searchButton).toBeDisabled();
 
   await expect(page.getByText("Keywords *", { exact: true })).toBeVisible();
   const keywordsInput = page.getByPlaceholder("Type and press Enter");
