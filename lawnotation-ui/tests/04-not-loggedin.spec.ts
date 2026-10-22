@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("Not logged in user can search documents and download results", async ({
+test("Not logged in user can search documents and download results from Rechtspraak", async ({
   page,
 }) => {
   test.setTimeout(120000);
