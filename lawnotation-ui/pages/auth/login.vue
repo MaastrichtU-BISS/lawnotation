@@ -34,7 +34,7 @@
 
         <div>
           <button
-            :disabled="loading"
+            :disabled="loading || !isHydrated"
             :class="{ 'cursor-wait': loading }"
             @click="signIn()"
             type="button"
@@ -137,9 +137,14 @@ const supabase = useSupabaseClient()
 const stage = ref<'EMAIL' | 'TOKEN'>('EMAIL')
 
 const loading = ref(false);
+const isHydrated = ref(false);
 
 const email = ref<string>("");
 const token = ref<string>("");
+
+onMounted(() => {
+  isHydrated.value = true;
+});
 
 const verifyToken = () => {
   loading.value = true;

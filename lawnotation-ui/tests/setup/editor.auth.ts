@@ -14,8 +14,14 @@ setup("Authenticate as editor", async ({ context, page }) => {
   const emailField = page.getByTestId("email-field-to-login");
   await expect(emailField).toBeVisible();
 
+  const sendCodeButton = page.getByTestId("login-button");
+  await expect(sendCodeButton).toBeEnabled();
+
   await emailField.fill(email);
   console.log("Filled email:", email);
+
+  await sendCodeButton.click();
+  console.log("Triggered OTP request");
 
   const otpLoginResponsePromise = page.waitForResponse((response) => {
     const url = response.url();
@@ -24,9 +30,6 @@ setup("Authenticate as editor", async ({ context, page }) => {
       url.includes("/api/trpc/user.otpLogin")
     );
   });
-
-  await page.getByRole("button", { name: /send code/i }).click();
-  console.log("Triggered OTP request");
 
   const otpLoginResponse = await otpLoginResponsePromise;
 
