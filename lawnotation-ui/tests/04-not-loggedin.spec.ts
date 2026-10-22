@@ -51,6 +51,12 @@ test("Not logged in user can search documents and download results from Rechtspr
   const resetButton = page.getByRole("button", { name: /^Reset$/i });
   const successMsg = page.locator(".success-message");
 
+  await expect(searchButton).toBeDisabled();
+
+  await expect(page.getByText("Keywords *", { exact: true })).toBeVisible();
+  const keywordsInput = page.getByPlaceholder("Type and press Enter");
+  await expect(keywordsInput).toBeEditable();
+
   const runSearchAndExpectZipDownload = async () => {
     await expect(searchButton).toBeEnabled();
     const [download] = await Promise.all([
@@ -63,31 +69,24 @@ test("Not logged in user can search documents and download results from Rechtspr
     await expect(searchButton).toBeEnabled();
   };
 
-  const resetAndEnterKeyword = async (keyword: string) => {
-    await resetButton.click();
-    await keywordsInput.fill(keyword);
-    await keywordsInput.press("Enter");
-  };
+  await keywordsInput.fill("pokemon");
+  await keywordsInput.press("Enter");
+  await runSearchAndExpectZipDownload();
 
   const getFetchedCount = async () => {
     const text = await successMsg.textContent();
     return parseInt(text!.match(/(\d+) document/)?.[1] ?? "0");
   };
 
-
-  await expect(searchButton).toBeDisabled();
-
-  await expect(page.getByText("Keywords *", { exact: true })).toBeVisible();
-  const keywordsInput = page.getByPlaceholder("Type and press Enter");
-  await expect(keywordsInput).toBeEditable();
-
-  await keywordsInput.fill("pokemon");
-  await keywordsInput.press("Enter");
-  await runSearchAndExpectZipDownload();
-
   await expect(successMsg).toBeVisible({ timeout: 10000 });
   const unfilteredCount = await getFetchedCount();
   expect(unfilteredCount).toBeGreaterThan(0);
+
+  const resetAndEnterKeyword = async (keyword: string) => {
+    await resetButton.click();
+    await keywordsInput.fill(keyword);
+    await keywordsInput.press("Enter");
+  };
 
   await resetAndEnterKeyword("pokemon");
 
@@ -159,7 +158,9 @@ test("Not logged in user can search documents and download results from Rechtspr
 
   await resetButton.click();
 
-  await expect(page.getByText("ECLIs * (comma-separated)", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("ECLIs * (comma-separated)", { exact: true }),
+  ).toBeVisible();
   const eclisInput = page.getByRole("textbox", { name: /ECLIs/i });
   await expect(eclisInput).toBeEditable();
   await eclisInput.fill("ECLI:NL:RBLIM:2023:7197");
