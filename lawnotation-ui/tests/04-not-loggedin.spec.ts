@@ -42,7 +42,7 @@ test("Not logged in user can search documents and download results from Rechtspr
 
   await expect(page.getByText("Dataset")).toBeVisible();
   await expect(rechtspraakButton).toBeEnabled();
-  await expect(echrButton).toBeDisabled();
+  await expect(echrButton).toBeEnabled();
   await expect(cjeuButton).toBeDisabled();
 
   const searchButton = page.getByRole("button", {
