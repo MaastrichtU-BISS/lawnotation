@@ -43,7 +43,7 @@ export type TaskExportData = {
     ann_guidelines: string;
     annotation_level: string | null;
   };
-  labelset: { name: string; desc: string; labels: Label[] };
+  labelset: { name: string; desc: string; labels: Label[]; relation_labels: string[] | null };
   documents: RichDocument[];
 };
 
@@ -64,7 +64,7 @@ export async function buildTaskExportData(
     await Promise.all([
       supabase
         .from("labelsets")
-        .select("name, desc, labels")
+        .select("name, desc, labels, relation_labels")
         .eq("id", task.labelset_id!)
         .single(),
       supabase.rpc("get_all_docs_from_task", { t_id: task_id }),
@@ -186,6 +186,7 @@ export async function buildTaskExportData(
       name: labelsetRes.data!.name ?? "",
       desc: labelsetRes.data!.desc ?? "",
       labels: (labelsetRes.data!.labels as Label[] | null) ?? [],
+      relation_labels: labelsetRes.data!.relation_labels ?? null,
     },
     documents: Array.from(documentsById.values()),
   };
@@ -205,6 +206,7 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
       name: data.labelset.name,
       desc: data.labelset.desc,
       labels: data.labelset.labels,
+      relation_labels: data.labelset.relation_labels,
     };
     if (options.ann_guidelines) json.ann_guidelines = data.task.ann_guidelines;
   }

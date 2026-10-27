@@ -40,7 +40,7 @@ export type Database = {
           direction: Database["public"]["Enums"]["relation_directions"] | null
           from_id: number | null
           id: number
-          labels: Database["public"]["Enums"]["relation_labels"][] | null
+          labels: string[] | null
           to_id: number | null
         }
         Insert: {
@@ -48,7 +48,7 @@ export type Database = {
           direction?: Database["public"]["Enums"]["relation_directions"] | null
           from_id?: number | null
           id?: number
-          labels?: Database["public"]["Enums"]["relation_labels"][] | null
+          labels?: string[] | null
           to_id?: number | null
         }
         Update: {
@@ -56,7 +56,7 @@ export type Database = {
           direction?: Database["public"]["Enums"]["relation_directions"] | null
           from_id?: number | null
           id?: number
-          labels?: Database["public"]["Enums"]["relation_labels"][] | null
+          labels?: string[] | null
           to_id?: number | null
         }
         Relationships: [
@@ -192,21 +192,21 @@ export type Database = {
           created_at: string
           from_assignment_id: number
           id: number
-          labels: Database["public"]["Enums"]["relation_labels"][]
+          labels: string[]
           to_assignment_id: number
         }
         Insert: {
           created_at?: string
           from_assignment_id: number
           id?: number
-          labels?: Database["public"]["Enums"]["relation_labels"][]
+          labels?: string[]
           to_assignment_id: number
         }
         Update: {
           created_at?: string
           from_assignment_id?: number
           id?: number
-          labels?: Database["public"]["Enums"]["relation_labels"][]
+          labels?: string[]
           to_assignment_id?: number
         }
         Relationships: [
@@ -272,6 +272,7 @@ export type Database = {
           id: number
           labels: Json | null
           name: string | null
+          relation_labels: string[] | null
         }
         Insert: {
           created_at?: string | null
@@ -280,6 +281,7 @@ export type Database = {
           id?: number
           labels?: Json | null
           name?: string | null
+          relation_labels?: string[] | null
         }
         Update: {
           created_at?: string | null
@@ -288,6 +290,7 @@ export type Database = {
           id?: number
           labels?: Json | null
           name?: string | null
+          relation_labels?: string[] | null
         }
         Relationships: [
           {

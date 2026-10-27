@@ -166,6 +166,40 @@ test("relations point at another annotation of the same assignment", () => {
   expectProblem(task, 'labels[0]: must be one of "Is a"', 'direction: must be one of "right", "left", "bi"');
 });
 
+test("a labelset's own relation labels replace the defaults", () => {
+  let task = spanTask();
+  task.labelset.relation_labels = ["Sells to"];
+  firstSpan(task).relations[0].labels = ["Sells to"];
+  assert.deepEqual(validateTaskImport(task), []);
+
+  task = spanTask();
+  task.labelset.relation_labels = ["Sells to"];
+  expectProblem(task, 'labels[0]: must be one of "Sells to"');
+
+  task = documentTask();
+  task.labelset.relation_labels = ["Cites"];
+  task.documents[0].assignments[0].document_relations[0].labels = ["Cites"];
+  assert.deepEqual(validateTaskImport(task), []);
+
+  task = spanTask();
+  task.labelset.relation_labels = null;
+  assert.deepEqual(validateTaskImport(task), []);
+
+  for (const bad of [[], ["A", "A"], [""], "Is a"]) {
+    task = spanTask();
+    task.labelset.relation_labels = bad;
+    expectProblem(task, "labelset.relation_labels");
+  }
+});
+
+test("without a labelset any relation label is accepted", () => {
+  const task = spanTask();
+  delete task.labelset;
+  firstSpan(task).relations[0].labels = ["Sells to"];
+  const problems = validateTaskImport(task);
+  assert.ok(!problems.some((p) => p.includes("relations[0].labels")), problems.join("\n"));
+});
+
 test("HTML-based annotations are refused", () => {
   const task = spanTask();
   firstSpan(task).html_metadata = { start: "/p[1]/text()[1]", end: "/p[1]/text()[1]", startOffset: 0, endOffset: 4 };

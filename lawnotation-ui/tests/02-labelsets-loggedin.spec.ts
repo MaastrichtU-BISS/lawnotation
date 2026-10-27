@@ -18,15 +18,16 @@ test("Editor creates, edits, and deletes labelset", async ({ browser }) => {
     .fill("Labelset description");
   await editorPage.getByTestId("label-name").fill("First label");
   await editorPage.getByTestId("add-label").click();
-  await expect(editorPage.getByText("First label")).toBeVisible();
+  const labels = editorPage.getByTestId("label");
+  await expect(labels.last()).toHaveValue("First label");
   await editorPage.getByTestId("label-name").fill("Second label");
   await editorPage.getByTestId("add-label").click();
-  await expect(editorPage.getByText("Second label")).toBeVisible();
+  await expect(labels.last()).toHaveValue("Second label");
   await editorPage.getByTestId("delete-label").last().click();
-  await expect(editorPage.getByText("Second label")).not.toBeVisible();
+  await expect(labels).toHaveCount(1);
   await editorPage.getByTestId("label-name").fill("Second label");
   await editorPage.getByTestId("add-label").click();
-  await expect(editorPage.getByText("Second label")).toBeVisible();
+  await expect(labels.last()).toHaveValue("Second label");
   await editorPage.getByTestId("labelset-name").fill("Test labelset edited");
   await editorPage.getByTestId("save-labelset").click();
   // Wait for table to be visible and overlays to be gone

@@ -1,13 +1,6 @@
 export type RelationDirection = "bi" | "left" | "right"
-export type RelationLabel =  
-  | "Is a"
-  | "Has a"
-  | "Belongs to"
-  | "Implies"
-  | "Depends on"
-  | "Related to"
-  | "Is not"
-  | "Part of"
+/** Any label the task's labelset offers for relations. */
+export type RelationLabel = string;
 
 export type AnnotationRelation = {
   id: number,

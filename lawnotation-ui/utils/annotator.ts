@@ -34,7 +34,7 @@ type SaveInput = inferRouterInputs<AppRouter>["annotator"]["save"];
 
 /**
  * Stores what the kit hands over. The kit types relation labels as plain
- * strings; the server checks them against the relation_labels enum.
+ * strings; the server checks their length.
  */
 export function saveKitAssignment(trpc: any, assignment: Assignment): Promise<boolean> {
   const input: SaveInput = {
