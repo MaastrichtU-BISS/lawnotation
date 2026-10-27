@@ -21,7 +21,7 @@ export const RELATION_LABELS = [
 export const CONFIDENCE_MAX = 5;
 
 const TOP_KEYS = ["name", "desc", "ann_guidelines", "labelset", "annotation_level", "documents", "counts", "ml_model_id"];
-const LABELSET_KEYS = ["name", "desc", "labels"];
+const LABELSET_KEYS = ["name", "desc", "labels", "relation_labels"];
 const LABEL_KEYS = ["name", "color"];
 const DOCUMENT_KEYS = ["name", "full_text", "assignments"];
 const ASSIGNMENT_KEYS = ["annotator", "order", "status", "difficulty_rating", "annotations", "document_relations"];
@@ -73,10 +73,16 @@ export function validateTaskImport(json: unknown): string[] {
     if (!isInt(v) || v < 0 || v > CONFIDENCE_MAX)
       fail(path, `must be a whole number from 0 to ${CONFIDENCE_MAX} (stars), got ${show(v)}`);
   };
+  // Relation labels a relation may use: the file's labelset's own, else the
+  // default set; null when the file brings no labelset (the project's is
+  // used then, and its relation labels can't be checked here).
+  let allowedRelationLabels: readonly string[] | null = null;
   const relationLabels = (v: unknown, path: string) => {
     if (!Array.isArray(v)) return fail(path, `must be a list of relation labels, got ${show(v)}`);
     v.forEach((l, i) => {
-      if (!RELATION_LABELS.includes(l)) fail(`${path}[${i}]`, `must be one of ${RELATION_LABELS.map((x) => `"${x}"`).join(", ")}, got ${show(l)}`);
+      if (allowedRelationLabels === null) return nonEmptyString(l, `${path}[${i}]`);
+      if (!allowedRelationLabels.includes(l))
+        fail(`${path}[${i}]`, `must be one of ${allowedRelationLabels.map((x) => `"${x}"`).join(", ")}, got ${show(l)}`);
     });
   };
   const done = () => {
@@ -123,6 +129,17 @@ export function validateTaskImport(json: unknown): string[] {
       unknownKeys(ls, LABELSET_KEYS, "labelset");
       nonEmptyString(ls.name, "labelset.name");
       optionalString(ls, "desc", "labelset.");
+      allowedRelationLabels = RELATION_LABELS;
+      if (ls.relation_labels !== undefined && ls.relation_labels !== null) {
+        if (!Array.isArray(ls.relation_labels) || !ls.relation_labels.length)
+          fail("labelset.relation_labels", `must be null or a non-empty list of names, got ${show(ls.relation_labels)}`);
+        else {
+          ls.relation_labels.forEach((name: unknown, i: number) => nonEmptyString(name, `labelset.relation_labels[${i}]`));
+          if (new Set(ls.relation_labels).size !== ls.relation_labels.length)
+            fail("labelset.relation_labels", "lists a relation label twice");
+          allowedRelationLabels = ls.relation_labels;
+        }
+      }
       if (!Array.isArray(ls.labels) || !ls.labels.length) fail("labelset.labels", "must be a non-empty list of labels");
       else {
         labelNames = new Set();

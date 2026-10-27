@@ -110,6 +110,7 @@ Only the fields below are allowed. Any other field is refused, so a misspelt nam
 | `name` | yes | Labelset name. |
 | `desc` | no | Description. |
 | `labels` | yes | At least one `{ "name": "...", "color": "#rrggbb" }`. Names must be unique. Colours are 6-digit hex. |
+| `relation_labels` | no | The labels relations may carry, as a list of unique names, for example `["Cites", "Overrules"]`. Absent or `null` means the default eight listed under relations below. |
 
 ### Document (`documents[]`)
 
@@ -158,7 +159,7 @@ On a **document-level** task (`"annotation_level": "document"`), an annotation i
 |---|---|---|
 | `to` | yes | Index, from 0, of the target annotation in the **same assignment's** `annotations` list. Not itself, and at most one relation per target. |
 | `direction` | yes | `"right"` (from this annotation to the target), `"left"` (from the target to this one) or `"bi"` (both ways). |
-| `labels` | yes | Zero or more of: `"Is a"`, `"Has a"`, `"Belongs to"`, `"Implies"`, `"Depends on"`, `"Related to"`, `"Is not"`, `"Part of"`. |
+| `labels` | yes | Zero or more of the labelset's `relation_labels`; by default `"Is a"`, `"Has a"`, `"Belongs to"`, `"Implies"`, `"Depends on"`, `"Related to"`, `"Is not"`, `"Part of"`. |
 
 ### Document relation (`assignments[].document_relations[]`)
 
@@ -191,7 +192,7 @@ Files exported while Lawnotation used Label Studio also have `ls_id` and `html_m
 
 - `full_text` is plain text, and every annotation's `text` is exactly `full_text[start:end]`.
 - Confidence values are whole numbers from 0 to 5.
-- Every label used is in `labelset.labels`.
+- Every label used is in `labelset.labels`, and every relation label in `labelset.relation_labels` (or the default eight).
 - Each annotator's documents have orders 1, 2, 3, ... with no repeats.
 - `counts` matches the file.
 - No fields beyond those listed above.
