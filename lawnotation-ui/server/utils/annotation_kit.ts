@@ -189,7 +189,7 @@ export async function storeKitAssignment(
           if (from === undefined || to === undefined) continue;
           await tx`
             INSERT INTO annotation_relations (from_id, to_id, direction, labels)
-            VALUES (${from}, ${to}, ${r.direction}::relation_directions, ${r.labels}::text[]::relation_labels[])
+            VALUES (${from}, ${to}, ${r.direction}::relation_directions, ${r.labels}::text[])
           `;
         }
       }
@@ -212,7 +212,7 @@ export async function storeKitAssignment(
         if (!allowed.has(to)) continue;
         await tx`
           INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)
-          VALUES (${assignmentId}, ${to}, ${r.labels}::text[]::relation_labels[])
+          VALUES (${assignmentId}, ${to}, ${r.labels}::text[])
           ON CONFLICT (from_assignment_id, to_assignment_id) DO UPDATE SET labels = EXCLUDED.labels
         `;
       }
@@ -255,7 +255,7 @@ export async function copyDocumentRelations(
     if (!from || !to) continue;
     await sql`
       INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)
-      VALUES (${from}, ${to}, ${r.labels}::text[]::relation_labels[])
+      VALUES (${from}, ${to}, ${r.labels}::text[])
       ON CONFLICT (from_assignment_id, to_assignment_id) DO NOTHING
     `;
   }

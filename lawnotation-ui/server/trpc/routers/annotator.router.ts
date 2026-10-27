@@ -17,22 +17,12 @@ import {
   type DbRelation,
 } from "~/server/utils/annotation_kit";
 import { AnnotationLevels } from "~/utils/enums";
+import { ZRelationLabel } from "~/server/utils/relation_label";
 
 // What legal-annotation-kit loads and saves, in its own JSON format. The
 // conversion to and from lawnotation's tables is in server/utils/annotation_kit.
 
 const ZConfidence = z.number().int().min(0).max(5);
-const ZRelationLabel = z.enum([
-  "Is a",
-  "Has a",
-  "Belongs to",
-  "Implies",
-  "Depends on",
-  "Related to",
-  "Is not",
-  "Part of",
-]);
-
 const ZKitAssignment = z.object({
   status: z.string(),
   confidence: ZConfidence,
