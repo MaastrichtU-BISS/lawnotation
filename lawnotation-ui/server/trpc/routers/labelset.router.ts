@@ -3,6 +3,8 @@ import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
 import type { Labelset } from "~/types";
 import { labelsetEditorOrAnnotatorAuthorizer } from "../authorizers";
+import { validateLabelset } from "vue-labelset-editor/model";
+import { lockedNamesChanged } from "~/server/utils/labelset_lock";
 
 const ZLabelsetFields = z.object({
   name: z.string(),
@@ -14,7 +16,17 @@ const ZLabelsetFields = z.object({
       color: z.string(),
     })
   ),
+  relation_labels: z.array(z.string()).nullable().optional(),
 });
+
+function assertValid(labelset: z.infer<typeof ZLabelsetFields>) {
+  const issues = validateLabelset(labelset);
+  if (issues.length)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: issues.map((i) => (i.index === undefined ? i.message : `${i.field} ${i.index + 1}: ${i.message}`)).join("; "),
+    });
+}
 
 export const labelsetRouter = router({
   /* General Crud Definitions */
@@ -66,6 +78,7 @@ export const labelsetRouter = router({
   create: protectedProcedure
     .input(ZLabelsetFields)
     .mutation(async ({ ctx, input }) => {
+      assertValid(input);
       const { data, error } = await ctx.supabase
         .from("labelsets")
         .insert({...input, editor_id: ctx.user.id})
@@ -88,6 +101,24 @@ export const labelsetRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const { data: current } = await ctx.supabase
+        .from("labelsets")
+        .select("name, desc, labels, relation_labels")
+        .eq("id", input.id)
+        .eq("editor_id", ctx.user.id)
+        .single();
+      if (!current) throw new TRPCError({ code: "NOT_FOUND" });
+      const before = current as z.infer<typeof ZLabelsetFields>;
+      const after = { ...before, ...input.updates };
+      assertValid(after);
+
+      const { count } = await ctx.supabase
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("labelset_id", input.id);
+      const locked = count ? lockedNamesChanged(before, after) : null;
+      if (locked) throw new TRPCError({ code: "BAD_REQUEST", message: locked });
+
       const { data, error } = await ctx.supabase
         .from("labelsets")
         .update(input.updates)
