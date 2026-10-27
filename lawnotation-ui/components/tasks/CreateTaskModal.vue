@@ -235,6 +235,7 @@ const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
   name: "",
   desc: "",
   labels: [],
+  relation_labels: null,
 });
 
 const importJson = ref<any>(null);

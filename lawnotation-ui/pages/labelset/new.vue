@@ -13,6 +13,7 @@ const labelset = ref({
   name: "",
   desc: "",
   labels: [],
+  relation_labels: null,
 });
 
 const crumbs = computed(() => [
