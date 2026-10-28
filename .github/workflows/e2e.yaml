@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/github-action-with-playwright
+  workflow_dispatch
 
 jobs:
   playwright:
