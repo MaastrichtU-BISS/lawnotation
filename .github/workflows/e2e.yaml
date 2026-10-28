@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - feat/github-action-with-playwright
-  workflow_dispatch
+  workflow_dispatch:
 
 jobs:
   playwright:
@@ -45,10 +45,9 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 2.90.0
-          
+
       - name: Start Supabase local stack
         run: supabase start
-
 
       - name: Restart Mailpit with SMTP port exposed
         run: |
@@ -134,7 +133,7 @@ jobs:
           done
           echo "Supabase API not ready"
           exit 1
-        
+
       - name: Show running containers
         if: always()
         run: docker ps -a
