@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
+import { ZRelationLabel } from '~/server/utils/relation_label'
 import type { Sql } from 'postgres'
 import { protectedProcedure, disabledProcedure, router, authorizer } from '~/server/trpc'
 import type { AnnotationRelation } from '~/types';
@@ -8,17 +9,6 @@ import { TRPCForbidden } from '../errors';
 import { taskEditorAuthorizer } from '../authorizers';
 
 const ZRelationDirection = z.enum(["bi", "left", "right"])
-const ZRelationLabel = z.enum([
-  "Is a",
-  "Has a",
-  "Belongs to",
-  "Implies",
-  "Depends on",
-  "Related to",
-  "Is not",
-  "Part of",
-]);
-
 const ZRelationFields = z.object({
   // id: z.number,
   from_id: z.number().int(),
@@ -89,7 +79,7 @@ export const relationRouter = router({
         for (const r of input.relations) {
           const inserted = await tx`
             INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)
-            SELECT f.id, t.id, ${r.labels}::text[]::relation_labels[]
+            SELECT f.id, t.id, ${r.labels}::text[]
             FROM assignments AS f, assignments AS t
             WHERE f.id = ${r.from_assignment_id} AND t.id = ${r.to_assignment_id}
               AND f.id <> t.id

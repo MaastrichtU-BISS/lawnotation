@@ -22,6 +22,7 @@
         <div class="dimmer-content h-full">
             <ClientOnly>
                 <AnnotatorView v-if="bundle && labelset" :document="bundle.document" :assignment="bundle.assignment"
+                    :relation-labels="relationLabels"
                     :labelset="labelset" :annotation-level="toKitLevel(task.annotation_level)"
                     :position="{ current: 1, total: 1 }" :navigation="false"
                     :incoming-relations="incomingRelations" readonly />
@@ -52,6 +53,8 @@ const loading = ref(false);
 const bundle = shallowRef<AssignmentBundle>();
 const incomingRelations = ref<IncomingRelation[]>([]);
 const labelset = ref<Labelset>();
+// The labelset's own relation labels; undefined keeps the kit's default set.
+const relationLabels = ref<string[]>();
 
 const loadData = async () => {
     try {
@@ -64,6 +67,7 @@ const loadData = async () => {
 
         const set = await $trpc.labelset.findById.query(+task.value.labelset_id);
         labelset.value = { name: set.name, desc: set.desc ?? "", labels: set.labels };
+    relationLabels.value = set.relation_labels ?? undefined;
 
         const merged = await $trpc.annotator.merged.query({
             task_id: task.value.id,
