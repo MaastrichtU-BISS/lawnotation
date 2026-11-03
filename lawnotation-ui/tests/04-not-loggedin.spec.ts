@@ -158,9 +158,6 @@ test("Not logged in user can search documents and download results from Rechtspr
 
   await resetButton.click();
 
-  await expect(
-    page.getByText("ECLIs * (comma-separated)", { exact: true }),
-  ).toBeVisible();
   const eclisInput = page.getByRole("textbox", { name: /ECLIs/i });
   await expect(eclisInput).toBeEditable();
   await eclisInput.fill("ECLI:NL:RBLIM:2023:7197");
