@@ -1,7 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const useDevServer = process.env.PLAYWRIGHT_USE_DEV === "1";
-
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
@@ -138,11 +136,11 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: useDevServer ? "pnpm dev" : "pnpm build && pnpm preview",
+    command: process.env.CI ? "pnpm dev" : "pnpm build && pnpm preview",
     // url: 'http://127.0.0.1:3000',
     // port: 3000,
     url: "http://localhost:3000",
     timeout: 10 * 60 * 1000,
-    reuseExistingServer: useDevServer,
+    reuseExistingServer: !process.env.CI,
   },
 });
