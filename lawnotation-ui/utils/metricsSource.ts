@@ -28,6 +28,14 @@ export function createMetricsSource(taskId: number): MetricsSource {
       return labelset.labels;
     },
 
+    // Hybrid tasks only: the labelset of the whole-document tags.
+    async getDocumentLabels(): Promise<LabelOption[]> {
+      const task = await getTask();
+      if (!task.document_labelset_id) return [];
+      const labelset = await $trpc.labelset.findById.query(+task.document_labelset_id);
+      return labelset.labels;
+    },
+
     async getAnnotators(): Promise<string[]> {
       const users = await $trpc.user.findUsersByTask.query(taskId);
       return users.map((u) => u.email!);
@@ -42,6 +50,9 @@ export function createMetricsSource(taskId: number): MetricsSource {
       return $trpc.metrics.get_annotations.query({
         task_id: taskId,
         labels: filters.labels,
+        document_labels: filters.documentLabels,
+        no_span_labels: filters.noSpanLabels,
+        no_document_labels: filters.noDocumentLabels,
         documents: filters.documents.map(Number),
         annotators: filters.annotators,
       });

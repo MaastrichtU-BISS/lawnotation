@@ -83,6 +83,7 @@ export type Database = {
           created_at: string | null
           end_index: number | null
           id: number
+          kind: string
           label: string | null
           metadata: string | null
           origin: Database["public"]["Enums"]["origins"] | null
@@ -95,6 +96,7 @@ export type Database = {
           created_at?: string | null
           end_index?: number | null
           id?: number
+          kind?: string
           label?: string | null
           metadata?: string | null
           origin?: Database["public"]["Enums"]["origins"] | null
@@ -107,6 +109,7 @@ export type Database = {
           created_at?: string | null
           end_index?: number | null
           id?: number
+          kind?: string
           label?: string | null
           metadata?: string | null
           origin?: Database["public"]["Enums"]["origins"] | null
@@ -451,6 +454,7 @@ export type Database = {
             | null
           created_at: string | null
           desc: string | null
+          document_labelset_id: number | null
           id: number
           labelset_id: number | null
           ml_model_id: number | null
@@ -466,6 +470,7 @@ export type Database = {
             | null
           created_at?: string | null
           desc?: string | null
+          document_labelset_id?: number | null
           id?: number
           labelset_id?: number | null
           ml_model_id?: number | null
@@ -481,6 +486,7 @@ export type Database = {
             | null
           created_at?: string | null
           desc?: string | null
+          document_labelset_id?: number | null
           id?: number
           labelset_id?: number | null
           ml_model_id?: number | null
@@ -490,6 +496,13 @@ export type Database = {
           project_id?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_document_labelset_id_fkey"
+            columns: ["document_labelset_id"]
+            isOneToOne: false
+            referencedRelation: "labelsets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "public_tasks_ml_model_id_fkey"
             columns: ["ml_model_id"]

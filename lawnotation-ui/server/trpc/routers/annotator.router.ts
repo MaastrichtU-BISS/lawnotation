@@ -6,7 +6,7 @@ import {
   taskEditorAuthorizer,
   taskEditorOrAnnotatorAuthorizer,
 } from "../authorizers";
-import { toKitLevel } from "~/utils/levels";
+import { taskKinds, toKitLevel } from "~/utils/levels";
 import {
   assignmentKey,
   storeKitAssignment,
@@ -16,7 +16,6 @@ import {
   type DbDocumentRelation,
   type DbRelation,
 } from "~/server/utils/annotation_kit";
-import { AnnotationLevels } from "~/utils/enums";
 import { ZRelationLabel } from "~/server/utils/relation_label";
 
 // What legal-annotation-kit loads and saves, in its own JSON format. The
@@ -91,7 +90,7 @@ async function loadBundle(sql: any, assignmentId: number) {
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Assignment not found" });
 
   const annotations = await sql<DbAnnotation[]>`
-    SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.metadata, an.confidence_rating::int AS confidence_rating
+    SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.metadata, an.confidence_rating::int AS confidence_rating, an.kind
     FROM annotations AS an
     WHERE an.assignment_id = ${assignmentId}
     ORDER BY an.id
@@ -113,10 +112,9 @@ async function loadBundle(sql: any, assignmentId: number) {
     ORDER BY id
   `;
 
-  const documentLevel = row.annotation_level === AnnotationLevels.DOCUMENT;
   return {
     document: { name: row.document_name, full_text: row.full_text, key: assignmentKey(row.id) },
-    assignment: toKitAssignment(row, annotations, relations, documentLevel, documentRelations),
+    assignment: toKitAssignment(row, annotations, relations, documentRelations),
     annotation_level: toKitLevel(row.annotation_level),
   };
 }
@@ -193,8 +191,10 @@ export const annotatorRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      const [task] = await ctx.sql<{ annotation_level: string }[]>`
-        SELECT t.annotation_level::text AS annotation_level
+      const [task] = await ctx.sql<
+        { annotation_level: string; document_labelset_id: number | null }[]
+      >`
+        SELECT t.annotation_level::text AS annotation_level, t.document_labelset_id::int AS document_labelset_id
         FROM assignments AS a INNER JOIN tasks AS t ON (a.task_id = t.id)
         WHERE a.id = ${input.assignment_id}
       `;
@@ -205,7 +205,7 @@ export const annotatorRouter = router({
           ctx.sql,
           input.assignment_id,
           { ...input.assignment, annotator: "", order: 0 } as any,
-          task.annotation_level === AnnotationLevels.DOCUMENT
+          taskKinds(task as any)
         );
       } catch (e) {
         throw new TRPCError({
@@ -238,7 +238,7 @@ export const annotatorRouter = router({
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
 
       const annotations = await ctx.sql<DbAnnotation[]>`
-        SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.metadata, an.confidence_rating::int AS confidence_rating
+        SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.metadata, an.confidence_rating::int AS confidence_rating, an.kind
         FROM annotations AS an
         INNER JOIN assignments AS a ON (an.assignment_id = a.id)
         WHERE a.task_id = ${input.task_id} AND a.document_id = ${input.document_id}
@@ -274,12 +274,10 @@ export const annotatorRouter = router({
         ORDER BY r.id
       `;
 
-      const documentLevel = row.annotation_level === AnnotationLevels.DOCUMENT;
       const merged = toKitAssignment(
         { id: 0, annotator_id: null, seq_pos: 0, status: "", difficulty_rating: 0 },
         annotations,
-        relations,
-        documentLevel
+        relations
       );
       return {
         document: { name: row.name, full_text: row.full_text },

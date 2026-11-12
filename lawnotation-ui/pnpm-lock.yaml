@@ -51,8 +51,8 @@ importers:
         specifier: ^3.10.1
         version: 3.10.1
       legal-annotation-kit:
-        specifier: ^1.6.0
-        version: 1.6.0(vue@3.5.30(typescript@5.9.3))
+        specifier: ^1.7.0
+        version: 1.7.0(vue@3.5.30(typescript@5.9.3))
       legal-docs-types:
         specifier: ^1.0.0
         version: 1.0.0
@@ -87,8 +87,8 @@ importers:
         specifier: ^1.4.1
         version: 1.4.2(vue@3.5.30(typescript@5.9.3))
       vue-iaa-metrics:
-        specifier: ^1.2.0
-        version: 1.2.0(vue@3.5.30(typescript@5.9.3))
+        specifier: ^1.4.0
+        version: 1.4.0(vue@3.5.30(typescript@5.9.3))
       vue-labelset-editor:
         specifier: ^0.1.0
         version: 0.1.0(vue@3.5.30(typescript@5.9.3))
@@ -3206,8 +3206,8 @@ packages:
     resolution: {integrity: sha512-b94GiNHQNy6JNTrt5w6zNyffMrNkXZb3KTkCZJb2V1xaEGCk093vkZ2jk3tpaeP33/OiXC+WvK9AxUebnf5nbw==}
     engines: {node: '>= 0.6.3'}
 
-  legal-annotation-kit@1.6.0:
-    resolution: {integrity: sha512-nP8nxYWpyCeF6eWkckbcKWwt0Yx54g6P9FVJ4cT2M4k//60V6Sw0CJGwMKGf6xM8Np37yqNkIxqdLFUlhmidpw==}
+  legal-annotation-kit@1.7.0:
+    resolution: {integrity: sha512-0VYDY0CZCSz9DOdKwvUtojpc2dfRbLt2afT2vSnVrPkyeRT9Myh5fnCTG2BnoFwm6tGZtRHS4NCHd7fLhYaigw==}
     peerDependencies:
       vue: ^3.4.0
 
@@ -4967,8 +4967,8 @@ packages:
   vue-devtools-stub@0.1.0:
     resolution: {integrity: sha512-RutnB7X8c5hjq39NceArgXg28WZtZpGc3+J16ljMiYnFhKvd8hITxSWQSQ5bvldxMDU6gG5mkxl1MTQLXckVSQ==}
 
-  vue-iaa-metrics@1.2.0:
-    resolution: {integrity: sha512-+/v2Bz1FwRVYCun0fVIl8Fgviuby5WuyLUL7751dbnkVLDQ4f9OVDdIZ5bleJdg1gNEtqnQ5X0vr+aw1bCbZCw==}
+  vue-iaa-metrics@1.4.0:
+    resolution: {integrity: sha512-dz01yR59qOJujQWOWJkPBUPJncrcNWCJnhsG7qA9NR97ry9tMp84Lxst0texpoNm1lZhdaAloLZmGZ1hAr+/aA==}
     peerDependencies:
       vue: ^3.4.0
 
@@ -8299,7 +8299,7 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  legal-annotation-kit@1.6.0(vue@3.5.30(typescript@5.9.3)):
+  legal-annotation-kit@1.7.0(vue@3.5.30(typescript@5.9.3)):
     dependencies:
       vue: 3.5.30(typescript@5.9.3)
 
@@ -10310,7 +10310,7 @@ snapshots:
 
   vue-devtools-stub@0.1.0: {}
 
-  vue-iaa-metrics@1.2.0(vue@3.5.30(typescript@5.9.3)):
+  vue-iaa-metrics@1.4.0(vue@3.5.30(typescript@5.9.3)):
     dependencies:
       vue: 3.5.30(typescript@5.9.3)
 

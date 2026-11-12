@@ -18,7 +18,7 @@ const spanTask = () => ({
       { name: "Obligation", color: "#ff7f0e" },
     ],
   },
-  annotation_level: "word",
+  span_granularity: "word",
   documents: [
     {
       name: "sale.txt",
@@ -45,7 +45,7 @@ const spanTask = () => ({
 const documentTask = () => ({
   name: "Linked rulings",
   labelset: { name: "Topics", labels: [{ name: "Privacy", color: "#2ca02c" }] },
-  annotation_level: "document",
+  span_granularity: "document",
   documents: [
     {
       name: "a.txt",
@@ -218,7 +218,7 @@ test("document links only on document-level tasks, to an existing order", () => 
   task = spanTask();
   task.documents[0].assignments[0].document_relations = [{ to_order: 1, labels: [] }];
   task.counts.document_relations = 1;
-  expectProblem(task, "only document-level tasks");
+  expectProblem(task, "only document-level and hybrid tasks");
 });
 
 test("document-level tags have no relations and no duplicates", () => {
@@ -242,5 +242,87 @@ test("the top level must be a task object with documents", () => {
   expectProblem([], "the file must contain one JSON object");
   expectProblem({ name: "x" }, "documents: must be a non-empty list");
   expectProblem({ documents: [{ name: "a", full_text: "" }] }, "full_text: must be a non-empty string");
+  expectProblem({ span_granularity: "token", documents: [{ name: "a", full_text: "x" }] }, 'span_granularity: must be one of "symbol"');
+});
+
+/** A valid hybrid task: spans from `labelset`, tags on the whole document from `document_labelset`. */
+const hybridTask = () => {
+  const task = spanTask();
+  task.document_labelset = {
+    name: "Relevance",
+    desc: "",
+    labels: [
+      { name: "Relevant", color: "#2ca02c" },
+      { name: "Party", color: "#d62728" }, // may share a name with a span label
+    ],
+  };
+  const assignment = task.documents[0].assignments[0];
+  assignment.document_annotations = [
+    { label: "Relevant", confidence_rating: 3, metadata: null },
+    { label: "Party", confidence_rating: 0 },
+  ];
+  assignment.document_relations = [{ to: "b.txt", to_order: 2, labels: ["Related to"] }];
+  task.documents.push({ name: "b.txt", full_text: "Other.", assignments: [{ annotator: 1, order: 2 }] });
+  task.counts = { documents: 2, assignments: 2, annotators: 1, annotations: 2, document_annotations: 2, relations: 1, document_relations: 1 };
+  return task;
+};
+
+test("a hybrid file passes", () => {
+  assert.deepEqual(validateTaskImport(hybridTask()), []);
+});
+
+test("document annotations need a document labelset", () => {
+  const task = spanTask();
+  task.documents[0].assignments[0].document_annotations = [{ label: "Party" }];
+  task.counts.document_annotations = 1;
+  expectProblem(task, "only hybrid tasks");
+});
+
+test("a document labelset is for span-level tasks and needs the span labelset", () => {
+  const document = documentTask();
+  document.document_labelset = { name: "More", labels: [{ name: "X", color: "#000000" }] };
+  expectProblem(document, "only span-level tasks can have a document labelset");
+
+  const task = hybridTask();
+  delete task.labelset;
+  expectProblem(task, "needs a labelset too");
+});
+
+test("document tags must use the document labelset and appear once", () => {
+  const task = hybridTask();
+  const tags = task.documents[0].assignments[0].document_annotations;
+  tags[1].label = "Nope";
+  expectProblem(task, '"Nope" is not a label of the document_labelset');
+  tags[1].label = "Relevant";
+  expectProblem(task, '"Relevant" is tagged twice');
+});
+
+test("hybrid counts include the document annotations", () => {
+  const task = hybridTask();
+  task.counts.document_annotations = 5;
+  expectProblem(task, "counts.document_annotations: must be 2");
+});
+
+test("span annotations of a hybrid task are still checked as spans", () => {
+  const task = hybridTask();
+  firstSpan(task).end = 9999;
+  expectProblem(task, "start and end must be whole numbers");
+});
+
+test("annotation_level is still accepted as the old name of span_granularity", () => {
+  const task = spanTask();
+  task.annotation_level = task.span_granularity;
+  delete task.span_granularity;
+  assert.deepEqual(validateTaskImport(task), []);
+  const document = documentTask();
+  document.annotation_level = "document";
+  delete document.span_granularity;
+  assert.deepEqual(validateTaskImport(document), []);
   expectProblem({ annotation_level: "token", documents: [{ name: "a", full_text: "x" }] }, 'annotation_level: must be one of "symbol"');
+});
+
+test("giving both span_granularity and annotation_level is refused", () => {
+  const task = spanTask();
+  task.annotation_level = "word";
+  expectProblem(task, "annotation_level: is the old name of span_granularity");
 });

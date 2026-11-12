@@ -18,7 +18,7 @@
     <Dimmer v-model="loading" />
     <div class="dimmer-content h-full">
       <ClientOnly>
-        <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset"
+        <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset" :document-labelset="documentLabelset"
           :relation-labels="relationLabels"
           :annotation-level="toKitLevel(task.annotation_level)" :guidelines-url="task.ann_guidelines || undefined"
           :start-position="startPosition" :url-param="false" @complete="onComplete" @save-error="onSaveError"
@@ -48,6 +48,8 @@ type QueueEntry = { assignment_id: number; seq_pos: number; status: string; docu
 
 const task = ref<Task>();
 const labelset = ref<Labelset>();
+// Hybrid tasks: the labelset for whole-document tags, next to the span labelset.
+const documentLabelset = ref<Labelset>();
 // The labelset's own relation labels; undefined keeps the kit's default set.
 const relationLabels = ref<string[]>();
 const source = shallowRef<AnnotationSource>();
@@ -72,6 +74,10 @@ const init = async () => {
     const set = await $trpc.labelset.findById.query(task.value.labelset_id);
     labelset.value = { name: set.name, desc: set.desc ?? "", labels: set.labels };
     relationLabels.value = set.relation_labels ?? undefined;
+    if (task.value.document_labelset_id) {
+      const documentSet = await $trpc.labelset.findById.query(+task.value.document_labelset_id);
+      documentLabelset.value = { name: documentSet.name, desc: documentSet.desc ?? "", labels: documentSet.labels };
+    }
 
     const queue: QueueEntry[] = await $trpc.annotator.queue.query({ task_id: taskId });
     if (!queue.length) throw new Error("You have no documents to annotate in this task");

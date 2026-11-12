@@ -50,7 +50,9 @@ export const useTaskImport = ({
 			return;
 		}
 		// Document-level tags have no position in the text.
-		const documentLevel = json.annotation_level === AnnotationLevels.DOCUMENT;
+		// `annotation_level` is the old name of `span_granularity` in export files.
+		const granularity = json.span_granularity ?? json.annotation_level;
+		const documentLevel = granularity === AnnotationLevels.DOCUMENT;
 		importProgress.value.loading = true;
 		importProgress.value.message = "Creating Task";
 		importProgress.value.total = 0;
@@ -68,6 +70,17 @@ export const useTaskImport = ({
 				).id;
 			}
 
+			// Hybrid files bring a second labelset for the document tags.
+			let newDocumentLabelsetId: number | undefined;
+			if (json.document_labelset) {
+				newDocumentLabelsetId = (
+					await trpc.labelset.create.mutate({
+						editor_id: userId,
+						...json.document_labelset,
+					})
+				).id;
+			}
+
 			importProgress.value.message = "Creating Task";
 			const newTask: Omit<Task, "id"> = {
 				project_id: projectId,
@@ -75,7 +88,8 @@ export const useTaskImport = ({
 				desc: json.desc ?? "Blank",
 				ann_guidelines: json.ann_guidelines ?? "Blank",
 				labelset_id: newLabelsetId,
-				annotation_level: json.annotation_level ?? "word",
+				document_labelset_id: newDocumentLabelsetId,
+				annotation_level: granularity ?? "word",
 				ml_model_id: json.ml_model_id ?? undefined,
 			};
 
@@ -175,6 +189,7 @@ export const useTaskImport = ({
 
 								(ass.annotations ?? []).forEach((ann: any) => {
 									newAnnotations.push({
+										kind: documentLevel ? "document" : "span",
 										start_index: documentLevel ? 0 : ann.start,
 										end_index: documentLevel ? 0 : ann.end,
 										label: ann.label,
@@ -223,6 +238,36 @@ export const useTaskImport = ({
 								const chunk = newRelations.slice(i, i + chunkSize);
 								await trpc.relation.createMany.mutate(chunk);
 							}
+						}
+					}
+
+					// Hybrid tasks: tags on the whole document. Created apart from the
+					// spans so the relations above can keep indexing into those.
+					if (json.counts?.document_annotations) {
+						importProgress.value.message = "Creating Document Tags";
+						const tags: Omit<Annotation, "id">[] = [];
+						let k = 0;
+						json.documents.forEach((d: any) => {
+							(d.assignments ?? []).forEach((ass: any) => {
+								const assignment = assignments[k++];
+								if (!assignment) return;
+								(ass.document_annotations ?? []).forEach((tag: any) => {
+									tags.push({
+										kind: "document",
+										start_index: 0,
+										end_index: 0,
+										label: tag.label,
+										text: "",
+										assignment_id: assignment.id,
+										origin: Origins.IMPORTED,
+										confidence_rating: tag.confidence_rating ?? 0,
+										metadata: tag.metadata ?? null,
+									});
+								});
+							});
+						});
+						for (let i = 0; i < tags.length; i += 100) {
+							await trpc.annotation.createMany.mutate(tags.slice(i, i + 100));
 						}
 					}
 

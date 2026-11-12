@@ -12,7 +12,8 @@
         style: 'padding-bottom: 0px',
       },
       content: {
-        style: 'padding-bottom: 0px',
+        // Room under the Cancel/Create buttons, which otherwise touch the edge.
+        style: 'padding-bottom: 1.5rem',
       },
     }"
     :ptOptions="{ mergeProps: true }"
@@ -51,6 +52,15 @@
           <Button label="Create new labelset" size="small" @click="activeTabTaskModal = 2" link
             data-test="create-new-labelset" />
         </div>
+        <div v-if="selectedAnnotationLevel == 'span'" class="pb-4">
+          <Select v-model="newTask.document_labelset_id" :options="labelsets" filter optionLabel="name"
+            option-value="id" placeholder="Document labelset (optional)" class="w-full md:w-1/2"
+            :show-clear="true" data-test="select-document-labelset" />
+          <p class="text-xs text-gray-500 mt-1 mb-0">
+            Pick a second labelset to make this a hybrid task: annotators mark spans with the labelset above
+            and tag the whole document with this one. It cannot be changed after the task is created.
+          </p>
+        </div>
         <div class="flex items-center flex-col pb-4">
           <div class="w-full text-left bg-yellow-50 p-2 mb-2 rounded-md border border-yellow-200">
             <p class="text-xs text-yellow-500 m-0">
@@ -65,7 +75,7 @@
         <div class="mb-4 flex justify-between items-center">
           <div>
             <p class="font-bold mb-4">Annotation level</p>
-            <SelectButton :options="['text', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel"
+            <SelectButton :options="['span', AnnotationLevels.DOCUMENT]" v-model="selectedAnnotationLevel"
               @update:model-value="annotationLevelSelected($event)" class="capitalize font-normal"
               aria-labelledby="basic" data-test="select-annotation-level" :pt="{
                 label: {
@@ -73,7 +83,7 @@
                 },
               }" />
           </div>
-          <div v-if="selectedAnnotationLevel == 'text'">
+          <div v-if="selectedAnnotationLevel == 'span'">
             <p class="font-bold mb-4">Granularity</p>
             <SelectButton v-model="newTask.annotation_level" :options="Object.values(AnnotationLevels).filter(
               (level) => level != AnnotationLevels.DOCUMENT,
@@ -227,7 +237,7 @@ const optionsUploadedAssignmentsStatus = ref([
   { label: "Keep originals", value: AssignmentStatuses.NONE, color: "#475569", disabled: false },
 ]);
 
-const selectedAnnotationLevel = ref<"text" | AnnotationLevels.DOCUMENT>();
+const selectedAnnotationLevel = ref<"span" | AnnotationLevels.DOCUMENT>();
 
 const labelset = ref<Optional<LabelsetType, "id" | "editor_id">>({
   id: undefined,
@@ -249,6 +259,7 @@ const newTask = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "a
   desc: "",
   ann_guidelines: "",
   labelset_id: undefined,
+  document_labelset_id: undefined,
   project_id: undefined,
   annotation_level: undefined,
   ml_model_id: undefined,
@@ -292,7 +303,7 @@ const modelSelected = async (id: number) => {
 
   if (newTask.annotation_level != model?.annotation_level) {
     selectedAnnotationLevel.value =
-      model?.annotation_level == AnnotationLevels.DOCUMENT ? AnnotationLevels.DOCUMENT : "text";
+      model?.annotation_level == AnnotationLevels.DOCUMENT ? AnnotationLevels.DOCUMENT : "span";
     newTask.annotation_level = model?.annotation_level;
   }
 
@@ -315,8 +326,10 @@ const handleLabelsetSelection = (id: number | undefined) => {
   }
 };
 
-const annotationLevelSelected = async (value: "text" | AnnotationLevels) => {
-  newTask.annotation_level = value === "text" ? AnnotationLevels.SYMBOL : value;
+const annotationLevelSelected = async (value: "span" | AnnotationLevels) => {
+  newTask.annotation_level = value === "span" ? AnnotationLevels.SYMBOL : value;
+  // A document-level task tags documents with its one labelset already.
+  if (newTask.annotation_level === AnnotationLevels.DOCUMENT) newTask.document_labelset_id = undefined;
   if (newTask.ml_model_id) {
     const model = await $trpc.mlModel.findById.query(newTask.ml_model_id);
     if (model.annotation_level != value) {
@@ -372,6 +385,7 @@ const resetModal = () => {
   newTask.desc = "";
   newTask.ann_guidelines = "";
   newTask.labelset_id = undefined;
+  newTask.document_labelset_id = undefined;
   selectedAnnotationLevel.value = undefined;
   newTask.annotation_level = undefined;
   newTask.ml_model_id = undefined;

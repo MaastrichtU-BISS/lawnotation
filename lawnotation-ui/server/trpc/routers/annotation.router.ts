@@ -14,7 +14,9 @@ const ZAnnotationFields = z.object({
   text: z.string(),
   origin: z.nativeEnum(Origins).nullable().optional(),
   metadata: z.string().nullable().optional(),
-  confidence_rating: z.number().int().min(0).max(5).optional()
+  confidence_rating: z.number().int().min(0).max(5).optional(),
+  // A tag on the whole document, in a document-level or hybrid task.
+  kind: z.enum(["span", "document"]).optional(),
 });
 
 export const annotationRouter = router({
