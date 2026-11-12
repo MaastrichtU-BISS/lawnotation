@@ -86,7 +86,9 @@ export const useTaskImport = ({
 				project_id: projectId,
 				name: json.name ?? "Blank",
 				desc: json.desc ?? "Blank",
-				ann_guidelines: json.ann_guidelines ?? "Blank",
+				// No guidelines is an empty link, which hides the guidelines button;
+				// placeholder text would show a broken link and fail the URL check.
+				ann_guidelines: json.ann_guidelines ?? "",
 				labelset_id: newLabelsetId,
 				document_labelset_id: newDocumentLabelsetId,
 				annotation_level: granularity ?? "word",
