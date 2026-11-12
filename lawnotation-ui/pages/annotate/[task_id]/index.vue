@@ -14,8 +14,9 @@
     },
   ]" />
 
+  <!-- No page-level loader here: the kit shows its own while the first document
+       loads, and a second one (the dots) ahead of it only made two spinners. -->
   <div class="dimmer-wrapper min-h-0">
-    <Dimmer v-model="loading" />
     <div class="dimmer-content h-full">
       <ClientOnly>
         <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset" :document-labelset="documentLabelset"
@@ -60,7 +61,6 @@ const documentLabelset = ref<Labelset>();
 const relationLabels = ref<string[]>();
 const source = shallowRef<AnnotationSource>();
 const startPosition = ref(1);
-const loading = ref(true);
 const unsaved = ref(false);
 
 // What the breadcrumb and the `seq` query param show. `seq` is the
@@ -120,8 +120,6 @@ const init = async () => {
     });
   } catch (error) {
     $toast.error(`Could not open this task: ${(error as Error)?.message}`);
-  } finally {
-    loading.value = false;
   }
 };
 
