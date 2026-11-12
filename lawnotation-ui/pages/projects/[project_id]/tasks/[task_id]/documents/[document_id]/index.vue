@@ -23,7 +23,7 @@
             <ClientOnly>
                 <AnnotatorView v-if="bundle && labelset" :document="bundle.document" :assignment="bundle.assignment"
                     :relation-labels="relationLabels"
-                    :labelset="labelset" :document-labelset="documentLabelset" :annotation-level="toKitLevel(task.annotation_level)"
+                    :labelset="labelset" :document-labelset="documentLabelset" :document-relation-labels="documentRelationLabels" :annotation-level="toKitLevel(task.annotation_level)"
                     :position="{ current: 1, total: 1 }" :navigation="false"
                     :incoming-relations="incomingRelations" readonly />
             </ClientOnly>
@@ -31,12 +31,13 @@
     </div>
 </template>
 <script setup lang="ts">
-import { AnnotatorView } from "legal-annotation-kit";
+import { AnnotatorView, RELATION_LABELS } from "legal-annotation-kit";
 import type { AssignmentBundle, IncomingRelation, Labelset } from "legal-annotation-kit";
 import type { Project, Task, Document } from "~/types";
 import { authorizeClient } from "~/utils/authorize.client";
 import { toKitBundle } from "~/utils/annotator";
 import { toKitLevel } from "~/utils/levels";
+import { documentRelationLabelsOf } from "~/utils/relationLabels";
 import Breadcrumb from "~/components/Breadcrumb.vue";
 
 // Every annotator's work on one document, merged, for the task's editor to
@@ -55,6 +56,8 @@ const incomingRelations = ref<IncomingRelation[]>([]);
 const labelset = ref<Labelset>();
 // Hybrid tasks: the labelset for whole-document tags, next to the span labelset.
 const documentLabelset = ref<Labelset>();
+// Hybrid tasks: the document labelset's own relation labels (or the default eight) for document relations.
+const documentRelationLabels = ref<string[]>();
 // The labelset's own relation labels; undefined keeps the kit's default set.
 const relationLabels = ref<string[]>();
 
@@ -73,6 +76,7 @@ const loadData = async () => {
     if (task.value.document_labelset_id) {
       const documentSet = await $trpc.labelset.findById.query(+task.value.document_labelset_id);
       documentLabelset.value = { name: documentSet.name, desc: documentSet.desc ?? "", labels: documentSet.labels };
+      documentRelationLabels.value = documentRelationLabelsOf(documentSet, RELATION_LABELS);
     }
 
         const merged = await $trpc.annotator.merged.query({

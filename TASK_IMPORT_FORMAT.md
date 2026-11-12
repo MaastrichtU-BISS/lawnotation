@@ -142,11 +142,11 @@ Only the fields below are allowed. Any other field is refused, so a misspelt nam
 | `name` | yes | Labelset name. |
 | `desc` | no | Description. |
 | `labels` | yes | At least one `{ "name": "...", "color": "#rrggbb" }`. Names must be unique. Colours are 6-digit hex. |
-| `relation_labels` | no | The labels relations may carry, as a list of unique names, for example `["Cites", "Overrules"]`. Absent or `null` means the default eight listed under relations below. |
+| `relation_labels` | no | The labels this labelset's relations may carry, as a list of unique names, for example `["Cites", "Overrules"]`. Absent or `null` means the default eight listed under relations below. They apply to the **span relations** (`annotations[].relations`) and, in a document-level task, to its document relations. In a hybrid task document relations use the `document_labelset`'s instead (see below). |
 
 ### `document_labelset`
 
-Same as `labelset`, without `relation_labels`. A label may share its name with a label of `labelset`. In a hybrid task each assignment can hold span `annotations` (labelled from `labelset`) and `document_annotations` (labelled from `document_labelset`).
+Same as `labelset`, `relation_labels` included: for a hybrid task they are the labels its **document relations** (`document_relations`) may carry, for example `["Cites", "Overrules"]`. Absent or `null` means the default eight, **not** the span labelset's `relation_labels`: the two labelsets each keep their own list, so span relations and document relations can use different labels. A label may share its name with a label of `labelset`. In a hybrid task each assignment can hold span `annotations` (labelled from `labelset`) and `document_annotations` (labelled from `document_labelset`).
 
 ### Document (`documents[]`)
 
@@ -196,7 +196,7 @@ On a **document-level** task (`"span_granularity": "document"`), an annotation i
 |---|---|---|
 | `to` | yes | Index, from 0, of the target annotation in the **same assignment's** `annotations` list. Not itself, and at most one relation per target. |
 | `direction` | yes | `"right"` (from this annotation to the target), `"left"` (from the target to this one) or `"bi"` (both ways). |
-| `labels` | yes | Zero or more of the labelset's `relation_labels`; by default `"Is a"`, `"Has a"`, `"Belongs to"`, `"Implies"`, `"Depends on"`, `"Related to"`, `"Is not"`, `"Part of"`. |
+| `labels` | yes | Zero or more of `labelset.relation_labels`; by default `"Is a"`, `"Has a"`, `"Belongs to"`, `"Implies"`, `"Depends on"`, `"Related to"`, `"Is not"`, `"Part of"`. |
 
 ### Document relation (`assignments[].document_relations[]`)
 
@@ -206,7 +206,7 @@ Only on document-level and hybrid tasks: a link from this document to another do
 |---|---|---|
 | `to_order` | yes | The `order` of the target assignment of the **same annotator**. Not this assignment's own order, and at most one link per target. |
 | `to` | no | The target document's name, for people reading the file. Ignored on import. |
-| `labels` | yes | Relation labels, as for relations above. |
+| `labels` | yes | Relation labels, as for relations above, but taken from the labelset the *document* relations belong to: `document_labelset.relation_labels` in a hybrid task, `labelset.relation_labels` in a document-level task (the default eight when the list is absent). |
 
 ### `counts`
 
@@ -232,7 +232,7 @@ Files exported while Lawnotation used Label Studio also have `ls_id` and `html_m
 
 - `full_text` is plain text, and every annotation's `text` is exactly `full_text[start:end]`.
 - Confidence values are whole numbers from 0 to 5.
-- Every label used is in `labelset.labels`, and every relation label in `labelset.relation_labels` (or the default eight).
+- Every label used is in `labelset.labels`, and every relation label in `labelset.relation_labels` (or the default eight). In a hybrid task, document tags use `document_labelset.labels` and document relations `document_labelset.relation_labels` (or the default eight).
 - Each annotator's documents have orders 1, 2, 3, ... with no repeats.
 - `counts` matches the file.
 - No fields beyond those listed above.

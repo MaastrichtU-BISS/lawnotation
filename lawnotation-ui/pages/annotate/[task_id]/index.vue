@@ -19,7 +19,7 @@
   <div class="dimmer-wrapper min-h-0">
     <div class="dimmer-content h-full">
       <ClientOnly>
-        <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset" :document-labelset="documentLabelset"
+        <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset" :document-labelset="documentLabelset" :document-relation-labels="documentRelationLabels"
           :relation-labels="relationLabels" preview-documents relation-graph
           @view-document="relationViews.viewDocument" @view-relation-graph="relationViews.viewRelationGraph"
           :annotation-level="toKitLevel(task.annotation_level)" :guidelines-url="task.ann_guidelines || undefined"
@@ -32,7 +32,7 @@
   <DocumentRelationViews :views="relationViews" />
 </template>
 <script setup lang="ts">
-import { AnnotatorQueue, createLazySource } from "legal-annotation-kit";
+import { AnnotatorQueue, createLazySource, RELATION_LABELS } from "legal-annotation-kit";
 import type { AnnotationSource, Labelset } from "legal-annotation-kit";
 import type { Task } from "~/types";
 import { useConfirm } from "primevue/useconfirm";
@@ -41,6 +41,7 @@ import ConfirmBox from "~/components/ConfirmBox.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { saveKitAssignment, toKitBundle } from "~/utils/annotator";
 import { toKitLevel } from "~/utils/levels";
+import { documentRelationLabelsOf } from "~/utils/relationLabels";
 import DocumentRelationViews from "~/components/annotator/DocumentRelationViews.vue";
 import { useDocumentRelationViews } from "~/composables/useDocumentRelationViews";
 
@@ -57,6 +58,8 @@ const task = ref<Task>();
 const labelset = ref<Labelset>();
 // Hybrid tasks: the labelset for whole-document tags, next to the span labelset.
 const documentLabelset = ref<Labelset>();
+// Hybrid tasks: the document labelset's own relation labels (or the default eight) for document relations.
+const documentRelationLabels = ref<string[]>();
 // The labelset's own relation labels; undefined keeps the kit's default set.
 const relationLabels = ref<string[]>();
 const source = shallowRef<AnnotationSource>();
@@ -83,6 +86,7 @@ const init = async () => {
     if (task.value.document_labelset_id) {
       const documentSet = await $trpc.labelset.findById.query(+task.value.document_labelset_id);
       documentLabelset.value = { name: documentSet.name, desc: documentSet.desc ?? "", labels: documentSet.labels };
+      documentRelationLabels.value = documentRelationLabelsOf(documentSet, RELATION_LABELS);
     }
 
     const queue: QueueEntry[] = await $trpc.annotator.queue.query({ task_id: taskId });
