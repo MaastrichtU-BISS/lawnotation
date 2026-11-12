@@ -43,6 +43,8 @@
             :edges="views.graph.edges"
             :current-id="views.graph.currentId"
             empty-text="This queue has no documents."
+            downloadable
+            image-filename="document-relations"
             @node-click="views.viewGraphNode"
           />
         </ClientOnly>
