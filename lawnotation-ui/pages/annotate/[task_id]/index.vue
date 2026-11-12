@@ -14,12 +14,14 @@
     },
   ]" />
 
+  <!-- No page-level loader here: the kit shows its own while the first document
+       loads, and a second one (the dots) ahead of it only made two spinners. -->
   <div class="dimmer-wrapper min-h-0">
-    <Dimmer v-model="loading" />
     <div class="dimmer-content h-full">
       <ClientOnly>
         <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset" :document-labelset="documentLabelset"
-          :relation-labels="relationLabels"
+          :relation-labels="relationLabels" preview-documents relation-graph
+          @view-document="relationViews.viewDocument" @view-relation-graph="relationViews.viewRelationGraph"
           :annotation-level="toKitLevel(task.annotation_level)" :guidelines-url="task.ann_guidelines || undefined"
           :start-position="startPosition" :url-param="false" @complete="onComplete" @save-error="onSaveError"
           @unsaved="unsaved = $event" />
@@ -27,6 +29,7 @@
     </div>
   </div>
   <ConfirmBox />
+  <DocumentRelationViews :views="relationViews" />
 </template>
 <script setup lang="ts">
 import { AnnotatorQueue, createLazySource } from "legal-annotation-kit";
@@ -38,8 +41,12 @@ import ConfirmBox from "~/components/ConfirmBox.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { saveKitAssignment, toKitBundle } from "~/utils/annotator";
 import { toKitLevel } from "~/utils/levels";
+import DocumentRelationViews from "~/components/annotator/DocumentRelationViews.vue";
+import { useDocumentRelationViews } from "~/composables/useDocumentRelationViews";
 
 const user = useSupabaseUser();
+// "Read more" and "View as graph" on document relations: the kit only asks, these open the modals.
+const relationViews = useDocumentRelationViews();
 const { $toast, $trpc } = useNuxtApp();
 const route = useRoute();
 const router = useRouter();
@@ -54,7 +61,6 @@ const documentLabelset = ref<Labelset>();
 const relationLabels = ref<string[]>();
 const source = shallowRef<AnnotationSource>();
 const startPosition = ref(1);
-const loading = ref(true);
 const unsaved = ref(false);
 
 // What the breadcrumb and the `seq` query param show. `seq` is the
@@ -114,8 +120,6 @@ const init = async () => {
     });
   } catch (error) {
     $toast.error(`Could not open this task: ${(error as Error)?.message}`);
-  } finally {
-    loading.value = false;
   }
 };
 
