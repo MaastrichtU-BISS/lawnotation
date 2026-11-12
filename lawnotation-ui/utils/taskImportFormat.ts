@@ -22,7 +22,6 @@ export const CONFIDENCE_MAX = 5;
 
 const TOP_KEYS = ["name", "desc", "ann_guidelines", "labelset", "document_labelset", "span_granularity", "annotation_level", "documents", "counts", "ml_model_id"];
 const LABELSET_KEYS = ["name", "desc", "labels", "relation_labels"];
-const DOCUMENT_LABELSET_KEYS = ["name", "desc", "labels"];
 const LABEL_KEYS = ["name", "color"];
 const DOCUMENT_KEYS = ["name", "full_text", "assignments"];
 const ASSIGNMENT_KEYS = ["annotator", "order", "status", "difficulty_rating", "annotations", "document_annotations", "document_relations"];
@@ -75,17 +74,59 @@ export function validateTaskImport(json: unknown): string[] {
     if (!isInt(v) || v < 0 || v > CONFIDENCE_MAX)
       fail(path, `must be a whole number from 0 to ${CONFIDENCE_MAX} (stars), got ${show(v)}`);
   };
-  // Relation labels a relation may use: the file's labelset's own, else the
-  // default set; null when the file brings no labelset (the project's is
-  // used then, and its relation labels can't be checked here).
-  let allowedRelationLabels: readonly string[] | null = null;
-  const relationLabels = (v: unknown, path: string) => {
+  // Checks a list of relation labels against what a labelset allows: its own
+  // `relation_labels`, else the default set; null when the file brings no
+  // labelset (the project's is used then, and its relation labels can't be
+  // checked here).
+  const relationLabels = (v: unknown, path: string, allowed: readonly string[] | null) => {
     if (!Array.isArray(v)) return fail(path, `must be a list of relation labels, got ${show(v)}`);
     v.forEach((l, i) => {
-      if (allowedRelationLabels === null) return nonEmptyString(l, `${path}[${i}]`);
-      if (!allowedRelationLabels.includes(l))
-        fail(`${path}[${i}]`, `must be one of ${allowedRelationLabels.map((x) => `"${x}"`).join(", ")}, got ${show(l)}`);
+      if (allowed === null) return nonEmptyString(l, `${path}[${i}]`);
+      if (!allowed.includes(l))
+        fail(`${path}[${i}]`, `must be one of ${allowed.map((x) => `"${x}"`).join(", ")}, got ${show(l)}`);
     });
+  };
+  // A labelset object (the task's or, for a hybrid task, the document one).
+  // Returns the label names it defines and the relation labels its relations
+  // may use: its own `relation_labels`, else the default set.
+  const checkLabelset = (ls: unknown, path: string) => {
+    let names: Set<string> | null = null;
+    let allowed: readonly string[] | null = null;
+    if (!isObject(ls)) {
+      fail(path, `must be an object, got ${show(ls)}`);
+      return { names, allowed };
+    }
+    unknownKeys(ls, LABELSET_KEYS, path);
+    nonEmptyString(ls.name, `${path}.name`);
+    optionalString(ls, "desc", `${path}.`);
+    allowed = RELATION_LABELS;
+    if (ls.relation_labels !== undefined && ls.relation_labels !== null) {
+      if (!Array.isArray(ls.relation_labels) || !ls.relation_labels.length)
+        fail(`${path}.relation_labels`, `must be null or a non-empty list of names, got ${show(ls.relation_labels)}`);
+      else {
+        ls.relation_labels.forEach((name: unknown, i: number) => nonEmptyString(name, `${path}.relation_labels[${i}]`));
+        if (new Set(ls.relation_labels).size !== ls.relation_labels.length)
+          fail(`${path}.relation_labels`, "lists a relation label twice");
+        allowed = ls.relation_labels;
+      }
+    }
+    if (!Array.isArray(ls.labels) || !ls.labels.length) fail(`${path}.labels`, "must be a non-empty list of labels");
+    else {
+      names = new Set();
+      ls.labels.forEach((label: unknown, i: number) => {
+        const p = `${path}.labels[${i}]`;
+        if (!isObject(label)) return fail(p, `must be an object { name, color }, got ${show(label)}`);
+        unknownKeys(label, LABEL_KEYS, p);
+        nonEmptyString(label.name, `${p}.name`);
+        if (typeof label.color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(label.color))
+          fail(`${p}.color`, `must be a colour like "#1f77b4", got ${show(label.color)}`);
+        if (typeof label.name === "string") {
+          if (names!.has(label.name)) fail(`${p}.name`, `"${label.name}" is listed twice`);
+          names!.add(label.name);
+        }
+      });
+    }
+    return { names, allowed };
   };
   const done = () => {
     const lines = [...problems.values()].map(({ first, count }) =>
@@ -128,75 +169,29 @@ export function validateTaskImport(json: unknown): string[] {
   // A span-level task with a labelset for whole-document tags is hybrid.
   const hybrid = !documentLevel && json.document_labelset !== undefined;
 
-  // Labels annotations may use; unknown when the file brings no labelset (the
-  // project's first labelset is used then, and labels can't be checked here).
+  // Labels annotations may use, and the relation labels span relations may use;
+  // unknown when the file brings no labelset (the project's first labelset is
+  // used then, and they can't be checked here).
   let labelNames: Set<string> | null = null;
+  let spanRelationLabels: readonly string[] | null = null;
   if (json.labelset !== undefined) {
-    const ls = json.labelset;
-    if (!isObject(ls)) fail("labelset", `must be an object, got ${show(ls)}`);
-    else {
-      unknownKeys(ls, LABELSET_KEYS, "labelset");
-      nonEmptyString(ls.name, "labelset.name");
-      optionalString(ls, "desc", "labelset.");
-      allowedRelationLabels = RELATION_LABELS;
-      if (ls.relation_labels !== undefined && ls.relation_labels !== null) {
-        if (!Array.isArray(ls.relation_labels) || !ls.relation_labels.length)
-          fail("labelset.relation_labels", `must be null or a non-empty list of names, got ${show(ls.relation_labels)}`);
-        else {
-          ls.relation_labels.forEach((name: unknown, i: number) => nonEmptyString(name, `labelset.relation_labels[${i}]`));
-          if (new Set(ls.relation_labels).size !== ls.relation_labels.length)
-            fail("labelset.relation_labels", "lists a relation label twice");
-          allowedRelationLabels = ls.relation_labels;
-        }
-      }
-      if (!Array.isArray(ls.labels) || !ls.labels.length) fail("labelset.labels", "must be a non-empty list of labels");
-      else {
-        labelNames = new Set();
-        ls.labels.forEach((label: unknown, i: number) => {
-          const p = `labelset.labels[${i}]`;
-          if (!isObject(label)) return fail(p, `must be an object { name, color }, got ${show(label)}`);
-          unknownKeys(label, LABEL_KEYS, p);
-          nonEmptyString(label.name, `${p}.name`);
-          if (typeof label.color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(label.color))
-            fail(`${p}.color`, `must be a colour like "#1f77b4", got ${show(label.color)}`);
-          if (typeof label.name === "string") {
-            if (labelNames!.has(label.name)) fail(`${p}.name`, `"${label.name}" is listed twice`);
-            labelNames!.add(label.name);
-          }
-        });
-      }
-    }
+    const checked = checkLabelset(json.labelset, "labelset");
+    labelNames = checked.names;
+    spanRelationLabels = checked.allowed;
   }
 
-  // Labels the document tags of a hybrid task may use; like labelNames, unknown
-  // without a labelset in the file.
+  // A hybrid task's document labelset: the labels its document tags may use and
+  // the relation labels its document relations may use. Document relations
+  // belong to it, so they never use the span labelset's relation labels. In a
+  // document-level task (no document labelset) the task's one labelset is both.
   let documentLabelNames: Set<string> | null = null;
+  let documentRelationLabels: readonly string[] | null = spanRelationLabels;
   if (json.document_labelset !== undefined) {
-    const ls = json.document_labelset;
     if (documentLevel) fail("document_labelset", `only span-level tasks can have a document labelset (span_granularity is "document")`);
     else if (json.labelset === undefined) fail("document_labelset", "needs a labelset too: the file must give both labelsets or neither");
-    if (!isObject(ls)) fail("document_labelset", `must be an object, got ${show(ls)}`);
-    else {
-      unknownKeys(ls, DOCUMENT_LABELSET_KEYS, "document_labelset");
-      nonEmptyString(ls.name, "document_labelset.name");
-      optionalString(ls, "desc", "document_labelset.");
-      if (!Array.isArray(ls.labels) || !ls.labels.length) fail("document_labelset.labels", "must be a non-empty list of labels");
-      else {
-        documentLabelNames = new Set();
-        ls.labels.forEach((label: unknown, i: number) => {
-          const p = `document_labelset.labels[${i}]`;
-          if (!isObject(label)) return fail(p, `must be an object { name, color }, got ${show(label)}`);
-          unknownKeys(label, LABEL_KEYS, p);
-          nonEmptyString(label.name, `${p}.name`);
-          if (typeof label.color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(label.color))
-            fail(`${p}.color`, `must be a colour like "#1f77b4", got ${show(label.color)}`);
-          if (typeof label.name === "string") {
-            if (documentLabelNames!.has(label.name)) fail(`${p}.name`, `"${label.name}" is listed twice`);
-            documentLabelNames!.add(label.name);
-          }
-        });
-      }
-    }
+    const checked = checkLabelset(json.document_labelset, "document_labelset");
+    documentLabelNames = checked.names;
+    documentRelationLabels = checked.allowed;
   }
 
   if (!Array.isArray(json.documents) || !json.documents.length) {
@@ -295,7 +290,7 @@ export function validateTaskImport(json: unknown): string[] {
             else targets.add(rel.to);
             if (!RELATION_DIRECTIONS.includes(rel.direction))
               fail(`${rp}.direction`, `must be one of ${RELATION_DIRECTIONS.map((x) => `"${x}"`).join(", ")}, got ${show(rel.direction)}`);
-            relationLabels(rel.labels, `${rp}.labels`);
+            relationLabels(rel.labels, `${rp}.labels`, spanRelationLabels);
           });
         });
       }
@@ -341,7 +336,7 @@ export function validateTaskImport(json: unknown): string[] {
           linked.add(rel.to_order);
           if (annotatorOk && orderOk) links.push({ path: `${rp}.to_order`, annotator: ass.annotator, order: ass.order, toOrder: rel.to_order });
         }
-        relationLabels(rel.labels, `${rp}.labels`);
+        relationLabels(rel.labels, `${rp}.labels`, documentRelationLabels);
       });
     });
   });

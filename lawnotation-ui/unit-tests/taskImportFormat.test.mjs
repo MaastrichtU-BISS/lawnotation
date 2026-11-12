@@ -326,3 +326,59 @@ test("giving both span_granularity and annotation_level is refused", () => {
   task.annotation_level = "word";
   expectProblem(task, "annotation_level: is the old name of span_granularity");
 });
+
+// --- relation labels of a hybrid task: span relations use the span labelset's,
+// --- document relations the document labelset's (default eight if it has none).
+
+const withDocumentRelationLabel = (task, label) => {
+  task.documents[0].assignments[0].document_relations[0].labels = [label];
+  return task;
+};
+
+test("a hybrid file's document relations may use the document labelset's own relation labels", () => {
+  const task = withDocumentRelationLabel(hybridTask(), "Cites");
+  task.document_labelset.relation_labels = ["Cites", "Overrules"];
+  assert.deepEqual(validateTaskImport(task), []);
+});
+
+test("without its own, a document labelset's relations use the default eight", () => {
+  assert.deepEqual(validateTaskImport(withDocumentRelationLabel(hybridTask(), "Part of")), []);
+  expectProblem(withDocumentRelationLabel(hybridTask(), "Cites"), 'must be one of "Is a"');
+});
+
+test("the span labelset's relation labels do not apply to document relations", () => {
+  const task = withDocumentRelationLabel(hybridTask(), "Cites");
+  task.labelset.relation_labels = ["Cites"]; // only the span labelset has it
+  expectProblem(task, 'document_relations[0].labels[0]: must be one of "Is a"');
+});
+
+test("the document labelset's relation labels do not apply to span relations", () => {
+  const task = hybridTask();
+  task.document_labelset.relation_labels = ["Cites"];
+  firstSpan(task).relations[0].labels = ["Cites"]; // a span relation
+  expectProblem(task, 'annotations[0].relations[0].labels[0]: must be one of "Is a"');
+});
+
+test("each labelset keeps its own list: span and document relations can use different ones", () => {
+  const task = withDocumentRelationLabel(hybridTask(), "Cites");
+  task.labelset.relation_labels = ["Has a"];
+  task.document_labelset.relation_labels = ["Cites"];
+  assert.deepEqual(validateTaskImport(task), []);
+});
+
+test("a document labelset's relation labels are checked like a labelset's", () => {
+  const task = hybridTask();
+  task.document_labelset.relation_labels = [];
+  expectProblem(task, "document_labelset.relation_labels: must be null or a non-empty list");
+  task.document_labelset.relation_labels = ["Cites", "Cites"];
+  expectProblem(task, "document_labelset.relation_labels: lists a relation label twice");
+  task.document_labelset.relation_labels = null;
+  assert.deepEqual(validateTaskImport(task), []);
+});
+
+test("in a document-level task the task's one labelset gives the document relations' labels", () => {
+  const task = documentTask();
+  task.labelset.relation_labels = ["Cites"];
+  task.documents[0].assignments[0].document_relations[0].labels = ["Cites"];
+  assert.deepEqual(validateTaskImport(task), []);
+});

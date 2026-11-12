@@ -35,7 +35,15 @@ In a project, **Add task**, pick the labelset, choose **span** as the annotation
 Labelsets that tasks use, as span or as document labelset, can be recoloured and reordered but not have labels added, removed or renamed.
 
 ### Annotating a hybrid task
-The annotator sees the span labels (with hotkeys, as always) and, under them, **Document Tags**, which are toggled by clicking. Span relations and document-to-document relations both work. Document tags carry a confidence and metadata, like spans. The header badge reads, for example, **Word-level + Document tags**. This is the `legal-annotation-kit` component (1.7.0 or later); its `documentLabelset` prop switches the document tags on.
+The annotator sees the span labels (with hotkeys, as always) and, right under them after a divider, **Document Tags**, which are toggled by clicking or by their own hotkeys, which continue where the span labels' keys end (with 10 span labels, the first tag is `A`). Span relations and document-to-document relations both work. Document tags carry a confidence and metadata, like spans. The header badge reads, for example, **Word-level + Document tags**. This is the `legal-annotation-kit` component (1.7.0 or later); its `documentLabelset` prop switches the document tags on.
+
+### Relation labels
+Relations carry labels, and which list they come from depends on what is related:
+- **Span relations** use the span labelset's `relation_labels` (the default eight when it has none).
+- **Document relations** in a **document** task use that task's labelset's `relation_labels`.
+- **Document relations** in a **hybrid** task use the **document labelset's** own `relation_labels`, or the default eight when it has none. They never use the span labelset's: the two labelsets each keep their own list, so for example span relations can say "Has a" while document relations say "Cites" or "Overrules".
+
+Set them in the labelset editor (**Customize** under Relation labels) on the labelset that owns the relations. They are exported with the labelset (`document_labelset.relation_labels` for a hybrid task's document labelset) and checked on import. Like label names, they cannot be added, removed or renamed while a task uses the labelset.
 
 ### Document relations
 In document and hybrid tasks the annotator can link a document to other documents of their queue (the **Document Relations** panel). Three things make that practical when documents are many or hard to tell apart by name:

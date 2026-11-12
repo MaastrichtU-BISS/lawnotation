@@ -260,6 +260,8 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
         name: data.document_labelset.name,
         desc: data.document_labelset.desc,
         labels: data.document_labelset.labels,
+        // Document relations take their labels from here, not the span labelset's.
+        relation_labels: data.document_labelset.relation_labels,
       };
     }
     if (options.ann_guidelines) json.ann_guidelines = data.task.ann_guidelines;
