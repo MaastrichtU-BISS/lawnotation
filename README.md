@@ -9,6 +9,7 @@ Some of the most significant features are: assignment allocation, annotation met
 - PDF, HTML and TXT documents,
 - Annotator allocation strategies,
 - Advanced annotation insights and metrics,
+- Span, document-level and hybrid (span + document tags) annotation tasks,
 - JSON import- and export,
 - Publishing data,
 - Document discovery.
@@ -17,8 +18,40 @@ Some of the most significant features are: assignment allocation, annotation met
 The easiest and quickest way to get started using Lawnotation is to use the hosted version of the platform. You can sign up for free at [lawnotation.org](lawnotation.org). 
 After first sign-in, hints guide you through the application. Refer to the [documentation](https://docs.lawnotation.org/) if additional help is needed.
 
-## Importing tasks
-A task, with its labels, documents, annotators' assignments and existing annotations (pre-annotations, for example), can be imported from a JSON file: in a project, **Add task → Import**. It is the format Lawnotation exports tasks in. Files made by other tools or scripts must follow it exactly: the whole file is checked before anything is created, and a file with any problem is refused with every problem listed.
+## Task types
+A task is one of three kinds. It is chosen when the task is created and does not change afterwards.
+
+| Kind | Annotators mark | Labelsets | `span_granularity` |
+|---|---|---|---|
+| **Span** | spans of text | one (`labelset`) | `symbol`, `word`, `sentence` or `paragraph`: how a selection snaps to the text |
+| **Document** | the whole document, with tags | one (`labelset`) | `document` |
+| **Hybrid** | spans **and** the whole document | two: `labelset` for the spans, `document_labelset` for the document tags | the span granularity, as for a span task |
+
+A task is hybrid exactly when it has a span granularity and a document labelset. The granularity still matters in a hybrid task: it decides how spans snap (a `sentence` hybrid task snaps to whole sentences), and `"document"` is what marks a task that has no spans at all.
+
+### Creating a hybrid task
+In a project, **Add task**, pick the labelset, choose **span** as the annotation level and a granularity, then pick a **Document labelset (optional)**. Choosing **document** as the level hides that selector, because a document task already tags documents with its one labelset. The document labelset cannot be changed after the task is created. The same labelset may be used for both slots, and a label may share its name between the two labelsets (the two are told apart by kind everywhere).
+
+Labelsets that tasks use, as span or as document labelset, can be recoloured and reordered but not have labels added, removed or renamed.
+
+### Annotating a hybrid task
+The annotator sees the span labels (with hotkeys, as always) and, under them, **Document Tags**, which are toggled by clicking. Span relations and document-to-document relations both work. Document tags carry a confidence and metadata, like spans. The header badge reads, for example, **Word-level + Document tags**. This is the `legal-annotation-kit` component (1.7.0 or later); its `documentLabelset` prop switches the document tags on.
+
+### Metrics for a hybrid task
+The metrics page (`vue-iaa-metrics` 1.4.0 or later) shows:
+- one annotation list with both kinds, each card marked **SPAN** or **DOCUMENT** (document cards also have an indigo bar and a tinted background) and a header such as `Annotations: 11 (5 span · 6 document)`;
+- two label filters, **Span label(s)** and **Document label(s)**. Each also offers **None**, which leaves that kind out of the list and of the computed metrics, for example to look at document tags only;
+- agreement results with a **Span labels / Document labels** switch. Span labels get span matching (precision, recall, F1) and coverage agreement; document labels get agreement on whether each annotator applied the label to the document at all (Krippendorff's α, Cohen's κ). Confidence metrics are unchanged.
+
+These are computed by the IAA service ([lawnotation-iaa](https://github.com/MaastrichtU-BISS/lawnotation-iaa), a Go service), which must be a version that understands hybrid input (`annotation_level: "hybrid"`). The Lawnotation server sends it the two labelsets and each assignment's spans and document tags.
+
+### Lists
+In the task tables, the **Level** column shows the granularity, plus `+ document tags` for a hybrid task (for example `word + document tags`).
+
+## Importing and exporting tasks
+A task, with its labels, documents, annotators' assignments and existing annotations (pre-annotations, for example), can be imported from a JSON file: in a project, **Add task → Import**. It is the format Lawnotation exports tasks in.
+
+The file's `span_granularity` field is the task's granularity (`"document"` for a document task). It was called `annotation_level` in older exports; the importer still accepts that name, but a file must not use both. A hybrid task is exported with a `document_labelset` and, on every assignment, `document_annotations`, which the importer reads back. Files made by other tools or scripts must follow it exactly: the whole file is checked before anything is created, and a file with any problem is refused with every problem listed.
 
 The format, field by field, with an example and a checklist for generated files, is in [TASK_IMPORT_FORMAT.md](TASK_IMPORT_FORMAT.md). To check a file before uploading it, run this from `lawnotation-ui` (Node.js 22.13 or later):
 
@@ -73,6 +106,14 @@ pnpm install
 **5. Start the nuxt server**
 - The application can be built using `pnpm build`. 
 - The application can be ran either using `pnpm preview` or `node .output/server/index.mjs`
+
+### Upgrading to hybrid tasks
+An existing installation needs, in this order:
+1. **The database migration** `lawnotation-ui/supabase/migrations/20261112100000_hybrid_tasks.sql`, applied with `pnpm supabase db push`. It adds `tasks.document_labelset_id` (nullable; allowed only on span tasks) and `annotations.kind` (`span` or `document`), and marks every annotation of existing document tasks as `document`. Existing tasks and annotations keep working unchanged. Apply it to production before, or together with, the new application version, because the new code reads these columns.
+2. **The IAA service** (if you use metrics), updated to a version with hybrid support, before anyone opens the metrics of a hybrid task. It still accepts the old input, so existing tasks are not affected.
+3. **The application**, with `legal-annotation-kit` `^1.7.0` and `vue-iaa-metrics` `^1.4.0` (already set in `lawnotation-ui/package.json`).
+
+The IAA service is configured with `IAA_SERVICE_URL` and `IAA_API_KEY` in `.env`.
 
 ## Development
 The setup for developing is equivalent to that of self-hosting. The main difference is that Supabase is ran locally instead of remote, and that Nuxt's development server is started instead of its production server. To do this:
