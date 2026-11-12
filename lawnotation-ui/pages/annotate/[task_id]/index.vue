@@ -19,7 +19,8 @@
     <div class="dimmer-content h-full">
       <ClientOnly>
         <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset" :document-labelset="documentLabelset"
-          :relation-labels="relationLabels"
+          :relation-labels="relationLabels" preview-documents relation-graph
+          @view-document="relationViews.viewDocument" @view-relation-graph="relationViews.viewRelationGraph"
           :annotation-level="toKitLevel(task.annotation_level)" :guidelines-url="task.ann_guidelines || undefined"
           :start-position="startPosition" :url-param="false" @complete="onComplete" @save-error="onSaveError"
           @unsaved="unsaved = $event" />
@@ -27,6 +28,7 @@
     </div>
   </div>
   <ConfirmBox />
+  <DocumentRelationViews :views="relationViews" />
 </template>
 <script setup lang="ts">
 import { AnnotatorQueue, createLazySource } from "legal-annotation-kit";
@@ -38,8 +40,12 @@ import ConfirmBox from "~/components/ConfirmBox.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { saveKitAssignment, toKitBundle } from "~/utils/annotator";
 import { toKitLevel } from "~/utils/levels";
+import DocumentRelationViews from "~/components/annotator/DocumentRelationViews.vue";
+import { useDocumentRelationViews } from "~/composables/useDocumentRelationViews";
 
 const user = useSupabaseUser();
+// "Read more" and "View as graph" on document relations: the kit only asks, these open the modals.
+const relationViews = useDocumentRelationViews();
 const { $toast, $trpc } = useNuxtApp();
 const route = useRoute();
 const router = useRouter();
