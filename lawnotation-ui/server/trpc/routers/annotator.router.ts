@@ -155,6 +155,66 @@ export const annotatorRouter = router({
     )
     .query(async ({ ctx, input }) => queueOfAssignment(ctx.sql, input)),
 
+  /**
+   * A document's full text, for "Read more" when relating documents: the
+   * annotator may want to see what a target is before linking to it. Authorized
+   * like opening the assignment itself, so it only ever returns documents of the
+   * caller's own queue (or of a task they edit).
+   */
+  documentPreview: protectedProcedure
+    .input(z.object({ assignment_id: z.number().int() }))
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentEditorOrAnnotatorAuthorizer(opts.input.assignment_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input }) => {
+      const [row] = await ctx.sql<{ name: string; full_text: string }[]>`
+        SELECT d.name, d.full_text
+        FROM assignments AS a INNER JOIN documents AS d ON (a.document_id = d.id)
+        WHERE a.id = ${input.assignment_id}
+      `;
+      if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
+      return row;
+    }),
+
+  /**
+   * Every document of the queue the assignment belongs to, and the links among
+   * them: what the relation graph is drawn from. Each document carries the
+   * start of its text so a hover can tell what it is without opening it.
+   */
+  relationGraph: protectedProcedure
+    .input(z.object({ assignment_id: z.number().int() }))
+    .use((opts) =>
+      authorizer(opts, () =>
+        assignmentEditorOrAnnotatorAuthorizer(opts.input.assignment_id, opts.ctx.user.id, opts.ctx)
+      )
+    )
+    .query(async ({ ctx, input }) => {
+      const documents = await ctx.sql<
+        { assignment_id: number; seq_pos: number; document_name: string; snippet: string }[]
+      >`
+        SELECT other.id::int AS assignment_id, other.seq_pos::int AS seq_pos,
+               d.name AS document_name, left(d.full_text, 300) AS snippet
+        FROM assignments AS self
+        INNER JOIN assignments AS other
+          ON (other.task_id = self.task_id AND other.annotator_number = self.annotator_number)
+        INNER JOIN documents AS d ON (other.document_id = d.id)
+        WHERE self.id = ${input.assignment_id}
+        ORDER BY other.seq_pos, other.id
+      `;
+      const ids = documents.map((d) => d.assignment_id);
+      const relations = ids.length
+        ? await ctx.sql<{ from: number; to: number; labels: string[] }[]>`
+            SELECT from_assignment_id::int AS "from", to_assignment_id::int AS "to", labels::text[] AS labels
+            FROM document_relations
+            WHERE from_assignment_id IN ${ctx.sql(ids)} AND to_assignment_id IN ${ctx.sql(ids)}
+            ORDER BY id
+          `
+        : [];
+      return { documents, relations };
+    }),
+
   /** Links other documents in the same queue made to this one ("Linked by"). */
   incoming: protectedProcedure
     .input(z.number().int())

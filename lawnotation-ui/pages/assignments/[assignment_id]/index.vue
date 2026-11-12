@@ -22,7 +22,8 @@
     <div class="dimmer-content h-full">
       <ClientOnly>
         <AnnotatorView v-if="bundle && labelset" :document="bundle.document" :assignment="bundle.assignment"
-          :relation-labels="relationLabels"
+          :relation-labels="relationLabels" preview-documents relation-graph
+          @view-document="relationViews.viewDocument" @view-relation-graph="relationViews.viewRelationGraph"
           :labelset="labelset" :document-labelset="documentLabelset" :annotation-level="toKitLevel(task.annotation_level)"
           :guidelines-url="task.ann_guidelines || undefined" :position="{ current: 1, total: 1 }"
           :navigation="false" :other-documents="otherDocuments" :incoming-relations="incomingRelations"
@@ -31,6 +32,7 @@
     </div>
   </div>
   <ConfirmBox />
+  <DocumentRelationViews :views="relationViews" />
 </template>
 <script setup lang="ts">
 import { AnnotatorView } from "legal-annotation-kit";
@@ -47,6 +49,8 @@ import { useConfirm } from "primevue/useconfirm";
 import { authorizeClient } from "~/utils/authorize.client";
 import { saveKitAssignment, toKitBundle } from "~/utils/annotator";
 import { toKitLevel } from "~/utils/levels";
+import DocumentRelationViews from "~/components/annotator/DocumentRelationViews.vue";
+import { useDocumentRelationViews } from "~/composables/useDocumentRelationViews";
 import Breadcrumb from "~/components/Breadcrumb.vue";
 import ConfirmBox from "~/components/ConfirmBox.vue";
 
@@ -54,6 +58,8 @@ import ConfirmBox from "~/components/ConfirmBox.vue";
 // annotator opening it directly. No queue around it, so just Save.
 
 const { $trpc, $toast } = useNuxtApp();
+// "Read more" and "View as graph" on document relations: the kit only asks, these open the modals.
+const relationViews = useDocumentRelationViews();
 
 const route = useRoute();
 const assignment = ref<AppRouter['assignment']['findById']['_def']['_output_out']>();

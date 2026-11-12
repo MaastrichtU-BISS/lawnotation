@@ -37,6 +37,14 @@ Labelsets that tasks use, as span or as document labelset, can be recoloured and
 ### Annotating a hybrid task
 The annotator sees the span labels (with hotkeys, as always) and, under them, **Document Tags**, which are toggled by clicking. Span relations and document-to-document relations both work. Document tags carry a confidence and metadata, like spans. The header badge reads, for example, **Word-level + Document tags**. This is the `legal-annotation-kit` component (1.7.0 or later); its `documentLabelset` prop switches the document tags on.
 
+### Document relations
+In document and hybrid tasks the annotator can link a document to other documents of their queue (the **Document Relations** panel). Three things make that practical when documents are many or hard to tell apart by name:
+- **Search.** The "link to a document…" control is a searchable dropdown: type part of a name or a position (`ruling 12`) and arrow/Enter or click to pick.
+- **Read more.** Next to each candidate in that dropdown, and next to each existing relation, a **Read more** button opens the document's full text in a modal, so the annotator can see what a target is before linking to it.
+- **View as graph.** A **View as graph** button opens a modal with the documents of the annotator's queue as nodes and the relations among them as labelled arrows. The document being annotated has a thick border, links added but not yet saved are drawn too, hovering a document shows the start of its text (the tooltip goes away while a document is dragged), clicking one opens it in the same text modal, and a download button in the corner saves the graph as a PNG image (`document-relations.png`).
+
+How the work is split between the packages: `legal-annotation-kit` (1.8.0 or later) only *emits* `view-document` and `view-relation-graph` requests, and only offers the buttons when the host opts in (`preview-documents` / `relation-graph`). Lawnotation decides what they do: it loads the text with `annotator.documentPreview` and the queue's relations with `annotator.relationGraph`, and draws the graph with the generic `NetworkGraph` of `vue-legal-docs-visualizer` (1.3.0 or later), which takes plain nodes and edges and knows nothing about legal documents. The wiring lives in `composables/useDocumentRelationViews.ts` and `components/annotator/DocumentRelationViews.vue`; turning the queue into graph input is the tested function `toRelationGraph` in `utils/relationGraph.ts`. Both endpoints are authorized like opening the assignment itself.
+
 ### Metrics for a hybrid task
 The metrics page (`vue-iaa-metrics` 1.4.0 or later) shows:
 - one annotation list with both kinds, each card marked **SPAN** or **DOCUMENT** (document cards also have an indigo bar and a tinted background) and a header such as `Annotations: 11 (5 span · 6 document)`;
