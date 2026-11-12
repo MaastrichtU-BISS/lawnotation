@@ -23,7 +23,7 @@
       <ClientOnly>
         <AnnotatorView v-if="bundle && labelset" :document="bundle.document" :assignment="bundle.assignment"
           :relation-labels="relationLabels"
-          :labelset="labelset" :annotation-level="toKitLevel(task.annotation_level)"
+          :labelset="labelset" :document-labelset="documentLabelset" :annotation-level="toKitLevel(task.annotation_level)"
           :guidelines-url="task.ann_guidelines || undefined" :position="{ current: 1, total: 1 }"
           :navigation="false" :other-documents="otherDocuments" :incoming-relations="incomingRelations"
           @save="save" @save-error="onSaveError" @unsaved="unsaved = $event" />
@@ -70,6 +70,8 @@ const bundle = shallowRef<AssignmentBundle>();
 const otherDocuments = ref<DocumentRef[]>([]);
 const incomingRelations = ref<IncomingRelation[]>([]);
 const labelset = ref<Labelset>();
+// Hybrid tasks: the labelset for whole-document tags, next to the span labelset.
+const documentLabelset = ref<Labelset>();
 // The labelset's own relation labels; undefined keeps the kit's default set.
 const relationLabels = ref<string[]>();
 
@@ -94,6 +96,10 @@ const loadData = async () => {
     const set = await $trpc.labelset.findById.query(+task.value.labelset_id);
     labelset.value = { name: set.name, desc: set.desc ?? "", labels: set.labels };
     relationLabels.value = set.relation_labels ?? undefined;
+    if (task.value.document_labelset_id) {
+      const documentSet = await $trpc.labelset.findById.query(+task.value.document_labelset_id);
+      documentLabelset.value = { name: documentSet.name, desc: documentSet.desc ?? "", labels: documentSet.labels };
+    }
 
     const assignmentId = +assignment.value.id;
     const [queue, incoming] = await Promise.all([

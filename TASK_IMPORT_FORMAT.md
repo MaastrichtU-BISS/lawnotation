@@ -27,7 +27,7 @@ A word-level task with one annotator, two documents, two pre-annotated spans and
       { "name": "Obligation", "color": "#ff7f0e" }
     ]
   },
-  "annotation_level": "word",
+  "span_granularity": "word",
   "documents": [
     {
       "name": "sale-001.txt",
@@ -87,6 +87,37 @@ The smallest valid file has only documents. The task is then created with those 
 { "name": "Rulings", "documents": [{ "name": "ruling-1.txt", "full_text": "..." }] }
 ```
 
+## Example: a hybrid task
+
+A hybrid task has span annotations **and** tags on the whole document, each with its own labelset. Add a `document_labelset`, and `document_annotations` on the assignments. `span_granularity` stays the granularity of the spans:
+
+```json
+{
+  "name": "Rulings",
+  "labelset": { "name": "Roles", "labels": [{ "name": "Party", "color": "#1f77b4" }] },
+  "document_labelset": { "name": "Relevance", "labels": [{ "name": "Relevant", "color": "#0ea5e9" }] },
+  "span_granularity": "word",
+  "documents": [
+    {
+      "name": "ruling-1.txt",
+      "full_text": "The Court held that the Seller must pay.",
+      "assignments": [
+        {
+          "annotator": 1,
+          "order": 1,
+          "annotations": [
+            { "start": 4, "end": 9, "label": "Party", "text": "Court", "relations": [] }
+          ],
+          "document_annotations": [{ "label": "Relevant", "confidence_rating": 4, "metadata": null }],
+          "document_relations": []
+        }
+      ]
+    }
+  ],
+  "counts": { "documents": 1, "assignments": 1, "annotators": 1, "annotations": 1, "document_annotations": 1, "relations": 0, "document_relations": 0 }
+}
+```
+
 ## Fields
 
 Only the fields below are allowed. Any other field is refused, so a misspelt name (`confidence` instead of `confidence_rating`) is caught rather than silently ignored. Put extra information, such as a model's reasoning, in an annotation's `metadata`.
@@ -99,7 +130,8 @@ Only the fields below are allowed. Any other field is refused, so a misspelt nam
 | `desc` | no | Task description. |
 | `ann_guidelines` | no | A link (`http://` or `https://`) to the annotation guidelines, opened from the annotator's sidebar, or `""`. Not the guidelines' text. |
 | `labelset` | no | The labels to annotate with (see below). Without it the task uses the project's first labelset, and labels can't be checked before importing, so include it. |
-| `annotation_level` | no | `"symbol"`, `"word"` (default), `"sentence"`, `"paragraph"` or `"document"`. Sets how selections snap while annotating. `"document"` means annotators tag whole documents instead of marking text. |
+| `document_labelset` | no | Makes the task **hybrid**: annotators mark spans with `labelset` and, separately, tag the whole document with these labels (see below). Needs `labelset`, and a span `span_granularity`, not `"document"`. |
+| `span_granularity` | no | `"symbol"`, `"word"` (default), `"sentence"`, `"paragraph"` or `"document"`. Sets how selections snap while annotating. `"document"` means annotators tag whole documents instead of marking text. (Exports made before this field was renamed call it `annotation_level`; the old name is still accepted, but not together with the new one.) |
 | `documents` | yes | The documents, at least one (see below). |
 | `counts` | when there are assignments | Totals that must match the file exactly (see below). |
 
@@ -111,6 +143,10 @@ Only the fields below are allowed. Any other field is refused, so a misspelt nam
 | `desc` | no | Description. |
 | `labels` | yes | At least one `{ "name": "...", "color": "#rrggbb" }`. Names must be unique. Colours are 6-digit hex. |
 | `relation_labels` | no | The labels relations may carry, as a list of unique names, for example `["Cites", "Overrules"]`. Absent or `null` means the default eight listed under relations below. |
+
+### `document_labelset`
+
+Same as `labelset`, without `relation_labels`. A label may share its name with a label of `labelset`. In a hybrid task each assignment can hold span `annotations` (labelled from `labelset`) and `document_annotations` (labelled from `document_labelset`).
 
 ### Document (`documents[]`)
 
@@ -131,11 +167,12 @@ One annotator's work on one document.
 | `status` | no | `"pending"` (still to annotate) or `"done"`. The import dialog can also set every assignment to one status. |
 | `difficulty_rating` | no | The annotator's confidence in the whole document, 0 to 5 stars. 0 means not rated. Default 0. |
 | `annotations` | no | Annotations already made (see below). |
-| `document_relations` | no | Links from this document to others (document-level tasks only, see below). |
+| `document_annotations` | no | Hybrid tasks only: tags on the whole document, each `{ "label", "confidence_rating", "metadata" }` with the label from `document_labelset`. Each label at most once per assignment. |
+| `document_relations` | no | Links from this document to others (document-level and hybrid tasks only, see below). |
 
 ### Annotation (`documents[].assignments[].annotations[]`)
 
-On a text task (any level except `"document"`), an annotation marks a span of `full_text`:
+On a span task (any `span_granularity` except `"document"`, hybrid tasks included), an annotation marks a span of `full_text`:
 
 | Field | Required | Value |
 |---|---|---|
@@ -151,7 +188,7 @@ The same label on the same span may appear only once per assignment.
 
 Offsets count characters as JavaScript does (UTF-16 code units). In Python, `full_text[start:end]` gives the same result unless the text contains characters outside the Basic Multilingual Plane, such as emoji. For those, convert the offsets. Line breaks count as characters: `"\r\n"` is two.
 
-On a **document-level** task (`"annotation_level": "document"`), an annotation is a tag on the whole document. Only `label`, `confidence_rating` and `metadata` apply. `start`, `end` and `text` are ignored, and a tag can't have `relations`. Each label can tag a document once per assignment.
+On a **document-level** task (`"span_granularity": "document"`), an annotation is a tag on the whole document. Only `label`, `confidence_rating` and `metadata` apply. `start`, `end` and `text` are ignored, and a tag can't have `relations`. Each label can tag a document once per assignment.
 
 ### Relation (`annotations[].relations[]`)
 
@@ -163,7 +200,7 @@ On a **document-level** task (`"annotation_level": "document"`), an annotation i
 
 ### Document relation (`assignments[].document_relations[]`)
 
-Only on document-level tasks: a link from this document to another document in the same annotator's queue.
+Only on document-level and hybrid tasks: a link from this document to another document in the same annotator's queue.
 
 | Field | Required | Value |
 |---|---|---|
@@ -181,10 +218,13 @@ Required when any document has assignments. Lawnotation uses these numbers to de
 | `assignments` | Number of assignments in all documents. |
 | `annotators` | Highest annotator number, which is the number of annotators. |
 | `annotations` | Number of annotations in all assignments. |
+| `document_annotations` | Number of document annotations in all assignments (hybrid tasks). |
 | `relations` | Number of relations in all annotations. |
 | `document_relations` | Number of document relations in all assignments. |
 
 ### Older exports
+
+Files exported before `annotation_level` was renamed `span_granularity` still import: the importer reads `annotation_level` as `span_granularity`. A file may use one name or the other, not both.
 
 Files exported while Lawnotation used Label Studio also have `ls_id` and `html_metadata` on annotations. They are accepted and ignored, as long as `html_metadata` is `null`. Annotations positioned on HTML markup can't be imported any more: give the document as plain text, with offsets into that text.
 

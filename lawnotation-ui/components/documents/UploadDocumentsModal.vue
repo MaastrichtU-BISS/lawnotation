@@ -5,7 +5,7 @@
             style: 'padding-bottom: 0px',
         },
         content: {
-            style: 'padding-bottom: 0px',
+            style: 'padding-bottom: 1.5rem',
         },
     }" :ptOptions="{ mergeProps: true }">
         <Tabs v-model:value="activeTabDocumentsModal" class="min-h-[565px]">

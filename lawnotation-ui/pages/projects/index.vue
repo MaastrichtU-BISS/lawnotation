@@ -34,8 +34,10 @@
         </td>
       </template>
     </Table>
-    <Dialog v-model:visible="showCreateModal" :draggable="false" modal header="Create new project">
-      <form @submit.prevent="createNewProject">
+    <Dialog v-model:visible="showCreateModal" :draggable="false" modal header="Create new project" :pt="{
+      root: { 'data-test': 'create-project-dialog' }
+    }">
+      <form data-test="create-project-form" @submit.prevent="createNewProject">
         <p class="text-gray-500 mb-4">Create a new project to start annotating your documents.</p>
         <div class="flex justify-center mb-4">
           <span class="relative w-full">

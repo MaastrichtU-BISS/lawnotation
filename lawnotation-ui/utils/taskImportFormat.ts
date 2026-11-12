@@ -20,16 +20,18 @@ export const RELATION_LABELS = [
 ] as const;
 export const CONFIDENCE_MAX = 5;
 
-const TOP_KEYS = ["name", "desc", "ann_guidelines", "labelset", "annotation_level", "documents", "counts", "ml_model_id"];
+const TOP_KEYS = ["name", "desc", "ann_guidelines", "labelset", "document_labelset", "span_granularity", "annotation_level", "documents", "counts", "ml_model_id"];
 const LABELSET_KEYS = ["name", "desc", "labels", "relation_labels"];
+const DOCUMENT_LABELSET_KEYS = ["name", "desc", "labels"];
 const LABEL_KEYS = ["name", "color"];
 const DOCUMENT_KEYS = ["name", "full_text", "assignments"];
-const ASSIGNMENT_KEYS = ["annotator", "order", "status", "difficulty_rating", "annotations", "document_relations"];
+const ASSIGNMENT_KEYS = ["annotator", "order", "status", "difficulty_rating", "annotations", "document_annotations", "document_relations"];
+const DOCUMENT_ANNOTATION_KEYS = ["label", "confidence_rating", "metadata"];
 // ls_id and html_metadata: written by exports made while Label Studio was in use.
 const ANNOTATION_KEYS = ["start", "end", "label", "text", "confidence_rating", "metadata", "relations", "ls_id", "html_metadata"];
 const RELATION_KEYS = ["to", "direction", "labels"];
 const DOCUMENT_RELATION_KEYS = ["to", "to_order", "labels"];
-const COUNT_KEYS = ["documents", "assignments", "annotators", "annotations", "relations", "document_relations"];
+const COUNT_KEYS = ["documents", "assignments", "annotators", "annotations", "document_annotations", "relations", "document_relations"];
 
 /** At most this many distinct problems are listed. */
 const MAX_PROBLEMS = 25;
@@ -114,10 +116,17 @@ export function validateTaskImport(json: unknown): string[] {
   if (json.ml_model_id !== undefined && json.ml_model_id !== null && !isInt(json.ml_model_id))
     fail("ml_model_id", `must be a whole number, got ${show(json.ml_model_id)}`);
 
-  const level = json.annotation_level ?? "word";
+  // `annotation_level` is the old name of `span_granularity` (files exported
+  // before it was renamed); either is accepted, but not both.
+  if (json.annotation_level !== undefined && json.span_granularity !== undefined)
+    fail("annotation_level", "is the old name of span_granularity: give only span_granularity");
+  const granularityKey = json.span_granularity !== undefined ? "span_granularity" : "annotation_level";
+  const level = json[granularityKey] ?? "word";
   if (!ANNOTATION_LEVELS.includes(level))
-    fail("annotation_level", `must be one of ${ANNOTATION_LEVELS.map((x) => `"${x}"`).join(", ")}, got ${show(level)}`);
+    fail(granularityKey, `must be one of ${ANNOTATION_LEVELS.map((x) => `"${x}"`).join(", ")}, got ${show(level)}`);
   const documentLevel = level === "document";
+  // A span-level task with a labelset for whole-document tags is hybrid.
+  const hybrid = !documentLevel && json.document_labelset !== undefined;
 
   // Labels annotations may use; unknown when the file brings no labelset (the
   // project's first labelset is used then, and labels can't be checked here).
@@ -159,12 +168,43 @@ export function validateTaskImport(json: unknown): string[] {
     }
   }
 
+  // Labels the document tags of a hybrid task may use; like labelNames, unknown
+  // without a labelset in the file.
+  let documentLabelNames: Set<string> | null = null;
+  if (json.document_labelset !== undefined) {
+    const ls = json.document_labelset;
+    if (documentLevel) fail("document_labelset", `only span-level tasks can have a document labelset (span_granularity is "document")`);
+    else if (json.labelset === undefined) fail("document_labelset", "needs a labelset too: the file must give both labelsets or neither");
+    if (!isObject(ls)) fail("document_labelset", `must be an object, got ${show(ls)}`);
+    else {
+      unknownKeys(ls, DOCUMENT_LABELSET_KEYS, "document_labelset");
+      nonEmptyString(ls.name, "document_labelset.name");
+      optionalString(ls, "desc", "document_labelset.");
+      if (!Array.isArray(ls.labels) || !ls.labels.length) fail("document_labelset.labels", "must be a non-empty list of labels");
+      else {
+        documentLabelNames = new Set();
+        ls.labels.forEach((label: unknown, i: number) => {
+          const p = `document_labelset.labels[${i}]`;
+          if (!isObject(label)) return fail(p, `must be an object { name, color }, got ${show(label)}`);
+          unknownKeys(label, LABEL_KEYS, p);
+          nonEmptyString(label.name, `${p}.name`);
+          if (typeof label.color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(label.color))
+            fail(`${p}.color`, `must be a colour like "#1f77b4", got ${show(label.color)}`);
+          if (typeof label.name === "string") {
+            if (documentLabelNames!.has(label.name)) fail(`${p}.name`, `"${label.name}" is listed twice`);
+            documentLabelNames!.add(label.name);
+          }
+        });
+      }
+    }
+  }
+
   if (!Array.isArray(json.documents) || !json.documents.length) {
     fail("documents", "must be a non-empty list of documents");
     return done();
   }
 
-  const actual = { documents: json.documents.length, assignments: 0, annotations: 0, relations: 0, document_relations: 0 };
+  const actual = { documents: json.documents.length, assignments: 0, annotations: 0, document_annotations: 0, relations: 0, document_relations: 0 };
   const annotatorNumbers = new Set<number>();
   // Orders per annotator, to check uniqueness and resolve document links.
   const ordersByAnnotator = new Map<number, Set<number>>();
@@ -260,10 +300,34 @@ export function validateTaskImport(json: unknown): string[] {
         });
       }
 
+      // Tags on the whole document, next to the spans: hybrid tasks only.
+      const tags = ass.document_annotations ?? [];
+      if (!Array.isArray(tags)) fail(`${ap}.document_annotations`, `must be a list, got ${show(tags)}`);
+      else if (tags.length && !hybrid)
+        fail(`${ap}.document_annotations`, `only hybrid tasks (a span-level task with a document_labelset) can have document annotations`);
+      else {
+        const seenTags = new Set<string>();
+        tags.forEach((tag: unknown, n: number) => {
+          const tp = `${ap}.document_annotations[${n}]`;
+          actual.document_annotations++;
+          if (!isObject(tag)) return fail(tp, `must be an object, got ${show(tag)}`);
+          unknownKeys(tag, DOCUMENT_ANNOTATION_KEYS, tp);
+          if (typeof tag.label !== "string" || !tag.label) fail(`${tp}.label`, `must be a non-empty string, got ${show(tag.label)}`);
+          else {
+            if (documentLabelNames && !documentLabelNames.has(tag.label)) fail(`${tp}.label`, `"${tag.label}" is not a label of the document_labelset`);
+            if (seenTags.has(tag.label)) fail(`${tp}.label`, `"${tag.label}" is tagged twice on this assignment`);
+            seenTags.add(tag.label);
+          }
+          confidence(tag.confidence_rating, `${tp}.confidence_rating`);
+          if (tag.metadata !== undefined && tag.metadata !== null && typeof tag.metadata !== "string")
+            fail(`${tp}.metadata`, `must be a string or null, got ${show(tag.metadata)}`);
+        });
+      }
+
       const docRels = ass.document_relations ?? [];
       if (!Array.isArray(docRels)) return fail(`${ap}.document_relations`, `must be a list, got ${show(docRels)}`);
-      if (docRels.length && !documentLevel)
-        return fail(`${ap}.document_relations`, `only document-level tasks (annotation_level "document") can link documents`);
+      if (docRels.length && !documentLevel && !hybrid)
+        return fail(`${ap}.document_relations`, `only document-level and hybrid tasks can link documents`);
       const linked = new Set<number>();
       docRels.forEach((rel: unknown, r: number) => {
         const rp = `${ap}.document_relations[${r}]`;

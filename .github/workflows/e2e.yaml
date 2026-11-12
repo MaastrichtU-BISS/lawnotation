@@ -3,7 +3,8 @@ name: E2E Tests
 on:
   push:
     branches:
-      - none
+      - dev
+  workflow_dispatch:
 
 jobs:
   playwright:
@@ -16,8 +17,8 @@ jobs:
 
     env:
       SUPABASE_URL: "http://localhost:54321"
-      SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-      SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      SUPABASE_KEY: "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
+      SUPABASE_SERVICE_KEY: "sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz"
       DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
       SMTP_URL: "smtp://127.0.0.1:1025"
 
@@ -44,10 +45,9 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 2.90.0
-          
+
       - name: Start Supabase local stack
         run: supabase start
-
 
       - name: Restart Mailpit with SMTP port exposed
         run: |
@@ -133,7 +133,7 @@ jobs:
           done
           echo "Supabase API not ready"
           exit 1
-        
+
       - name: Show running containers
         if: always()
         run: docker ps -a

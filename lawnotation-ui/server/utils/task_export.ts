@@ -14,6 +14,14 @@ export type RichAnnotation = {
   relations: { to: number; direction: string; labels: string[] }[];
 };
 
+/** A tag on the whole document (hybrid tasks). */
+export type RichDocumentAnnotation = {
+  id: number;
+  label: string;
+  confidence_rating: number;
+  metadata: string | null;
+};
+
 export type RichAssignment = {
   id: number;
   annotator_id: string;
@@ -22,6 +30,9 @@ export type RichAssignment = {
   status: string;
   difficulty_rating: number;
   annotations: RichAnnotation[];
+  /** Hybrid tasks only: the document tags, kept apart from the spans in
+   * `annotations`. (A document-level task keeps its tags in `annotations`.) */
+  document_annotations: RichDocumentAnnotation[];
   /** Document-level links this assignment made, by target assignment. */
   document_relations: { to_assignment_id: number; labels: string[] }[];
 };
@@ -44,6 +55,8 @@ export type TaskExportData = {
     annotation_level: string | null;
   };
   labelset: { name: string; desc: string; labels: Label[]; relation_labels: string[] | null };
+  /** Hybrid tasks only: the labelset for the document tags. */
+  document_labelset: { name: string; desc: string; labels: Label[]; relation_labels: string[] | null } | null;
   documents: RichDocument[];
 };
 
@@ -53,7 +66,7 @@ export async function buildTaskExportData(
 ): Promise<TaskExportData> {
   const { data: task, error: taskError } = await supabase
     .from("tasks")
-    .select("name, desc, ann_guidelines, annotation_level, labelset_id")
+    .select("name, desc, ann_guidelines, annotation_level, labelset_id, document_labelset_id")
     .eq("id", task_id)
     .single();
 
@@ -78,7 +91,7 @@ export async function buildTaskExportData(
       supabase
         .from("annotations")
         .select(
-          "id, assignment_id, start_index, end_index, label, text, confidence_rating, metadata, assignment:assignments!inner(task_id)"
+          "id, assignment_id, start_index, end_index, label, text, confidence_rating, metadata, kind, assignment:assignments!inner(task_id)"
         )
         .eq("assignment.task_id", task_id)
         .order("id"),
@@ -98,6 +111,19 @@ export async function buildTaskExportData(
 
   if (labelsetRes.error)
     throw new Error(`Error fetching labelset for export: ${labelsetRes.error.message}`);
+
+  const hybrid = task.document_labelset_id != null && task.annotation_level !== "document";
+  let documentLabelsetRow: { name: string | null; desc: string | null; labels: unknown; relation_labels: string[] | null } | null = null;
+  if (hybrid) {
+    const res = await supabase
+      .from("labelsets")
+      .select("name, desc, labels, relation_labels")
+      .eq("id", task.document_labelset_id!)
+      .single();
+    if (res.error)
+      throw new Error(`Error fetching document labelset for export: ${res.error.message}`);
+    documentLabelsetRow = res.data;
+  }
   if (documentsRes.error)
     throw new Error(`Error fetching documents for export: ${documentsRes.error.message}`);
   if (assignmentsRes.error)
@@ -132,6 +158,7 @@ export async function buildTaskExportData(
       status: ass.status ?? "",
       difficulty_rating: ass.difficulty_rating ?? 0,
       annotations: [],
+      document_annotations: [],
       document_relations: [],
     };
     assignmentsById.set(ass.id, richAssignment);
@@ -142,6 +169,18 @@ export async function buildTaskExportData(
   for (const ann of annotationsRes.data ?? []) {
     const assignment = assignmentsById.get(ann.assignment_id!);
     if (!assignment) continue;
+
+    // A hybrid task keeps its tags apart from its spans; in a document-level
+    // task every annotation is a tag and stays in `annotations`.
+    if (hybrid && ann.kind === "document") {
+      assignment.document_annotations.push({
+        id: ann.id,
+        label: ann.label ?? "",
+        confidence_rating: ann.confidence_rating,
+        metadata: ann.metadata,
+      });
+      continue;
+    }
 
     const richAnnotation: RichAnnotation = {
       id: ann.id,
@@ -188,6 +227,14 @@ export async function buildTaskExportData(
       labels: (labelsetRes.data!.labels as Label[] | null) ?? [],
       relation_labels: labelsetRes.data!.relation_labels ?? null,
     },
+    document_labelset: documentLabelsetRow
+      ? {
+          name: documentLabelsetRow.name ?? "",
+          desc: documentLabelsetRow.desc ?? "",
+          labels: (documentLabelsetRow.labels as Label[] | null) ?? [],
+          relation_labels: documentLabelsetRow.relation_labels ?? null,
+        }
+      : null,
     documents: Array.from(documentsById.values()),
   };
 }
@@ -208,6 +255,13 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
       labels: data.labelset.labels,
       relation_labels: data.labelset.relation_labels,
     };
+    if (data.document_labelset) {
+      json.document_labelset = {
+        name: data.document_labelset.name,
+        desc: data.document_labelset.desc,
+        labels: data.document_labelset.labels,
+      };
+    }
     if (options.ann_guidelines) json.ann_guidelines = data.task.ann_guidelines;
   }
 
@@ -249,6 +303,17 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
             }))
           : [];
 
+        // Only written for hybrid tasks, so other exports keep their shape.
+        const document_annotations = data.document_labelset
+          ? includeAnnotations
+            ? ass.document_annotations.map((d) => ({
+                label: d.label,
+                confidence_rating: d.confidence_rating,
+                metadata: d.metadata,
+              }))
+            : []
+          : undefined;
+
         const document_relations = includeAnnotations
           ? ass.document_relations
               .filter((rel) => targets.has(rel.to_assignment_id))
@@ -265,6 +330,7 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
           status: ass.status,
           difficulty_rating: ass.difficulty_rating,
           annotations,
+          ...(document_annotations ? { document_annotations } : {}),
           document_relations,
         };
       }),
@@ -277,11 +343,19 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
     };
 
     if (includeAnnotations) {
-      json.annotation_level = data.task.annotation_level;
+      // How selections snap to the text ("document" for a task that tags whole
+      // documents). Stored as the task's annotation_level.
+      json.span_granularity = data.task.annotation_level;
       json.counts.annotations = data.documents.reduce(
         (sum, d) => sum + d.assignments.reduce((s, a) => s + a.annotations.length, 0),
         0
       );
+      if (data.document_labelset) {
+        json.counts.document_annotations = data.documents.reduce(
+          (sum, d) => sum + d.assignments.reduce((s, a) => s + a.document_annotations.length, 0),
+          0
+        );
+      }
       json.counts.relations = data.documents.reduce(
         (sum, d) =>
           sum +

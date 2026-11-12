@@ -6,6 +6,8 @@ export type Task = {
   desc: string;
   project_id: number;
   labelset_id: number;
+  /** Hybrid tasks: labelset for the whole-document tags. Span level only. */
+  document_labelset_id?: number | null;
   ann_guidelines: string;
   ml_model_id?: number;
   annotation_level: AnnotationLevels;

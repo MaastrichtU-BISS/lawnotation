@@ -97,7 +97,7 @@
             <span class="ml-2">{{ item.label }}</span>
           </a>
         </router-link>
-        <span v-else-if="item.is_separator" class="border-gray-400 border-r mx-2"></span>
+        <span v-else-if="item.is_separator" class="nav-divider"></span>
         <a v-else v-ripple :href="item.url" :target="item.target" v-bind="props.action">
           <span :class="item.icon" />
           <span class="ml-2">{{ item.label }}</span>
@@ -178,6 +178,32 @@ div:has(> a.active) {
 
   &:hover {
     background-color: rgb(var(--primary-200) / 0.15);
+  }
+}
+
+.nav-divider {
+  display: block;
+  width: 100%;
+  height: 0;
+  pointer-events: none;
+  border-bottom: 1px solid rgb(156 163 175);
+}
+
+.p-menubar-item:has(.nav-divider),
+.p-menuitem:has(.nav-divider) {
+  cursor: default;
+}
+
+
+
+@media (min-width: 961px) {
+  .nav-divider {
+    display: inline-block !important;
+    width: 1px;
+    height: 1.5rem;
+    margin-inline: 0.5rem;
+    border-bottom: 0;
+    border-right: 1px solid rgb(156 163 175);
   }
 }
 </style>
