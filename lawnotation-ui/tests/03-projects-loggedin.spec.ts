@@ -45,7 +45,7 @@ test("editor creates project, task, a new labelset and edits project and task", 
   await taskDialog
     .getByTestId("task-description")
     .fill("This is a test description");
-  await taskDialog.getByRole("button", { name: "text" }).click();
+  await taskDialog.getByRole("button", { name: "span" }).click();
   await taskDialog.getByRole("button", { name: "symbol" }).click();
 
   // Editor creates labelset

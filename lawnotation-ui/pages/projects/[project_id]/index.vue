@@ -59,7 +59,7 @@
                     {{ item.desc }}
                   </td>
                   <td class="px-6 py-2">
-                    {{ item.annotation_level }}
+                    {{ taskLevelLabel(item) }}
                   </td>
                   <td class="px-6 py-2">
                     <div class="flex gap-2">
@@ -146,6 +146,7 @@ import type {
   Task,
 } from "~/types";
 import CreateTaskModal from "~/components/tasks/CreateTaskModal.vue";
+import { taskLevelLabel } from "~/utils/levels";
 import UploadDocumentsModal from "~/components/documents/UploadDocumentsModal.vue";
 import Table from "~/components/Table.vue";
 import DimmerProgress from "~/components/DimmerProgress.vue";

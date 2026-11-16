@@ -14,12 +14,14 @@
     },
   ]" />
 
+  <!-- No page-level loader here: the kit shows its own while the first document
+       loads, and a second one (the dots) ahead of it only made two spinners. -->
   <div class="dimmer-wrapper min-h-0">
-    <Dimmer v-model="loading" />
     <div class="dimmer-content h-full">
       <ClientOnly>
-        <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset"
-          :relation-labels="relationLabels"
+        <AnnotatorQueue v-if="source && task && labelset" :source="source" :labelset="labelset" :document-labelset="documentLabelset" :document-relation-labels="documentRelationLabels"
+          :relation-labels="relationLabels" preview-documents relation-graph
+          @view-document="relationViews.viewDocument" @view-relation-graph="relationViews.viewRelationGraph"
           :annotation-level="toKitLevel(task.annotation_level)" :guidelines-url="task.ann_guidelines || undefined"
           :start-position="startPosition" :url-param="false" @complete="onComplete" @save-error="onSaveError"
           @unsaved="unsaved = $event" />
@@ -27,9 +29,10 @@
     </div>
   </div>
   <ConfirmBox />
+  <DocumentRelationViews :views="relationViews" />
 </template>
 <script setup lang="ts">
-import { AnnotatorQueue, createLazySource } from "legal-annotation-kit";
+import { AnnotatorQueue, createLazySource, RELATION_LABELS } from "legal-annotation-kit";
 import type { AnnotationSource, Labelset } from "legal-annotation-kit";
 import type { Task } from "~/types";
 import { useConfirm } from "primevue/useconfirm";
@@ -38,8 +41,13 @@ import ConfirmBox from "~/components/ConfirmBox.vue";
 import { authorizeClient } from "~/utils/authorize.client";
 import { saveKitAssignment, toKitBundle } from "~/utils/annotator";
 import { toKitLevel } from "~/utils/levels";
+import { documentRelationLabelsOf } from "~/utils/relationLabels";
+import DocumentRelationViews from "~/components/annotator/DocumentRelationViews.vue";
+import { useDocumentRelationViews } from "~/composables/useDocumentRelationViews";
 
 const user = useSupabaseUser();
+// "Read more" and "View as graph" on document relations: the kit only asks, these open the modals.
+const relationViews = useDocumentRelationViews();
 const { $toast, $trpc } = useNuxtApp();
 const route = useRoute();
 const router = useRouter();
@@ -48,11 +56,14 @@ type QueueEntry = { assignment_id: number; seq_pos: number; status: string; docu
 
 const task = ref<Task>();
 const labelset = ref<Labelset>();
+// Hybrid tasks: the labelset for whole-document tags, next to the span labelset.
+const documentLabelset = ref<Labelset>();
+// Hybrid tasks: the document labelset's own relation labels (or the default eight) for document relations.
+const documentRelationLabels = ref<string[]>();
 // The labelset's own relation labels; undefined keeps the kit's default set.
 const relationLabels = ref<string[]>();
 const source = shallowRef<AnnotationSource>();
 const startPosition = ref(1);
-const loading = ref(true);
 const unsaved = ref(false);
 
 // What the breadcrumb and the `seq` query param show. `seq` is the
@@ -72,6 +83,11 @@ const init = async () => {
     const set = await $trpc.labelset.findById.query(task.value.labelset_id);
     labelset.value = { name: set.name, desc: set.desc ?? "", labels: set.labels };
     relationLabels.value = set.relation_labels ?? undefined;
+    if (task.value.document_labelset_id) {
+      const documentSet = await $trpc.labelset.findById.query(+task.value.document_labelset_id);
+      documentLabelset.value = { name: documentSet.name, desc: documentSet.desc ?? "", labels: documentSet.labels };
+      documentRelationLabels.value = documentRelationLabelsOf(documentSet, RELATION_LABELS);
+    }
 
     const queue: QueueEntry[] = await $trpc.annotator.queue.query({ task_id: taskId });
     if (!queue.length) throw new Error("You have no documents to annotate in this task");
@@ -108,8 +124,6 @@ const init = async () => {
     });
   } catch (error) {
     $toast.error(`Could not open this task: ${(error as Error)?.message}`);
-  } finally {
-    loading.value = false;
   }
 };
 

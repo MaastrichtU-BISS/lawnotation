@@ -213,7 +213,7 @@ export const tableRouter = router({
   'assignedTasks': createTableProcedure({
     type: 'supabase_table',
     from: 'tasks',
-    select: 'id, name, desc, annotation_level, assignment:assignments!inner(id)',
+    select: 'id, name, desc, annotation_level, document_labelset_id, assignment:assignments!inner(id)',
     filter: ({ctx}) => ({'assignment.annotator_id': ctx.user!.id}),
   }),
 

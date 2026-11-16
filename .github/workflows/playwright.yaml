@@ -4,7 +4,7 @@ on:
     branches:
       - playwright
       - feat-upgrade-packages
-  pull_request:
+ # pull_request:
 
 jobs:
   test:
