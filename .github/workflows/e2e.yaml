@@ -149,7 +149,7 @@ jobs:
       - name: Check SMTP connectivity (Mailpit)
         run: |
           for i in {1..60}; do
-            if nc -z 127.0.0.1 1025; then
+            if (echo > /dev/tcp/127.0.0.1/1025) 2>/dev/null; then
               echo "SMTP is reachable"
               exit 0
             fi
