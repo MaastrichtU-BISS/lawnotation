@@ -5,6 +5,7 @@ import { sortByDocumentAndRange, type RichAnnotation, type IaaInputData } from '
 import { taskEditorAuthorizer } from '../authorizers';
 import { buildTaskExportData } from '~/server/utils/task_export';
 import { toIaaInputData } from '~/server/utils/iaa';
+import { isHybrid } from '~/utils/levels';
 
 export const metricsRouter = router({
   // Builds the same data the IAA Go service needs as input. The metrics page
@@ -28,6 +29,12 @@ export const metricsRouter = router({
       z.object({
         task_id: z.number(),
         labels: z.array(z.string()).optional(),
+        // Hybrid tasks: `labels` narrows the span annotations and this the
+        // document tags.
+        document_labels: z.array(z.string()).optional(),
+        // Hybrid tasks: "None" picked for a kind leaves that kind out.
+        no_span_labels: z.boolean().optional(),
+        no_document_labels: z.boolean().optional(),
         documents: z.array(z.number()).optional(),
         annotators: z.array(z.string()).optional(),
         intra: z.boolean().default(false),
@@ -39,14 +46,23 @@ export const metricsRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
+      const { data: task } = await ctx.supabase
+        .from("tasks")
+        .select("annotation_level, document_labelset_id")
+        .eq("id", input.task_id)
+        .single();
+      const hybrid = !!task && isHybrid(task as any);
+
       let query = ctx.supabase
         .from("annotations")
         .select(
-          "id, start_index, end_index, label, text, confidence_rating, metadata, assignment:assignments!inner(task_id, document_id, original_task_id, document:documents(id, name), annotator:users!inner(email))"
+          "id, start_index, end_index, label, text, confidence_rating, metadata, kind, assignment:assignments!inner(task_id, document_id, original_task_id, document:documents(id, name), annotator:users!inner(email))"
         )
         .eq("assignments.task_id", input.task_id);
 
-      if (input.labels?.length) query = query.in("label", input.labels);
+      // A hybrid task has two labelsets, each filtered on its own kind of
+      // annotation below; otherwise there is one labelset for everything.
+      if (input.labels?.length && !hybrid) query = query.in("label", input.labels);
 
       if (input.documents?.length)
         query = query.in("assignments.document_id", input.documents);
@@ -62,7 +78,17 @@ export const metricsRouter = router({
           message: `Error in metrics.get_annotations: ${error.message}`,
         });
 
-      const annotations = data.map((ann) => {
+      const spanLabels = new Set(input.labels ?? []);
+      const tagLabels = new Set(input.document_labels ?? []);
+      const wanted = data.filter((ann) => {
+        if (!hybrid) return true;
+        const tags = ann.kind === "document";
+        if (tags ? input.no_document_labels : input.no_span_labels) return false;
+        const selected = tags ? tagLabels : spanLabels;
+        return !selected.size || selected.has(ann.label!);
+      });
+
+      const annotations = wanted.map((ann) => {
         return {
           start: ann.start_index!,
           end: ann.end_index!,
@@ -76,6 +102,7 @@ export const metricsRouter = router({
           doc_name: ann.assignment!.document!.name ?? undefined,
           confidence: ann.confidence_rating,
           metadata: ann.metadata ?? undefined,
+          ...(hybrid ? { kind: ann.kind === "document" ? "document" : "span" } : {}),
         } satisfies RichAnnotation;
       });
 

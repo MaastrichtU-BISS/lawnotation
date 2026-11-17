@@ -31,6 +31,9 @@ const ZTaskFields = z.object({
   desc: z.string(),
   project_id: z.number().int(),
   labelset_id: z.number().int(),
+  // Hybrid tasks: the labelset for whole-document tags next to the span
+  // labelset. Chosen when the task is created; span levels only.
+  document_labelset_id: z.number().int().nullable().optional(),
   ann_guidelines: z.string(),
   ml_model_id: z.number().int().nullable().optional(),
   annotation_level: z.nativeEnum(AnnotationLevels),
@@ -202,7 +205,9 @@ export const taskRouter = router({
     .query(async ({ ctx, input: { task_id, annotators } }) => {
       const originTask = await ctx.supabase
         .from("tasks")
-        .select("id, annotation_level, labelsets(labels)")
+        .select(
+          "id, annotation_level, labelsets!tasks_labelset_id_fkey(labels), document_labelsets:labelsets!tasks_document_labelset_id_fkey(labels)"
+        )
         .eq("id", task_id)
         .single();
 
@@ -223,7 +228,9 @@ export const taskRouter = router({
 
       const projects = await ctx.supabase
         .from("projects")
-        .select("id, tasks(id, name, annotation_level, labelsets(labels))")
+        .select(
+          "id, tasks(id, name, annotation_level, labelsets!tasks_labelset_id_fkey(labels), document_labelsets:labelsets!tasks_document_labelset_id_fkey(labels))"
+        )
         .eq("editor_id", ctx.user.id) // consider only projects from this user
         .neq("tasks.id", task_id) // exclude origin task
         .eq("tasks.annotation_level", originTask.data.annotation_level); //filters out different annotation level
@@ -240,6 +247,14 @@ export const taskRouter = router({
               // filters out different labelset
               // at the moment they have to be exactly the same (same order and same colors too)
               if (!_.isEqual(originTask.data.labelsets, currentTask.labelsets))
+                continue;
+              // and the same document labelset (none, for a task that is not hybrid)
+              if (
+                !_.isEqual(
+                  originTask.data.document_labelsets,
+                  currentTask.document_labelsets
+                )
+              )
                 continue;
 
               // filters out different annotators
@@ -310,7 +325,8 @@ export const taskRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        updates: ZTaskFields.omit({ project_id: true }).partial(),
+        // The document labelset is chosen at creation and does not change.
+        updates: ZTaskFields.omit({ project_id: true, document_labelset_id: true }).partial(),
       })
     )
     .use((opts) =>
@@ -378,7 +394,7 @@ export const taskRouter = router({
         .select("*", {
           count: "exact",
         })
-        .eq("labelset_id", labelset_id);
+        .or(`labelset_id.eq.${labelset_id},document_labelset_id.eq.${labelset_id}`);
 
       if (error)
         throw new TRPCError({

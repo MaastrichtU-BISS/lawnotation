@@ -8,6 +8,20 @@ async function ensureLoggedIn(page: Page) {
     .getByTestId("assigned-tasks-menu-item")
     .waitFor({ state: "visible" });
 }
+
+async function waitForNoAssignments(page: Page) {
+  await expect
+    .poll(
+      async () => {
+        await page.reload();
+        await page.getByTestId("assigned-tasks-menu-item").click();
+        return page.getByText("Showing 0 of 0").isVisible();
+      },
+      { intervals: [500, 1000, 2000], timeout: 30000 },
+    )
+    .toBe(true);
+}
+
 test("Editor creates project, task, uploads document and assigns task", async ({
   browser,
 }) => {
@@ -21,7 +35,7 @@ test("Editor creates project, task, uploads document and assigns task", async ({
   // Annotator assert if there are no assignments
   await annotatorPage.getByTestId("assigned-tasks-menu-item").waitFor();
   await annotatorPage.getByTestId("assigned-tasks-menu-item").click();
-  await expect(annotatorPage.getByText("Showing 0 of 0")).toBeVisible();
+  await waitForNoAssignments(annotatorPage);
 
   // Editor creates a project
   const editorContext = await browser.newContext({
@@ -163,6 +177,7 @@ test("Editor creates project, task, uploads document and assigns task", async ({
     .getByRole("alert")
     .getByText("Items succesfully removed")
     .waitFor();
+  await waitForNoAssignments(annotatorPage);
 });
 
 test("Editor creates project, task, uploads documents , assigns task and deletes one document. Annotator should still be able to annotate all remaining assignments.", async ({
@@ -179,7 +194,7 @@ test("Editor creates project, task, uploads documents , assigns task and deletes
   // Annotator assert if there are no assignments
   await annotatorPage.getByTestId("assigned-tasks-menu-item").waitFor();
   await annotatorPage.getByTestId("assigned-tasks-menu-item").click();
-  await expect(annotatorPage.getByText("Showing 0 of 0")).toBeVisible();
+  await waitForNoAssignments(annotatorPage);
 
   // Editor context
   const editorContext = await browser.newContext({

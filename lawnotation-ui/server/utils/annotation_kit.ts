@@ -8,6 +8,7 @@ import type {
   DocumentAnnotation,
 } from "legal-annotation-kit";
 import { AssignmentStatuses, Origins } from "~/utils/enums";
+import type { TaskKinds } from "~/utils/levels";
 
 export type DbAnnotation = {
   id: number;
@@ -19,6 +20,8 @@ export type DbAnnotation = {
   origin: Origins | null;
   metadata: string | null;
   confidence_rating: number | null;
+  /** Span, or a tag on the whole document (no extent). */
+  kind: "span" | "document";
 };
 
 export type DbRelation = {
@@ -49,11 +52,15 @@ export type DbAssignment = {
 };
 
 
+/**
+ * An assignment in the kit's format. Each annotation row says which half of
+ * the kit's data it belongs to: a span in `annotations`, a tag on the whole
+ * document in `document_annotations`. A hybrid task has both.
+ */
 export function toKitAssignment(
   assignment: DbAssignment,
   annotations: DbAnnotation[],
   relations: DbRelation[],
-  documentLevel: boolean,
   documentRelations: DbDocumentRelation[] = []
 ): KitAssignment {
   const base = {
@@ -68,34 +75,30 @@ export function toKitAssignment(
     })),
   };
 
-  if (documentLevel) {
-    return {
-      ...base,
-      annotations: [],
-      document_annotations: annotations.map<DocumentAnnotation>((a) => ({
+  return {
+    ...base,
+    annotations: annotations
+      .filter((a) => a.kind !== "document")
+      .map<KitAnnotation>((a) => ({
+        id: a.id,
+        start: a.start_index,
+        end: a.end_index,
+        label: a.label,
+        text: a.text,
+        confidence: a.confidence_rating ?? 0,
+        metadata: a.metadata ?? null,
+        relations: relations
+          .filter((r) => r.from_id === a.id)
+          .map((r) => ({ to: r.to_id, direction: r.direction, labels: r.labels })),
+      })),
+    document_annotations: annotations
+      .filter((a) => a.kind === "document")
+      .map<DocumentAnnotation>((a) => ({
         id: a.id,
         label: a.label,
         confidence: a.confidence_rating ?? 0,
         metadata: a.metadata ?? null,
       })),
-    };
-  }
-
-  return {
-    ...base,
-    annotations: annotations.map<KitAnnotation>((a) => ({
-      id: a.id,
-      start: a.start_index,
-      end: a.end_index,
-      label: a.label,
-      text: a.text,
-      confidence: a.confidence_rating ?? 0,
-      metadata: a.metadata ?? null,
-      relations: relations
-        .filter((r) => r.from_id === a.id)
-        .map((r) => ({ to: r.to_id, direction: r.direction, labels: r.labels })),
-    })),
-    document_annotations: [],
   };
 }
 
@@ -110,41 +113,69 @@ export function toKitAssignment(
  * Anything with an id the assignment does not have is new and inserted;
  * existing rows the kit no longer sent are deleted. Relations are rewritten
  * wholesale.
+ *
+ * `kinds` says what the task holds: spans, document tags, or both (hybrid).
+ * Only those are stored, and only rows of those kinds are replaced or deleted.
+ * New rows of the two kinds can share a temporary id in the kit (each list
+ * numbers its own), so the two are told apart by kind throughout.
  */
 export async function storeKitAssignment(
   sql: Sql,
   assignmentId: number,
   kit: KitAssignment,
-  documentLevel: boolean
+  kinds: TaskKinds
 ): Promise<void> {
   await sql.begin(async (transaction) => {
     // postgres.js types a transaction without the call signature it has at
     // runtime; this restores it.
     const tx = transaction as unknown as Sql;
-    const existing = await tx<{ id: number }[]>`
-      SELECT id::int AS id FROM annotations WHERE assignment_id = ${assignmentId}
-    `;
-    const previous = new Set(existing.map((a) => a.id));
+    const handled = [...(kinds.spans ? ["span"] : []), ...(kinds.documents ? ["document"] : [])];
+    const existing = handled.length
+      ? await tx<{ id: number; kind: string }[]>`
+          SELECT id::int AS id, kind FROM annotations
+          WHERE assignment_id = ${assignmentId} AND kind IN ${tx(handled)}
+        `
+      : [];
+    const previous = new Map(existing.map((a) => [a.id, a.kind]));
 
-    const rows = documentLevel
-      ? kit.document_annotations.map((d) => ({
-          kitId: d.id,
-          label: d.label,
-          start: 0,
-          end: 0,
-          text: "",
-          confidence: d.confidence,
-          metadata: d.metadata ?? null,
-        }))
-      : kit.annotations.map((a) => ({
-          kitId: a.id,
-          label: a.label,
-          start: a.start,
-          end: a.end,
-          text: a.text,
-          confidence: a.confidence,
-          metadata: a.metadata ?? null,
-        }));
+    type Row = {
+      kind: "span" | "document";
+      kitId: number;
+      label: string;
+      start: number;
+      end: number;
+      text: string;
+      confidence: number;
+      metadata: string | null;
+    };
+    const rows: Row[] = [
+      ...(kinds.spans
+        ? kit.annotations.map<Row>((a) => ({
+            kind: "span",
+            kitId: a.id,
+            label: a.label,
+            start: a.start,
+            end: a.end,
+            text: a.text,
+            confidence: a.confidence,
+            metadata: a.metadata ?? null,
+          }))
+        : []),
+      ...(kinds.documents
+        ? kit.document_annotations.map<Row>((d) => ({
+            kind: "document",
+            kitId: d.id,
+            label: d.label,
+            start: 0,
+            end: 0,
+            text: "",
+            confidence: d.confidence,
+            metadata: d.metadata ?? null,
+          }))
+        : []),
+    ];
+    // An id only counts as an existing row if it is one of this kind.
+    const isExisting = (r: Row) => previous.get(r.kitId) === r.kind;
 
     if (existing.length) {
       const ids = existing.map((a) => a.id);
@@ -152,36 +183,38 @@ export async function storeKitAssignment(
         DELETE FROM annotation_relations
         WHERE from_id IN ${tx(ids)} OR to_id IN ${tx(ids)}
       `;
-      const kept = rows.filter((r) => previous.has(r.kitId)).map((r) => r.kitId);
-      const dropped = ids.filter((id) => !kept.includes(id));
+      const kept = new Set(rows.filter(isExisting).map((r) => r.kitId));
+      const dropped = ids.filter((id) => !kept.has(id));
       if (dropped.length) await tx`DELETE FROM annotations WHERE id IN ${tx(dropped)}`;
     }
 
-    // kit id -> the row's id, to point relations at.
+    // Span kit id -> the row's id, to point relations at. Only spans have
+    // relations, so document tags (whose temporary ids may repeat a span's)
+    // are not in it.
     const stored = new Map<number, number>();
     for (const row of rows) {
-      if (previous.has(row.kitId)) {
+      if (isExisting(row)) {
         await tx`
           UPDATE annotations
           SET start_index = ${row.start}, end_index = ${row.end}, text = ${row.text},
               label = ${row.label}, metadata = ${row.metadata}, confidence_rating = ${row.confidence}
           WHERE id = ${row.kitId}
         `;
-        stored.set(row.kitId, row.kitId);
+        if (row.kind === "span") stored.set(row.kitId, row.kitId);
         continue;
       }
       const [inserted] = await tx<{ id: number }[]>`
         INSERT INTO annotations
-          (assignment_id, start_index, end_index, text, label, origin, metadata, confidence_rating)
+          (assignment_id, start_index, end_index, text, label, origin, metadata, confidence_rating, kind)
         VALUES
           (${assignmentId}, ${row.start}, ${row.end}, ${row.text}, ${row.label},
-           ${Origins.MANUAL}::origins, ${row.metadata}, ${row.confidence})
+           ${Origins.MANUAL}::origins, ${row.metadata}, ${row.confidence}, ${row.kind})
         RETURNING id::int AS id
       `;
-      stored.set(row.kitId, inserted!.id);
+      if (row.kind === "span") stored.set(row.kitId, inserted!.id);
     }
 
-    if (!documentLevel) {
+    if (kinds.spans) {
       for (const a of kit.annotations) {
         for (const r of a.relations) {
           const from = stored.get(a.id);
@@ -195,7 +228,7 @@ export async function storeKitAssignment(
       }
     }
 
-    if (documentLevel) {
+    if (kinds.documents) {
       // A link may only point at another document in the same annotator's
       // queue for this task; anything else is dropped rather than stored.
       const queue = await tx<{ id: number }[]>`

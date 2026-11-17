@@ -16,13 +16,21 @@ export const labelsetEditorOrAnnotatorAuthorizer = async (
 
   if (editor.count) return true;
 
+  // An annotator may read the labelsets of the tasks they annotate: a
+  // task's own labelset and, for a hybrid task, its document labelset.
+  const { data: tasks } = await ctx.supabase
+    .from("tasks")
+    .select("id")
+    .or(`labelset_id.eq.${labelset_id},document_labelset_id.eq.${labelset_id}`);
+  if (!tasks?.length) return false;
+
   const annotator = await ctx.supabase
     .from("assignments")
-    .select("*, task:tasks!inner(labelset_id)", {
-      count: "exact",
-      head: true,
-    })
-    .eq("tasks.labelset_id", labelset_id)
+    .select("id", { count: "exact", head: true })
+    .in(
+      "task_id",
+      tasks.map((t) => t.id)
+    )
     .eq("annotator_id", user_id);
 
   return annotator.count! > 0;

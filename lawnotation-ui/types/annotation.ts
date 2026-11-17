@@ -10,4 +10,6 @@ export type Annotation = {
   label: string;
   metadata?: string,
   confidence_rating: number;
+  /** "document" for a tag on the whole document; spans are the default. */
+  kind?: "span" | "document";
 };

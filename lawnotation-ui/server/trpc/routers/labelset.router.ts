@@ -115,7 +115,7 @@ export const labelsetRouter = router({
       const { count } = await ctx.supabase
         .from("tasks")
         .select("id", { count: "exact", head: true })
-        .eq("labelset_id", input.id);
+        .or(`labelset_id.eq.${input.id},document_labelset_id.eq.${input.id}`);
       const locked = count ? lockedNamesChanged(before, after) : null;
       if (locked) throw new TRPCError({ code: "BAD_REQUEST", message: locked });
 

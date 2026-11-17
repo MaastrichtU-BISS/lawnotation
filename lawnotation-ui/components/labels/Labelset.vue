@@ -16,6 +16,8 @@
     :locked-message="lockedMessage"
     @issues="issues = $event"
   />
+  <!-- Keeps the last labels clear of the bottom edge and the floating report button. -->
+  <div class="pb-20" aria-hidden="true" />
 </template>
 
 <script setup lang="ts">
