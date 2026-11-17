@@ -7,7 +7,6 @@
   },
   "scripts": {
     "build": "nuxt build",
-    "cypress": "npx cypress open",
     "dev": "nuxt dev",
     "e2e": "node e2e-run-tests.js",
     "generate": "nuxt generate",
@@ -29,7 +28,6 @@
     "@types/lodash": "^4.17.0",
     "@types/node": "^22.5.2",
     "autoprefixer": "^10.4.19",
-    "cypress": "^13.13.3",
     "nuxt": "^4.4.2",
     "open-cli": "^7.2.0",
     "parse5": "^8.0.1",
@@ -85,7 +83,6 @@
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "canvas",
-      "cypress",
       "esbuild",
       "supabase"
     ]
