@@ -7,7 +7,7 @@ import type {
 	User,
 } from "~/types";
 import { AnnotationLevels, AssignmentStatuses, Origins } from "~/utils/enums";
-import { validateTaskImport } from "~/utils/taskImportFormat";
+import { assignmentConfidenceRating, validateTaskImport } from "~/utils/taskImportFormat";
 
 export type TaskImportPayload = {
 	json: any;
@@ -153,7 +153,7 @@ export const useTaskImport = ({
 
 							const newAss: any = {
 								document_id: documentIds[i],
-								difficulty_rating: ass.difficulty_rating ?? 0,
+								confidence_rating: assignmentConfidenceRating(ass) ?? 0,
 								seq_pos: ass.order,
 								status:
 									assignmentStatus == AssignmentStatuses.NONE

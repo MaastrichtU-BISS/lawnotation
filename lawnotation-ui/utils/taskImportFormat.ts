@@ -20,11 +20,16 @@ export const RELATION_LABELS = [
 ] as const;
 export const CONFIDENCE_MAX = 5;
 
+/** Exports written before the rename carry the rating as difficulty_rating. */
+export const assignmentConfidenceRating = (ass: any): unknown =>
+  ass.confidence_rating ?? ass.difficulty_rating;
+
 const TOP_KEYS = ["name", "desc", "ann_guidelines", "labelset", "document_labelset", "span_granularity", "annotation_level", "documents", "counts", "ml_model_id"];
 const LABELSET_KEYS = ["name", "desc", "labels", "relation_labels"];
 const LABEL_KEYS = ["name", "color"];
 const DOCUMENT_KEYS = ["name", "full_text", "assignments"];
-const ASSIGNMENT_KEYS = ["annotator", "order", "status", "difficulty_rating", "annotations", "document_annotations", "document_relations"];
+// difficulty_rating: the pre-rename name for confidence_rating, still accepted.
+const ASSIGNMENT_KEYS = ["annotator", "order", "status", "confidence_rating", "difficulty_rating", "annotations", "document_annotations", "document_relations"];
 const DOCUMENT_ANNOTATION_KEYS = ["label", "confidence_rating", "metadata"];
 // ls_id and html_metadata: written by exports made while Label Studio was in use.
 const ANNOTATION_KEYS = ["start", "end", "label", "text", "confidence_rating", "metadata", "relations", "ls_id", "html_metadata"];
@@ -236,7 +241,8 @@ export function validateTaskImport(json: unknown): string[] {
 
       if (ass.status !== undefined && !ASSIGNMENT_STATUSES.includes(ass.status))
         fail(`${ap}.status`, `must be one of ${ASSIGNMENT_STATUSES.map((x) => `"${x}"`).join(", ")}, got ${show(ass.status)}`);
-      confidence(ass.difficulty_rating, `${ap}.difficulty_rating`);
+      const ratingKey = ass.confidence_rating !== undefined ? "confidence_rating" : "difficulty_rating";
+      confidence(assignmentConfidenceRating(ass), `${ap}.${ratingKey}`);
 
       const anns = ass.annotations ?? [];
       if (!Array.isArray(anns)) fail(`${ap}.annotations`, `must be a list, got ${show(anns)}`);

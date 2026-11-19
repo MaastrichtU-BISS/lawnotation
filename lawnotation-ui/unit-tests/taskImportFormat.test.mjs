@@ -28,7 +28,7 @@ const spanTask = () => ({
           annotator: 1,
           order: 1,
           status: "pending",
-          difficulty_rating: 0,
+          confidence_rating: 0,
           annotations: [
             { start: 4, end: 10, label: "Party", text: "Seller", confidence_rating: 4, metadata: null, relations: [{ to: 1, direction: "right", labels: ["Has a"] }] },
             { start: 11, end: 34, label: "Obligation", text: "shall deliver the goods", confidence_rating: 0, metadata: "pre-annotated", relations: [] },
@@ -90,8 +90,20 @@ test("exports made while Label Studio was in use still pass", () => {
 test("confidence must be 0 to 5 stars", () => {
   const task = spanTask();
   firstSpan(task).confidence_rating = 90;
-  task.documents[0].assignments[0].difficulty_rating = 2.5;
-  expectProblem(task, "annotations[0].confidence_rating: must be a whole number from 0 to 5 (stars), got 90", "difficulty_rating");
+  task.documents[0].assignments[0].confidence_rating = 2.5;
+  expectProblem(task, "annotations[0].confidence_rating: must be a whole number from 0 to 5 (stars), got 90", "assignments[0].confidence_rating");
+});
+
+test("exports made before the confidence rename still pass", () => {
+  const task = spanTask();
+  const assignment = task.documents[0].assignments[0];
+  delete assignment.confidence_rating;
+  assignment.difficulty_rating = 3;
+  assert.deepEqual(validateTaskImport(task), []);
+
+  // A bad legacy value is reported under the name the file actually used.
+  assignment.difficulty_rating = 2.5;
+  expectProblem(task, "assignments[0].difficulty_rating");
 });
 
 test("repeated problems are reported once, with a count", () => {
