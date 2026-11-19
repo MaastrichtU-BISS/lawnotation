@@ -20,7 +20,7 @@ export const metricsRouter = router({
       )
     )
     .query(async ({ ctx, input }): Promise<IaaInputData> => {
-      const data = await buildTaskExportData(ctx.supabase, input.task_id);
+      const data = await buildTaskExportData(ctx.supabase, input.task_id, { relations: false });
       return toIaaInputData(data);
     }),
 
