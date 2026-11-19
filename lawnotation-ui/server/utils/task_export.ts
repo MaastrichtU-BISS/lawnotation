@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "~/types/supabase";
 import type { Label } from "~/types";
 import type { ExportTaskOptions } from "~/utils/io";
+import { fetchAllRows } from "./fetch_all_rows";
 
 export type RichAnnotation = {
   id: number;
@@ -80,33 +81,49 @@ export async function buildTaskExportData(
         .select("name, desc, labels, relation_labels")
         .eq("id", task.labelset_id!)
         .single(),
-      supabase.rpc("get_all_docs_from_task", { t_id: task_id }),
-      supabase
-        .from("assignments")
-        .select(
-          "id, document_id, annotator_id, seq_pos, status, confidence_rating, annotator:users!inner(email)"
-        )
-        .eq("task_id", task_id)
-        .order("id", { ascending: true }),
-      supabase
-        .from("annotations")
-        .select(
-          "id, assignment_id, start_index, end_index, label, text, confidence_rating, metadata, kind, assignment:assignments!inner(task_id)"
-        )
-        .eq("assignment.task_id", task_id)
-        .order("id"),
-      supabase
-        .from("annotation_relations")
-        .select(
-          "from_id, to_id, direction, labels, annotation:from_id!inner(id, assignment:assignments!inner(id, task_id, document_id))"
-        )
-        .eq("from_id.assignments.task_id", task_id),
-      supabase
-        .from("document_relations")
-        .select(
-          "from_assignment_id, to_assignment_id, labels, from:assignments!document_relations_from_assignment_id_fkey!inner(task_id)"
-        )
-        .eq("from.task_id", task_id),
+      fetchAllRows((from, to) =>
+        supabase.rpc("get_all_docs_from_task", { t_id: task_id }).order("id").range(from, to)
+      ),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("assignments")
+          .select(
+            "id, document_id, annotator_id, seq_pos, status, confidence_rating, annotator:users!inner(email)"
+          )
+          .eq("task_id", task_id)
+          .order("id")
+          .range(from, to)
+      ),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("annotations")
+          .select(
+            "id, assignment_id, start_index, end_index, label, text, confidence_rating, metadata, kind, assignment:assignments!inner(task_id)"
+          )
+          .eq("assignment.task_id", task_id)
+          .order("id")
+          .range(from, to)
+      ),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("annotation_relations")
+          .select(
+            "from_id, to_id, direction, labels, annotation:from_id!inner(id, assignment:assignments!inner(id, task_id, document_id))"
+          )
+          .eq("from_id.assignments.task_id", task_id)
+          .order("id")
+          .range(from, to)
+      ),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("document_relations")
+          .select(
+            "from_assignment_id, to_assignment_id, labels, from:assignments!document_relations_from_assignment_id_fkey!inner(task_id)"
+          )
+          .eq("from.task_id", task_id)
+          .order("id")
+          .range(from, to)
+      ),
     ]);
 
   if (labelsetRes.error)
@@ -136,7 +153,7 @@ export async function buildTaskExportData(
     throw new Error(`Error fetching document relations for export: ${documentRelationsRes.error.message}`);
 
   const documentsById = new Map<number, RichDocument>();
-  for (const doc of documentsRes.data ?? []) {
+  for (const doc of documentsRes.data) {
     documentsById.set(doc.id, {
       id: doc.id,
       name: doc.name ?? "",
@@ -146,7 +163,7 @@ export async function buildTaskExportData(
   }
 
   const assignmentsById = new Map<number, RichAssignment>();
-  for (const ass of assignmentsRes.data ?? []) {
+  for (const ass of assignmentsRes.data) {
     const doc = documentsById.get(ass.document_id!);
     if (!doc) continue;
 
@@ -166,7 +183,7 @@ export async function buildTaskExportData(
   }
 
   const annotationsById = new Map<number, RichAnnotation>();
-  for (const ann of annotationsRes.data ?? []) {
+  for (const ann of annotationsRes.data) {
     const assignment = assignmentsById.get(ann.assignment_id!);
     if (!assignment) continue;
 
@@ -196,7 +213,7 @@ export async function buildTaskExportData(
     assignment.annotations.push(richAnnotation);
   }
 
-  for (const rel of relationsRes.data ?? []) {
+  for (const rel of relationsRes.data) {
     const fromAnnotation = annotationsById.get(rel.from_id!);
     if (!fromAnnotation) continue;
 
@@ -207,7 +224,7 @@ export async function buildTaskExportData(
     });
   }
 
-  for (const rel of documentRelationsRes.data ?? []) {
+  for (const rel of documentRelationsRes.data) {
     assignmentsById.get(rel.from_assignment_id)?.document_relations.push({
       to_assignment_id: rel.to_assignment_id,
       labels: rel.labels ?? [],
