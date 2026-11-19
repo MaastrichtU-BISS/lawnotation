@@ -22,10 +22,7 @@ export function toIaaInputData(data: TaskExportData): IaaInputData {
       full_text: doc.full_text,
       assignments: doc.assignments.map((ass) => ({
         annotator: ass.annotator_email,
-        // vue-iaa-metrics still types this field as difficulty_rating (1.4.0).
-        // The IAA service accepts either name, so the wire keeps the package's
-        // spelling until it is published with the rename; then this line flips.
-        difficulty_rating: ass.confidence_rating,
+        confidence_rating: ass.confidence_rating,
         annotations: ass.annotations.map((ann) => ({
           start: ann.start,
           end: ann.end,
