@@ -41,10 +41,19 @@ const handleSubmit = async (query: LegalDocsQuery): Promise<FullTextDocument[]> 
     loading.value = true;
 
     try {
-        return await $fetch<FullTextDocument[]>("/api/legal-docs/search", {
+        const { documents, total, truncated } = await $fetch<{
+            documents: FullTextDocument[];
+            total: number | null;
+            truncated: boolean;
+        }>("/api/legal-docs/search", {
             method: "POST",
             body: query,
         });
+        if (truncated) {
+            const of = total ? ` of ${total.toLocaleString()}` : "";
+            $toast.warning(`Showing the first ${documents.length}${of} matching documents. Narrow your search to see others.`);
+        }
+        return documents;
     } catch (error: any) {
         // $fetch's own message is `[POST] "/api/...": 502 ...`; show the reason.
         throw new Error(error?.data?.statusMessage ?? error?.message ?? "Search failed");
