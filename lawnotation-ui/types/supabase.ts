@@ -131,7 +131,7 @@ export type Database = {
           annotator_id: string | null
           annotator_number: number
           created_at: string | null
-          difficulty_rating: number | null
+          confidence_rating: number | null
           document_id: number | null
           id: number
           origin: Database["public"]["Enums"]["origins"] | null
@@ -144,7 +144,7 @@ export type Database = {
           annotator_id?: string | null
           annotator_number?: number
           created_at?: string | null
-          difficulty_rating?: number | null
+          confidence_rating?: number | null
           document_id?: number | null
           id?: number
           origin?: Database["public"]["Enums"]["origins"] | null
@@ -157,7 +157,7 @@ export type Database = {
           annotator_id?: string | null
           annotator_number?: number
           created_at?: string | null
-          difficulty_rating?: number | null
+          confidence_rating?: number | null
           document_id?: number | null
           id?: number
           origin?: Database["public"]["Enums"]["origins"] | null
@@ -669,12 +669,12 @@ export type Database = {
         }
         Returns: number
       }
-      get_difficulties_by_editor: {
+      get_confidences_by_editor: {
         Args: {
           e_id: string
         }
         Returns: {
-          difficulty: number
+          confidence: number
           count: number
         }[]
       }
@@ -695,7 +695,7 @@ export type Database = {
           annotator_id: string | null
           annotator_number: number
           created_at: string | null
-          difficulty_rating: number | null
+          confidence_rating: number | null
           document_id: number | null
           id: number
           origin: Database["public"]["Enums"]["origins"] | null
