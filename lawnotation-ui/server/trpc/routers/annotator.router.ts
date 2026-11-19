@@ -80,7 +80,7 @@ async function loadBundle(sql: any, assignmentId: number) {
     (DbAssignment & { document_name: string; full_text: string; annotation_level: string })[]
   >`
     SELECT a.id::int AS id, a.annotator_id::text AS annotator_id, a.seq_pos::int AS seq_pos,
-           a.status::text AS status, a.difficulty_rating::int AS difficulty_rating,
+           a.status::text AS status, a.confidence_rating::int AS confidence_rating,
            d.name AS document_name, d.full_text, t.annotation_level::text AS annotation_level
     FROM assignments AS a
     INNER JOIN documents AS d ON (a.document_id = d.id)
@@ -335,7 +335,7 @@ export const annotatorRouter = router({
       `;
 
       const merged = toKitAssignment(
-        { id: 0, annotator_id: null, seq_pos: 0, status: "", difficulty_rating: 0 },
+        { id: 0, annotator_id: null, seq_pos: 0, status: "", confidence_rating: 0 },
         annotations,
         relations
       );

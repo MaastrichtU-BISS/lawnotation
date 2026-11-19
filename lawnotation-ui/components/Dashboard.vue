@@ -56,7 +56,7 @@
       <section class="charts my-5 p-6 bg-white border border-gray-200 rounded-lg shadow">
         <div class="flex justify-center">
           <span style="width: 400px">
-            <apexchart id="difficulty" :options="chartDifficultyOptions" :series="chartDifficultySeries"></apexchart>
+            <apexchart id="confidence" :options="chartConfidenceOptions" :series="chartConfidenceSeries"></apexchart>
           </span>
           <span style="width: 400px">
             <apexchart id="completion" :options="chartCompletionOptions" :series="chartCompletionSeries"></apexchart>
@@ -88,10 +88,10 @@ const assignmentsCount = ref<number>(0);
 const assignmentsRated = ref<number>(0);
 const documentsCount = ref<number>(0);
 
-const chartDifficultyOptions = ref({
+const chartConfidenceOptions = ref({
   chart: {
     type: "donut",
-    id: "difficulty",
+    id: "confidence",
   },
   title: {
     text: "Assignments confidence",
@@ -114,8 +114,8 @@ const chartDifficultyOptions = ref({
     "rgb(119, 93, 208)",
   ],
 });
-const chartDifficultySeries = reactive<number[]>([0, 0, 0, 0, 0, 0]);
-const chartDifficultyAverage = ref<number>(0);
+const chartConfidenceSeries = reactive<number[]>([0, 0, 0, 0, 0, 0]);
+const chartConfidenceAverage = ref<number>(0);
 const chartCompletionOptions = ref({
   chart: {
     type: "donut",
@@ -148,18 +148,18 @@ onMounted(async () => {
     documentsCount.value = result!;
   })
 
-  $trpc.assignment.getDifficultiesByEditor.query().then((result) => {
+  $trpc.assignment.getConfidencesByEditor.query().then((result) => {
     result.map((r) => {
-      chartDifficultySeries[r.difficulty] += r.count;
-      chartDifficultyAverage.value += r.difficulty * r.count;
+      chartConfidenceSeries[r.confidence] += r.count;
+      chartConfidenceAverage.value += r.confidence * r.count;
       assignmentsCount.value += r.count;
-      if (r.difficulty > 0) assignmentsRated.value += r.count;
+      if (r.confidence > 0) assignmentsRated.value += r.count;
     });
-    chartDifficultyAverage.value /= assignmentsRated.value;
-    chartDifficultyOptions.value = {
-      ...chartDifficultyOptions.value,
+    chartConfidenceAverage.value /= assignmentsRated.value;
+    chartConfidenceOptions.value = {
+      ...chartConfidenceOptions.value,
       subtitle: {
-        text: `Average: ${chartDifficultyAverage.value.toFixed(2)}`,
+        text: `Average: ${chartConfidenceAverage.value.toFixed(2)}`,
         align: "center",
       },
     };

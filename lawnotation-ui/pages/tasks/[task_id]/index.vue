@@ -36,7 +36,7 @@
           <Badge :value="item.status" :severity="item.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
         </td>
         <td class="px-6 py-2">
-          <span>{{ item.difficulty_rating }}</span>
+          <span>{{ item.confidence_rating }}</span>
         </td>
         <td class="px-6 py-2 flex">
           <NuxtLink :to="`/annotate/${task.id}?seq=${item.seq_pos}`">

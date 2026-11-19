@@ -23,7 +23,7 @@ const ZAssignmentFields = z.object({
   document_id: z.number().int(),
   status: z.nativeEnum(AssignmentStatuses),
   seq_pos: z.number().int(),
-  difficulty_rating: z.number().int(),
+  confidence_rating: z.number().int(),
   annotator_number: z.number().int(),
   origin: z.nativeEnum(Origins),
   original_task_id: z.number().int().nullable().optional()
@@ -38,7 +38,7 @@ type AnnotatorAssignmentNode = {
     document_id: number;
     document_name: string;
     annotator_name: string;
-    difficulty_rating: number;
+    confidence_rating: number;
     status: string;
   };
 };
@@ -179,7 +179,7 @@ export const assignmentRouter = router({
             document_id: z.number().int(),
             status: z.nativeEnum(AssignmentStatuses).optional(),
             seq_pos: z.number().int().optional(),
-            difficulty_rating: z.number().int().min(0).max(5).optional(),
+            confidence_rating: z.number().int().min(0).max(5).optional(),
             annotator_number: z.number().int().optional(),
             origin: z.nativeEnum(Origins).optional(),
             original_task_id: z.number().int().nullable().optional()
@@ -374,10 +374,10 @@ export const assignmentRouter = router({
       return count;
     }),
 
-  getDifficultiesByEditor: protectedProcedure
+  getConfidencesByEditor: protectedProcedure
     .query(async ({ ctx }) => {
       const { data, error } = await ctx.supabase.rpc(
-        "get_difficulties_by_editor",
+        "get_confidences_by_editor",
         {
           e_id: ctx.user.id,
         }
@@ -386,7 +386,7 @@ export const assignmentRouter = router({
       if (error)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in getDifficultiesByEditor: ${error.message}`,
+          message: `Error in getConfidencesByEditor: ${error.message}`,
         });
       return data;
     }),
@@ -862,7 +862,7 @@ export const assignmentRouter = router({
           document_id: number;
           document_name: string;
           annotator_name: string;
-          difficulty_rating: number;
+          confidence_rating: number;
           status: string;
           total: number;
         }[]
@@ -870,7 +870,7 @@ export const assignmentRouter = router({
         SELECT a.id::int AS id, a.seq_pos::int AS seq_pos, a.document_id::int AS document_id,
                d.name AS document_name,
                COALESCE(u.email, CONCAT('annotator ', a.annotator_number)) AS annotator_name,
-               a.difficulty_rating::int AS difficulty_rating, a.status::text AS status,
+               a.confidence_rating::int AS confidence_rating, a.status::text AS status,
                (COUNT(*) OVER ())::int AS total
         FROM assignments AS a
         INNER JOIN documents AS d ON (a.document_id = d.id)
@@ -889,7 +889,7 @@ export const assignmentRouter = router({
           document_id: r.document_id,
           document_name: r.document_name,
           annotator_name: r.annotator_name,
-          difficulty_rating: r.difficulty_rating,
+          confidence_rating: r.confidence_rating,
           status: r.status,
         },
       }));
@@ -947,7 +947,7 @@ export const assignmentRouter = router({
       const query = ctx.supabase
         .from("documents")
         .select(
-          "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, difficulty_rating, user:users(id, email))",
+          "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, confidence_rating, user:users(id, email))",
           { count: "exact" }
         )
         .eq("assignments.task_id", input.task_id)
@@ -994,7 +994,7 @@ export const assignmentRouter = router({
             assignment_id: ass.id,
             name: ass.user?.email ?? `annotator ${ass.annotator_number}`,
             seq_pos: ass.seq_pos,
-            difficulty_rating: ass.difficulty_rating,
+            confidence_rating: ass.confidence_rating,
             status: ass.status,
           },
         })),

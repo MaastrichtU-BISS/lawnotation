@@ -48,7 +48,7 @@ export type DbAssignment = {
   annotator_id: string | null;
   seq_pos: number;
   status: string;
-  difficulty_rating: number | null;
+  confidence_rating: number | null;
 };
 
 
@@ -68,7 +68,7 @@ export function toKitAssignment(
     annotator: assignment.annotator_id ?? "",
     order: assignment.seq_pos,
     status: assignment.status,
-    confidence: assignment.difficulty_rating ?? 0,
+    confidence: assignment.confidence_rating ?? 0,
     document_relations: documentRelations.map((r) => ({
       to: assignmentKey(r.to_assignment_id),
       labels: r.labels,
@@ -256,11 +256,11 @@ export async function storeKitAssignment(
     if (kit.status === AssignmentStatuses.DONE) {
       await tx`
         UPDATE assignments
-        SET difficulty_rating = ${kit.confidence}, status = ${AssignmentStatuses.DONE}::assignment_status
+        SET confidence_rating = ${kit.confidence}, status = ${AssignmentStatuses.DONE}::assignment_status
         WHERE id = ${assignmentId}
       `;
     } else {
-      await tx`UPDATE assignments SET difficulty_rating = ${kit.confidence} WHERE id = ${assignmentId}`;
+      await tx`UPDATE assignments SET confidence_rating = ${kit.confidence} WHERE id = ${assignmentId}`;
     }
   });
 }

@@ -28,7 +28,7 @@ export type RichAssignment = {
   annotator_email: string;
   order: number;
   status: string;
-  difficulty_rating: number;
+  confidence_rating: number;
   annotations: RichAnnotation[];
   /** Hybrid tasks only: the document tags, kept apart from the spans in
    * `annotations`. (A document-level task keeps its tags in `annotations`.) */
@@ -84,7 +84,7 @@ export async function buildTaskExportData(
       supabase
         .from("assignments")
         .select(
-          "id, document_id, annotator_id, seq_pos, status, difficulty_rating, annotator:users!inner(email)"
+          "id, document_id, annotator_id, seq_pos, status, confidence_rating, annotator:users!inner(email)"
         )
         .eq("task_id", task_id)
         .order("id", { ascending: true }),
@@ -156,7 +156,7 @@ export async function buildTaskExportData(
       annotator_email: ass.annotator!.email!,
       order: ass.seq_pos ?? 0,
       status: ass.status ?? "",
-      difficulty_rating: ass.difficulty_rating ?? 0,
+      confidence_rating: ass.confidence_rating ?? 0,
       annotations: [],
       document_annotations: [],
       document_relations: [],
@@ -330,7 +330,7 @@ export function toExportJson(data: TaskExportData, options: ExportTaskOptions) {
           annotator: annotatorIndices.get(ass.annotator_id),
           order: ass.order,
           status: ass.status,
-          difficulty_rating: ass.difficulty_rating,
+          confidence_rating: ass.confidence_rating,
           annotations,
           ...(document_annotations ? { document_annotations } : {}),
           document_relations,
