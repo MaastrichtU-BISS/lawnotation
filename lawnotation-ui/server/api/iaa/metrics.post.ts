@@ -7,9 +7,7 @@ export default eventHandler(async (event) => {
 
   const input = data.input;
 
-  const criterion = data.criterion ?? "exact";
-  const granularity = data.granularity ?? "word";
-  const url = `${config.iaaServiceUrl}/metrics?criterion=${criterion}&granularity=${granularity}`;
+  const url = `${config.iaaServiceUrl}/metrics`;
 
   let response: Response;
   try {
