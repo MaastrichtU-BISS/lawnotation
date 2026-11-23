@@ -7,7 +7,7 @@
         <p class="mt-1 text-sm text-slate-500">Explore completion and workload across projects and tasks.</p>
       </div>
       <div v-if="!isEmpty" class="overflow-hidden rounded-xl border border-primary-600 bg-white shadow-sm">
-        <div class="flex gap-2 p-2">
+        <div class="flex items-center gap-2 p-2">
           <select v-model="projectFilter" class="min-w-0 flex-1 rounded-lg border border-primary-600 bg-white px-3 py-2 text-sm text-slate-700" aria-label="Filter by project">
             <option value="">All projects</option>
             <option v-for="project in projectOptions" :key="project.id" :value="project.id">{{ project.name }}</option>
@@ -16,15 +16,15 @@
             <option value="">All tasks</option>
             <option v-for="task in taskOptions" :key="task.id" :value="task.id">{{ task.name }}</option>
           </select>
-        </div>
-        <div class="border-t-[0.5px] border-primary-600 px-2 py-1 text-center">
           <button
             type="button"
-            class="text-xs font-medium text-primary-600 hover:underline disabled:cursor-default disabled:font-light disabled:opacity-50 disabled:hover:no-underline"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
             :disabled="!projectFilter && !taskFilter"
+            title="Clear all filters"
+            aria-label="Clear all filters"
             @click="clearFilters"
           >
-            Clear all filters
+            <i class="pi pi-times text-sm"></i>
           </button>
         </div>
       </div>
