@@ -25,7 +25,7 @@ export const guidancePanel = {
     step: 5
   },
   check_assignments: {
-    title: "Check Assignemnts",
+    title: "Check Assignments",
     text: "Annotators have received an email notifying them that they can start annotating the new task. Click on the highlighted button to check out their progress.",
     step: 6
   },
