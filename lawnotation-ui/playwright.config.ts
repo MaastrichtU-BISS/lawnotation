@@ -47,6 +47,7 @@ export default defineConfig({
         "**/03-projects-loggedin.spec.ts",
         "**/04-not-loggedin.spec.ts",
         "**/05-annotations-loggedin.spec.ts",
+        "**/06-dashboard-loggedin.spec.ts",
       ],
     },
 
@@ -61,6 +62,7 @@ export default defineConfig({
         "**/03-projects-loggedin.spec.ts",
         "**/04-not-loggedin.spec.ts",
         "**/05-annotations-loggedin.spec.ts",
+        "**/06-dashboard-loggedin.spec.ts",
       ],
     },
 
@@ -75,6 +77,7 @@ export default defineConfig({
         "**/03-projects-loggedin.spec.ts",
         "**/04-not-loggedin.spec.ts",
         "**/05-annotations-loggedin.spec.ts",
+        "**/06-dashboard-loggedin.spec.ts",
       ],
     },
     {
@@ -98,6 +101,7 @@ export default defineConfig({
         "**/02-labelsets-loggedin.spec.ts",
         "**/03-projects-loggedin.spec.ts",
         "**/05-annotations-loggedin.spec.ts",
+        "**/06-dashboard-loggedin.spec.ts",
       ],
       dependencies: ["editor auth setup"],
     },
