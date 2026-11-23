@@ -55,10 +55,10 @@
     <ClientOnly>
       <section class="charts my-5 p-6 bg-white border border-gray-200 rounded-lg shadow">
         <div class="flex justify-center">
-          <span style="width: 400px">
+          <span class="dashboard-chart" style="width: 400px">
             <apexchart id="difficulty" :options="chartDifficultyOptions" :series="chartDifficultySeries"></apexchart>
           </span>
-          <span style="width: 400px">
+          <span class="dashboard-chart" style="width: 400px">
             <apexchart id="completion" :options="chartCompletionOptions" :series="chartCompletionSeries"></apexchart>
           </span>
         </div>
@@ -66,13 +66,51 @@
       <h2 class="mt-12 pt-6 my-b text-3xl font-semibold tracking-tight text-gray-600 text-center">As an annotator</h2>
       <section class="charts my-5 p-6 bg-white border border-gray-200 rounded-lg shadow">
         <div class="flex justify-center">
-          <span style="width: 400px">
-            <apexchart id="completion" :options="chartCompletionOptions" :series="chartCompletionSeriesAnnotator">
+          <span class="dashboard-chart" style="width: 400px">
+            <apexchart id="completion-annotator" :options="chartCompletionOptionsAnnotator" :series="chartCompletionSeriesAnnotator">
             </apexchart>
           </span>
         </div>
       </section>
     </ClientOnly>
+
+    <Dialog
+      v-model:visible="detailsVisible"
+      @hide="resetChartHighlights"
+      modal
+      :draggable="false"
+      :header="detailsTitle"
+      :style="{ width: 'min(56rem, 94vw)' }"
+    >
+      <DataTable :value="detailsAssignments" paginator :rows="5" :emptyMessage="`No documents found for ${detailsTitle.toLowerCase()}`">
+        <Column field="document.name" header="Document">
+          <template #body="{ data }">
+            <NuxtLink
+              class="text-primary-600 hover:underline"
+              :to="`/assignments/${data.id}`"
+            >
+              {{ data.document?.name || `Document #${data.document_id || data.document?.id}` }}
+            </NuxtLink>
+          </template>
+        </Column>
+        <Column field="annotator.email" header="Annotator">
+          <template #body="{ data }">
+            {{ data.annotator?.email || (data.annotator_id ? "Unknown annotator" : "Unassigned") }}
+          </template>
+        </Column>
+        <Column field="task.name" header="Task" />
+        <Column field="status" header="Status">
+          <template #body="{ data }">
+            {{ data.status === "done" ? "Done" : "Pending" }}
+          </template>
+        </Column>
+        <Column field="difficulty_rating" header="Confidence">
+          <template #body="{ data }">
+            {{ data.difficulty_rating ? `${data.difficulty_rating}-star` : "Unrated" }}
+          </template>
+        </Column>
+      </DataTable>
+    </Dialog>
   </div>
 </template>
 <script setup lang="ts">
@@ -88,14 +126,122 @@ const assignmentsCount = ref<number>(0);
 const assignmentsRated = ref<number>(0);
 const documentsCount = ref<number>(0);
 
+type DashboardAssignment = {
+  id: number;
+  annotator_id: string | null;
+  status: string;
+  difficulty_rating: number;
+  annotator: { id: string; email: string } | null;
+  document: { id: number; name: string } | null;
+  task: { id: number; name: string } | null;
+};
+
+const editorAssignments = ref<DashboardAssignment[]>([]);
+const annotatorAssignments = ref<DashboardAssignment[]>([]);
+const detailsVisible = ref(false);
+const detailsTitle = ref("");
+const detailsAssignments = ref<DashboardAssignment[]>([]);
+
+const openDetails = (title: string, assignments: DashboardAssignment[]) => {
+  detailsTitle.value = title;
+  detailsAssignments.value = assignments;
+  detailsVisible.value = true;
+};
+
+const difficultyColors = [
+  "rgb(173, 216, 230)",
+  "rgb(0, 227, 150)",
+  "rgb(59, 130, 246)",
+  "rgb(254, 176, 25)",
+  "rgb(255, 69, 96)",
+  "rgb(119, 93, 208)",
+];
+
+const completionColors = ["rgb(0, 227, 150)", "rgb(255, 69, 96)"];
+
+const lightenColor = (color: string) => {
+  const rgb = color.match(/(\d+),\s*(\d+),\s*(\d+)/);
+  if (!rgb) return color;
+  return `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0.18)`;
+};
+
+const colorsWithSelection = (colors: string[], selectedIndex: number) =>
+  colors.map((color, index) => index === selectedIndex ? color : lightenColor(color));
+
+type ApexChartContext = {
+  resetSeries?: () => void;
+  updateOptions?: (
+    options: Record<string, unknown>,
+    redrawPaths?: boolean,
+    animate?: boolean,
+  ) => void;
+};
+
+const difficultyChartContext = shallowRef<ApexChartContext | null>(null);
+const completionChartContext = shallowRef<ApexChartContext | null>(null);
+const annotatorChartContext = shallowRef<ApexChartContext | null>(null);
+
 const chartDifficultyOptions = ref({
   chart: {
     type: "donut",
     id: "difficulty",
+    selection: {
+      enabled: false,
+    },
+    states: {
+      normal: {
+        filter: {
+          type: "none",
+          value: 0,
+        },
+      },
+      hover: {
+        filter: {
+          type: "none",
+          value: 0,
+        },
+      },
+      active: {
+        allowMultipleDataPointsSelection: false,
+        filter: {
+          type: "none",
+          value: 0,
+        },
+      },
+    },
+    events: {
+      legendClick: (
+        chartContext: ApexChartContext,
+        seriesIndex: number,
+        _config: unknown,
+      ) => {
+        difficultyChartContext.value = chartContext;
+        chartDifficultyOptions.value = {
+          ...chartDifficultyOptions.value,
+          colors: colorsWithSelection(difficultyColors, seriesIndex),
+        };
+      },
+      dataPointSelection: (
+        _event: unknown,
+        chartContext: ApexChartContext,
+        config: { dataPointIndex: number },
+      ) => {
+        difficultyChartContext.value = chartContext;
+        openDetails(
+          `Assignments confidence: ${["Unrated", "1-star", "2-stars", "3-stars", "4-stars", "5-stars"][config.dataPointIndex]}`,
+          editorAssignments.value.filter(
+            (assignment) => assignment.difficulty_rating === config.dataPointIndex,
+          ),
+        );
+      },
+    },
   },
   title: {
     text: "Assignments confidence",
     align: "center",
+  },
+  stroke: {
+    width: 0,
   },
   subtitle: {
     text: `Average: 0}`,
@@ -103,16 +249,12 @@ const chartDifficultyOptions = ref({
   },
   legend: {
     position: "bottom",
+    onItemClick: {
+      toggleDataSeries: false,
+    },
   },
   labels: ["Unrated", "1-star", "2-stars", "3-stars", "4-stars", "5-stars"],
-  colors: [
-    "rgb(173, 216, 230)",
-    "rgb(0, 227, 150)",
-    "rgb(59, 130, 246)",
-    "rgb(254, 176, 25)",
-    "rgb(255, 69, 96)",
-    "rgb(119, 93, 208)",
-  ],
+  colors: difficultyColors,
 });
 const chartDifficultySeries = reactive<number[]>([0, 0, 0, 0, 0, 0]);
 const chartDifficultyAverage = ref<number>(0);
@@ -120,21 +262,192 @@ const chartCompletionOptions = ref({
   chart: {
     type: "donut",
     id: "completion",
+    selection: {
+      enabled: false,
+    },
+    states: {
+      normal: {
+        filter: {
+          type: "none",
+          value: 0,
+        },
+      },
+      hover: {
+        filter: {
+          type: "none",
+          value: 0,
+        },
+      },
+      active: {
+        allowMultipleDataPointsSelection: false,
+        filter: {
+          type: "none",
+          value: 0,
+        },
+      },
+    },
+    events: {
+      legendClick: (
+        chartContext: ApexChartContext,
+        seriesIndex: number,
+        _config: unknown,
+      ) => {
+        completionChartContext.value = chartContext;
+        chartCompletionOptions.value = {
+          ...chartCompletionOptions.value,
+          colors: colorsWithSelection(completionColors, seriesIndex),
+        };
+      },
+      dataPointSelection: (
+        _event: unknown,
+        chartContext: ApexChartContext,
+        config: { dataPointIndex: number },
+      ) => {
+        completionChartContext.value = chartContext;
+        const done = config.dataPointIndex === 0;
+        openDetails(
+          `Editor assignments: ${done ? "Done" : "Pending"}`,
+          editorAssignments.value.filter((assignment) =>
+            done ? assignment.status === "done" : assignment.status !== "done"
+          ),
+        );
+      },
+    },
   },
   title: {
     text: "Assignments completion",
     align: "center",
   },
+  stroke: {
+    width: 0,
+  },
   legend: {
     position: "bottom",
+    onItemClick: {
+      toggleDataSeries: false,
+    },
   },
   labels: ["Done", "Pending"],
-  colors: ["rgb(0, 227, 150)", "rgb(255, 69, 96)"],
+  colors: completionColors,
 });
 const chartCompletionSeries = reactive<number[]>([0, 0]);
 const chartCompletionSeriesAnnotator = reactive<number[]>([0, 0]);
+const chartCompletionOptionsAnnotator = ref({
+  ...chartCompletionOptions.value,
+  chart: {
+    ...chartCompletionOptions.value.chart,
+    id: "completion-annotator",
+    events: {
+      legendClick: (
+        chartContext: ApexChartContext,
+        seriesIndex: number,
+        _config: unknown,
+      ) => {
+        annotatorChartContext.value = chartContext;
+        chartCompletionOptionsAnnotator.value = {
+          ...chartCompletionOptionsAnnotator.value,
+          colors: colorsWithSelection(completionColors, seriesIndex),
+        };
+      },
+      dataPointSelection: (
+        _event: unknown,
+        chartContext: ApexChartContext,
+        config: { dataPointIndex: number },
+      ) => {
+        annotatorChartContext.value = chartContext;
+        const done = config.dataPointIndex === 0;
+        openDetails(
+          `Annotator assignments: ${done ? "Done" : "Pending"}`,
+          annotatorAssignments.value.filter((assignment) =>
+            done ? assignment.status === "done" : assignment.status !== "done"
+          ),
+        );
+      },
+    },
+  },
+});
+
+const setCompletionSeries = (
+  target: number[],
+  result: { status: string; count: number }[],
+) => {
+  target.splice(0, target.length, 0, 0);
+
+  for (const row of result) {
+    if (row.status === "done") {
+      target[0] = (target[0] ?? 0) + row.count;
+    } else {
+      target[1] = (target[1] ?? 0) + row.count;
+    }
+  }
+};
+
+const resetChartHighlights = () => {
+  chartDifficultyOptions.value = {
+    ...chartDifficultyOptions.value,
+    colors: difficultyColors,
+    stroke: { width: 0, colors: difficultyColors },
+  };
+  chartCompletionOptions.value = {
+    ...chartCompletionOptions.value,
+    colors: completionColors,
+    stroke: { width: 0, colors: completionColors },
+  };
+  chartCompletionOptionsAnnotator.value = {
+    ...chartCompletionOptionsAnnotator.value,
+    colors: completionColors,
+    stroke: { width: 0, colors: completionColors },
+  };
+
+  for (const context of [
+    difficultyChartContext.value,
+    completionChartContext.value,
+    annotatorChartContext.value,
+  ]) {
+    context?.resetSeries?.();
+  }
+
+  difficultyChartContext.value?.updateOptions?.(
+    { colors: difficultyColors, stroke: { width: 0, colors: difficultyColors } },
+    true,
+  );
+  completionChartContext.value?.updateOptions?.(
+    { colors: completionColors, stroke: { width: 0, colors: completionColors } },
+    true,
+  );
+  annotatorChartContext.value?.updateOptions?.(
+    { colors: completionColors, stroke: { width: 0, colors: completionColors } },
+    true,
+  );
+};
+
+const handleDocumentPointerDown = (event: PointerEvent) => {
+  const target = event.target;
+  if (target instanceof Element && target.closest(".dashboard-chart")) return;
+  resetChartHighlights();
+};
+
+watch(detailsVisible, (visible) => {
+  if (!visible) resetChartHighlights();
+});
+
+watch([editorAssignments, annotatorAssignments], ([editorRows, annotatorRows]) => {
+  const assignmentIds = new Set([
+    ...editorRows.map((assignment) => assignment.id),
+    ...annotatorRows.map((assignment) => assignment.id),
+  ]);
+  assignmentsCount.value = assignmentIds.size;
+});
 
 onMounted(async () => {
+  document.addEventListener("pointerdown", handleDocumentPointerDown);
+
+  $trpc.assignment.findDashboardAssignments.query("editor").then((result) => {
+    editorAssignments.value = result as DashboardAssignment[];
+  });
+  $trpc.assignment.findDashboardAssignments.query("annotator").then((result) => {
+    annotatorAssignments.value = result as DashboardAssignment[];
+  });
 
   $trpc.project.getCountByUser.query().then((result) => {
     if (result)
@@ -150,12 +463,13 @@ onMounted(async () => {
 
   $trpc.assignment.getDifficultiesByEditor.query().then((result) => {
     result.map((r) => {
-      chartDifficultySeries[r.difficulty] += r.count;
+      chartDifficultySeries[r.difficulty] = (chartDifficultySeries[r.difficulty] ?? 0) + r.count;
       chartDifficultyAverage.value += r.difficulty * r.count;
-      assignmentsCount.value += r.count;
       if (r.difficulty > 0) assignmentsRated.value += r.count;
     });
-    chartDifficultyAverage.value /= assignmentsRated.value;
+    chartDifficultyAverage.value = assignmentsRated.value
+      ? chartDifficultyAverage.value / assignmentsRated.value
+      : 0;
     chartDifficultyOptions.value = {
       ...chartDifficultyOptions.value,
       subtitle: {
@@ -166,17 +480,22 @@ onMounted(async () => {
   });
 
   $trpc.assignment.getCompletionByEditor.query().then((result) => {
-    for (let i = 0; i < result.length; i++) {
-      chartCompletionSeries[i] = result[i].count;
-    }
+    setCompletionSeries(chartCompletionSeries, result);
   });
 
   $trpc.assignment.getCompletionByAnnotator.query().then((result) => {
-    for (let i = 0; i < result.length; i++) {
-      chartCompletionSeriesAnnotator[i] = result[i].count;
-      assignmentsCount.value += result[i].count;
-    }
+    setCompletionSeries(chartCompletionSeriesAnnotator, result);
   });
 });
+
+onBeforeUnmount(() => {
+  document.removeEventListener("pointerdown", handleDocumentPointerDown);
+});
 </script>
-<style></style>
+<style>
+.dashboard-chart .apexcharts-pie-area {
+  stroke: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+</style>

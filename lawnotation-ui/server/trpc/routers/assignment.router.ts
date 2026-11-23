@@ -425,6 +425,92 @@ export const assignmentRouter = router({
       return data;
     }),
 
+  // Picks the dashboard view to open with, using two cheap counts instead of
+  // loading every assignment. Tasks and editor assignments always belong to a
+  // project the user owns, so owning a project is the same as having editor work.
+  getDashboardRole: protectedProcedure
+    .query(async ({ ctx }): Promise<"editor" | "annotator"> => {
+      const [projects, annotatorAssignments] = await Promise.all([
+        ctx.supabase
+          .from("projects")
+          .select("id", { count: "exact", head: true })
+          .eq("editor_id", ctx.user.id),
+        ctx.supabase
+          .from("assignments")
+          .select("id", { count: "exact", head: true })
+          .eq("annotator_id", ctx.user.id),
+      ]);
+
+      const error = projects.error ?? annotatorAssignments.error;
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in getDashboardRole: ${error.message}`,
+        });
+
+      const hasEditorWork = (projects.count ?? 0) > 0;
+      const hasAnnotatorWork = (annotatorAssignments.count ?? 0) > 0;
+      return !hasEditorWork && hasAnnotatorWork ? "annotator" : "editor";
+    }),
+
+  findDashboardAssignments: protectedProcedure
+    .input(z.enum(["editor", "annotator"]))
+    .query(async ({ ctx, input }) => {
+      let query = ctx.supabase
+        .from("assignments")
+        .select(
+          "id,annotator_id,status,difficulty_rating,document:documents(id,name),task:tasks(id,name)"
+        );
+
+      if (input === "annotator") {
+        query = ctx.supabase
+          .from("assignments")
+          .select(
+            "id,annotator_id,status,difficulty_rating,document:documents(id,name),task:tasks(id,name,project:projects(id,name))"
+          )
+          .eq("annotator_id", ctx.user.id);
+      } else {
+        query = ctx.supabase
+          .from("assignments")
+          .select(
+            "id,annotator_id,status,difficulty_rating,document:documents(id,name),task:tasks!inner(id,name,project:projects!inner(id,name,editor_id))"
+          )
+          .eq("tasks.projects.editor_id", ctx.user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findDashboardAssignments: ${error.message}`,
+        });
+
+      const annotatorIds = [
+        ...new Set(
+          data
+            .map((assignment) => assignment.annotator_id)
+            .filter((id): id is string => Boolean(id))
+        ),
+      ];
+      const { data: users } = annotatorIds.length
+        ? await ctx.supabase
+            .from("users")
+            .select("id,email")
+            .in("id", annotatorIds)
+        : { data: [] };
+      const annotatorsById = new Map(
+        (users ?? []).map((user) => [user.id, user])
+      );
+
+      return data.map((assignment) => ({
+        ...assignment,
+        annotator: assignment.annotator_id
+          ? annotatorsById.get(assignment.annotator_id) ?? null
+          : null,
+      }));
+    }),
+
   findAssignmentsByTask: protectedProcedure
     .input(z.number().int())
     .use((opts) =>
