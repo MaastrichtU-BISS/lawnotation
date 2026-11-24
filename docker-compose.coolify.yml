@@ -1,0 +1,125 @@
+# Lawnotation on Coolify (BISS, server rice)
+#
+#   db       Postgres 17, the application database (no Supabase)
+#   migrate  one-shot: applies lawnotation-ui/db/migrations, then exits
+#   app      the Nuxt app (pages + Nitro server), port 3000
+#   backup   nightly pg_dump into its own volume
+#
+# Sign-in is the shared Keycloak (realm lawnotation, auth.lawnotation.org);
+# metrics go to the existing IAA service (iaa.lawnotation.org). Neither is part
+# of this stack.
+#
+# The database has no public port. It joins the host's shared `coolify`
+# network under the alias `lawnotation-postgres`, so the shared pgAdmin on the
+# same host can reach it at lawnotation-postgres:5432 (see caselaw-coolify
+# docs/PGADMIN.md).
+#
+# Coolify generates SERVICE_PASSWORD_* values on first deploy and keeps them.
+# Set the rest in the resource's environment variables (see the list at the
+# bottom of docs/Deployment/COOLIFY.md). Attach the app's domain in the
+# Coolify UI (app service, port 3000).
+#
+# Locally: POSTGRES_PASSWORD=... docker compose -f docker-compose.coolify.yml up
+# (with SERVICE_PASSWORD_POSTGRES and SERVICE_PASSWORD_64_SESSION exported).
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lawnotation
+      POSTGRES_USER: lawnotation
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      default:
+      pgadmin-shared:
+        aliases:
+          - lawnotation-postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lawnotation -d lawnotation"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  migrate:
+    build:
+      context: lawnotation-ui
+    command: ["node", "scripts/migrate.mjs"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://lawnotation:${SERVICE_PASSWORD_POSTGRES}@db:5432/lawnotation
+
+  app:
+    build:
+      context: lawnotation-ui
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "3000"
+    environment:
+      DATABASE_URL: postgres://lawnotation:${SERVICE_PASSWORD_POSTGRES}@db:5432/lawnotation
+      # Public address of this deployment: sign-in redirects and email links.
+      NUXT_PUBLIC_BASE_URL: ${LAWNOTATION_URL:-https://next.lawnotation.org}
+      # Keycloak (realm lawnotation). The client must allow
+      # <LAWNOTATION_URL>/api/auth/callback as a redirect URI and
+      # <LAWNOTATION_URL>/* as a post-logout redirect URI.
+      NUXT_AUTH_ISSUER: ${AUTH_ISSUER:-https://auth.lawnotation.org/realms/lawnotation}
+      NUXT_AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:-lawnotation}
+      NUXT_AUTH_CLIENT_SECRET: ${AUTH_CLIENT_SECRET:-}
+      NUXT_AUTH_SESSION_SECRET: ${SERVICE_PASSWORD_64_SESSION}
+      # Assignment and invitation emails (Mailtrap), smtp://user:pass@host:port
+      NUXT_SMTP_URL: ${SMTP_URL:-}
+      NUXT_IAA_SERVICE_URL: ${IAA_SERVICE_URL:-https://iaa.lawnotation.org}
+      NUXT_IAA_API_KEY: ${IAA_API_KEY:-}
+      NUXT_CITATIONS_API_KEY: ${CITATIONS_API_KEY:-}
+      NUXT_PUBLIC_ML_BACKEND_URL: ${MLBACKEND_URL:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/auth/me >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: lawnotation
+      PGDATABASE: lawnotation
+      PGPASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+      BACKUP_KEEP: ${BACKUP_KEEP:-7}
+    volumes:
+      - pgbackups:/backups
+    # A dump right away, then every BACKUP_INTERVAL_HOURS; keeps the newest
+    # BACKUP_KEEP. Restore with: pg_restore -d lawnotation --clean <file>
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          f=/backups/lawnotation-$$(date -u +%Y%m%dT%H%M%SZ).dump
+          if pg_dump -Fc -f "$$f.partial"; then mv "$$f.partial" "$$f"; echo "backup $$f"; else rm -f "$$f.partial"; echo "backup failed"; fi
+          ls -1t /backups/*.dump 2>/dev/null | tail -n +$$((BACKUP_KEEP + 1)) | xargs -r rm -f
+          sleep $$((BACKUP_INTERVAL_HOURS * 3600))
+        done
+
+volumes:
+  pgdata:
+  pgbackups:
+
+networks:
+  pgadmin-shared:
+    external: true
+    name: ${POSTGRES_SHARED_NETWORK_NAME:-coolify}

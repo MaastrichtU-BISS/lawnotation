@@ -1,0 +1,13 @@
+node_modules
+.nuxt
+.output
+.nitro
+.cache
+.env
+.env.*
+!.env.example
+cypress
+tests
+playwright-report
+test-results
+*.log
