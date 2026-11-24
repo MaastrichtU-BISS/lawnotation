@@ -125,7 +125,9 @@ export default defineNuxtConfig({
     // for it, which never sees the current component's scope id, so the
     // server-rendered form had no data-v-* attributes and its scoped CSS
     // matched nothing until a client-side render.
-    transpile: ["trpc-nuxt", "vue-legal-query-builder"],
+    // vue-countup-v3 is "type": "module" with a UMD file as "main", which Node
+    // cannot import from node_modules; bundling it avoids that.
+    transpile: ["trpc-nuxt", "vue-legal-query-builder", "vue-countup-v3"],
   },
 
   css: ["@/assets/styles/main.scss", "epic-spinners/css", "legal-annotation-kit/style.css"],
