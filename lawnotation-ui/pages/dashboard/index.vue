@@ -2,7 +2,6 @@
   <main class="pb-10">
     <div class="mt-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div>
-        <p class="mb-1 text-sm font-semibold uppercase tracking-widest text-primary-600">Analytics prototype</p>
         <h1 class="text-3xl font-bold tracking-tight text-slate-800">Dashboard overview</h1>
         <p class="mt-1 text-sm text-slate-500">Explore completion and workload across projects and tasks.</p>
       </div>
