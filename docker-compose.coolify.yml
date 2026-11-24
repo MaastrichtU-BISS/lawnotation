@@ -54,6 +54,23 @@ services:
     environment:
       DATABASE_URL: postgres://lawnotation:${SERVICE_PASSWORD_POSTGRES}@db:5432/lawnotation
 
+  # One-shot: copies the legacy Supabase data in, replacing what is here, when
+  # LEGACY_DATABASE_URL is set and LEGACY_IMPORT_RUN names a run that hasn't
+  # completed yet; otherwise exits at once. See scripts/import-legacy.mjs and
+  # docs/Deployment/COOLIFY.md ("Moving the legacy data").
+  legacy-import:
+    build:
+      context: lawnotation-ui
+    command: ["node", "scripts/import-legacy.mjs"]
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://lawnotation:${SERVICE_PASSWORD_POSTGRES}@db:5432/lawnotation
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-}
+      LEGACY_IMPORT_RUN: ${LEGACY_IMPORT_RUN:-}
+
   app:
     build:
       context: lawnotation-ui

@@ -24,7 +24,7 @@ ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
 COPY --from=build /app/.output ./.output
 # The migration runner needs only the postgres driver (no dependencies of its own).
 COPY --from=build /tmp/postgres ./node_modules/postgres
-COPY scripts/migrate.mjs ./scripts/migrate.mjs
+COPY scripts/migrate.mjs scripts/import-legacy.mjs ./scripts/
 COPY db ./db
 USER node
 EXPOSE 3000

@@ -62,11 +62,37 @@ subscriptions, and no Vercel cron jobs, so nothing else had to move.
 
 ### Keycloak
 
-The `lawnotation` client (realm `lawnotation`) allows
+The `lawnotation` realm (shared Keycloak, admin console at
+<https://auth.biss-institute.com/admin/lawnotation/console/>, front name
+`auth.lawnotation.org`) signs people in with their email and a one-time code
+(flow `caselaw-browser-passwordless-email-first`, codes mailed through the
+realm's SMTP). Self-registration is off, but the email step creates an
+unverified account for an unknown address and the code verifies it, so anyone
+can still sign in; the app then links or creates their users row.
+
+The `lawnotation` client (confidential, PKCE S256, standard flow only) allows
 `https://next.lawnotation.org/api/auth/callback` and
 `http://localhost:3000/api/auth/callback` as redirect URIs and
 `https://next.lawnotation.org/*` after logout, next to the existing
 `app.lawnotation.org` entries.
+
+**Accounts from Supabase.** On 2026-11-24 all 677 Supabase Auth users were
+imported into the realm (Realm settings → Partial import, "skip" on existing
+users): username and email are the lowercased address, the Keycloak user id is
+the Supabase user id, and *email verified* follows Supabase's confirmation
+(365 of 677; the others are verified by their first code). 4 addresses already
+had a Keycloak account and kept it. No mail is sent by an import. Supabase
+passwords are not carried over: sign-in here is by code only. To add people
+who signed up on the old app since, export again and import with "skip":
+
+```sql
+-- Supabase SQL editor; save the result as a JSON file
+select json_build_object('ifResourceExists', 'SKIP', 'users', json_agg(json_build_object(
+  'id', id, 'username', lower(email), 'email', lower(email),
+  'emailVerified', email_confirmed_at is not null, 'enabled', true,
+  'createdTimestamp', (extract(epoch from created_at) * 1000)::bigint)))
+from auth.users where email is not null;
+```
 
 ### pgAdmin
 
@@ -94,31 +120,44 @@ pnpm install && pnpm db:seed && pnpm dev
 and a hybrid task). Signing in through Keycloak with one of those addresses links
 the account to the seeded row.
 
-## Later: moving production over
+## Moving the legacy data
 
-Not done yet; for when this deployment has proven itself.
+The `legacy-import` service (`lawnotation-ui/scripts/import-legacy.mjs`) copies
+the Supabase database into this one. It reads the legacy database in one
+read-only snapshot (nothing is written there) and, in one transaction here:
+empties the application tables, copies every table of the legacy public
+schema (the columns both sides have; `documents.hash` recomputes itself),
+fills `users.created_at`, `last_sign_in_at` and the app's metadata keys from
+`auth.users`, copies the `legacy_backup` schema, moves the id sequences on and
+compares row counts. Any failure rolls the whole run back. `users.oidc_sub`
+stays empty; each person's first Keycloak sign-in links their row by email.
 
-1. **Data.** `pg_dump --data-only --schema=public` from Supabase and restore
-   into the Coolify database (table and column names are identical, so it loads
-   as is; `legacy_backup` can come along with a plain dump of that schema).
-   Before that, check that no two users share an email in different letter case
-   (`users_email_lower_key` is unique), and decide about the 3 auth users without
-   a `public.users` row.
-2. **Accounts.** Nothing to import into Keycloak: the first time someone signs
-   in at the new address with their email, `resolveUser` links their existing
-   users row by that (verified) email. Copy `auth.users.raw_user_meta_data` into
-   `users.metadata` if the onboarding state should survive.
-3. **Switch.** Point `app.lawnotation.org` at rice (Vercel DNS), set
-   `LAWNOTATION_URL=https://app.lawnotation.org` in Coolify, add
-   `https://app.lawnotation.org/api/auth/callback` to the Keycloak client, set
-   `NOINDEX=false`, freeze
-   writes on the old app for the final dump, and keep Vercel + Supabase read-only
-   for a while as a fallback.
-4. **The rest of Vercel.** The landing page (`lawnotation.org`) and the docs
-   (`docs.lawnotation.org`) are static sites that can become Coolify static
-   apps; the `lawnotation.org` DNS zone lives at Vercel and would move last,
-   with its Mailtrap records.
-5. Update the privacy policy page, which still names Supabase as the database
+To run it, set in Coolify and deploy:
+
+| Variable | Value |
+|---|---|
+| `LEGACY_DATABASE_URL` | `postgresql://postgres.aukazbmquapjrmbhefkc:<password, URL-encoded>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require` (session pooler: IPv4, allows a long read-only transaction) |
+| `LEGACY_IMPORT_RUN` | a new label, e.g. `2026-11-24` |
+
+The service runs on every deploy but does nothing unless `LEGACY_IMPORT_RUN`
+names a run that isn't in `public.legacy_imports` yet. **A new label replaces
+everything created on this deployment since the last import.** Remove both
+variables once the data has moved for good.
+
+## Later: switching app.lawnotation.org over
+
+1. Announce a short write freeze on the old app (or put it in maintenance).
+2. Import the Keycloak accounts created since (above), then set a new
+   `LEGACY_IMPORT_RUN` and deploy, so the final data comes over.
+3. Point `app.lawnotation.org` at rice (Vercel DNS), set
+   `LAWNOTATION_URL=https://app.lawnotation.org` and `NOINDEX=false`, add
+   `https://app.lawnotation.org/api/auth/callback` to the Keycloak client,
+   then remove `LEGACY_DATABASE_URL` and `LEGACY_IMPORT_RUN`.
+4. Keep Vercel + Supabase as they are, read-only, for a while as a fallback.
+5. The landing page (`lawnotation.org`) and the docs (`docs.lawnotation.org`)
+   are static sites that can become Coolify static apps; the `lawnotation.org`
+   DNS zone lives at Vercel and would move last, with its Mailtrap records.
+6. Update the privacy policy page, which still names Supabase as the database
    provider.
 
 ## Known gaps on this branch
