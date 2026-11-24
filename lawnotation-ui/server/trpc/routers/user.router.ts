@@ -1,20 +1,26 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
-import { authorizer, protectedProcedure, publicProcedure, disabledProcedure, router } from '~/server/trpc'
+import { authorizer, protectedProcedure, disabledProcedure, router } from '~/server/trpc'
 import type { User } from '~/types';
 import { zValidEmail } from '~/utils/validators';
 import { taskEditorAuthorizer } from '../authorizers';
 
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
+
+// Sign-in, invitations and sign-in links are handled by Keycloak (see
+// server/utils/auth.ts); this router only reads and updates the users table.
 export const userRouter = router({
 
   clearInviteMetadata: protectedProcedure
     .mutation(async ({ ctx }) => {
-      const user_metadata = ctx.user.user_metadata;
-      
-      if (user_metadata.assigned_task_id)
-        user_metadata.assigned_task_id = null;
-
-      const update = await ctx.supabase.auth.admin.updateUserById(ctx.user.id, {user_metadata});
+      try {
+        await ctx.sql`
+          update users
+          set metadata = metadata || '{"assigned_task_id": null}'::jsonb
+          where id = ${ctx.user.id}`;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.clearInviteMetadata: ${errorMessage(error)}`});
+      }
     }),
 
   setGuidance: protectedProcedure
@@ -22,9 +28,14 @@ export const userRouter = router({
       z.boolean()
     )
     .mutation(async ({ ctx, input }) => {
-      const user_metadata = ctx.user.user_metadata;
-      user_metadata.guidanceStatus = input;
-      const update = await ctx.supabase.auth.admin.updateUserById(ctx.user.id, {user_metadata});
+      try {
+        await ctx.sql`
+          update users
+          set metadata = metadata || jsonb_build_object('guidanceStatus', ${input}::boolean)
+          where id = ${ctx.user.id}`;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.setGuidance: ${errorMessage(error)}`});
+      }
     }),
 
   findById: disabledProcedure
@@ -32,11 +43,15 @@ export const userRouter = router({
       z.string()
     )
     .query(async ({ ctx, input: id }) => {
-      const { data, error } = await ctx.supabase.from("users").select().eq('id', id).single();
-      
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findById: ${error.message}`});
-      return data as User;
+      let rows: User[];
+      try {
+        rows = await ctx.sql<User[]>`select id, email, role from users where id = ${id}`;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findById: ${errorMessage(error)}`});
+      }
+      if (rows.length !== 1)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findById: user not found`});
+      return rows[0];
     }),
 
   findByEmail: disabledProcedure
@@ -44,11 +59,15 @@ export const userRouter = router({
       zValidEmail
     )
     .query(async ({ ctx, input: email }) => {
-      const { data, error } = await ctx.supabase.from("users").select().eq('email', email).single();
-      
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findByEmail: ${error.message}`});
-      return data as User;
+      let rows: User[];
+      try {
+        rows = await ctx.sql<User[]>`select id, email, role from users where email = ${email}`;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findByEmail: ${errorMessage(error)}`});
+      }
+      if (rows.length !== 1)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findByEmail: user not found`});
+      return rows[0];
     }),
 
   findUsersByTask: protectedProcedure
@@ -60,14 +79,17 @@ export const userRouter = router({
         taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
     )
     .query(async ({ctx, input: task_id}) => {
-      const { data, error } = await ctx.supabase
-        .from("users")
-        .select("email, assignment:assignments!inner(task_id)")
-        .eq("assignments.task_id", task_id);
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findUsersByTask: ${error.message}`});
-      return data;
+      // One row per annotator of the task, with their assignments in it.
+      try {
+        return await ctx.sql<{ email: string | null; assignment: { task_id: number }[] }[]>`
+          select u.email, json_agg(json_build_object('task_id', a.task_id)) as assignment
+          from users u
+          join assignments a on a.annotator_id = u.id
+          where a.task_id = ${task_id}
+          group by u.id, u.email`;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findUsersByTask: ${errorMessage(error)}`});
+      }
     }),
   
   getName: disabledProcedure
@@ -75,67 +97,15 @@ export const userRouter = router({
       z.string()
     )
     .query(async ({ctx, input: user_id}) => {
-      const { data, error } = await ctx.supabase
-        .from("users")
-        .select("email")
-        .eq("id", user_id)
-        .single();
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.getName: ${error.message}`});
-      return data.email
-    }),
-
-  inviteUser: disabledProcedure
-    .input(
-      z.object({
-        email: z.string().email(),
-        redirectTo: z.string().url()
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase.auth.admin.generateLink({
-        type: "magiclink",
-        email: input.email,
-        options: {
-          redirectTo: input.redirectTo
-        } 
-      })
-      
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.inviteUser: ${error.message}`});
-      return data;
-    }),
-  
-  generateLink: protectedProcedure
-    .use(opts => authorizer(opts, () => Promise.resolve(false)))
-    .input(
-      zValidEmail
-    )
-    .use(opts => authorizer(opts, async () => false))
-    .query(async ({ctx, input: email}) => {
-      const config = useRuntimeConfig();
-      const { data, error } = await ctx.supabase.auth.admin.generateLink({
-        type: "magiclink",
-        email: email,
-        options: { redirectTo: `${config.public.baseURL}/auth/validate` },
-      });
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: "Unable to generate link"});
-      return data.properties;
-    }),
-
-  otpLogin: publicProcedure
-    .input(
-      zValidEmail
-    )
-    .query(async ({ctx, input: email}) => {
-      const login = await ctx.supabase.auth.signInWithOtp({ email: email })
-
-      if (login.error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error sending token: ${login.error.message}`});
-      
-      return { message: "Login token has been sent! Please check your inbox" };
+      let rows: { email: string | null }[];
+      try {
+        rows = await ctx.sql<{ email: string | null }[]>`select email from users where id = ${user_id}`;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.getName: ${errorMessage(error)}`});
+      }
+      if (rows.length !== 1)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.getName: user not found`});
+      return rows[0]!.email
     }),
     
 })

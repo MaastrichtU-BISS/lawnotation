@@ -23,6 +23,17 @@ const ZPublicationFields = z.object({
   relations: z.number().int()
 });
 
+// The one row a query must return, as PostgREST's .single() demanded.
+function one<T>(rows: readonly T[]): T {
+  if (rows.length !== 1) throw new Error(`expected one row, found ${rows.length}`);
+  return rows[0]!;
+}
+
+const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+const publicationById = async (ctx: Context, id: number) =>
+  one(await ctx.sql<Publication[]>`SELECT * FROM publications WHERE id = ${id}`);
+
 export const publicationRouter = router({
 
   findById: protectedProcedure
@@ -33,19 +44,14 @@ export const publicationRouter = router({
       )
     )
     .query(async ({ ctx, input: id }) => {
-      const { data, error, count } = await ctx.supabase
-        .from("publications")
-        .select()
-        .eq("id", id)
-        .single();
-
-      if (count === 0) throw new TRPCError({ code: "NOT_FOUND" });
-      if (error)
+      try {
+        return await publicationById(ctx, id);
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in publications.findById: ${error.message}`,
+          message: `Error in publications.findById: ${message(error)}`,
         });
-      return data as Publication;
+      }
     }),
 
   findByIdEdit: protectedProcedure
@@ -56,36 +62,33 @@ export const publicationRouter = router({
       )
     )
     .query(async ({ ctx, input: id }) => {
-      const { data, error, count } = await ctx.supabase
-        .from("publications")
-        .select()
-        .eq("id", id)
-        .single();
-
-      if (count === 0) throw new TRPCError({ code: "NOT_FOUND" });
-      if (error)
+      try {
+        return await publicationById(ctx, id);
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in publications.findByIdEdit: ${error.message}`,
+          message: `Error in publications.findByIdEdit: ${message(error)}`,
         });
-      return data as Publication;
+      }
     }),
     
   create: protectedProcedure
     .input(ZPublicationFields)
     .mutation(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase
-        .from("publications")
-        .insert({...input, editor_id: ctx.user.id})
-        .select()
-        .single();
-
-      if (error)
+      const row: Record<string, unknown> = { ...input, editor_id: ctx.user.id };
+      try {
+        return one(
+          await ctx.sql<Publication[]>`
+            INSERT INTO publications ${ctx.sql(row, ...Object.keys(row))}
+            RETURNING *
+          `
+        );
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in publications.create: ${error.message}`,
+          message: `Error in publications.create: ${message(error)}`,
         });
-      return data as Publication;
+      }
     }),
 
   update: protectedProcedure
@@ -101,19 +104,24 @@ export const publicationRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase
-        .from("publications")
-        .update(input.updates)
-        .eq("id", input.id)
-        .select()
-        .single();
-
-      if (error)
+      const updates: Record<string, unknown> = input.updates;
+      const columns = Object.keys(updates).filter((column) => updates[column] !== undefined);
+      try {
+        return columns.length
+          ? one(
+              await ctx.sql<Publication[]>`
+                UPDATE publications SET ${ctx.sql(updates, ...columns)}
+                WHERE id = ${input.id}
+                RETURNING *
+              `
+            )
+          : await publicationById(ctx, input.id);
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in publications.update: ${error.message}`,
+          message: `Error in publications.update: ${message(error)}`,
         });
-      return data as Publication;
+      }
     }),
 
   delete: protectedProcedure
@@ -124,16 +132,14 @@ export const publicationRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      const { error } = await ctx.supabase
-        .from("publications")
-        .delete()
-        .eq("id", input);
-
-      if (error)
+      try {
+        await ctx.sql`DELETE FROM publications WHERE id = ${input}`;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in publications.delete: ${error.message}`,
+          message: `Error in publications.delete: ${message(error)}`,
         });
+      }
       return true;
     }),
 });

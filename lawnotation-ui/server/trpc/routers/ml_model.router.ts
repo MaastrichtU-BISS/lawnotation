@@ -3,7 +3,6 @@ import { z } from "zod";
 import { authorizer, protectedProcedure, disabledProcedure, router } from "~/server/trpc";
 import type { MlModel } from "~/types";
 import type { Context } from "../context";
-import type { PostgrestError } from "@supabase/supabase-js";
 import { AnnotationLevels } from "~/utils/enums";
 
 const ZMlModelFields = z.object({
@@ -18,10 +17,9 @@ const MlModelAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const { count } = await ctx.supabase
-    .from("ml_models")
-    .select("*", { count: "exact", head: true })
-    .eq("id", ml_model_id);
+  const [{ count }] = await ctx.sql<[{ count: number }]>`
+    SELECT count(*)::int AS count FROM ml_models WHERE id = ${ml_model_id}
+  `;
 
   return count === 1;
   // return true;
@@ -36,34 +34,28 @@ export const mlModelRouter = router({
       )
     )
     .query(async ({ ctx, input: id }) => {
-      const { data, error, count } = await ctx.supabase
-        .from("ml_models")
-        .select()
-        .eq("id", id)
-        .single();
-
-      if (count === 0) throw new TRPCError({ code: "NOT_FOUND" });
-      if (error)
+      try {
+        const rows = await ctx.sql<MlModel[]>`SELECT * FROM ml_models WHERE id = ${id}`;
+        if (rows.length !== 1) throw new Error(`expected one row, found ${rows.length}`);
+        return rows[0]!;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in ml_models.findById: ${error.message}`,
+          message: `Error in ml_models.findById: ${(error as Error).message}`,
         });
-      return data as MlModel;
+      }
     }),
 
   findAll: protectedProcedure
     .query(async ({ ctx }) => {
-      const { data, error, count } = await ctx.supabase
-        .from("ml_models")
-        .select('*');
-
-      if (count === 0) throw new TRPCError({ code: "NOT_FOUND" });
-      if (error)
+      try {
+        return await ctx.sql<MlModel[]>`SELECT * FROM ml_models`;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in ml_models.findAll: ${error.message}`,
+          message: `Error in ml_models.findAll: ${(error as Error).message}`,
         });
-      return data as MlModel[];
+      }
     }),
 
   predict: protectedProcedure
@@ -89,7 +81,7 @@ export const mlModelRouter = router({
       } catch(error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in ml_models.predict: ${(error as PostgrestError).message}`,
+          message: `Error in ml_models.predict: ${(error as Error).message}`,
         });
       }
     }),
@@ -116,7 +108,7 @@ export const mlModelRouter = router({
       } catch(error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in ml_models.checkMLTaskStatus: ${(error as PostgrestError).message}`,
+          message: `Error in ml_models.checkMLTaskStatus: ${(error as Error).message}`,
         });
       }
     }),

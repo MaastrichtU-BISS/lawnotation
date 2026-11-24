@@ -1,7 +1,7 @@
 // The boundary between lawnotation's tables and legal-annotation-kit's JSON
 // format. Everything that renames a column or reshapes a row for the kit lives
 // here, so the rest of the app talks in one vocabulary or the other, never both.
-import type { Sql } from "postgres";
+import type { Sql } from "../trpc/db";
 import type {
   Annotation as KitAnnotation,
   Assignment as KitAssignment,

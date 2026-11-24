@@ -1,8 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "~/types/supabase";
+import type { Sql } from "~/server/trpc/db";
 import type { Label } from "~/types";
 import type { ExportTaskOptions } from "~/utils/io";
-import { fetchAllRows, fetchRowsByIds } from "./fetch_all_rows";
 
 export type RichAnnotation = {
   id: number;
@@ -47,7 +45,7 @@ export type RichDocument = {
 
 // Superset of everything either the task-export download or the IAA metrics
 // service could need, fetched once so both can be derived from it without
-// re-querying Supabase.
+// re-querying the database.
 export type TaskExportData = {
   task: {
     name: string;
@@ -63,99 +61,114 @@ export type TaskExportData = {
 
 /**
  * Every query starts from the task's own rows and reaches the rest through
- * indexed ids (see fetchRowsByIds), so its cost follows the size of the task,
- * not of the database. `relations: false` skips the annotation links, which
- * only the export file uses.
+ * indexed ids, so its cost follows the size of the task, not of the database.
+ * `relations: false` skips the annotation links, which only the export file
+ * uses.
  */
 export async function buildTaskExportData(
-  supabase: SupabaseClient<Database>,
+  sql: Sql,
   task_id: number,
   options: { relations?: boolean } = {}
 ): Promise<TaskExportData> {
   const withRelations = options.relations ?? true;
-  const { data: task, error: taskError } = await supabase
-    .from("tasks")
-    .select("name, desc, ann_guidelines, annotation_level, labelset_id, document_labelset_id")
-    .eq("id", task_id)
-    .single();
+  const failed = (what: string) => (error: Error) => {
+    throw new Error(`Error fetching ${what} for export: ${error.message}`);
+  };
 
-  if (taskError || !task)
-    throw new Error(`Error fetching task for export: ${taskError?.message}`);
+  const tasks = await sql<
+    {
+      name: string | null;
+      desc: string | null;
+      ann_guidelines: string | null;
+      annotation_level: string | null;
+      labelset_id: number | null;
+      document_labelset_id: number | null;
+    }[]
+  >`
+    SELECT name, "desc", ann_guidelines, annotation_level, labelset_id, document_labelset_id
+    FROM tasks WHERE id = ${task_id}
+  `.catch(failed("task"));
+  if (tasks.length !== 1)
+    throw new Error(`Error fetching task for export: expected one task, found ${tasks.length}`);
+  const task = tasks[0]!;
 
   const hybrid = task.document_labelset_id != null && task.annotation_level !== "document";
-  const labelsetById = (id: number) =>
-    supabase.from("labelsets").select("name, desc, labels, relation_labels").eq("id", id).single();
+  type LabelsetRow = { name: string | null; desc: string | null; labels: unknown; relation_labels: string[] | null };
+  const labelsetById = async (id: number | null, what: string) => {
+    const rows = await sql<LabelsetRow[]>`
+      SELECT name, "desc", labels, relation_labels FROM labelsets WHERE id = ${id}
+    `.catch(failed(what));
+    if (rows.length !== 1) throw new Error(`Error fetching ${what} for export: expected one labelset, found ${rows.length}`);
+    return rows[0]!;
+  };
 
-  const [labelsetRes, documentLabelsetRes, documentsRes, assignmentsRes] = await Promise.all([
-    labelsetById(task.labelset_id!),
-    hybrid ? labelsetById(task.document_labelset_id!) : null,
-    fetchAllRows((from, to) =>
-      supabase.rpc("get_all_docs_from_task", { t_id: task_id }).order("id").range(from, to)
-    ),
-    fetchAllRows((from, to) =>
-      supabase
-        .from("assignments")
-        .select(
-          "id, document_id, annotator_id, seq_pos, status, confidence_rating, annotator:users!inner(email)"
-        )
-        .eq("task_id", task_id)
-        .order("id")
-        .range(from, to)
-    ),
+  const [labelsetRow, documentLabelsetRow, documents, assignments] = await Promise.all([
+    labelsetById(task.labelset_id, "labelset"),
+    hybrid ? labelsetById(task.document_labelset_id, "document labelset") : null,
+    sql<{ id: number; name: string | null; full_text: string | null }[]>`
+      SELECT id, name, full_text FROM get_all_docs_from_task(t_id => ${task_id}) ORDER BY id
+    `.catch(failed("documents")),
+    sql<
+      {
+        id: number;
+        document_id: number | null;
+        annotator_id: string | null;
+        seq_pos: number | null;
+        status: string | null;
+        confidence_rating: number | null;
+        email: string | null;
+      }[]
+    >`
+      SELECT a.id, a.document_id, a.annotator_id, a.seq_pos, a.status, a.confidence_rating, u.email
+      FROM assignments AS a
+      INNER JOIN users AS u ON (u.id = a.annotator_id)
+      WHERE a.task_id = ${task_id}
+      ORDER BY a.id
+    `.catch(failed("assignments")),
   ]);
 
-  if (labelsetRes.error)
-    throw new Error(`Error fetching labelset for export: ${labelsetRes.error.message}`);
-  if (documentLabelsetRes?.error)
-    throw new Error(`Error fetching document labelset for export: ${documentLabelsetRes.error.message}`);
-  if (documentsRes.error)
-    throw new Error(`Error fetching documents for export: ${documentsRes.error.message}`);
-  if (assignmentsRes.error)
-    throw new Error(`Error fetching assignments for export: ${assignmentsRes.error.message}`);
-
-  const assignmentIds = assignmentsRes.data.map((a) => a.id);
-  const [annotationsRes, documentRelationsRes] = await Promise.all([
-    fetchRowsByIds(assignmentIds, (ids, from, to) =>
-      supabase
-        .from("annotations")
-        .select("id, assignment_id, start_index, end_index, label, text, confidence_rating, metadata, kind")
-        .in("assignment_id", ids)
-        .order("id")
-        .range(from, to)
-    ),
-    fetchRowsByIds(assignmentIds, (ids, from, to) =>
-      supabase
-        .from("document_relations")
-        .select("from_assignment_id, to_assignment_id, labels")
-        .in("from_assignment_id", ids)
-        .order("id")
-        .range(from, to)
-    ),
+  // One array parameter carries any number of ids.
+  const assignmentIds = assignments.map((a) => a.id);
+  const [annotationRows, documentRelations] = await Promise.all([
+    sql<
+      {
+        id: number;
+        assignment_id: number | null;
+        start_index: number | null;
+        end_index: number | null;
+        label: string | null;
+        text: string | null;
+        confidence_rating: number;
+        metadata: string | null;
+        kind: string;
+      }[]
+    >`
+      SELECT id, assignment_id, start_index, end_index, label, text, confidence_rating, metadata, kind
+      FROM annotations
+      WHERE assignment_id = ANY(${assignmentIds}::bigint[])
+      ORDER BY id
+    `.catch(failed("annotations")),
+    sql<{ from_assignment_id: number; to_assignment_id: number; labels: string[] | null }[]>`
+      SELECT from_assignment_id, to_assignment_id, labels
+      FROM document_relations
+      WHERE from_assignment_id = ANY(${assignmentIds}::bigint[])
+      ORDER BY id
+    `.catch(failed("document relations")),
   ]);
-
-  if (annotationsRes.error)
-    throw new Error(`Error fetching annotations for export: ${annotationsRes.error.message}`);
-  if (documentRelationsRes.error)
-    throw new Error(`Error fetching document relations for export: ${documentRelationsRes.error.message}`);
 
   // Links start at spans; a hybrid task's document tags have none.
-  const spanIds = annotationsRes.data.filter((a) => !(hybrid && a.kind === "document")).map((a) => a.id);
-  const relationsRes = withRelations
-    ? await fetchRowsByIds(spanIds, (ids, from, to) =>
-        supabase
-          .from("annotation_relations")
-          .select("from_id, to_id, direction, labels")
-          .in("from_id", ids)
-          .order("id")
-          .range(from, to)
-      )
-    : { data: [], error: null };
-  if (relationsRes.error)
-    throw new Error(`Error fetching relations for export: ${relationsRes.error.message}`);
-  const documentLabelsetRow = documentLabelsetRes?.data ?? null;
+  const spanIds = annotationRows.filter((a) => !(hybrid && a.kind === "document")).map((a) => a.id);
+  const relations = withRelations
+    ? await sql<{ from_id: number | null; to_id: number | null; direction: string | null; labels: string[] | null }[]>`
+        SELECT from_id, to_id, direction, labels
+        FROM annotation_relations
+        WHERE from_id = ANY(${spanIds}::bigint[])
+        ORDER BY id
+      `.catch(failed("relations"))
+    : [];
 
   const documentsById = new Map<number, RichDocument>();
-  for (const doc of documentsRes.data) {
+  for (const doc of documents) {
     documentsById.set(doc.id, {
       id: doc.id,
       name: doc.name ?? "",
@@ -165,14 +178,14 @@ export async function buildTaskExportData(
   }
 
   const assignmentsById = new Map<number, RichAssignment>();
-  for (const ass of assignmentsRes.data) {
+  for (const ass of assignments) {
     const doc = documentsById.get(ass.document_id!);
     if (!doc) continue;
 
     const richAssignment: RichAssignment = {
       id: ass.id,
       annotator_id: ass.annotator_id!,
-      annotator_email: ass.annotator!.email!,
+      annotator_email: ass.email!,
       order: ass.seq_pos ?? 0,
       status: ass.status ?? "",
       confidence_rating: ass.confidence_rating ?? 0,
@@ -185,7 +198,7 @@ export async function buildTaskExportData(
   }
 
   const annotationsById = new Map<number, RichAnnotation>();
-  for (const ann of annotationsRes.data) {
+  for (const ann of annotationRows) {
     const assignment = assignmentsById.get(ann.assignment_id!);
     if (!assignment) continue;
 
@@ -215,7 +228,7 @@ export async function buildTaskExportData(
     assignment.annotations.push(richAnnotation);
   }
 
-  for (const rel of relationsRes.data) {
+  for (const rel of relations) {
     const fromAnnotation = annotationsById.get(rel.from_id!);
     if (!fromAnnotation) continue;
 
@@ -226,7 +239,7 @@ export async function buildTaskExportData(
     });
   }
 
-  for (const rel of documentRelationsRes.data) {
+  for (const rel of documentRelations) {
     assignmentsById.get(rel.from_assignment_id)?.document_relations.push({
       to_assignment_id: rel.to_assignment_id,
       labels: rel.labels ?? [],
@@ -241,10 +254,10 @@ export async function buildTaskExportData(
       annotation_level: task.annotation_level,
     },
     labelset: {
-      name: labelsetRes.data!.name ?? "",
-      desc: labelsetRes.data!.desc ?? "",
-      labels: (labelsetRes.data!.labels as Label[] | null) ?? [],
-      relation_labels: labelsetRes.data!.relation_labels ?? null,
+      name: labelsetRow.name ?? "",
+      desc: labelsetRow.desc ?? "",
+      labels: (labelsetRow.labels as Label[] | null) ?? [],
+      relation_labels: labelsetRow.relation_labels ?? null,
     },
     document_labelset: documentLabelsetRow
       ? {

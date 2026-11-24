@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { ZRelationLabel } from '~/server/utils/relation_label'
-import type { Sql } from 'postgres'
+import type { Sql } from "../db";
 import { protectedProcedure, disabledProcedure, router, authorizer } from '~/server/trpc'
 import type { AnnotationRelation } from '~/types';
 import { annotationEditorOrAnnotatorAuthorizer } from '../authorizers/annotation.auth';
@@ -16,6 +16,18 @@ const ZRelationFields = z.object({
   direction: ZRelationDirection,
   labels: z.array(ZRelationLabel)
 });
+
+// Rows per insert: well under the parameter limit.
+const RELATIONS_PER_INSERT = 1000;
+
+// The columns a relation is inserted with. A mutable array, as postgres.js's
+// types only accept those for the column list of its insert helper.
+const RELATION_COLUMNS: ("from_id" | "to_id" | "direction" | "labels")[] = [
+  "from_id",
+  "to_id",
+  "direction",
+  "labels",
+];
 
 export const relationRouter = router({
   createMany: protectedProcedure
@@ -40,11 +52,28 @@ export const relationRouter = router({
         }
       }
 
-      const { data, error } = await ctx.supabase.from("annotation_relations").insert(input).select();
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in create: ${error.message}`});
-      return data as AnnotationRelation[];
+      const data: AnnotationRelation[] = [];
+      try {
+        // One transaction, so the relations are all stored or none are, as
+        // when this was a single insert.
+        await ctx.sql.begin(async (transaction) => {
+          // postgres.js types a transaction without the call signature it has at
+          // runtime; this restores it.
+          const tx = transaction as unknown as Sql;
+          for (let i = 0; i < input.length; i += RELATIONS_PER_INSERT) {
+            const chunk = input.slice(i, i + RELATIONS_PER_INSERT);
+            data.push(
+              ...(await tx<AnnotationRelation[]>`
+                INSERT INTO annotation_relations ${tx(chunk, RELATION_COLUMNS)}
+                RETURNING *
+              `)
+            );
+          }
+        });
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in create: ${(error as Error).message}`});
+      }
+      return data;
     }),
 
   /**
@@ -73,9 +102,9 @@ export const relationRouter = router({
     .mutation(async ({ ctx, input }) => {
       let created = 0;
       await ctx.sql.begin(async (transaction) => {
-    // postgres.js types a transaction without the call signature it has at
-    // runtime; this restores it.
-    const tx = transaction as unknown as Sql;
+        // postgres.js types a transaction without the call signature it has at
+        // runtime; this restores it.
+        const tx = transaction as unknown as Sql;
         for (const r of input.relations) {
           const inserted = await tx`
             INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)
@@ -98,11 +127,15 @@ export const relationRouter = router({
       z.number().int()
     )
     .query(async ({ctx, input}) => {
-      const { data, error } = await ctx.supabase.from("annotation_relations").select().eq("id", input).single();
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findById: ${error.message}`});
-      return data as AnnotationRelation;
+      let rows: AnnotationRelation[];
+      try {
+        rows = await ctx.sql<AnnotationRelation[]>`SELECT * FROM annotation_relations WHERE id = ${input}`;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findById: ${(error as Error).message}`});
+      }
+      if (rows.length !== 1)
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findById: expected one row, got ${rows.length}`});
+      return rows[0];
     }),
 
   findRelationsByTask: protectedProcedure
@@ -115,16 +148,23 @@ export const relationRouter = router({
       )
     )
     .query(async ({ctx, input: task_id}) => {
-      const { data, error } = await ctx.supabase
-        .from("annotation_relations")
-        .select(
-          "*, annotation:from_id!inner(id, assignment:assignments!inner(id, task_id, document_id))"
-        )
-        .eq("from_id.assignments.task_id", task_id);
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findRelationsByTask: ${error.message}`});
-      return data as AnnotationRelation[];
+      try {
+        // Each relation with the annotation it starts from and that
+        // annotation's assignment.
+        return (await ctx.sql`
+          SELECT r.*,
+                 json_build_object(
+                   'id', an.id,
+                   'assignment', json_build_object('id', a.id, 'task_id', a.task_id, 'document_id', a.document_id)
+                 ) AS annotation
+          FROM annotation_relations AS r
+          JOIN annotations AS an ON (an.id = r.from_id)
+          JOIN assignments AS a ON (a.id = an.assignment_id)
+          WHERE a.task_id = ${task_id}
+        `) as unknown as AnnotationRelation[];
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findRelationsByTask: ${(error as Error).message}`});
+      }
     }),
     
   // previously 'findRelation':
@@ -140,11 +180,14 @@ export const relationRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase.from("annotation_relations").select().in("from_id", input);
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findFromAnnotationIds: ${error.message}`});
-      
-      return data as AnnotationRelation[];
+      if (!input.length) return [] as AnnotationRelation[];
+      try {
+        return (await ctx.sql<AnnotationRelation[]>`
+          SELECT * FROM annotation_relations WHERE from_id IN ${ctx.sql(input)}
+        `) as AnnotationRelation[];
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in findFromAnnotationIds: ${(error as Error).message}`});
+      }
     })
 
 })

@@ -1,6 +1,6 @@
 // The metrics page builds `input` once (via the authorized
 // metrics.get_input_data trpc procedure) and caches it client-side, so this
-// route is a thin proxy: it never touches Supabase itself.
+// route is a thin proxy: it never touches the database itself.
 export default eventHandler(async (event) => {
   const data = await readBody(event);
   const config = useRuntimeConfig();

@@ -1,4 +1,3 @@
-// export * from './supabase';
 export * from './annotation';
 export * from './assignment';
 export * from './document';

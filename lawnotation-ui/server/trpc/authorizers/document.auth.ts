@@ -5,16 +5,14 @@ export const documentEditorAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const editor = await ctx.supabase
-    .from("documents")
-    .select("*, project:projects!inner(editor_id)", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", document_id)
-    .eq("projects.editor_id", user_id);
-
-  return editor.count === 1
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select exists (
+      select 1
+      from documents d
+      join projects p on p.id = d.project_id
+      where d.id = ${document_id} and p.editor_id = ${user_id}
+    ) as ok`;
+  return ok;
 }
 
 export const documentEditorOrAnnotatorAuthorizer = async (
@@ -25,14 +23,10 @@ export const documentEditorOrAnnotatorAuthorizer = async (
   const editor = await documentEditorAuthorizer(document_id, user_id, ctx);
   if (editor) return true;
 
-  const annotator = await ctx.supabase
-    .from("assignments")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("document_id", document_id)
-    .eq("annotator_id", user_id);
-
-  return annotator.count! > 0;
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select exists (
+      select 1 from assignments
+      where document_id = ${document_id} and annotator_id = ${user_id}
+    ) as ok`;
+  return ok;
 };

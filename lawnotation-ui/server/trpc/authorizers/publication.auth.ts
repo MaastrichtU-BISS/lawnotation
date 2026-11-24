@@ -5,27 +5,13 @@ export const publicationViewerAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const editor = await ctx.supabase
-    .from("publications")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", publication_id)
-    .eq("editor_id", user_id);
-
-  if(editor.count) return true;
-
-  const everyone = await ctx.supabase
-    .from("publications")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", publication_id)
-    .eq("status", "published");
-
-    return everyone.count! > 0;
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select exists (
+      select 1 from publications
+      where id = ${publication_id}
+        and (editor_id = ${user_id} or status = 'published')
+    ) as ok`;
+  return ok;
 };
 
 export const publicationEditorAuthorizer = async (
@@ -33,14 +19,10 @@ export const publicationEditorAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const editor = await ctx.supabase
-    .from("publications")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", publication_id)
-    .eq("editor_id", user_id);
-
-  return editor.count! > 0;
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select exists (
+      select 1 from publications
+      where id = ${publication_id} and editor_id = ${user_id}
+    ) as ok`;
+  return ok;
 };

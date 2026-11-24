@@ -44,6 +44,7 @@ import type {
   Labelset,
 } from "legal-annotation-kit";
 import type { AppRouter } from "~/server/trpc/routers";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { Project, Task, Document } from "~/types";
 import { useConfirm } from "primevue/useconfirm";
 import { authorizeClient } from "~/utils/authorize.client";
@@ -63,7 +64,7 @@ const { $trpc, $toast } = useNuxtApp();
 const relationViews = useDocumentRelationViews();
 
 const route = useRoute();
-const assignment = ref<AppRouter['assignment']['findById']['_def']['_output_out']>();
+const assignment = ref<inferRouterOutputs<AppRouter>['assignment']['findById']>();
 const task = ref<Task>();
 const project = ref<Project>();
 const doc = ref<Pick<Document, "name">>();

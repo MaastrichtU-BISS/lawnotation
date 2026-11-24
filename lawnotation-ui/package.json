@@ -16,13 +16,10 @@
     "test:unit": "node --test --experimental-strip-types --no-warnings unit-tests/*.test.mjs",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "supabase-studio": "open-cli http://localhost:54323",
-    "supabase-mail": "open-cli http://localhost:54324",
-    "supabase:db:reset": "npx supabase db reset",
-    "update-types": "npx supabase gen types typescript --project-id \"aukazbmquapjrmbhefkc\" > types/supabase.ts"
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:seed": "node scripts/migrate.mjs --seed db/seed/dev.sql"
   },
   "devDependencies": {
-    "@nuxtjs/supabase": "^2.1.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@playwright/test": "^1.64.1",
     "@primevue/nuxt-module": "^4.5.4",
@@ -35,13 +32,11 @@
     "parse5": "^8.0.1",
     "postcss": "^8.4.38",
     "sass": "^1.75.0",
-    "supabase": "2.90.0",
     "typescript": "^5.4.5",
     "vue-tsc": "^2.2.12"
   },
   "dependencies": {
     "@primeuix/themes": "^2.0.3",
-    "@supabase/supabase-js": "^2.42.4",
     "@trpc/client": "^11.11.0",
     "@trpc/server": "^11.11.0",
     "@types/nodemailer": "^6.4.17",
@@ -87,8 +82,7 @@
       "@parcel/watcher",
       "canvas",
       "cypress",
-      "esbuild",
-      "supabase"
+      "esbuild"
     ]
   }
 }

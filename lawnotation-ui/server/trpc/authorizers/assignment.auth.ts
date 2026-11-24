@@ -5,17 +5,15 @@ export const assignmentEditorAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const query = ctx.supabase
-    .from("assignments")
-    .select("*, task:tasks!inner(id, project:projects!inner(editor_id))", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", assignment_id);
-
-  const editor = await query.eq("tasks.projects.editor_id", user_id);
-
-  return editor.count === 1;
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select exists (
+      select 1
+      from assignments a
+      join tasks t on t.id = a.task_id
+      join projects p on p.id = t.project_id
+      where a.id = ${assignment_id} and p.editor_id = ${user_id}
+    ) as ok`;
+  return ok;
 };
 
 export const assignmentEditorOrAnnotatorAuthorizer = async (
@@ -23,39 +21,36 @@ export const assignmentEditorOrAnnotatorAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const baseQuery = () => {
-    return ctx.supabase
-      .from("assignments")
-      .select("*, task:tasks!inner(id, project:projects!inner(editor_id))", {
-        count: "exact",
-        head: true,
-      })
-      .eq("id", assignment_id);
-  }
-
-  const editor = await baseQuery().eq("tasks.projects.editor_id", user_id);
-  const annotator = await baseQuery().eq("annotator_id", user_id);
-
-  return editor.count === 1 || annotator.count === 1;
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select exists (
+      select 1
+      from assignments a
+      join tasks t on t.id = a.task_id
+      join projects p on p.id = t.project_id
+      where a.id = ${assignment_id}
+        and (p.editor_id = ${user_id} or a.annotator_id = ${user_id})
+    ) as ok`;
+  return ok;
 };
 
 // One query for any number of assignments: checking them one by one made a
-// bulk annotation insert slow enough to time out at the gateway.
+// bulk annotation insert slow enough to time out at the gateway. True when
+// every distinct id exists (with a task in a project) and each one is
+// annotated by the user or belongs to a project the user edits.
 export const assignmentsEditorOrAnnotatorAuthorizer = async (
   assignment_ids: number[],
   user_id: string,
   ctx: Context
 ) => {
   const ids = [...new Set(assignment_ids)];
-  const { data, error } = await ctx.supabase
-    .from("assignments")
-    .select("id, annotator_id, task:tasks!inner(project:projects!inner(editor_id))")
-    .in("id", ids);
+  if (!ids.length) return true;
 
-  if (error || !data || data.length !== ids.length) return false;
-
-  return data.every(
-    (ass: any) =>
-      ass.annotator_id === user_id || ass.task?.project?.editor_id === user_id
-  );
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select count(*) = ${ids.length} as ok
+    from assignments a
+    join tasks t on t.id = a.task_id
+    join projects p on p.id = t.project_id
+    where a.id = any(${ids}::bigint[])
+      and (a.annotator_id = ${user_id} or p.editor_id = ${user_id})`;
+  return ok;
 };

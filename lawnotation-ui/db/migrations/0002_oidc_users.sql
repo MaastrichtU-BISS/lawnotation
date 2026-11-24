@@ -17,3 +17,19 @@ ALTER TABLE public.users
   ADD COLUMN last_sign_in_at timestamptz;
 
 CREATE UNIQUE INDEX users_email_lower_key ON public.users (lower(email));
+
+-- It selected u.*, which no longer matches its declared columns now that users
+-- has more of them.
+CREATE OR REPLACE FUNCTION public.get_all_annotators_from_task(t_id numeric)
+  RETURNS TABLE(id uuid, email text, role public.user_roles, annotator_number integer)
+  LANGUAGE sql
+AS $$
+  SELECT u.id, u.email, u.role, a.annotator_number
+  FROM tasks as t
+  INNER JOIN assignments as a
+  ON (t.id = a.task_id and t.id = t_id)
+  LEFT JOIN users as u
+  ON (a.annotator_id = u.id)
+  GROUP BY u.id, a.annotator_number
+  ORDER BY annotator_number
+$$;

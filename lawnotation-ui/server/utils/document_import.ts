@@ -39,5 +39,5 @@ export async function extractDocumentText(name: string, data: Uint8Array): Promi
       message: skipped[0]?.reason ?? "This file could not be read.",
     });
   }
-  return documents[0].full_text;
+  return documents[0]!.full_text;
 }

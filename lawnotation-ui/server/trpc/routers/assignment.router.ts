@@ -10,6 +10,7 @@ import type {
   Labelset,
 } from "~/types";
 import type { Context } from "../context";
+import type { Sql } from "../db";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
 import nodemailer from "nodemailer"
@@ -29,6 +30,15 @@ const ZAssignmentFields = z.object({
   original_task_id: z.number().int().nullable().optional()
 });
 
+/** Rows per INSERT, well below Postgres' 65534 parameters per query. */
+const INSERT_CHUNK_SIZE = 1000;
+
+/** The keys of an object that are set: the columns an insert or update writes. */
+const definedKeys = <T extends object>(obj: T) =>
+  (Object.keys(obj) as (keyof T & string)[]).filter(
+    (key) => obj[key] !== undefined
+  );
+
 type AnnotatorAssignmentNode = {
   type: "document";
   key: string;
@@ -45,9 +55,11 @@ type AnnotatorAssignmentNode = {
 
 export const assignmentRouter = router({
   /**
-   * This method creates inivites an email to create an account if it doesn't
-   * already have one. Next, it will assign the provided task_id to the metadata
-   * of the user account, so that a flash message appears when they log-in.
+   * This method creates a users row for the email if it doesn't already have
+   * one and invites them by email; the row is linked to their Keycloak account
+   * when they first sign in with that address (see resolveUser). Next, it will
+   * assign the provided task_id to the metadata of the user account, so that a
+   * flash message appears when they log-in.
    * Note that this method doesn't actually create the assignments.
    */
   assignUserToTask: protectedProcedure
@@ -63,60 +75,64 @@ export const assignmentRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
-      const email_found = await ctx.supabase
-        .from("users")
-        .select()
-        .eq("email", input.email)
-        .maybeSingle();
       let user_id: User["id"] | null = null;
-      if (!email_found.data) {
-        // email is a new user.
-        const invite = await ctx.supabase.auth.admin.inviteUserByEmail(
-          input.email,
-          { data: { assigned_task_id: input.task_id } }
-        );
-
-        if (invite.error)
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Error inviting: ${invite.error.message}`,
-          });
-
-        user_id = invite.data.user.id as string;
-      } else {
-        // email is already an user
-        user_id = email_found.data.id as string;
-        const user_email = email_found.data.email as string;
-
-        await ctx.supabase.auth.admin.updateUserById(user_id, {
-          user_metadata: { assigned_task_id: input.task_id },
+      let user_email: string;
+      let is_new_user: boolean;
+      try {
+        // Find the user by email or create their row, and record the task in
+        // its metadata, in one statement so that two invitations of the same
+        // address at once can't collide. xmax = 0 only for a freshly inserted
+        // row.
+        const [row] = await ctx.sql<
+          [{ id: string; email: string; created: boolean }]
+        >`
+          INSERT INTO users (email, metadata)
+          VALUES (lower(${input.email}), jsonb_build_object('assigned_task_id', ${input.task_id}::bigint))
+          ON CONFLICT ((lower(email))) DO UPDATE
+            SET metadata = users.metadata || jsonb_build_object('assigned_task_id', ${input.task_id}::bigint)
+          RETURNING id, email, (xmax = 0) AS created
+        `;
+        user_id = row.id;
+        user_email = row.email;
+        is_new_user = row.created;
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in assignment.assignUserToTask: ${(error as Error).message}`,
         });
+      }
 
-        const config = useRuntimeConfig();
-        // send email to existing user
-        if (!config.smtpUrl) throw Error("Mail connection url is not set.");
+      const config = useRuntimeConfig();
+      // send email to the user
+      if (!config.smtpUrl) throw Error("Mail connection url is not set.");
 
-        const mailClient = nodemailer.createTransport(config.smtpUrl);
+      const mailClient = nodemailer.createTransport(config.smtpUrl);
 
-        const body = `Hello ${user_email},<br />
+      // A new user signs in through Keycloak with this email prefilled, which
+      // sends them a code; the users row is linked to that account then.
+      const body = is_new_user
+        ? `Hello ${user_email},<br />
+        You have been invited to annotate a task on Lawnotation. <a href="${config.public.baseURL}/auth/accept-invite#${encodeURIComponent(user_email)}">Click here</a> to accept the invitation and start annotating.`
+        : `Hello ${user_email},<br />
         You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
-        try {
-          const mail = await mailClient.sendMail({
-            from: {
-              name: "Lawnotation",
-              address: "no-reply@login.lawnotation.org"
-            },
-            to: user_email,
-            subject: "Assigned to new task",
-            html: body,
-          });
-        } catch (error) {
-          throw new TRPCError({
-            message:
-              "There was an error sending an email to the invited user.",
-            code: "INTERNAL_SERVER_ERROR",
-          });
-        }
+      try {
+        const mail = await mailClient.sendMail({
+          from: {
+            name: "Lawnotation",
+            address: "no-reply@login.lawnotation.org"
+          },
+          to: user_email,
+          subject: is_new_user
+            ? "Invitation to annotate on Lawnotation"
+            : "Assigned to new task",
+          html: body,
+        });
+      } catch (error) {
+        throw new TRPCError({
+          message:
+            "There was an error sending an email to the invited user.",
+          code: "INTERNAL_SERVER_ERROR",
+        });
       }
 
       if (!user_id)
@@ -136,16 +152,21 @@ export const assignmentRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const invite = await ctx.supabase.auth.admin.inviteUserByEmail(
-        input.email,
-        { data: { invited_task_id: input.task_id } }
-      );
-
-      if (invite.error)
+      // Create the users row if it is missing (linked at their first sign-in)
+      // and record the task in its metadata; no email is sent.
+      try {
+        await ctx.sql`
+          INSERT INTO users (email, metadata)
+          VALUES (lower(${input.email}), jsonb_build_object('invited_task_id', ${input.task_id}::bigint))
+          ON CONFLICT ((lower(email))) DO UPDATE
+            SET metadata = users.metadata || jsonb_build_object('invited_task_id', ${input.task_id}::bigint)
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error inviting: ${invite.error.message}`,
+          message: `Error inviting: ${(error as Error).message}`,
         });
+      }
 
       return;
     }),
@@ -153,18 +174,19 @@ export const assignmentRouter = router({
   create: disabledProcedure
     .input(ZAssignmentFields)
     .mutation(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .insert(input)
-        .select()
-        .single();
-
-      if (error)
+      try {
+        const columns = definedKeys(input);
+        const [data] = await ctx.sql<Assignment[]>`
+          INSERT INTO assignments ${ctx.sql(input, ...columns)}
+          RETURNING *
+        `;
+        return data;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in assignment.create: ${error.message}`,
+          message: `Error in assignment.create: ${(error as Error).message}`,
         });
-      return data as Assignment;
+      }
     }),
 
   createMany: protectedProcedure
@@ -203,10 +225,37 @@ export const assignmentRouter = router({
 
       const assignments = input.assignments.map(ass => ({...ass, task_id: input.task_id}))
 
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .insert(assignments)
-        .select();
+      // As PostgREST did: the columns are those any row sets, a row without
+      // one of them gets null there. Inserted in chunks to stay under the
+      // parameter limit, all in one transaction so it stays all-or-nothing.
+      const columns = [
+        ...new Set(assignments.flatMap((ass) => definedKeys(ass))),
+      ];
+      let data: Assignment[] = [];
+      try {
+        if (assignments.length)
+          data = await ctx.sql.begin(async (transaction) => {
+            // postgres.js types a transaction without the call signature it has at
+            // runtime; this restores it.
+            const tx = transaction as unknown as Sql;
+            const inserted: Assignment[] = [];
+            for (let i = 0; i < assignments.length; i += INSERT_CHUNK_SIZE) {
+              const chunk = assignments.slice(i, i + INSERT_CHUNK_SIZE);
+              inserted.push(
+                ...(await tx<Assignment[]>`
+                  INSERT INTO assignments ${tx(chunk, ...(columns as (keyof (typeof chunk)[number])[]))}
+                  RETURNING *
+                `)
+              );
+            }
+            return inserted;
+          });
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in createMany: ${(error as Error).message}`,
+        });
+      }
 
       if (input.pre_annotations) {
         const caller = appRouter.createCaller(ctx);
@@ -258,12 +307,7 @@ export const assignmentRouter = router({
         });
       }
 
-      if (error)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error in createMany: ${error.message}`,
-        });
-      return data as Assignment[];
+      return data;
     }),
 
   findById: protectedProcedure
@@ -274,19 +318,30 @@ export const assignmentRouter = router({
       )
     )
     .query(async ({ ctx, input: id }) => {
-      const { data, error, count } = await ctx.supabase
-        .from("assignments")
-        .select("*, annotator:users(id, email)")
-        .eq("id", id)
-        .single();
-
-      if (count === 0) throw new TRPCError({ code: "NOT_FOUND" });
-      if (error)
+      let rows;
+      try {
+        rows = await ctx.sql<
+          (Assignment & { annotator: { id: string; email: string } | null })[]
+        >`
+          SELECT a.*,
+                 CASE WHEN u.id IS NULL THEN NULL
+                      ELSE json_build_object('id', u.id, 'email', u.email) END AS annotator
+          FROM assignments AS a
+          LEFT JOIN users AS u ON (a.annotator_id = u.id)
+          WHERE a.id = ${id}
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in find: ${error.message}`,
+          message: `Error in find: ${(error as Error).message}`,
         });
-      return data;
+      }
+      if (rows.length !== 1)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in find: assignment ${id} not found`,
+        });
+      return rows[0]!;
     }),
 
   update: protectedProcedure
@@ -302,19 +357,30 @@ export const assignmentRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .update(input.updates)
-        .eq("id", input.id)
-        .select()
-        .single();
-
-      if (error)
+      let rows: Assignment[];
+      try {
+        const columns = definedKeys(input.updates);
+        rows = columns.length
+          ? await ctx.sql<Assignment[]>`
+              UPDATE assignments SET ${ctx.sql(input.updates, ...columns)}
+              WHERE id = ${input.id}
+              RETURNING *
+            `
+          : await ctx.sql<Assignment[]>`
+              SELECT * FROM assignments WHERE id = ${input.id}
+            `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in update: ${error.message}`,
+          message: `Error in update: ${(error as Error).message}`,
         });
-      return data as Assignment;
+      }
+      if (rows.length !== 1)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in update: assignment ${input.id} not found`,
+        });
+      return rows[0];
     }),
 
   delete: protectedProcedure
@@ -325,32 +391,32 @@ export const assignmentRouter = router({
       )
     )
     .mutation(async ({ ctx, input: assignment_id }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .delete()
-        .eq("id", assignment_id);
-
-      if (error)
+      try {
+        await ctx.sql`DELETE FROM assignments WHERE id = ${assignment_id}`;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in delete: ${error.message}`,
+          message: `Error in delete: ${(error as Error).message}`,
         });
+      }
       return true;
     }),
 
   getCountByUser: disabledProcedure
     .input(z.string())
     .query(async ({ ctx, input: e_id }) => {
-      const { data, error } = await ctx.supabase
-        .rpc("get_count_assignments", { e_id: e_id })
-        .single();
-
-      if (error)
+      try {
+        // numeric, which PostgREST sent as a JSON number.
+        const [row] = await ctx.sql<[{ v: number }]>`
+          SELECT get_count_assignments(e_id => ${e_id})::int AS v
+        `;
+        return row.v;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in getCountByUser: ${error.message}`,
+          message: `Error in getCountByUser: ${(error as Error).message}`,
         });
-      return data;
+      }
     }),
 
   getCountByProject: protectedProcedure
@@ -361,68 +427,62 @@ export const assignmentRouter = router({
       )
     )
     .query(async ({ ctx, input: p_id }) => {
-      const { data, error, count } = await ctx.supabase
-        .from("assignments")
-        .select("*, task:tasks!inner(project_id)", { count: "exact" })
-        .eq("tasks.project_id", p_id);
-
-      if (error)
+      try {
+        const [row] = await ctx.sql<[{ count: number }]>`
+          SELECT count(*)::int AS count
+          FROM assignments AS a
+          INNER JOIN tasks AS t ON (a.task_id = t.id)
+          WHERE t.project_id = ${p_id}
+        `;
+        return row.count;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in getCountByUser: ${error.message}`,
+          message: `Error in getCountByUser: ${(error as Error).message}`,
         });
-      return count;
+      }
     }),
 
   getConfidencesByEditor: protectedProcedure
     .query(async ({ ctx }) => {
-      const { data, error } = await ctx.supabase.rpc(
-        "get_confidences_by_editor",
-        {
-          e_id: ctx.user.id,
-        }
-      );
-
-      if (error)
+      try {
+        return await ctx.sql<{ confidence: number; count: number }[]>`
+          SELECT * FROM get_confidences_by_editor(e_id => ${ctx.user.id})
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in getConfidencesByEditor: ${error.message}`,
+          message: `Error in getConfidencesByEditor: ${(error as Error).message}`,
         });
-      return data;
+      }
     }),
 
   getCompletionByEditor: protectedProcedure
     .query(async ({ ctx }) => {
-      const { data, error } = await ctx.supabase.rpc(
-        "get_completion_by_editor",
-        {
-          e_id: ctx.user.id,
-        }
-      );
-
-      if (error)
+      try {
+        return await ctx.sql<{ status: AssignmentStatuses; count: number }[]>`
+          SELECT * FROM get_completion_by_editor(e_id => ${ctx.user.id})
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in getCompletionByEditor: ${error.message}`,
+          message: `Error in getCompletionByEditor: ${(error as Error).message}`,
         });
-      return data;
+      }
     }),
 
   getCompletionByAnnotator: protectedProcedure
     .query(async ({ ctx }) => {
-      const { data, error } = await ctx.supabase.rpc(
-        "get_completion_by_annotator",
-        {
-          a_id: ctx.user.id,
-        }
-      );
-
-      if (error)
+      try {
+        return await ctx.sql<{ status: AssignmentStatuses; count: number }[]>`
+          SELECT * FROM get_completion_by_annotator(a_id => ${ctx.user.id})
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in getCompletionByAnnotator: ${error.message}`,
+          message: `Error in getCompletionByAnnotator: ${(error as Error).message}`,
         });
-      return data;
+      }
     }),
 
   findAssignmentsByTask: protectedProcedure
@@ -433,18 +493,16 @@ export const assignmentRouter = router({
       )
     )
     .query(async ({ ctx, input: task_id }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .select()
-        .eq("task_id", task_id)
-        .order("id", { ascending: true });
-
-      if (error)
+      try {
+        return await ctx.sql<Assignment[]>`
+          SELECT * FROM assignments WHERE task_id = ${task_id} ORDER BY id
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findAssignmentsByTask: ${error.message}`,
+          message: `Error in findAssignmentsByTask: ${(error as Error).message}`,
         });
-      return data as Assignment[];
+      }
     }),
 
   findRichAssignmentsByTask: protectedProcedure
@@ -455,17 +513,23 @@ export const assignmentRouter = router({
       )
     )
     .query(async ({ ctx, input: task_id }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .select("*, documents(hash)")
-        .eq("task_id", task_id);
-
-      if (error)
+      try {
+        return await ctx.sql<
+          (Assignment & { documents: { hash: string | null } | null })[]
+        >`
+          SELECT a.*,
+                 CASE WHEN d.id IS NULL THEN NULL
+                      ELSE json_build_object('hash', d.hash) END AS documents
+          FROM assignments AS a
+          LEFT JOIN documents AS d ON (a.document_id = d.id)
+          WHERE a.task_id = ${task_id}
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findAssignmentsByTask: ${error.message}`,
+          message: `Error in findAssignmentsByTask: ${(error as Error).message}`,
         });
-      return data;
+      }
     }),
 
   findAssignmentsByTaskAndUser: protectedProcedure
@@ -482,27 +546,26 @@ export const assignmentRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
-      let query = ctx.supabase
-        .from("assignments")
-        .select()
-        .eq("task_id", input.task_id);
+      const byAnnotatorId = input.annotator_id
+        ? ctx.sql`AND annotator_id = ${input.annotator_id}`
+        : ctx.sql``;
 
-      if (input.annotator_id) {
-        query = query.eq("annotator_id", input.annotator_id);
-      }
+      const byAnnotatorNumber = input.annotator_number
+        ? ctx.sql`AND annotator_number = ${input.annotator_number}`
+        : ctx.sql``;
 
-      if (input.annotator_number) {
-        query = query.eq("annotator_number", input.annotator_number);
-      }
-
-      const { data, error } = await query.order("id", { ascending: true });
-
-      if (error)
+      try {
+        return await ctx.sql<Assignment[]>`
+          SELECT * FROM assignments
+          WHERE task_id = ${input.task_id} ${byAnnotatorId} ${byAnnotatorNumber}
+          ORDER BY id
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findAssignmentsByTaskAndUser: ${error.message}`,
+          message: `Error in findAssignmentsByTaskAndUser: ${(error as Error).message}`,
         });
-      return data as Assignment[];
+      }
     }),
   
   findNextAssignmentsByUserAndTask: protectedProcedure
@@ -515,22 +578,22 @@ export const assignmentRouter = router({
       )
     )
     .query(async ({ ctx, input: task_id }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .select()
-        .eq("annotator_id", ctx.user.id)
-        .eq("task_id", task_id)
-        .neq("status", AssignmentStatuses.DONE)
-        .order("seq_pos", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (error)
+      try {
+        const [data] = await ctx.sql<Assignment[]>`
+          SELECT * FROM assignments
+          WHERE annotator_id = ${ctx.user.id}
+            AND task_id = ${task_id}
+            AND status <> ${AssignmentStatuses.DONE}
+          ORDER BY seq_pos
+          LIMIT 1
+        `;
+        return (data ?? null) as Assignment;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findNextAssignmentsByUserAndTask: ${error.message}`,
+          message: `Error in findNextAssignmentsByUserAndTask: ${(error as Error).message}`,
         });
-      return data as Assignment;
+      }
     }),
 
   findAssignmentsByUserTaskSeq: protectedProcedure
@@ -548,39 +611,17 @@ export const assignmentRouter = router({
     )
     .query(async ({ ctx, input }) => {
 
-      let response;
+      let seqFilter;
 
       switch (input.dir) {
         case Direction.PREVIOUS:
-          response = await ctx.supabase
-            .from("assignments")
-            .select()
-            .eq("task_id", input.task_id)
-            .eq("annotator_id", ctx.user.id)
-            .lt("seq_pos", input.seq_pos)
-            .order("seq_pos", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          seqFilter = ctx.sql`AND seq_pos < ${input.seq_pos} ORDER BY seq_pos DESC LIMIT 1`;
           break;
         case Direction.CURRENT:
-          response = await ctx.supabase
-            .from("assignments")
-            .select()
-            .eq("task_id", input.task_id)
-            .eq("annotator_id", ctx.user.id)
-            .eq("seq_pos", input.seq_pos)
-            .maybeSingle();
+          seqFilter = ctx.sql`AND seq_pos = ${input.seq_pos}`;
           break;
         case Direction.NEXT:
-          response = await ctx.supabase
-            .from("assignments")
-            .select()
-            .eq("task_id", input.task_id)
-            .eq("annotator_id", ctx.user.id)
-            .gt("seq_pos", input.seq_pos)
-            .order("seq_pos", { ascending: true })
-            .limit(1)
-            .maybeSingle();
+          seqFilter = ctx.sql`AND seq_pos > ${input.seq_pos} ORDER BY seq_pos ASC LIMIT 1`;
           break;
         default:
           throw new TRPCError({
@@ -589,70 +630,85 @@ export const assignmentRouter = router({
           });
       }
 
-      if (response.error) {
+      let rows: Assignment[];
+      try {
+        rows = await ctx.sql<Assignment[]>`
+          SELECT * FROM assignments
+          WHERE task_id = ${input.task_id}
+            AND annotator_id = ${ctx.user.id}
+            ${seqFilter}
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findAssignmentsByUserTaskSeq: ${response.error.message}`,
+          message: `Error in findAssignmentsByUserTaskSeq: ${(error as Error).message}`,
         });
       }
 
-      return response.data as Assignment;
+      // maybeSingle(): more than one row was an error.
+      if (rows.length > 1) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in findAssignmentsByUserTaskSeq: more than one assignment at this position`,
+        });
+      }
+
+      return (rows[0] ?? null) as Assignment;
     }),
 
   findAssignmentsByUser: disabledProcedure
     .input(z.string())
     .query(async ({ ctx, input: user_id }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .select()
-        .eq("annotator_id", user_id);
-
-      if (error)
+      try {
+        return await ctx.sql<Assignment[]>`
+          SELECT * FROM assignments WHERE annotator_id = ${user_id}
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findAssignmentsByUser: ${error.message}`,
+          message: `Error in findAssignmentsByUser: ${(error as Error).message}`,
         });
-      return data as Assignment[];
+      }
     }),
 
   findNextAssignmentByUser: protectedProcedure
     .query(async ({ ctx }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .select()
-        .eq("annotator_id", ctx.user.id)
-        .in("status", [
-          AssignmentStatuses.PENDING,
-          AssignmentStatuses.PREANNOTATED,
-          AssignmentStatuses.FAILED,
-        ])
-        .order("task_id", { ascending: false })
-        .order("seq_pos", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (error)
+      const unfinished = [
+        AssignmentStatuses.PENDING,
+        AssignmentStatuses.PREANNOTATED,
+        AssignmentStatuses.FAILED,
+      ];
+      try {
+        const [data] = await ctx.sql<Assignment[]>`
+          SELECT * FROM assignments
+          WHERE annotator_id = ${ctx.user.id}
+            AND status::text IN ${ctx.sql(unfinished)}
+          ORDER BY task_id DESC, seq_pos ASC
+          LIMIT 1
+        `;
+        return (data ?? null) as Assignment | null;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findNextAssignmentByUser: ${error.message}`,
+          message: `Error in findNextAssignmentByUser: ${(error as Error).message}`,
         });
-      return data as Assignment | null;
+      }
     }),
 
   getCountByTask: protectedProcedure
     .input(z.number().int())
     .query(async ({ ctx, input: task_id }) => {
-      const { count, error } = await ctx.supabase
-        .from("assignments")
-        .select("*", { count: "exact", head: true })
-        .eq("task_id", task_id);
-
-      if (error)
+      try {
+        const [row] = await ctx.sql<[{ count: number }]>`
+          SELECT count(*)::int AS count FROM assignments WHERE task_id = ${task_id}
+        `;
+        return row.count;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in findAssignmentsByTask: ${error.message}`,
+          message: `Error in findAssignmentsByTask: ${(error as Error).message}`,
         });
-      return count as number;
+      }
     }),
 
   countAssignmentsByUserAndTask: protectedProcedure
@@ -663,32 +719,30 @@ export const assignmentRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const query = ctx.supabase
-        .from("assignments")
-        .select("*", { count: "exact", head: true })
-        .eq("annotator_id", ctx.user.id)
-        .eq("task_id", input.task_id);
+      // Before a given position, or else those already done.
+      const previous =
+        input.seq_pos > 0
+          ? ctx.sql`seq_pos < ${input.seq_pos}`
+          : ctx.sql`status = 'done'`;
 
-      const { count: total_count, error: error_total } = await query;
-
-      if (error_total) {
+      let row: { total: number; previous: number };
+      try {
+        [row] = await ctx.sql<[{ total: number; previous: number }]>`
+          SELECT count(*)::int AS total,
+                 (count(*) FILTER (WHERE ${previous}))::int AS previous
+          FROM assignments
+          WHERE annotator_id = ${ctx.user.id} AND task_id = ${input.task_id}
+        `;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in 2 countAssignmentsByUserAndTask: ${error_total.message}`,
+          message: `Error in 2 countAssignmentsByUserAndTask: ${(error as Error).message}`,
         });
       }
 
-      let previous_count = 0;
-
-      if (input.seq_pos > 0) {
-        previous_count = (await query.lt("seq_pos", input.seq_pos)).count ?? 0;
-      } else {
-        previous_count = (await query.eq("status", "done")).count ?? 0;
-      }
-
       return {
-        previous: previous_count,
-        total: total_count ?? 0,
+        previous: row.previous,
+        total: row.total,
       };
     }),
 
@@ -700,16 +754,14 @@ export const assignmentRouter = router({
       )
     )
     .mutation(async ({ ctx, input: task_id }) => {
-      const { data, error } = await ctx.supabase
-        .from("assignments")
-        .delete()
-        .eq("task_id", task_id);
-
-      if (error)
+      try {
+        await ctx.sql`DELETE FROM assignments WHERE task_id = ${task_id}`;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in deleteAllAssignmentsFromTask: ${error.message}`,
+          message: `Error in deleteAllAssignmentsFromTask: ${(error as Error).message}`,
         });
+      }
       return true;
     }),
 
@@ -721,32 +773,20 @@ export const assignmentRouter = router({
       )
     )
     .query(async ({ ctx, input: task_id }) => {
-      // const pre = await ctx.supabase
-      //   .from("assignments")
-      //   .select("*", { count: "exact", head: true })
-      //   .eq("task_id", task_id)
-      //   .eq("status", "pre-annotated");
-
-      // const failed = await ctx.supabase
-      //   .from("assignments")
-      //   .select("*", { count: "exact", head: true })
-      //   .eq("task_id", task_id)
-      //   .eq("status", "failed");
-
-      const { count, error } = await ctx.supabase
-        .from("assignments")
-        .select("*", { count: "exact", head: true })
-        .eq("task_id", task_id)
-        .eq("status", AssignmentStatuses.PREDICTING);
-
-      if (error)
+      try {
+        const [row] = await ctx.sql<[{ count: number }]>`
+          SELECT count(*)::int AS count FROM assignments
+          WHERE task_id = ${task_id} AND status = ${AssignmentStatuses.PREDICTING}
+        `;
+        return {
+          predicting: row.count,
+        };
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in countMLStatus: ${error}`,
         });
-      return {
-        predicting: count ?? 0,
-      };
+      }
     }),
 
   /**
@@ -814,7 +854,7 @@ export const assignmentRouter = router({
       // The total is only on the rows of a page; a page past the end has none,
       // so ask for it on its own then.
       const total = rows.length
-        ? rows[0].total_annotators
+        ? rows[0]!.total_annotators
         : (
             await ctx.sql`
               SELECT DISTINCT annotator_number FROM assignments WHERE task_id = ${input.task_id}
@@ -944,26 +984,75 @@ export const assignmentRouter = router({
     .query(async ({ ctx, input }) => {
       const rowsPerPage = 10;
 
-      const query = ctx.supabase
-        .from("documents")
-        .select(
-          "id, name, assignments!inner(id, task_id, seq_pos, annotator_number, status, confidence_rating, user:users(id, email))",
-          { count: "exact" }
-        )
-        .eq("assignments.task_id", input.task_id)
-        .order("seq_pos", { referencedTable: "assignments", ascending: true })
-        .range((input.page - 1) * rowsPerPage, input.page * rowsPerPage);
+      type DocumentRow = {
+        id: number;
+        name: string;
+        assignments: {
+          id: number;
+          task_id: number;
+          seq_pos: number | null;
+          annotator_number: number;
+          status: AssignmentStatuses;
+          confidence_rating: number;
+          user: { id: string; email: string } | null;
+        }[];
+        total: number;
+      };
 
-      if (input.filter.document.length)
-        query.ilike("name", `%${input.filter.document}%`);
+      // Documents with at least one assignment in the task, each with those
+      // assignments in queue order.
+      const nameFilter = input.filter.document.length
+        ? ctx.sql`AND d.name ILIKE ${`%${input.filter.document}%`}`
+        : ctx.sql``;
 
-      const { data, error, count } = await query;
+      let data: DocumentRow[];
+      let count: number;
+      try {
+        // The range was inclusive of both ends, so a page has rowsPerPage + 1
+        // rows; kept as it was.
+        data = await ctx.sql<DocumentRow[]>`
+          SELECT d.id, d.name,
+                 json_agg(
+                   json_build_object(
+                     'id', a.id,
+                     'task_id', a.task_id,
+                     'seq_pos', a.seq_pos,
+                     'annotator_number', a.annotator_number,
+                     'status', a.status,
+                     'confidence_rating', a.confidence_rating,
+                     'user', CASE WHEN u.id IS NULL THEN NULL
+                                  ELSE json_build_object('id', u.id, 'email', u.email) END
+                   )
+                   ORDER BY a.seq_pos
+                 ) AS assignments,
+                 (COUNT(*) OVER ())::int AS total
+          FROM documents AS d
+          INNER JOIN assignments AS a ON (a.document_id = d.id AND a.task_id = ${input.task_id})
+          LEFT JOIN users AS u ON (a.annotator_id = u.id)
+          WHERE TRUE ${nameFilter}
+          GROUP BY d.id
+          ORDER BY d.id
+          LIMIT ${rowsPerPage + 1} OFFSET ${(input.page - 1) * rowsPerPage}
+        `;
 
-      if (error)
+        // The total is only on the rows of a page; a page past the end has
+        // none, so ask for it on its own then.
+        count = data.length
+          ? data[0]!.total
+          : (
+              await ctx.sql<[{ count: number }]>`
+                SELECT count(DISTINCT d.id)::int AS count
+                FROM documents AS d
+                INNER JOIN assignments AS a ON (a.document_id = d.id AND a.task_id = ${input.task_id})
+                WHERE TRUE ${nameFilter}
+              `
+            )[0].count;
+      } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in getGroupByAnnotators: ${error.message}`,
+          message: `Error in getGroupByAnnotators: ${(error as Error).message}`,
         });
+      }
 
       const grouped = data.map((doc) => ({
         type: "document",

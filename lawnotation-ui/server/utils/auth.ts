@@ -1,6 +1,6 @@
 import type { H3Event } from "h3";
 import { createServerAuth, type ServerAuth, type SessionRecord } from "caselaw-auth/server";
-import sql from "~/server/trpc/db";
+import sql, { type Sql } from "~/server/trpc/db";
 
 /**
  * Sign-in through the shared Keycloak (realm `lawnotation`, which asks for an
@@ -80,7 +80,10 @@ const toAppUser = (row: UserRow): AppUser => ({
  */
 export async function resolveUser(sub: string, email: string): Promise<AppUser> {
   const normalized = email.trim().toLowerCase();
-  const [row] = await sql.begin(async (tx) => {
+  const [row] = await sql.begin(async (transaction) => {
+    // postgres.js types a transaction without the call signature it has at
+    // runtime; this restores it.
+    const tx = transaction as unknown as Sql;
     const linked = await tx<UserRow[]>`
       update users set last_sign_in_at = now()
       where oidc_sub = ${sub}
@@ -98,7 +101,7 @@ export async function resolveUser(sub: string, email: string): Promise<AppUser> 
       values (${normalized}, ${sub}, now())
       returning id, email, role, metadata`;
   });
-  return toAppUser(row);
+  return toAppUser(row!);
 }
 
 export async function findUserById(id: string): Promise<AppUser | null> {

@@ -3,33 +3,39 @@ import { z } from 'zod'
 import { protectedProcedure, router } from '~/server/trpc'
 import type { Context } from '~/server/trpc/context';
 import { projectEditorAuthorizer, taskEditorAuthorizer, type AuthorizerDefinition } from '../authorizers';
-import type { Database } from '~/types/supabase';
+import type postgres from 'postgres';
+import type { Sql } from '~/server/trpc/db';
 import { TRPCForbidden } from '../errors';
 
-type SupabaseDataSource = {
-    type: "supabase_table",
-    select?: string,
-    from: keyof Database['public']['Tables'],
+type Fragment = postgres.Fragment;
+
+/**
+ * A table read from one database table, aliased `t`. Plain column names in
+ * filters, search and sort refer to columns of `t`; dotted names (as the
+ * table columns on the client use them, e.g. "document.name") must be listed
+ * in `fields`.
+ */
+type SqlDataSource = {
+    type: "sql_table",
+    from: string,
+    // The select list; `t.*` when left out.
+    select?: (sql: Sql, ctx: Context) => Fragment,
+    joins?: (sql: Sql) => Fragment,
+    // Conditions the server always adds.
+    where?: (sql: Sql, ctx: Context) => Fragment,
+    fields?: Record<string, (sql: Sql) => Fragment>,
     search_columns?: Record<string, string[]>,
     // filter can be defined on server (like user_id) and on client (like project_id)
     filter?: object | (( { ctx }: { ctx: Context } ) => object),
-    or?: string,
-    
+
     authorizer?: {
       filter_key: string,
       resolver: AuthorizerDefinition
     }
   }
 
-// type SqlDataSource = {
-//   type: "sql_table",
-//   select?: string,
-//   from: string,
-//   filter?: object | (( { ctx }: { ctx: Context } ) => object),
-// }
-
-type TableDataSource = 
-  & SupabaseDataSource;
+type TableDataSource =
+  & SqlDataSource;
   // | {
   //     type: "supabase_rpc";
   //     func: string;
@@ -72,7 +78,7 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
     // let data;
     // let total;
     switch (source.type) {
-      case "supabase_table": {
+      case "sql_table": {
 
         if (source.authorizer != undefined) {
           if (!input.filter)
@@ -84,73 +90,85 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
           if (!authorizerResult)
             throw TRPCForbidden()
         }
-        
-        const filter: object = {
+
+        const filter: Record<string, any> = {
           ...input.filter,                          // first, lower prioirity, is the input filter
           ...(typeof source.filter === "function"   // secondly, the server-configured filter is merged
             ? source.filter({ctx})
             : source.filter) ?? {},
         }
 
-        let query = ctx.supabase
-          .from(source.from)
-          .select(source.select ?? "*", { count: "exact" })
-          .match(filter);
+        const sql = ctx.sql;
 
-        if (source.or){
-          query = query.or(source.or);
+        // A column of `t`, or one of the source's dotted fields.
+        const field = (name: string): Fragment => {
+          if (name.includes(".")) {
+            const f = source.fields?.[name];
+            if (!f)
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: `Error in tablequery from ${source.from}: unknown column ${name}`
+              });
+            return f(sql);
+          }
+          return sql`t.${sql(name)}`;
+        };
+
+        const conds: Fragment[] = [];
+        if (source.where) conds.push(source.where(sql, ctx));
+        for (const [key, value] of Object.entries(filter)) {
+          if (value === undefined) continue;
+          conds.push(sql`${field(key)} = ${value}`);
         }
-
-        query = query.range(offset, offset + limit - 1);
 
         if (input.search.query) {
-          // Approach 1: using 'or' method (fails due to cast and in general)
-          // const search_conds = Object.values(columns).filter(x => x.field).map(x => `${x.field}.ilike.%${td.search}%`).join(",").split(",")[1];
-          // query = query.or(search_conds);
-          // Approach 2: textSearch method (produces inconsistent results)
-          // query = query.textSearch(td.search.column, td.search.query);
-          // Approach 3: search on one, valid (text) field
+          // Search on the source's search columns (any of them may match), or
+          // else on the one, valid (text) column the client picked.
+          const pattern = `%${input.search.query}%`;
           if(source.search_columns !== undefined) {
             for (let [table, columns] of Object.entries(source.search_columns)) {
-              const wheres = [];
-              for (let col of columns) {
-                wheres.push(`${col}.ilike.*${input.search.query}*`)
-              }
-              if (table == 'flat')
-                query = query.or(wheres.join(','));
-              else
-                query = query.or(wheres.join(','), {foreignTable: table})
+              const ors = columns.map((col) =>
+                sql`${field(table == 'flat' ? col : `${table}.${col}`)} ilike ${pattern}`
+              );
+              if (ors.length)
+                conds.push(sql`(${ors.reduce((acc, x) => sql`${acc} or ${x}`)})`);
             }
           } else if(input.search.column) {
-            query = query.ilike(input.search.column, `%${input.search.query}%`);
+            conds.push(sql`${field(input.search.column)} ilike ${pattern}`);
           }
         }
 
-        if (input.sort.column) {
-          let sort_column = input.sort.column;
+        const where = conds.length
+          ? sql`where ${conds.reduce((acc, x) => sql`${acc} and ${x}`)}`
+          : sql``;
 
-          const sort_options: any = { ascending: input.sort.dir === "ASC" };
-          if (input.sort.column.includes(".")) {
-            sort_options.foreignTable = input.sort.column.split(".")[0];
-            sort_column = input.sort.column.split(".")[1];
-          }
+        const order = input.sort.column
+          ? sql`order by ${field(input.sort.column)} ${input.sort.dir === "ASC" ? sql`asc` : sql`desc`}`
+          : sql``;
 
-          query = query.order(sort_column, sort_options);
-        }
+        const from = sql`from ${sql(source.from)} as t ${source.joins ? source.joins(sql) : sql``}`;
 
-        const { data, error, count } = await query;
+        try {
+          const [data, [{ total }]] = await Promise.all([
+            sql`
+              select ${source.select ? source.select(sql, ctx) : sql`t.*`}
+              ${from}
+              ${where}
+              ${order}
+              limit ${limit} offset ${offset}
+            `,
+            sql<[{ total: number }]>`select count(*)::int as total ${from} ${where}`,
+          ]);
 
-        if (error)
+          return {
+            rows: data as unknown as T[],
+            total
+          };
+        } catch (error: any) {
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
             message: `Error in tablequery from ${source.from}: ${error.message}`
           });
-
-        if (data !== null && count !== null && !error) {
-          return {
-            rows: data as T[],
-            total: count
-          };
         }
       }
 
@@ -164,19 +182,19 @@ const createTableProcedure = <T>(source: TableDataSource) => protectedProcedure
 
 export const tableRouter = router({
   'labelsets': createTableProcedure({
-    type: 'supabase_table',
+    type: 'sql_table',
     from: 'labelsets',
     filter: ({ctx}) => ({ editor_id: ctx.user!.id })
   }),
 
   'projects': createTableProcedure({
-    type: 'supabase_table',
+    type: 'sql_table',
     from: 'projects',
     filter: ({ctx}) => ({ editor_id: ctx.user!.id })
   }),
 
   'documents': createTableProcedure({
-    type: 'supabase_table',
+    type: 'sql_table',
     from: 'documents',
     authorizer: {
       filter_key: 'project_id',
@@ -184,10 +202,16 @@ export const tableRouter = router({
     }
   }),
 
+  // Each task with `assignments: [{ count }]`, the number of its assignments.
   'tasks': createTableProcedure({
-    type: 'supabase_table',
+    type: 'sql_table',
     from: 'tasks',
-    select: '*, assignments:assignments(count)',
+    select: (sql) => sql`
+      t.*,
+      json_build_array(json_build_object(
+        'count', (select count(*) from assignments as a where a.task_id = t.id)
+      )) as assignments
+    `,
     authorizer: {
       filter_key: 'project_id',
       resolver: projectEditorAuthorizer
@@ -195,32 +219,76 @@ export const tableRouter = router({
   }),
 
   'publications': createTableProcedure({
-    type: 'supabase_table',
+    type: 'sql_table',
     from: 'publications',
     search_columns: {flat: ['author','task_name', 'task_description', 'labels_name', 'labels_description', 'contact']}
   }),
 
+  // `annotator` is null for an assignment without annotator; only assignments
+  // with a document are listed.
   'assignments': createTableProcedure({
-    type: 'supabase_table',
+    type: 'sql_table',
     from: 'assignments',
-    select: 'id, task_id, status, confidence_rating, seq_pos, annotator_number, origin, annotator:users(id, email), document:documents!inner(id, name, source)',
+    select: (sql) => sql`
+      t.id, t.task_id, t.status, t.confidence_rating, t.seq_pos, t.annotator_number, t.origin,
+      case when u.id is null then null else json_build_object('id', u.id, 'email', u.email) end as annotator,
+      json_build_object('id', d.id, 'name', d.name, 'source', d.source) as document
+    `,
+    joins: (sql) => sql`
+      left join users as u on (u.id = t.annotator_id)
+      inner join documents as d on (d.id = t.document_id)
+    `,
+    fields: {
+      'annotator.id': (sql) => sql`u.id`,
+      'annotator.email': (sql) => sql`u.email`,
+      'document.id': (sql) => sql`d.id`,
+      'document.name': (sql) => sql`d.name`,
+      'document.source': (sql) => sql`d.source`,
+    },
     authorizer: {
       filter_key: 'task_id',
       resolver: taskEditorAuthorizer
     }
   }),
 
+  // The tasks the user has assignments in, each with `assignment`: the ids
+  // of those assignments.
   'assignedTasks': createTableProcedure({
-    type: 'supabase_table',
+    type: 'sql_table',
     from: 'tasks',
-    select: 'id, name, desc, annotation_level, document_labelset_id, assignment:assignments!inner(id)',
-    filter: ({ctx}) => ({'assignment.annotator_id': ctx.user!.id}),
+    select: (sql, ctx) => sql`
+      t.id, t.name, t."desc", t.annotation_level, t.document_labelset_id,
+      (
+        select json_agg(json_build_object('id', a.id))
+        from assignments as a
+        where a.task_id = t.id and a.annotator_id = ${ctx.user!.id}
+      ) as assignment
+    `,
+    where: (sql, ctx) => sql`exists (
+      select 1 from assignments as a where a.task_id = t.id and a.annotator_id = ${ctx.user!.id}
+    )`,
   }),
 
   'assignedAssignments': createTableProcedure({
-    type: 'supabase_table',
+    type: 'sql_table',
     from: 'assignments',
-    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, confidence_rating, seq_pos',
+    select: (sql) => sql`
+      t.id, t.task_id,
+      json_build_object('id', u.id, 'email', u.email) as annotator,
+      json_build_object('id', d.id, 'name', d.name, 'source', d.source) as document,
+      t.status, t.confidence_rating, t.seq_pos
+    `,
+    joins: (sql) => sql`
+      inner join users as u on (u.id = t.annotator_id)
+      inner join documents as d on (d.id = t.document_id)
+    `,
+    fields: {
+      'annotator.id': (sql) => sql`u.id`,
+      'annotator.email': (sql) => sql`u.email`,
+      'document.id': (sql) => sql`d.id`,
+      'document.name': (sql) => sql`d.name`,
+      'document.source': (sql) => sql`d.source`,
+    },
     filter: ({ctx}) => ({
       'annotator.id': ctx.user?.id,
       status: 'done'

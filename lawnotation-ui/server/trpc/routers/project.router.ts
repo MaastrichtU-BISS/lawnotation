@@ -11,6 +11,22 @@ const ZProjectFields = z.object({
   // editor_id: z.string()
 });
 
+// The one row a query must return, as PostgREST's .single() demanded.
+function one<T>(rows: readonly T[]): T {
+  if (rows.length !== 1) throw new Error(`expected one row, found ${rows.length}`);
+  return rows[0]!;
+}
+
+const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+/** `AND column = value` for each given field, as PostgREST's match() did. */
+function matching(sql: Context["sql"], fields: Record<string, unknown>) {
+  const matches = Object.entries(fields)
+    .filter(([, value]) => value !== undefined)
+    .map(([column, value]) => sql`AND ${sql(column)} = ${value as string}`);
+  return matches.length ? matches : sql``;
+}
+
 export const projectRouter = router({
   /* General Crud Definitions */
   find: disabledProcedure
@@ -21,17 +37,16 @@ export const projectRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      let query = ctx.supabase.from("projects").select();
-      if (input.range)
-        query = query.range(input.range[0], input.range[1])
-      if (input.filter)
-        query = query.match(input.filter)
-      
-      const { data, error } = await query;
-      
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.find: ${error.message}`});
-      return data as Project[];
+      const range = input.range
+        ? ctx.sql`LIMIT ${Math.max(input.range[1] - input.range[0] + 1, 0)} OFFSET ${input.range[0]}`
+        : ctx.sql``;
+      try {
+        return await ctx.sql<Project[]>`
+          SELECT * FROM projects WHERE true ${matching(ctx.sql, input.filter ?? {})} ${range}
+        `;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.find: ${message(error)}`});
+      }
     }),
 
   findById: protectedProcedure
@@ -42,13 +57,11 @@ export const projectRouter = router({
           projectEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
     )
     .query(async ({ ctx, input: id }) => {
-      const { data, error, count } = await ctx.supabase.from("projects").select().eq('id', id).single();
-      
-      if (count === 0)
-        throw new TRPCError({code: 'NOT_FOUND'});
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.findById: ${error.message}`});
-      return data as Project;
+      try {
+        return one(await ctx.sql<Project[]>`SELECT * FROM projects WHERE id = ${id}`);
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.findById: ${message(error)}`});
+      }
     }),
 
   create: protectedProcedure
@@ -56,15 +69,14 @@ export const projectRouter = router({
       ZProjectFields
     )
     .mutation(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase
-        .from("projects")
-        .insert({...input, editor_id: ctx.user.id})
-        .select()
-        .single();
-      
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.create: ${error.message}`});
-      return data as Project;
+      const row: Record<string, unknown> = { ...input, editor_id: ctx.user.id };
+      try {
+        return one(
+          await ctx.sql<Project[]>`INSERT INTO projects ${ctx.sql(row, ...Object.keys(row))} RETURNING *`
+        );
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.create: ${message(error)}`});
+      }
     }),
 
   update: protectedProcedure
@@ -80,11 +92,19 @@ export const projectRouter = router({
           projectEditorAuthorizer(opts.input.id, opts.ctx.user.id, opts.ctx))
     )
     .mutation(async ({ ctx, input }) => {
-      const { data, error } = await ctx.supabase.from("projects").update(input.updates).eq('id', input.id).select().single();
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.update: ${error.message}`});
-      return data as Project;
+      const updates: Record<string, unknown> = input.updates;
+      const columns = Object.keys(updates).filter((column) => updates[column] !== undefined);
+      try {
+        return one(
+          columns.length
+            ? await ctx.sql<Project[]>`
+                UPDATE projects SET ${ctx.sql(updates, ...columns)} WHERE id = ${input.id} RETURNING *
+              `
+            : await ctx.sql<Project[]>`SELECT * FROM projects WHERE id = ${input.id}`
+        );
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.update: ${message(error)}`});
+      }
     }),
 
   delete: protectedProcedure
@@ -97,10 +117,11 @@ export const projectRouter = router({
           projectEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
     )
     .mutation(async ({ ctx, input }) => {
-      const { error } = await ctx.supabase.from("projects").delete().eq('id', input);
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.delete: ${error.message}`});
+      try {
+        await ctx.sql`DELETE FROM projects WHERE id = ${input}`;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.delete: ${message(error)}`});
+      }
       return true;
     }),
 
@@ -108,28 +129,24 @@ export const projectRouter = router({
 
   deleteAllFromEditor: protectedProcedure
     .mutation(async ({ ctx, input }) => {
-      const { error } = await ctx.supabase
-        .from("projects")
-        .delete()
-        .eq("editor_id", ctx.user.id); //editor id
-        
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.deleteAllFromEditor: ${error.message}`});
+      try {
+        await ctx.sql`DELETE FROM projects WHERE editor_id = ${ctx.user.id}`;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.deleteAllFromEditor: ${message(error)}`});
+      }
       return true;
     }),
 
-  // TODO: check changed implementation of count
   getCountByUser: protectedProcedure
     .query(async ({ ctx }) => {
-      const { data, error, count } = await ctx.supabase
-      .from("projects")
-      .select("count", { count: 'exact' })
-      .eq("editor_id", ctx.user.id)
-      .single();
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.getCountByUser: ${error.message}`});
-      return count;
+      try {
+        const [{ count }] = await ctx.sql<[{ count: number }]>`
+          SELECT count(*)::int AS count FROM projects WHERE editor_id = ${ctx.user.id}
+        `;
+        return count;
+      } catch (error) {
+        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in projects.getCountByUser: ${message(error)}`});
+      }
     })
   
 })

@@ -5,18 +5,14 @@ export const taskEditorAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const editor = await ctx.supabase
-    .from("tasks")
-    .select("*, project:projects!inner(editor_id)", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", task_id)
-    .eq("projects.editor_id", user_id);
-
-  if (editor.count) return true;
-  
-  return false;
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select exists (
+      select 1
+      from tasks t
+      join projects p on p.id = t.project_id
+      where t.id = ${task_id} and p.editor_id = ${user_id}
+    ) as ok`;
+  return ok;
 };
 
 export const taskEditorOrAnnotatorAuthorizer = async (
@@ -27,14 +23,10 @@ export const taskEditorOrAnnotatorAuthorizer = async (
   const editor = await taskEditorAuthorizer(task_id, user_id, ctx)
   if (editor) return true;
 
-  const annotator = await ctx.supabase
-    .from("assignments")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("task_id", task_id)
-    .eq("annotator_id", user_id);
-
-  return annotator.count! > 0;
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select exists (
+      select 1 from assignments
+      where task_id = ${task_id} and annotator_id = ${user_id}
+    ) as ok`;
+  return ok;
 };

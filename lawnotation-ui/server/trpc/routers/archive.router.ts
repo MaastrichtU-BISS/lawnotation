@@ -7,7 +7,6 @@ import {
   router,
 } from "~/server/trpc";
 import type { Context } from "../context";
-import type { PostgrestError } from "@supabase/supabase-js";
 import { appRouter } from ".";
 import type { DocFormat, Doc } from "~/types/archive";
 
@@ -35,7 +34,7 @@ export const archiveRouter = router({
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in archive.getXMLFromRechtspraak: ${error.message}`,
+          message: `Error in archive.getXMLFromRechtspraak: ${(error as Error).message}`,
         });
       }
     }),

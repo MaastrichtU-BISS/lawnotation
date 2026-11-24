@@ -5,34 +5,22 @@ export const labelsetEditorOrAnnotatorAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const editor = await ctx.supabase
-    .from("labelsets")
-    .select("*", {
-      count: "exact",
-      head: true,
-    })
-    .eq("id", labelset_id)
-    .or(`editor_id.eq.${user_id},editor_id.is.null`);
-
-  if (editor.count) return true;
-
-  // An annotator may read the labelsets of the tasks they annotate: a
-  // task's own labelset and, for a hybrid task, its document labelset.
-  const { data: tasks } = await ctx.supabase
-    .from("tasks")
-    .select("id")
-    .or(`labelset_id.eq.${labelset_id},document_labelset_id.eq.${labelset_id}`);
-  if (!tasks?.length) return false;
-
-  const annotator = await ctx.supabase
-    .from("assignments")
-    .select("id", { count: "exact", head: true })
-    .in(
-      "task_id",
-      tasks.map((t) => t.id)
-    )
-    .eq("annotator_id", user_id);
-
-  return annotator.count! > 0;
-  // return true;
+  // The editor of the labelset, anyone for a labelset without an editor, or
+  // an annotator of a task that uses it: a task's own labelset and, for a
+  // hybrid task, its document labelset.
+  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
+    select
+      exists (
+        select 1 from labelsets
+        where id = ${labelset_id}
+          and (editor_id = ${user_id} or editor_id is null)
+      )
+      or exists (
+        select 1
+        from tasks t
+        join assignments a on a.task_id = t.id
+        where (t.labelset_id = ${labelset_id} or t.document_labelset_id = ${labelset_id})
+          and a.annotator_id = ${user_id}
+      ) as ok`;
+  return ok;
 };

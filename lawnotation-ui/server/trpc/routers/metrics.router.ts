@@ -5,8 +5,7 @@ import type { AnnotationPage, RichAnnotation, IaaInputData } from 'vue-iaa-metri
 import { taskEditorAuthorizer } from '../authorizers';
 import { buildTaskExportData } from '~/server/utils/task_export';
 import { toIaaInputData } from '~/server/utils/iaa';
-import { hybridKindFilter } from '~/server/utils/annotation_kind_filter';
-import { fetchRowsByIds } from '~/server/utils/fetch_all_rows';
+import { hybridKindFilter, kindFilterSql } from '~/server/utils/annotation_kind_filter';
 import { isHybrid } from '~/utils/levels';
 
 export const metricsRouter = router({
@@ -22,7 +21,7 @@ export const metricsRouter = router({
       )
     )
     .query(async ({ ctx, input }): Promise<IaaInputData> => {
-      const data = await buildTaskExportData(ctx.supabase, input.task_id, { relations: false });
+      const data = await buildTaskExportData(ctx.sql, input.task_id, { relations: false });
       return toIaaInputData(data);
     }),
 
@@ -54,11 +53,15 @@ export const metricsRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
-      const { data: task } = await ctx.supabase
-        .from("tasks")
-        .select("annotation_level, document_labelset_id")
-        .eq("id", input.task_id)
-        .single();
+      const fail = (what: string, message: string) =>
+        new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error in metrics.get_annotations (${what}): ${message}`,
+        });
+
+      const [task] = await ctx.sql<{ annotation_level: string | null; document_labelset_id: number | null }[]>`
+        SELECT annotation_level, document_labelset_id FROM tasks WHERE id = ${input.task_id}
+      `;
       const hybrid = !!task && isHybrid(task as any);
 
       const kindFilter = hybrid ? hybridKindFilter(input) : null;
@@ -66,58 +69,64 @@ export const metricsRouter = router({
         return { annotations: [], total: 0, kinds: { spans: 0, documents: 0 } };
 
       // Applied alike to the page and to the per-kind counts.
-      const matching = <Q extends { eq: Function; in: Function; or: Function }>(query: Q): Q => {
-        let q = query.eq("task_id", input.task_id);
-        if (input.documents?.length) q = q.in("document_id", input.documents);
-        if (input.annotators?.length) q = q.in("annotator_email", input.annotators);
-        if (!hybrid && input.labels?.length) q = q.in("label", input.labels);
-        if (kindFilter) q = q.or(kindFilter);
-        return q;
+      const matching = ctx.sql`
+        task_id = ${input.task_id}
+        ${input.documents?.length ? ctx.sql`AND document_id IN ${ctx.sql(input.documents)}` : ctx.sql``}
+        ${input.annotators?.length ? ctx.sql`AND annotator_email IN ${ctx.sql(input.annotators)}` : ctx.sql``}
+        ${!hybrid && input.labels?.length ? ctx.sql`AND label IN ${ctx.sql(input.labels)}` : ctx.sql``}
+        ${kindFilter ? ctx.sql`AND ${kindFilterSql(ctx.sql, kindFilter)}` : ctx.sql``}
+      `;
+
+      type Row = {
+        id: number;
+        start_index: number | null;
+        end_index: number | null;
+        label: string | null;
+        text: string | null;
+        confidence_rating: number;
+        metadata: string | null;
+        kind: string;
+        document_id: number | null;
+        original_task_id: number | null;
+        annotator_email: string | null;
       };
 
-      const fail = (what: string, message: string) =>
-        new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error in metrics.get_annotations (${what}): ${message}`,
-        });
-
-      const countOf = async (kind: "span" | "document") => {
-        const { count, error } = await matching(
-          ctx.supabase.from("metrics_annotation_rows").select("id", { count: "exact", head: true })
-        ).eq("kind", kind);
-        if (error) throw fail("count", error.message);
-        return count ?? 0;
-      };
-
-      const [page, kinds] = await Promise.all([
-        matching(
-          ctx.supabase
-            .from("metrics_annotation_rows")
-            .select(
-              "id, start_index, end_index, label, text, confidence_rating, metadata, kind, document_id, original_task_id, annotator_email",
-              { count: "exact" }
-            )
-        )
-          .order("document_id")
-          // Document tags have no position; they head their document's group.
-          .order("start_index", { nullsFirst: true })
-          .order("end_index")
-          .order("id")
-          .range(input.offset, input.offset + input.limit - 1),
-        hybrid
-          ? Promise.all([countOf("span"), countOf("document")]).then(([spans, documents]) => ({ spans, documents }))
-          : undefined,
+      const [page, counts] = await Promise.all([
+        ctx.sql<Row[]>`
+          SELECT id, start_index, end_index, label, text, confidence_rating, metadata, kind,
+                 document_id, original_task_id, annotator_email
+          FROM metrics_annotation_rows
+          WHERE ${matching}
+          -- Document tags have no position; they head their document's group.
+          ORDER BY document_id, start_index NULLS FIRST, end_index, id
+          LIMIT ${input.limit} OFFSET ${input.offset}
+        `.catch((error) => {
+          throw fail("page", error.message);
+        }),
+        ctx.sql<{ total: number; spans: number; documents: number }[]>`
+          SELECT count(*)::int AS total,
+                 (count(*) FILTER (WHERE kind = 'span'))::int AS spans,
+                 (count(*) FILTER (WHERE kind = 'document'))::int AS documents
+          FROM metrics_annotation_rows
+          WHERE ${matching}
+        `.catch((error) => {
+          throw fail("count", error.message);
+        }),
       ]);
-      if (page.error) throw fail("page", page.error.message);
+      const { total, spans, documents } = counts[0]!;
+      const kinds = hybrid ? { spans, documents } : undefined;
 
-      const documentIds = [...new Set(page.data.map((row) => row.document_id!))];
-      const names = await fetchRowsByIds(documentIds, (ids, from, to) =>
-        ctx.supabase.from("documents").select("id, name").in("id", ids).order("id").range(from, to)
-      );
-      if (names.error) throw fail("document names", names.error.message);
-      const nameOf = new Map(names.data.map((d) => [d.id, d.name]));
+      const documentIds = [...new Set(page.map((row) => row.document_id!))];
+      const names = documentIds.length
+        ? await ctx.sql<{ id: number; name: string | null }[]>`
+            SELECT id, name FROM documents WHERE id IN ${ctx.sql(documentIds)}
+          `.catch((error) => {
+            throw fail("document names", error.message);
+          })
+        : [];
+      const nameOf = new Map(names.map((d) => [d.id, d.name]));
 
-      const annotations = page.data.map(
+      const annotations = page.map(
         (row) =>
           ({
             start: row.start_index!,
@@ -136,7 +145,7 @@ export const metricsRouter = router({
           }) satisfies RichAnnotation
       );
 
-      return { annotations, total: page.count ?? annotations.length, ...(kinds ? { kinds } : {}) } satisfies AnnotationPage;
+      return { annotations, total, ...(kinds ? { kinds } : {}) } satisfies AnnotationPage;
     }),
 })
 
