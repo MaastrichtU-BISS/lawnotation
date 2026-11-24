@@ -194,7 +194,7 @@ type BreakdownAssignment = {
   id: number;
   annotator_id: string | null;
   status: string;
-  difficulty_rating: number;
+  confidence_rating: number | null;
   document: { id: number; name: string } | null;
   task: { id: number; name: string; project?: { id: number; name: string } | null } | null;
 };
@@ -380,13 +380,13 @@ const documentCount = computed(() =>
 );
 
 const averageConfidence = computed(() => {
-  const rated = filteredAssignments.value.filter((assignment) => assignment.difficulty_rating > 0);
+  const rated = filteredAssignments.value.filter((assignment) => (assignment.confidence_rating ?? 0) > 0);
   if (!rated.length) return "0.0";
-  return (rated.reduce((sum, assignment) => sum + assignment.difficulty_rating, 0) / rated.length).toFixed(1);
+  return (rated.reduce((sum, assignment) => sum + (assignment.confidence_rating ?? 0), 0) / rated.length).toFixed(1);
 });
 
 const confidenceCount = (level: number) =>
-  filteredAssignments.value.filter((assignment) => assignment.difficulty_rating === level).length;
+  filteredAssignments.value.filter((assignment) => (assignment.confidence_rating ?? 0) === level).length;
 const confidencePercent = (level: number) => {
   const max = Math.max(...[1, 2, 3, 4, 5].map(confidenceCount), 1);
   return confidenceCount(level) / max * 100;

@@ -56,7 +56,7 @@
       <section class="charts my-5 p-6 bg-white border border-gray-200 rounded-lg shadow">
         <div class="flex justify-center">
           <span class="dashboard-chart" style="width: 400px">
-            <apexchart id="difficulty" :options="chartDifficultyOptions" :series="chartDifficultySeries"></apexchart>
+            <apexchart id="difficulty" :options="chartDifficultyOptions" :series="chartConfidenceSeries"></apexchart>
           </span>
           <span class="dashboard-chart" style="width: 400px">
             <apexchart id="completion" :options="chartCompletionOptions" :series="chartCompletionSeries"></apexchart>
@@ -104,9 +104,9 @@
             {{ data.status === "done" ? "Done" : "Pending" }}
           </template>
         </Column>
-        <Column field="difficulty_rating" header="Confidence">
+        <Column field="confidence_rating" header="Confidence">
           <template #body="{ data }">
-            {{ data.difficulty_rating ? `${data.difficulty_rating}-star` : "Unrated" }}
+            {{ data.confidence_rating ? `${data.confidence_rating}-star` : "Unrated" }}
           </template>
         </Column>
       </DataTable>
@@ -130,7 +130,7 @@ type DashboardAssignment = {
   id: number;
   annotator_id: string | null;
   status: string;
-  difficulty_rating: number;
+  confidence_rating: number | null;
   annotator: { id: string; email: string } | null;
   document: { id: number; name: string } | null;
   task: { id: number; name: string } | null;
@@ -230,7 +230,7 @@ const chartDifficultyOptions = ref({
         openDetails(
           `Assignments confidence: ${["Unrated", "1-star", "2-stars", "3-stars", "4-stars", "5-stars"][config.dataPointIndex]}`,
           editorAssignments.value.filter(
-            (assignment) => assignment.difficulty_rating === config.dataPointIndex,
+            (assignment) => (assignment.confidence_rating ?? 0) === config.dataPointIndex,
           ),
         );
       },
@@ -463,12 +463,13 @@ onMounted(async () => {
 
   $trpc.assignment.getConfidencesByEditor.query().then((result) => {
     result.map((r) => {
-      chartDifficultySeries[r.difficulty] = (chartDifficultySeries[r.difficulty] ?? 0) + r.count;
-      chartDifficultyAverage.value += r.difficulty * r.count;
-      if (r.difficulty > 0) assignmentsRated.value += r.count;
+      const confidence = r.confidence ?? 0;
+      chartConfidenceSeries[confidence] = (chartConfidenceSeries[confidence] ?? 0) + r.count;
+      chartConfidenceAverage.value += confidence * r.count;
+      if (confidence > 0) assignmentsRated.value += r.count;
     });
-    chartDifficultyAverage.value = assignmentsRated.value
-      ? chartDifficultyAverage.value / assignmentsRated.value
+    chartConfidenceAverage.value = assignmentsRated.value
+      ? chartConfidenceAverage.value / assignmentsRated.value
       : 0;
     chartDifficultyOptions.value = {
       ...chartDifficultyOptions.value,

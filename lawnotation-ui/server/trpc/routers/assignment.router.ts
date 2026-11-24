@@ -456,29 +456,20 @@ export const assignmentRouter = router({
   findDashboardAssignments: protectedProcedure
     .input(z.enum(["editor", "annotator"]))
     .query(async ({ ctx, input }) => {
-      let query = ctx.supabase
-        .from("assignments")
-        .select(
-          "id,annotator_id,status,difficulty_rating,document:documents(id,name),task:tasks(id,name)"
-        );
-
-      if (input === "annotator") {
-        query = ctx.supabase
-          .from("assignments")
-          .select(
-            "id,annotator_id,status,difficulty_rating,document:documents(id,name),task:tasks(id,name,project:projects(id,name))"
-          )
-          .eq("annotator_id", ctx.user.id);
-      } else {
-        query = ctx.supabase
-          .from("assignments")
-          .select(
-            "id,annotator_id,status,difficulty_rating,document:documents(id,name),task:tasks!inner(id,name,project:projects!inner(id,name,editor_id))"
-          )
-          .eq("tasks.projects.editor_id", ctx.user.id);
-      }
-
-      const { data, error } = await query;
+      const { data, error } =
+        input === "annotator"
+          ? await ctx.supabase
+              .from("assignments")
+              .select(
+                "id,annotator_id,status,confidence_rating,document:documents(id,name),task:tasks(id,name,project:projects(id,name))"
+              )
+              .eq("annotator_id", ctx.user.id)
+          : await ctx.supabase
+              .from("assignments")
+              .select(
+                "id,annotator_id,status,confidence_rating,document:documents(id,name),task:tasks!inner(id,name,project:projects!inner(id,name,editor_id))"
+              )
+              .eq("tasks.projects.editor_id", ctx.user.id);
 
       if (error)
         throw new TRPCError({
