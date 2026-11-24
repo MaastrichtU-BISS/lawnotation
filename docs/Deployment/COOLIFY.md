@@ -55,6 +55,7 @@ subscriptions, and no Vercel cron jobs, so nothing else had to move.
 | `AUTH_CLIENT_SECRET` | the `lawnotation` client's secret (Keycloak → realm lawnotation → Clients → lawnotation → Credentials) |
 | `IAA_API_KEY` | the same key as the **Lawnotation IAA** application |
 | `LAWNOTATION_URL`, `AUTH_ISSUER`, `AUTH_CLIENT_ID`, `IAA_SERVICE_URL` | empty = the compose defaults (`https://next.lawnotation.org`, the lawnotation realm, `lawnotation`, `https://iaa.lawnotation.org`) |
+| `NOINDEX` | empty = `true`: every response has `X-Robots-Tag: noindex, nofollow` and `/robots.txt` disallows everything. Set `false` when this becomes the public `app.lawnotation.org` |
 | `SMTP_URL` | empty: no app emails (assignment/invitation notices). Sign-in codes are sent by Keycloak and don't need it |
 | `CITATIONS_API_KEY` | empty for now: legal-docs search (Rechtspraak/ECHR import) is unavailable until it is set |
 | `MLBACKEND_URL` | empty for now: ML pre-annotation and the archives page are unavailable until it is set |
@@ -109,7 +110,8 @@ Not done yet; for when this deployment has proven itself.
    `users.metadata` if the onboarding state should survive.
 3. **Switch.** Point `app.lawnotation.org` at rice (Vercel DNS), set
    `LAWNOTATION_URL=https://app.lawnotation.org` in Coolify, add
-   `https://app.lawnotation.org/api/auth/callback` to the Keycloak client, freeze
+   `https://app.lawnotation.org/api/auth/callback` to the Keycloak client, set
+   `NOINDEX=false`, freeze
    writes on the old app for the final dump, and keep Vercel + Supabase read-only
    for a while as a fallback.
 4. **The rest of Vercel.** The landing page (`lawnotation.org`) and the docs

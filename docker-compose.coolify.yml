@@ -67,6 +67,9 @@ services:
       DATABASE_URL: postgres://lawnotation:${SERVICE_PASSWORD_POSTGRES}@db:5432/lawnotation
       # Public address of this deployment: sign-in redirects and email links.
       NUXT_PUBLIC_BASE_URL: ${LAWNOTATION_URL:-https://next.lawnotation.org}
+      # Keeps search engines out (X-Robots-Tag: noindex, robots.txt Disallow).
+      # Set NOINDEX=false once this serves the public app.lawnotation.org.
+      NUXT_NOINDEX: ${NOINDEX:-true}
       # Keycloak (realm lawnotation). The client must allow
       # <LAWNOTATION_URL>/api/auth/callback as a redirect URI and
       # <LAWNOTATION_URL>/* as a post-logout redirect URI.

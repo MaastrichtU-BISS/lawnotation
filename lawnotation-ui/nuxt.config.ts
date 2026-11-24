@@ -83,6 +83,9 @@ export default defineNuxtConfig({
     iaaApiKey: process.env.IAA_API_KEY,
     // Server-only: never expose this through `public` or a VITE_ variable.
     citationsApiKey: process.env.CITATIONS_API_KEY,
+    // Ask search engines to stay away (X-Robots-Tag and robots.txt), for
+    // deployments that are not the public app. NUXT_NOINDEX=true.
+    noindex: process.env.NOINDEX === "true",
     // Sign-in through Keycloak (realm lawnotation). Server-only.
     auth: {
       issuer: process.env.AUTH_ISSUER || "https://auth.lawnotation.org/realms/lawnotation",
