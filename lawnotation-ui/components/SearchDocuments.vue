@@ -8,15 +8,12 @@
 <script setup lang="ts">
 import { LegalDocsForm } from "vue-legal-query-builder";
 import type { LegalDocsQuery } from "vue-legal-query-builder";
-import type {
-    BWBItem,
-    RechtspraakFullTextDocument,
-    EchrFullTextDocument,
-} from "legal-docs-types";
+import type { BWBItem } from "legal-docs-types";
 import "vue-legal-query-builder/style.css";
 import JSZip from "jszip";
 import { ref } from "vue";
 import { downloadAs } from "~/utils/download_file";
+import { fetchFullTexts, TEXT_BATCH_SIZE, type FullTextDocument } from "~/utils/legal_docs";
 
 const { $toast } = useNuxtApp();
 
@@ -31,24 +28,44 @@ const emit = defineEmits<{
     ): void;
 }>();
 
-type FullTextDocument = RechtspraakFullTextDocument | EchrFullTextDocument;
-
 const loading = ref(false);
 
 // Searches go through our own server routes (server/api/legal-docs), which
-// hold the Case Law Explorer API key - it must never reach the browser.
+// hold the Case Law Explorer API key - it must never reach the browser. The
+// search returns the matching ECLIs; their full texts then come in batches
+// (the API serves at most 200 per request), with progress shown for large
+// results.
 const handleSubmit = async (query: LegalDocsQuery): Promise<FullTextDocument[]> => {
     loading.value = true;
+    let progressToast: ReturnType<typeof $toast.info> | undefined;
 
     try {
-        return await $fetch<FullTextDocument[]>("/api/legal-docs/search", {
-            method: "POST",
-            body: query,
+        const { dataset, eclis, truncated } = await $fetch<{
+            dataset: "RS" | "ECHR";
+            eclis: string[];
+            truncated: boolean;
+        }>("/api/legal-docs/search", { method: "POST", body: query });
+        if (!eclis.length) return [];
+        if (truncated) {
+            $toast.warning(
+                `This search matches more documents than the archive returns at once; only the first ${eclis.length.toLocaleString()} are included. Narrow the search (dates, courts, keywords) to get the rest.`,
+                { timeout: 15000 }
+            );
+        }
+
+        const message = (done: number) =>
+            `Fetching the full texts: ${done.toLocaleString()} of ${eclis.length.toLocaleString()} documents`;
+        if (eclis.length > TEXT_BATCH_SIZE) {
+            progressToast = $toast.info(message(0), { timeout: false, closeButton: false });
+        }
+        return await fetchFullTexts(dataset, eclis, (done) => {
+            if (progressToast !== undefined) $toast.update(progressToast, { content: message(done) });
         });
     } catch (error: any) {
         // $fetch's own message is `[POST] "/api/...": 502 ...`; show the reason.
         throw new Error(error?.data?.statusMessage ?? error?.message ?? "Search failed");
     } finally {
+        if (progressToast !== undefined) $toast.dismiss(progressToast);
         loading.value = false;
     }
 };
