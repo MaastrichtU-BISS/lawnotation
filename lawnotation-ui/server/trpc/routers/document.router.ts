@@ -8,7 +8,6 @@ import {
   router,
 } from "~/server/trpc";
 import type { Document } from "~/types";
-import type { Context } from "../context";
 import {
   documentEditorAuthorizer,
   documentEditorOrAnnotatorAuthorizer,
@@ -16,23 +15,29 @@ import {
   taskEditorAuthorizer,
 } from "../authorizers";
 import { extractDocumentText } from "~/server/utils/document_import";
-import { documentsOfTask, randomDocumentIds, sharedDocumentsOfTask } from "~/server/db/queries/documents";
+import {
+  countDocumentsOfEditor,
+  countDocumentsOfProject,
+  deleteDocument,
+  deleteDocumentsOfProject,
+  documentById,
+  documentName,
+  documentNamesOfProject,
+  documentsOfProjectNamed,
+  documentsOfProjectPage,
+  documentsOfTask,
+  findDocuments,
+  firstDocumentIds,
+  insertDocument,
+  insertDocuments,
+  randomDocumentIds,
+  sharedDocumentsOfTask,
+  updateDocument,
+} from "~/server/db/queries/documents";
+import { one } from "~/server/db/queries/helpers";
 
 // 6 MB of file, as base64 (4 characters per 3 bytes).
 const EXTRACT_MAX_BASE64 = Math.ceil((6_000_000 / 3) * 4);
-
-// Documents carry their full text, so a bulk insert goes in modest chunks:
-// a statement stays well under the parameter limit and a sane size.
-const DOCUMENTS_PER_INSERT = 200;
-
-// The columns a document is inserted with. A mutable array, as postgres.js's
-// types only accept those for the column list of its insert helper.
-const DOCUMENT_COLUMNS: ("name" | "project_id" | "source" | "full_text")[] = [
-  "name",
-  "project_id",
-  "source",
-  "full_text",
-];
 
 const ZDocumentFields = z.object({
   name: z.string(),
@@ -50,16 +55,6 @@ const withoutNul = <T extends { full_text: string }>(document: T): T => ({
   full_text: document.full_text.replace(/\u0000/g, ""),
 });
 
-/** The rows of a query that must return exactly one, or an error saying why not. */
-function single<T>(rows: readonly T[], where: string): T {
-  if (rows.length !== 1)
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: `Error in ${where}: expected one row, got ${rows.length}`,
-    });
-  return rows[0]!;
-}
-
 export const documentRouter = router({
   /* General Crud Definitions */
   find: disabledProcedure
@@ -71,16 +66,7 @@ export const documentRouter = router({
     )
     .query(async ({ ctx, input }) => {
       try {
-        const conditions = Object.entries(input.filter ?? {})
-          .filter(([, value]) => value !== undefined)
-          .map(([column, value]) => ctx.sql`${ctx.sql(column)} = ${value as string | number}`);
-        const where = conditions.length
-          ? ctx.sql`WHERE ${conditions.reduce((all, c) => ctx.sql`${all} AND ${c}`)}`
-          : ctx.sql``;
-        const range = input.range
-          ? ctx.sql`LIMIT ${Math.max(input.range[1] - input.range[0] + 1, 0)} OFFSET ${input.range[0]}`
-          : ctx.sql``;
-        return (await ctx.sql<Document[]>`SELECT * FROM documents ${where} ${range}`) as Document[];
+        return await findDocuments(ctx.sql, input.filter, input.range);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -101,16 +87,16 @@ export const documentRouter = router({
       )
     )
     .query(async ({ ctx, input: id }) => {
-      let rows: Document[];
+      let rows;
       try {
-        rows = await ctx.sql<Document[]>`SELECT * FROM documents WHERE id = ${id}`;
+        rows = await documentById(ctx.sql, id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in documents.findById: ${(error as Error).message}`,
         });
       }
-      return single(rows, "documents.findById");
+      return one(rows, "Error in documents.findById");
     }),
 
   /**
@@ -145,19 +131,16 @@ export const documentRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      let rows: Document[];
+      let rows;
       try {
-        rows = await ctx.sql<Document[]>`
-          INSERT INTO documents ${ctx.sql(withoutNul(input.document), DOCUMENT_COLUMNS)}
-          RETURNING *
-        `;
+        rows = await insertDocument(ctx.sql, withoutNul(input.document));
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in documents.create: ${(error as Error).message}`,
         });
       }
-      return single(rows, "documents.create");
+      return one(rows, "Error in documents.create");
     }),
 
   // Returns the documents in the order given, which the task import relies on
@@ -178,33 +161,20 @@ export const documentRouter = router({
       const documents = input.documents.map((d) =>
         withoutNul({ ...d, project_id: input.project_id })
       );
-      const data: Document[] = [];
       try {
         // One transaction, so the documents are all stored or none are, as
-        // when this was a single insert.
-        await ctx.sql.begin(async (transaction) => {
-          // postgres.js types a transaction without the call signature it has at
-          // runtime; this restores it.
-          const tx = transaction as unknown as Sql;
-          for (let i = 0; i < documents.length; i += DOCUMENTS_PER_INSERT) {
-            const chunk = documents.slice(i, i + DOCUMENTS_PER_INSERT);
-            data.push(
-              ...(await tx<Document[]>`
-                INSERT INTO documents ${tx(chunk, DOCUMENT_COLUMNS)}
-                RETURNING *
-              `)
-            );
-          }
-        });
+        // when this was a single insert. postgres.js types a transaction
+        // without the call signature it has at runtime; the cast restores it.
+        // The rows come back in the order given.
+        return await ctx.sql.begin((transaction) =>
+          insertDocuments(transaction as unknown as Sql, documents)
+        );
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in documents.createMany: ${(error as Error).message}`,
         });
       }
-      // Ids come from a sequence in row order, so sorting by id restores
-      // the input order whatever order Postgres returns the rows in.
-      return data.sort((a, b) => a.id - b.id);
     }),
 
   update: disabledProcedure
@@ -215,20 +185,16 @@ export const documentRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      let rows: Document[];
+      let rows;
       try {
-        rows = await ctx.sql<Document[]>`
-          UPDATE documents SET ${ctx.sql(input.updates, Object.keys(input.updates) as (keyof typeof input.updates)[])}
-          WHERE id = ${input.id}
-          RETURNING *
-        `;
+        rows = await updateDocument(ctx.sql, input.id, input.updates);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in documents.update: ${(error as Error).message}`,
         });
       }
-      return single(rows, "documents.update");
+      return one(rows, "Error in documents.update");
     }),
 
   delete: protectedProcedure
@@ -240,7 +206,7 @@ export const documentRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        await ctx.sql`DELETE FROM documents WHERE id = ${input}`;
+        await deleteDocument(ctx.sql, input);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -260,17 +226,11 @@ export const documentRouter = router({
     )
     .query(async ({ ctx, input }) => {
       try {
-        const [rows, [{ count }]] = await Promise.all([
-          ctx.sql<Document[]>`
-            SELECT * FROM documents
-            WHERE project_id = ${input.project_id}
-            LIMIT ${Math.max(input.limit, 0)} OFFSET ${input.offset}
-          `,
-          ctx.sql<[{ count: number }]>`
-            SELECT count(*)::int AS count FROM documents WHERE project_id = ${input.project_id}
-          `,
+        const [rows, count] = await Promise.all([
+          documentsOfProjectPage(ctx.sql, input.project_id, input.offset, input.limit),
+          countDocumentsOfProject(ctx.sql, input.project_id),
         ]);
-        return { rows: rows as Document[], count };
+        return { rows, count };
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -284,11 +244,9 @@ export const documentRouter = router({
   findByProject: protectedProcedure
     .input(z.number().int())
     .query(async ({ ctx, input: project_id }) => {
-      let data: { id: number; name: string | null }[];
+      let data;
       try {
-        data = await ctx.sql<{ id: number; name: string | null }[]>`
-          SELECT id, name FROM documents WHERE project_id = ${project_id}
-        `;
+        data = await documentNamesOfProject(ctx.sql, project_id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -365,11 +323,9 @@ export const documentRouter = router({
       )
     )
     .query(async ({ ctx, input: { project_id, name } }) => {
-      let rows: Document[];
+      let rows;
       try {
-        rows = await ctx.sql<Document[]>`
-          SELECT * FROM documents WHERE project_id = ${project_id} AND name = ${name}
-        `;
+        rows = await documentsOfProjectNamed(ctx.sql, project_id, name);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -377,7 +333,7 @@ export const documentRouter = router({
         });
       }
       // One document, despite the type it has always been given.
-      return single(rows, "findSharedDocumentsByTask") as unknown as Document[];
+      return one(rows, "Error in findSharedDocumentsByTask") as unknown as Document[];
     }),
 
   takeUpToNRandomDocuments: protectedProcedure
@@ -404,14 +360,7 @@ export const documentRouter = router({
         if (input.randomOrder) {
           data = await randomDocumentIds(ctx.sql, input.project_id, input.n);
         } else {
-          data = (
-            await ctx.sql<{ id: number }[]>`
-              SELECT id FROM documents
-              WHERE project_id = ${input.project_id}
-              ORDER BY id
-              LIMIT ${input.n}
-            `
-          ).map((x) => +x.id);
+          data = await firstDocumentIds(ctx.sql, input.project_id, input.n);
         }
 
         return data as number[];
@@ -432,10 +381,7 @@ export const documentRouter = router({
     )
     .query(async ({ ctx, input: project_id }) => {
       try {
-        const [{ count }] = await ctx.sql<[{ count: number }]>`
-          SELECT count(*)::int AS count FROM documents WHERE project_id = ${project_id}
-        `;
-        return count;
+        return await countDocumentsOfProject(ctx.sql, project_id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -446,13 +392,7 @@ export const documentRouter = router({
 
   getCountByUser: protectedProcedure.query(async ({ ctx }) => {
     try {
-      const [{ count }] = await ctx.sql<[{ count: number }]>`
-        SELECT count(*)::int AS count
-        FROM documents AS d
-        JOIN projects AS p ON (p.id = d.project_id)
-        WHERE p.editor_id = ${ctx.user.id}
-      `;
-      return count;
+      return await countDocumentsOfEditor(ctx.sql, ctx.user.id);
     } catch (error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -465,18 +405,16 @@ export const documentRouter = router({
   getName: disabledProcedure
     .input(z.number().int())
     .query(async ({ ctx, input: id }) => {
-      let rows: { name: string | null }[];
+      let rows;
       try {
-        rows = await ctx.sql<{ name: string | null }[]>`
-          SELECT name FROM documents WHERE id = ${id}
-        `;
+        rows = await documentName(ctx.sql, id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in getName: ${(error as Error).message}`,
         });
       }
-      return single(rows, "getName").name;
+      return one(rows, "Error in getName").name;
     }),
 
   // 'updateDocument' -> update
@@ -491,7 +429,7 @@ export const documentRouter = router({
     )
     .mutation(async ({ ctx, input: project_id }) => {
       try {
-        await ctx.sql`DELETE FROM documents WHERE project_id = ${project_id}`;
+        await deleteDocumentsOfProject(ctx.sql, project_id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

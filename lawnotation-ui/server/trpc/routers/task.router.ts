@@ -14,7 +14,6 @@ import type {
   AnnotationRelation,
 } from "~/types";
 import { AnnotationLevels, Origins, AssignmentStatuses } from "~/utils/enums";
-import type { Context } from "../context";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
 import {
@@ -25,7 +24,23 @@ import {
 import * as _ from "lodash";
 import { buildTaskExportData, toExportJson } from "~/server/utils/task_export";
 import { copyDocumentRelations } from "~/server/utils/annotation_kit";
-import { annotatorsOfTask, countTasksOfEditor, tasksOfAnnotator } from "~/server/db/queries/tasks";
+import {
+  annotatorsOfTask,
+  countTasksOfEditor,
+  countTasksOfLabelset,
+  deleteTask,
+  deleteTasksOfProject,
+  findTasks,
+  insertTask,
+  otherTasksWithLabelsOfEditor,
+  taskById,
+  taskWithLabelsById,
+  tasksOfAnnotator,
+  updateTask,
+  type TaskWithLabels,
+} from "~/server/db/queries/tasks";
+import { insertRows } from "~/server/db/queries/helpers";
+import { assignmentsWithDocumentHashOfTask } from "~/server/db/queries/assignments";
 import { documentHashesOfTask } from "~/server/db/queries/documents";
 
 const ZTaskFields = z.object({
@@ -42,34 +57,6 @@ const ZTaskFields = z.object({
   origin_task_1_id: z.number().int().nullable().optional(),
   origin_task_2_id: z.number().int().nullable().optional(),
 });
-
-// Most rows one insert statement takes; postgres.js allows at most 65534
-// parameters in a query.
-const INSERT_CHUNK_SIZE = 1000;
-
-/**
- * Inserts rows (any number) and returns the inserted rows in the order given,
- * the way the copies of a task's assignments, annotations and relations are
- * mapped from old to new ids.
- */
-async function insertRows(
-  sql: Context["sql"],
-  table: string,
-  rows: object[]
-): Promise<any[]> {
-  if (!rows.length) return [];
-  const columns = [...new Set(rows.flatMap((r) => Object.keys(r)))];
-  const inserted: any[] = [];
-  for (let i = 0; i < rows.length; i += INSERT_CHUNK_SIZE) {
-    const chunk = rows.slice(i, i + INSERT_CHUNK_SIZE);
-    inserted.push(
-      ...(await sql`
-        insert into ${sql(table)} ${sql(chunk as Record<string, any>[], columns)} returning *
-      `)
-    );
-  }
-  return inserted;
-}
 
 const ZExportTaskOptions = z.object({
   name: z.boolean(),
@@ -90,19 +77,8 @@ export const taskRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const sql = ctx.sql;
-      const conds = Object.entries(input.filter ?? {})
-        .filter(([, value]) => value !== undefined)
-        .map(([key, value]) => sql`${sql(key)} = ${value}`);
-      const where = conds.length
-        ? sql`where ${conds.reduce((acc, x) => sql`${acc} and ${x}`)}`
-        : sql``;
-      const range = input.range
-        ? sql`limit ${input.range[1] - input.range[0] + 1} offset ${input.range[0]}`
-        : sql``;
-
       try {
-        return (await sql`select * from tasks ${where} ${range}`) as unknown as Task[];
+        return await findTasks(ctx.sql, input.filter, input.range);
       } catch (error: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -210,7 +186,7 @@ export const taskRouter = router({
     .query(async ({ ctx, input: id }) => {
       let rows;
       try {
-        rows = await ctx.sql<Task[]>`select * from tasks where id = ${id}`;
+        rows = await taskById(ctx.sql, id);
       } catch (error: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -242,30 +218,9 @@ export const taskRouter = router({
       )
     )
     .query(async ({ ctx, input: { task_id, annotators } }) => {
-      type SimilarTaskRow = {
-        id: number;
-        name: string | null;
-        annotation_level: string;
-        labelsets: { labels: unknown } | null;
-        document_labelsets: { labels: unknown } | null;
-      };
-
-      // The task with its labels and its document labels (null when the task
-      // has no such labelset).
-      const taskWithLabels = () => ctx.sql`
-        select t.id, t.name, t.annotation_level,
-               case when l.id is null then null else json_build_object('labels', l.labels) end as labelsets,
-               case when dl.id is null then null else json_build_object('labels', dl.labels) end as document_labelsets
-        from tasks as t
-        left join labelsets as l on (l.id = t.labelset_id)
-        left join labelsets as dl on (dl.id = t.document_labelset_id)
-      `;
-
-      let originTask: SimilarTaskRow;
+      let originTask: TaskWithLabels;
       try {
-        const rows = await ctx.sql<SimilarTaskRow[]>`
-          ${taskWithLabels()} where t.id = ${task_id}
-        `;
+        const rows = await taskWithLabelsById(ctx.sql, task_id);
         if (rows.length !== 1) throw new Error(`task ${task_id} not found`);
         originTask = rows[0]!;
       } catch (error: any) {
@@ -281,14 +236,12 @@ export const taskRouter = router({
 
       // consider only projects from this user, exclude the origin task and
       // filter out different annotation levels
-      const candidateTasks = await ctx.sql<SimilarTaskRow[]>`
-        ${taskWithLabels()}
-        inner join projects as p on (p.id = t.project_id)
-        where p.editor_id = ${ctx.user.id}
-          and t.id <> ${task_id}
-          and t.annotation_level = ${originTask.annotation_level}
-        order by p.id, t.id
-      `;
+      const candidateTasks = await otherTasksWithLabelsOfEditor(
+        ctx.sql,
+        ctx.user.id,
+        task_id,
+        originTask.annotation_level
+      );
 
       const tasks: { id: number; name: string }[] = [];
 
@@ -345,10 +298,7 @@ export const taskRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        const [task] = await ctx.sql<Task[]>`
-          insert into tasks ${ctx.sql(input)} returning *
-        `;
-        return task as Task;
+        return await insertTask(ctx.sql, input);
       } catch (error: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -371,18 +321,9 @@ export const taskRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      const columns = Object.keys(input.updates).filter(
-        (k) => (input.updates as Record<string, unknown>)[k] !== undefined
-      );
       let rows;
       try {
-        rows = columns.length
-          ? await ctx.sql<Task[]>`
-              update tasks set ${ctx.sql(input.updates, columns as any)}
-              where id = ${input.id}
-              returning *
-            `
-          : await ctx.sql<Task[]>`select * from tasks where id = ${input.id}`;
+        rows = await updateTask(ctx.sql, input.id, input.updates);
       } catch (error: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -406,7 +347,7 @@ export const taskRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        await ctx.sql`delete from tasks where id = ${input}`;
+        await deleteTask(ctx.sql, input);
       } catch (error: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -433,11 +374,7 @@ export const taskRouter = router({
     .input(z.number().int())
     .query(async ({ ctx, input: labelset_id }) => {
       try {
-        const [{ count }] = await ctx.sql<[{ count: number }]>`
-          select count(*)::int as count from tasks
-          where labelset_id = ${labelset_id} or document_labelset_id = ${labelset_id}
-        `;
-        return count as number;
+        return await countTasksOfLabelset(ctx.sql, labelset_id);
       } catch (error: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -486,7 +423,7 @@ export const taskRouter = router({
     )
     .mutation(async ({ ctx, input: project_id }) => {
       try {
-        await ctx.sql`delete from tasks where project_id = ${project_id}`;
+        await deleteTasksOfProject(ctx.sql, project_id);
       } catch (error: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -632,16 +569,8 @@ export const taskRouter = router({
       }): Promise<Task> => {
         const caller = appRouter.createCaller(ctx);
 
-        // A task's assignments, each with `documents: { hash }` (null when
-        // the assignment has no document).
         const assignmentsWithHash = (task_id: number) =>
-          ctx.sql<(Assignment & { documents: { hash: string } | null })[]>`
-            select a.*,
-                   case when d.id is null then null else json_build_object('hash', d.hash) end as documents
-            from assignments as a
-            left join documents as d on (d.id = a.document_id)
-            where a.task_id = ${task_id}
-          `;
+          assignmentsWithDocumentHashOfTask(ctx.sql, task_id);
 
         try {
           // get assignments from merged and similar tasks

@@ -7,16 +7,10 @@ import {
   taskEditorOrAnnotatorAuthorizer,
 } from "../authorizers";
 import { taskKinds, toKitLevel } from "~/utils/levels";
-import {
-  assignmentKey,
-  storeKitAssignment,
-  toKitAssignment,
-  type DbAnnotation,
-  type DbAssignment,
-  type DbDocumentRelation,
-  type DbRelation,
-} from "~/server/utils/annotation_kit";
+import { assignmentKey, storeKitAssignment, toKitAssignment } from "~/server/utils/annotation_kit";
 import { ZRelationLabel } from "~/server/utils/relation_label";
+import type { Sql } from "~/server/db/client";
+import * as Q from "~/server/db/queries/annotator";
 
 // What legal-annotation-kit loads and saves, in its own JSON format. The
 // conversion to and from lawnotation's tables is in server/utils/annotation_kit.
@@ -57,60 +51,15 @@ const ZKitAssignment = z.object({
     .default([]),
 });
 
-/** One document in an annotator's queue for a task, keyed for the kit. */
-type QueueRow = { assignment_id: number; seq_pos: number; status: string; document_name: string };
-
-async function queueOfAssignment(sql: any, assignmentId: number): Promise<QueueRow[]> {
-  return await sql`
-    SELECT other.id::int AS assignment_id, other.seq_pos::int AS seq_pos,
-           other.status::text AS status, d.name AS document_name
-    FROM assignments AS self
-    INNER JOIN assignments AS other
-      ON (other.task_id = self.task_id AND other.annotator_number = self.annotator_number)
-    INNER JOIN documents AS d ON (other.document_id = d.id)
-    WHERE self.id = ${assignmentId}
-    ORDER BY other.seq_pos, other.id
-  `;
-}
-
 export type AnnotatorBundle = Awaited<ReturnType<typeof loadBundle>>;
 
-async function loadBundle(sql: any, assignmentId: number) {
-  const [row] = await sql<
-    (DbAssignment & { document_name: string; full_text: string; annotation_level: string })[]
-  >`
-    SELECT a.id::int AS id, a.annotator_id::text AS annotator_id, a.seq_pos::int AS seq_pos,
-           a.status::text AS status, a.confidence_rating::int AS confidence_rating,
-           d.name AS document_name, d.full_text, t.annotation_level::text AS annotation_level
-    FROM assignments AS a
-    INNER JOIN documents AS d ON (a.document_id = d.id)
-    INNER JOIN tasks AS t ON (a.task_id = t.id)
-    WHERE a.id = ${assignmentId}
-  `;
+async function loadBundle(sql: Sql, assignmentId: number) {
+  const row = await Q.kitAssignmentById(sql, assignmentId);
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Assignment not found" });
 
-  const annotations = await sql<DbAnnotation[]>`
-    SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.metadata, an.confidence_rating::int AS confidence_rating, an.kind
-    FROM annotations AS an
-    WHERE an.assignment_id = ${assignmentId}
-    ORDER BY an.id
-  `;
-  const relations = annotations.length
-    ? await sql<DbRelation[]>`
-        SELECT id::int AS id, from_id::int AS from_id, to_id::int AS to_id, direction::text AS direction, labels::text[] AS labels
-        FROM annotation_relations
-        WHERE from_id IN ${sql(annotations.map((a: DbAnnotation) => a.id))}
-        ORDER BY id
-      `
-    : [];
-
-  const documentRelations = await sql<DbDocumentRelation[]>`
-    SELECT from_assignment_id::int AS from_assignment_id, to_assignment_id::int AS to_assignment_id,
-           labels::text[] AS labels
-    FROM document_relations
-    WHERE from_assignment_id = ${assignmentId}
-    ORDER BY id
-  `;
+  const annotations = await Q.kitAnnotationsOfAssignment(sql, assignmentId);
+  const relations = await Q.kitRelationsFromAnnotations(sql, annotations.map((a) => a.id));
+  const documentRelations = await Q.documentRelationsFromAssignment(sql, assignmentId);
 
   return {
     document: { name: row.document_name, full_text: row.full_text, key: assignmentKey(row.id) },
@@ -129,16 +78,7 @@ export const annotatorRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
-      return await ctx.sql<
-        { assignment_id: number; seq_pos: number; status: string; document_name: string }[]
-      >`
-        SELECT a.id::int AS assignment_id, a.seq_pos::int AS seq_pos, a.status::text AS status,
-               d.name AS document_name
-        FROM assignments AS a
-        INNER JOIN documents AS d ON (a.document_id = d.id)
-        WHERE a.task_id = ${input.task_id} AND a.annotator_id = ${ctx.user.id}
-        ORDER BY a.seq_pos, a.id
-      `;
+      return await Q.queueOfAnnotator(ctx.sql, input.task_id, ctx.user.id);
     }),
 
   /**
@@ -153,7 +93,7 @@ export const annotatorRouter = router({
         assignmentEditorOrAnnotatorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx)
       )
     )
-    .query(async ({ ctx, input }) => queueOfAssignment(ctx.sql, input)),
+    .query(async ({ ctx, input }) => Q.queueOfAssignment(ctx.sql, input)),
 
   /**
    * A document's full text, for "Read more" when relating documents: the
@@ -169,11 +109,7 @@ export const annotatorRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
-      const [row] = await ctx.sql<{ name: string; full_text: string }[]>`
-        SELECT d.name, d.full_text
-        FROM assignments AS a INNER JOIN documents AS d ON (a.document_id = d.id)
-        WHERE a.id = ${input.assignment_id}
-      `;
+      const row = await Q.documentOfAssignment(ctx.sql, input.assignment_id);
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
       return row;
     }),
@@ -191,27 +127,8 @@ export const annotatorRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
-      const documents = await ctx.sql<
-        { assignment_id: number; seq_pos: number; document_name: string; snippet: string }[]
-      >`
-        SELECT other.id::int AS assignment_id, other.seq_pos::int AS seq_pos,
-               d.name AS document_name, left(d.full_text, 300) AS snippet
-        FROM assignments AS self
-        INNER JOIN assignments AS other
-          ON (other.task_id = self.task_id AND other.annotator_number = self.annotator_number)
-        INNER JOIN documents AS d ON (other.document_id = d.id)
-        WHERE self.id = ${input.assignment_id}
-        ORDER BY other.seq_pos, other.id
-      `;
-      const ids = documents.map((d) => d.assignment_id);
-      const relations = ids.length
-        ? await ctx.sql<{ from: number; to: number; labels: string[] }[]>`
-            SELECT from_assignment_id::int AS "from", to_assignment_id::int AS "to", labels::text[] AS labels
-            FROM document_relations
-            WHERE from_assignment_id IN ${ctx.sql(ids)} AND to_assignment_id IN ${ctx.sql(ids)}
-            ORDER BY id
-          `
-        : [];
+      const documents = await Q.queueSnippetsOfAssignment(ctx.sql, input.assignment_id);
+      const relations = await Q.documentRelationsAmong(ctx.sql, documents.map((d) => d.assignment_id));
       return { documents, relations };
     }),
 
@@ -224,14 +141,7 @@ export const annotatorRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
-      return await ctx.sql<{ from: string; labels: string[] }[]>`
-        SELECT d.name || ' (#' || a.seq_pos || ')' AS "from", r.labels::text[] AS labels
-        FROM document_relations AS r
-        INNER JOIN assignments AS a ON (r.from_assignment_id = a.id)
-        INNER JOIN documents AS d ON (a.document_id = d.id)
-        WHERE r.to_assignment_id = ${input}
-        ORDER BY a.seq_pos, r.id
-      `;
+      return await Q.documentRelationsToAssignment(ctx.sql, input);
     }),
 
   load: protectedProcedure
@@ -251,13 +161,7 @@ export const annotatorRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      const [task] = await ctx.sql<
-        { annotation_level: string; document_labelset_id: number | null }[]
-      >`
-        SELECT t.annotation_level::text AS annotation_level, t.document_labelset_id::int AS document_labelset_id
-        FROM assignments AS a INNER JOIN tasks AS t ON (a.task_id = t.id)
-        WHERE a.id = ${input.assignment_id}
-      `;
+      const task = await Q.taskKindsOfAssignment(ctx.sql, input.assignment_id);
       if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Assignment not found" });
 
       try {
@@ -288,51 +192,16 @@ export const annotatorRouter = router({
       )
     )
     .query(async ({ ctx, input }) => {
-      const [row] = await ctx.sql<
-        { name: string; full_text: string; annotation_level: string }[]
-      >`
-        SELECT d.name, d.full_text, t.annotation_level::text AS annotation_level
-        FROM documents AS d, tasks AS t
-        WHERE d.id = ${input.document_id} AND t.id = ${input.task_id}
-      `;
+      const row = await Q.documentWithTaskLevel(ctx.sql, input.task_id, input.document_id);
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
 
-      const annotations = await ctx.sql<DbAnnotation[]>`
-        SELECT an.id::int AS id, an.assignment_id::int AS assignment_id, an.start_index::int AS start_index, an.end_index::int AS end_index, an.text, an.label, an.origin::text AS origin, an.metadata, an.confidence_rating::int AS confidence_rating, an.kind
-        FROM annotations AS an
-        INNER JOIN assignments AS a ON (an.assignment_id = a.id)
-        WHERE a.task_id = ${input.task_id} AND a.document_id = ${input.document_id}
-        ORDER BY an.id
-      `;
-      const relations = annotations.length
-        ? await ctx.sql<DbRelation[]>`
-            SELECT id::int AS id, from_id::int AS from_id, to_id::int AS to_id, direction::text AS direction, labels::text[] AS labels
-            FROM annotation_relations
-            WHERE from_id IN ${ctx.sql(annotations.map((a) => a.id))}
-            ORDER BY id
-          `
-        : [];
+      const annotations = await Q.annotationsOfTaskDocument(ctx.sql, input.task_id, input.document_id);
+      const relations = await Q.kitRelationsFromAnnotations(ctx.sql, annotations.map((a) => a.id));
 
       // Every annotator's links from and to this document. Shown read-only
       // and by document name, since there is no single queue to key them by.
-      const outgoing = await ctx.sql<{ to: string; labels: string[] }[]>`
-        SELECT td.name AS "to", r.labels::text[] AS labels
-        FROM document_relations AS r
-        INNER JOIN assignments AS fa ON (r.from_assignment_id = fa.id)
-        INNER JOIN assignments AS ta ON (r.to_assignment_id = ta.id)
-        INNER JOIN documents AS td ON (ta.document_id = td.id)
-        WHERE fa.task_id = ${input.task_id} AND fa.document_id = ${input.document_id}
-        ORDER BY r.id
-      `;
-      const incoming = await ctx.sql<{ from: string; labels: string[] }[]>`
-        SELECT fd.name AS "from", r.labels::text[] AS labels
-        FROM document_relations AS r
-        INNER JOIN assignments AS fa ON (r.from_assignment_id = fa.id)
-        INNER JOIN assignments AS ta ON (r.to_assignment_id = ta.id)
-        INNER JOIN documents AS fd ON (fa.document_id = fd.id)
-        WHERE ta.task_id = ${input.task_id} AND ta.document_id = ${input.document_id}
-        ORDER BY r.id
-      `;
+      const outgoing = await Q.documentRelationsFromTaskDocument(ctx.sql, input.task_id, input.document_id);
+      const incoming = await Q.documentRelationsToTaskDocument(ctx.sql, input.task_id, input.document_id);
 
       const merged = toKitAssignment(
         { id: 0, annotator_id: null, seq_pos: 0, status: "", confidence_rating: 0 },

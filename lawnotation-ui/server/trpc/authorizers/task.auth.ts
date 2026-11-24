@@ -1,18 +1,12 @@
 import type { Context } from "../context";
+import { isTaskAnnotator, isTaskEditor } from "~/server/db/queries/tasks";
 
 export const taskEditorAuthorizer = async (
   task_id: number,
   user_id: string,
   ctx: Context
 ) => {
-  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
-    select exists (
-      select 1
-      from tasks t
-      join projects p on p.id = t.project_id
-      where t.id = ${task_id} and p.editor_id = ${user_id}
-    ) as ok`;
-  return ok;
+  return isTaskEditor(ctx.sql, task_id, user_id);
 };
 
 export const taskEditorOrAnnotatorAuthorizer = async (
@@ -23,10 +17,5 @@ export const taskEditorOrAnnotatorAuthorizer = async (
   const editor = await taskEditorAuthorizer(task_id, user_id, ctx)
   if (editor) return true;
 
-  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
-    select exists (
-      select 1 from assignments
-      where task_id = ${task_id} and annotator_id = ${user_id}
-    ) as ok`;
-  return ok;
+  return isTaskAnnotator(ctx.sql, task_id, user_id);
 };

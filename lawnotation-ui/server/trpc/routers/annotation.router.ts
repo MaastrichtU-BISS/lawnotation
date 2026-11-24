@@ -2,6 +2,18 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { Sql } from "~/server/db/client";
 import { protectedProcedure, disabledProcedure, router, authorizer } from "~/server/trpc";
+import {
+  annotationById,
+  annotationsOfAssignment,
+  annotationsOfTask,
+  annotationsOfTaskAndDocument,
+  annotationsOfTaskDocumentLabelAndAnnotators,
+  deleteAnnotation,
+  findAnnotations,
+  insertAnnotations,
+  updateAnnotation,
+} from "~/server/db/queries/annotations";
+import { one } from "~/server/db/queries/helpers";
 import type { Annotation } from "~/types";
 import { Origins } from "~/utils/enums";
 import { assignmentEditorOrAnnotatorAuthorizer, assignmentsEditorOrAnnotatorAuthorizer, taskEditorAuthorizer } from "../authorizers";
@@ -20,32 +32,6 @@ const ZAnnotationFields = z.object({
   kind: z.enum(["span", "document"]).optional(),
 });
 
-// Rows per insert: well under the parameter limit at every column given.
-const ANNOTATIONS_PER_INSERT = 1000;
-
-/** The rows of a query that must return exactly one, or an error saying why not. */
-function single<T>(rows: readonly T[], where: string): T {
-  if (rows.length !== 1)
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: `Error in ${where}: expected one row, got ${rows.length}`,
-    });
-  return rows[0]!;
-}
-
-/**
- * The columns an insert of these rows sets: every field any row has. A field
- * no row has keeps its column default; one only some rows have is null on
- * the others, as with the bulk inserts through PostgREST.
- */
-function columnsOf<T extends object>(rows: T[]): (keyof T & string)[] {
-  const columns = new Set<string>();
-  for (const row of rows)
-    for (const [column, value] of Object.entries(row))
-      if (value !== undefined) columns.add(column);
-  return [...columns] as (keyof T & string)[];
-}
-
 export const annotationRouter = router({
   /* General Crud Definitions */
   find: disabledProcedure
@@ -57,20 +43,7 @@ export const annotationRouter = router({
     )
     .query(async ({ ctx, input }) => {
       try {
-        const conditions = Object.entries(input.filter ?? {})
-          .filter(([, value]) => value !== undefined)
-          .map(([column, value]) =>
-            value === null
-              ? ctx.sql`${ctx.sql(column)} IS NULL`
-              : ctx.sql`${ctx.sql(column)} = ${value as string | number}`
-          );
-        const where = conditions.length
-          ? ctx.sql`WHERE ${conditions.reduce((all, c) => ctx.sql`${all} AND ${c}`)}`
-          : ctx.sql``;
-        const range = input.range
-          ? ctx.sql`LIMIT ${Math.max(input.range[1] - input.range[0] + 1, 0)} OFFSET ${input.range[0]}`
-          : ctx.sql``;
-        return (await ctx.sql<Annotation[]>`SELECT * FROM annotations ${where} ${range}`) as Annotation[];
+        return await findAnnotations(ctx.sql, input.filter, input.range);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -82,16 +55,16 @@ export const annotationRouter = router({
   findById: disabledProcedure
     .input(z.number().int())
     .query(async ({ ctx, input }) => {
-      let rows: Annotation[];
+      let rows;
       try {
-        rows = await ctx.sql<Annotation[]>`SELECT * FROM annotations WHERE id = ${input}`;
+        rows = await annotationById(ctx.sql, input);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in annotation.findById: ${(error as Error).message}`,
         });
       }
-      return single(rows, "annotation.findById");
+      return one(rows, "Error in annotation.findById");
     }),
 
   findByAssignment: protectedProcedure
@@ -103,9 +76,7 @@ export const annotationRouter = router({
     )
     .query(async ({ ctx, input: assignment_id }) => {
       try {
-        return (await ctx.sql<Annotation[]>`
-          SELECT * FROM annotations WHERE assignment_id = ${assignment_id}
-        `) as Annotation[];
+        return await annotationsOfAssignment(ctx.sql, assignment_id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -117,19 +88,16 @@ export const annotationRouter = router({
   create: disabledProcedure
     .input(ZAnnotationFields)
     .mutation(async ({ ctx, input }) => {
-      let rows: Annotation[];
+      let rows;
       try {
-        rows = await ctx.sql<Annotation[]>`
-          INSERT INTO annotations ${ctx.sql(input, columnsOf([input]))}
-          RETURNING *
-        `;
+        rows = await insertAnnotations(ctx.sql, [input]);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in annotation.create: ${(error as Error).message}`,
         });
       }
-      return single(rows, "annotation.create");
+      return one(rows, "Error in annotation.create");
     }),
 
   createMany: protectedProcedure
@@ -143,32 +111,20 @@ export const annotationRouter = router({
         throw TRPCForbidden()
       }
 
-      const data: Annotation[] = [];
       try {
-        const columns = columnsOf(input);
         // One transaction, so the annotations are all stored or none are, as
         // when this was a single insert. Rows come back in the order given.
-        await ctx.sql.begin(async (transaction) => {
-          // postgres.js types a transaction without the call signature it has at
-          // runtime; this restores it.
-          const tx = transaction as unknown as Sql;
-          for (let i = 0; i < input.length; i += ANNOTATIONS_PER_INSERT) {
-            const chunk = input.slice(i, i + ANNOTATIONS_PER_INSERT);
-            data.push(
-              ...(await tx<Annotation[]>`
-                INSERT INTO annotations ${tx(chunk, columns)}
-                RETURNING *
-              `)
-            );
-          }
-        });
+        // postgres.js types a transaction without the call signature it has
+        // at runtime; the cast restores it.
+        return await ctx.sql.begin((transaction) =>
+          insertAnnotations(transaction as unknown as Sql, input)
+        );
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in annotation.createMany: ${(error as Error).message}`,
         });
       }
-      return data;
     }),
 
   update: disabledProcedure
@@ -179,27 +135,23 @@ export const annotationRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      let rows: Annotation[];
+      let rows;
       try {
-        rows = await ctx.sql<Annotation[]>`
-          UPDATE annotations SET ${ctx.sql(input.updates, columnsOf([input.updates]))}
-          WHERE id = ${input.id}
-          RETURNING *
-        `;
+        rows = await updateAnnotation(ctx.sql, input.id, input.updates);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error in annotation.update: ${(error as Error).message}`,
         });
       }
-      return single(rows, "annotation.update");
+      return one(rows, "Error in annotation.update");
     }),
 
   delete: disabledProcedure
     .input(z.number().int())
     .query(async ({ ctx, input }) => {
       try {
-        await ctx.sql`DELETE FROM annotations WHERE id = ${input}`;
+        await deleteAnnotation(ctx.sql, input);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -220,13 +172,7 @@ export const annotationRouter = router({
     )
     .query(async ({ ctx, input }) => {
       try {
-        return await ctx.sql<(Annotation & { assignment: { task_id: number; document_id: number } })[]>`
-          SELECT an.*,
-                 json_build_object('task_id', a.task_id, 'document_id', a.document_id) AS assignment
-          FROM annotations AS an
-          JOIN assignments AS a ON (a.id = an.assignment_id)
-          WHERE a.task_id = ${input.task_id} AND a.document_id = ${input.document_id}
-        `;
+        return await annotationsOfTaskAndDocument(ctx.sql, input.task_id, input.document_id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -245,23 +191,14 @@ export const annotationRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      if (!input.annotators.length) return [] as Annotation[];
       try {
-        return (await ctx.sql`
-          SELECT an.start_index, an.end_index, an.label, an.text,
-                 json_build_object(
-                   'task_id', a.task_id,
-                   'document_id', a.document_id,
-                   'annotator', json_build_object('email', u.email)
-                 ) AS assignment
-          FROM annotations AS an
-          JOIN assignments AS a ON (a.id = an.assignment_id)
-          JOIN users AS u ON (u.id = a.annotator_id)
-          WHERE a.task_id = ${input.task_id}
-            AND a.document_id = ${input.document_id}
-            AND an.label = ${input.label}
-            AND u.email IN ${ctx.sql(input.annotators)}
-        `) as unknown as Annotation[];
+        return (await annotationsOfTaskDocumentLabelAndAnnotators(
+          ctx.sql,
+          input.task_id,
+          input.document_id,
+          input.label,
+          input.annotators
+        )) as unknown as Annotation[];
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -279,19 +216,7 @@ export const annotationRouter = router({
     )
     .query(async ({ ctx, input: task_id }) => {
       try {
-        return (await ctx.sql`
-          SELECT an.*,
-                 json_build_object(
-                   'id', a.id,
-                   'task_id', a.task_id,
-                   'document_id', a.document_id,
-                   'annotator_id', a.annotator_id
-                 ) AS assignment
-          FROM annotations AS an
-          JOIN assignments AS a ON (a.id = an.assignment_id)
-          WHERE a.task_id = ${task_id}
-          ORDER BY an.id
-        `) as unknown as Annotation[];
+        return (await annotationsOfTask(ctx.sql, task_id)) as unknown as Annotation[];
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

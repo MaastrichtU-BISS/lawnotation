@@ -11,6 +11,7 @@ import type { Context } from "../context";
 import { appRouter } from ".";
 import type { Annotation, Assignment } from "~/types";
 import { Origins } from "~/utils/enums";
+import { insertPredictedAnnotations, setAssignmentsStatus } from "~/server/db/queries/ml_models";
 
 const hookAuthorizer = middleware((opts) => {
   // opts.ctx.hooksKey
@@ -35,14 +36,7 @@ export const hookRouter = router({
     )
     // .use(hookAuthorizer)
     .mutation(async ({ ctx, input }) => {
-      // A statement takes at most 65534 parameters; six columns a row.
-      const columns = ["label", "assignment_id", "start_index", "end_index", "text", "origin"] as const;
-      const rowsPerInsert = Math.floor(65534 / columns.length);
-      for (let i = 0; i < input.annotations.length; i += rowsPerInsert) {
-        await ctx.sql`
-          INSERT INTO annotations ${ctx.sql(input.annotations.slice(i, i + rowsPerInsert), columns)}
-        `;
-      }
+      await insertPredictedAnnotations(ctx.sql, input.annotations);
 
       return true;
     }),
@@ -56,11 +50,7 @@ export const hookRouter = router({
     )
     // .use(hookAuthorizer)
     .mutation(async ({ ctx, input }) => {
-      if (input.assignment_ids.length)
-        await ctx.sql`
-          UPDATE assignments SET status = ${input.status}
-          WHERE id IN ${ctx.sql(input.assignment_ids)}
-        `;
+      await setAssignmentsStatus(ctx.sql, input.assignment_ids, input.status);
 
       return true;
     }),

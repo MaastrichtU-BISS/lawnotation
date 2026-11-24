@@ -7,6 +7,7 @@ import { buildTaskExportData } from '~/server/utils/task_export';
 import { toIaaInputData } from '~/server/utils/iaa';
 import { hybridKindFilter, kindFilterSql } from '~/server/utils/annotation_kind_filter';
 import { isHybrid } from '~/utils/levels';
+import * as M from '~/server/db/queries/metrics';
 
 export const metricsRouter = router({
   // Builds the same data the IAA Go service needs as input. The metrics page
@@ -59,9 +60,7 @@ export const metricsRouter = router({
           message: `Error in metrics.get_annotations (${what}): ${message}`,
         });
 
-      const [task] = await ctx.sql<{ annotation_level: string | null; document_labelset_id: number | null }[]>`
-        SELECT annotation_level, document_labelset_id FROM tasks WHERE id = ${input.task_id}
-      `;
+      const task = await M.annotationKindsOfTask(ctx.sql, input.task_id);
       const hybrid = !!task && isHybrid(task as any);
 
       const kindFilter = hybrid ? hybridKindFilter(input) : null;
@@ -69,47 +68,19 @@ export const metricsRouter = router({
         return { annotations: [], total: 0, kinds: { spans: 0, documents: 0 } };
 
       // Applied alike to the page and to the per-kind counts.
-      const matching = ctx.sql`
-        task_id = ${input.task_id}
-        ${input.documents?.length ? ctx.sql`AND document_id IN ${ctx.sql(input.documents)}` : ctx.sql``}
-        ${input.annotators?.length ? ctx.sql`AND annotator_email IN ${ctx.sql(input.annotators)}` : ctx.sql``}
-        ${!hybrid && input.labels?.length ? ctx.sql`AND label IN ${ctx.sql(input.labels)}` : ctx.sql``}
-        ${kindFilter ? ctx.sql`AND ${kindFilterSql(ctx.sql, kindFilter)}` : ctx.sql``}
-      `;
-
-      type Row = {
-        id: number;
-        start_index: number | null;
-        end_index: number | null;
-        label: string | null;
-        text: string | null;
-        confidence_rating: number;
-        metadata: string | null;
-        kind: string;
-        document_id: number | null;
-        original_task_id: number | null;
-        annotator_email: string | null;
+      const filter: M.MetricsRowFilter = {
+        taskId: input.task_id,
+        documents: input.documents,
+        annotators: input.annotators,
+        labels: hybrid ? undefined : input.labels,
+        kindCondition: kindFilter ? kindFilterSql(ctx.sql, kindFilter) : null,
       };
 
       const [page, counts] = await Promise.all([
-        ctx.sql<Row[]>`
-          SELECT id, start_index, end_index, label, text, confidence_rating, metadata, kind,
-                 document_id, original_task_id, annotator_email
-          FROM metrics_annotation_rows
-          WHERE ${matching}
-          -- Document tags have no position; they head their document's group.
-          ORDER BY document_id, start_index NULLS FIRST, end_index, id
-          LIMIT ${input.limit} OFFSET ${input.offset}
-        `.catch((error) => {
+        M.metricsAnnotationPage(ctx.sql, filter, input.limit, input.offset).catch((error) => {
           throw fail("page", error.message);
         }),
-        ctx.sql<{ total: number; spans: number; documents: number }[]>`
-          SELECT count(*)::int AS total,
-                 (count(*) FILTER (WHERE kind = 'span'))::int AS spans,
-                 (count(*) FILTER (WHERE kind = 'document'))::int AS documents
-          FROM metrics_annotation_rows
-          WHERE ${matching}
-        `.catch((error) => {
+        M.metricsAnnotationCounts(ctx.sql, filter).catch((error) => {
           throw fail("count", error.message);
         }),
       ]);
@@ -118,9 +89,7 @@ export const metricsRouter = router({
 
       const documentIds = [...new Set(page.map((row) => row.document_id!))];
       const names = documentIds.length
-        ? await ctx.sql<{ id: number; name: string | null }[]>`
-            SELECT id, name FROM documents WHERE id IN ${ctx.sql(documentIds)}
-          `.catch((error) => {
+        ? await M.documentNames(ctx.sql, documentIds).catch((error) => {
             throw fail("document names", error.message);
           })
         : [];

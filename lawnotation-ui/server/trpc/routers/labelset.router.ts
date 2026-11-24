@@ -1,11 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import type { Labelset } from "~/types";
 import { labelsetEditorOrAnnotatorAuthorizer } from "../authorizers";
 import { validateLabelset } from "vue-labelset-editor/model";
 import { lockedNamesChanged } from "~/server/utils/labelset_lock";
-import type { Context } from "../context";
+import type { Labelset } from "~/types";
+import * as L from "~/server/db/queries/labelsets";
 
 const ZLabelsetFields = z.object({
   name: z.string(),
@@ -29,23 +29,7 @@ function assertValid(labelset: z.infer<typeof ZLabelsetFields>) {
     });
 }
 
-// The one row a query must return, as PostgREST's .single() demanded.
-function one<T>(rows: readonly T[]): T {
-  if (rows.length !== 1) throw new Error(`expected one row, found ${rows.length}`);
-  return rows[0]!;
-}
-
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
-
-type LabelsetUpdates = Partial<z.infer<typeof ZLabelsetFields>>;
-
-// labels is a jsonb column: an array must reach it as JSON, not as a
-// Postgres array.
-function columnValues(sql: Context["sql"], fields: LabelsetUpdates) {
-  const values: Record<string, unknown> = { ...fields };
-  if (fields.labels) values.labels = sql.json(fields.labels as any);
-  return values;
-}
 
 export const labelsetRouter = router({
   /* General Crud Definitions */
@@ -57,23 +41,8 @@ export const labelsetRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const sql = ctx.sql;
-      const matches = Object.entries(columnValues(sql, input.filter ?? {}))
-        .filter(([, value]) => value !== undefined)
-        .map(([column, value]) =>
-          value === null ? sql`AND ${sql(column)} IS NULL` : sql`AND ${sql(column)} = ${value as any}`
-        );
-      const range = input.range
-        ? sql`LIMIT ${Math.max(input.range[1] - input.range[0] + 1, 0)} OFFSET ${input.range[0]}`
-        : sql``;
-
       try {
-        const rows = await sql<Labelset[]>`
-          SELECT * FROM labelsets
-          WHERE editor_id = ${ctx.user.id} ${matches.length ? matches : sql``}
-          ${range}
-        `;
-        return rows as Labelset[];
+        return (await L.labelsetsOfEditor(ctx.sql, ctx.user.id, input.filter, input.range)) as Labelset[];
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -91,7 +60,7 @@ export const labelsetRouter = router({
     )
     .query(async ({ ctx, input: id }) => {
       try {
-        return one(await ctx.sql<Labelset[]>`SELECT * FROM labelsets WHERE id = ${id}`);
+        return await L.labelsetById(ctx.sql, id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -104,14 +73,8 @@ export const labelsetRouter = router({
     .input(ZLabelsetFields)
     .mutation(async ({ ctx, input }) => {
       assertValid(input);
-      const row: Record<string, unknown> = { ...columnValues(ctx.sql, input), editor_id: ctx.user.id };
       try {
-        return one(
-          await ctx.sql<Labelset[]>`
-            INSERT INTO labelsets ${ctx.sql(row, ...Object.keys(row))}
-            RETURNING *
-          `
-        );
+        return await L.insertLabelset(ctx.sql, ctx.user.id, input);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -128,36 +91,18 @@ export const labelsetRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [current] = await ctx.sql<z.infer<typeof ZLabelsetFields>[]>`
-        SELECT name, "desc", labels, relation_labels FROM labelsets
-        WHERE id = ${input.id} AND editor_id = ${ctx.user.id}
-      `;
+      const current = await L.labelsetFieldsOfEditor(ctx.sql, input.id, ctx.user.id);
       if (!current) throw new TRPCError({ code: "NOT_FOUND" });
       const before = current as z.infer<typeof ZLabelsetFields>;
       const after = { ...before, ...input.updates };
       assertValid(after);
 
-      const [{ count }] = await ctx.sql<[{ count: number }]>`
-        SELECT count(*)::int AS count FROM tasks
-        WHERE labelset_id = ${input.id} OR document_labelset_id = ${input.id}
-      `;
+      const count = await L.countTasksUsingLabelset(ctx.sql, input.id);
       const locked = count ? lockedNamesChanged(before, after) : null;
       if (locked) throw new TRPCError({ code: "BAD_REQUEST", message: locked });
 
-      const values = columnValues(ctx.sql, input.updates);
-      const columns = Object.keys(values).filter((column) => values[column] !== undefined);
       try {
-        return one(
-          columns.length
-            ? await ctx.sql<Labelset[]>`
-                UPDATE labelsets SET ${ctx.sql(values, ...columns)}
-                WHERE id = ${input.id} AND editor_id = ${ctx.user.id}
-                RETURNING *
-              `
-            : await ctx.sql<Labelset[]>`
-                SELECT * FROM labelsets WHERE id = ${input.id} AND editor_id = ${ctx.user.id}
-              `
-        );
+        return await L.updateLabelsetOfEditor(ctx.sql, input.id, ctx.user.id, input.updates);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -170,7 +115,7 @@ export const labelsetRouter = router({
     .input(z.number().int())
     .mutation(async ({ ctx, input }) => {
       try {
-        await ctx.sql`DELETE FROM labelsets WHERE id = ${input} AND editor_id = ${ctx.user.id}`;
+        await L.deleteLabelsetOfEditor(ctx.sql, input, ctx.user.id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

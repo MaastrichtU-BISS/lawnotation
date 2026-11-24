@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, disabledProcedure, router } from "~/server/trpc";
-import type { MlModel } from "~/types";
+import * as ML from "~/server/db/queries/ml_models";
 import type { Context } from "../context";
 import { AnnotationLevels } from "~/utils/enums";
 
@@ -17,11 +17,7 @@ const MlModelAuthorizer = async (
   user_id: string,
   ctx: Context
 ) => {
-  const [{ count }] = await ctx.sql<[{ count: number }]>`
-    SELECT count(*)::int AS count FROM ml_models WHERE id = ${ml_model_id}
-  `;
-
-  return count === 1;
+  return ML.mlModelExists(ctx.sql, ml_model_id);
   // return true;
 };
 
@@ -35,9 +31,7 @@ export const mlModelRouter = router({
     )
     .query(async ({ ctx, input: id }) => {
       try {
-        const rows = await ctx.sql<MlModel[]>`SELECT * FROM ml_models WHERE id = ${id}`;
-        if (rows.length !== 1) throw new Error(`expected one row, found ${rows.length}`);
-        return rows[0]!;
+        return await ML.mlModelById(ctx.sql, id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -49,7 +43,7 @@ export const mlModelRouter = router({
   findAll: protectedProcedure
     .query(async ({ ctx }) => {
       try {
-        return await ctx.sql<MlModel[]>`SELECT * FROM ml_models`;
+        return await ML.mlModels(ctx.sql);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

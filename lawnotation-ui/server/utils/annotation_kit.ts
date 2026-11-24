@@ -9,6 +9,22 @@ import type {
 } from "legal-annotation-kit";
 import { AssignmentStatuses, Origins } from "~/utils/enums";
 import type { TaskKinds } from "~/utils/levels";
+import {
+  annotationKindsOfAssignment,
+  deleteAnnotations,
+  insertAnnotationFromKit,
+  setAssignmentConfidence,
+  setAssignmentConfidenceAndStatus,
+  updateAnnotationFromKit,
+} from "~/server/db/queries/annotations";
+import {
+  deleteDocumentRelationsFrom,
+  deleteRelationsOfAnnotations,
+  documentRelationsFrom,
+  insertRelation,
+  linkableAssignmentIds,
+  upsertDocumentRelation,
+} from "~/server/db/queries/relations";
 
 export type DbAnnotation = {
   id: number;
@@ -130,12 +146,7 @@ export async function storeKitAssignment(
     // runtime; this restores it.
     const tx = transaction as unknown as Sql;
     const handled = [...(kinds.spans ? ["span"] : []), ...(kinds.documents ? ["document"] : [])];
-    const existing = handled.length
-      ? await tx<{ id: number; kind: string }[]>`
-          SELECT id::int AS id, kind FROM annotations
-          WHERE assignment_id = ${assignmentId} AND kind IN ${tx(handled)}
-        `
-      : [];
+    const existing = handled.length ? await annotationKindsOfAssignment(tx, assignmentId, handled) : [];
     const previous = new Map(existing.map((a) => [a.id, a.kind]));
 
     type Row = {
@@ -179,13 +190,10 @@ export async function storeKitAssignment(
 
     if (existing.length) {
       const ids = existing.map((a) => a.id);
-      await tx`
-        DELETE FROM annotation_relations
-        WHERE from_id IN ${tx(ids)} OR to_id IN ${tx(ids)}
-      `;
+      await deleteRelationsOfAnnotations(tx, ids);
       const kept = new Set(rows.filter(isExisting).map((r) => r.kitId));
       const dropped = ids.filter((id) => !kept.has(id));
-      if (dropped.length) await tx`DELETE FROM annotations WHERE id IN ${tx(dropped)}`;
+      if (dropped.length) await deleteAnnotations(tx, dropped);
     }
 
     // Span kit id -> the row's id, to point relations at. Only spans have
@@ -194,24 +202,12 @@ export async function storeKitAssignment(
     const stored = new Map<number, number>();
     for (const row of rows) {
       if (isExisting(row)) {
-        await tx`
-          UPDATE annotations
-          SET start_index = ${row.start}, end_index = ${row.end}, text = ${row.text},
-              label = ${row.label}, metadata = ${row.metadata}, confidence_rating = ${row.confidence}
-          WHERE id = ${row.kitId}
-        `;
+        await updateAnnotationFromKit(tx, row.kitId, row);
         if (row.kind === "span") stored.set(row.kitId, row.kitId);
         continue;
       }
-      const [inserted] = await tx<{ id: number }[]>`
-        INSERT INTO annotations
-          (assignment_id, start_index, end_index, text, label, origin, metadata, confidence_rating, kind)
-        VALUES
-          (${assignmentId}, ${row.start}, ${row.end}, ${row.text}, ${row.label},
-           ${Origins.MANUAL}::origins, ${row.metadata}, ${row.confidence}, ${row.kind})
-        RETURNING id::int AS id
-      `;
-      if (row.kind === "span") stored.set(row.kitId, inserted!.id);
+      const id = await insertAnnotationFromKit(tx, assignmentId, row, Origins.MANUAL);
+      if (row.kind === "span") stored.set(row.kitId, id);
     }
 
     if (kinds.spans) {
@@ -220,10 +216,7 @@ export async function storeKitAssignment(
           const from = stored.get(a.id);
           const to = stored.get(r.to);
           if (from === undefined || to === undefined) continue;
-          await tx`
-            INSERT INTO annotation_relations (from_id, to_id, direction, labels)
-            VALUES (${from}, ${to}, ${r.direction}::relation_directions, ${r.labels}::text[])
-          `;
+          await insertRelation(tx, { from_id: from, to_id: to, direction: r.direction, labels: r.labels });
         }
       }
     }
@@ -231,36 +224,25 @@ export async function storeKitAssignment(
     if (kinds.documents) {
       // A link may only point at another document in the same annotator's
       // queue for this task; anything else is dropped rather than stored.
-      const queue = await tx<{ id: number }[]>`
-        SELECT other.id::int AS id
-        FROM assignments AS self
-        INNER JOIN assignments AS other
-          ON (other.task_id = self.task_id AND other.annotator_number = self.annotator_number)
-        WHERE self.id = ${assignmentId} AND other.id <> self.id
-      `;
-      const allowed = new Set(queue.map((q) => q.id));
-      await tx`DELETE FROM document_relations WHERE from_assignment_id = ${assignmentId}`;
+      const allowed = new Set(await linkableAssignmentIds(tx, assignmentId));
+      await deleteDocumentRelationsFrom(tx, assignmentId);
       for (const r of kit.document_relations) {
         const to = Number(r.to);
         if (!allowed.has(to)) continue;
-        await tx`
-          INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)
-          VALUES (${assignmentId}, ${to}, ${r.labels}::text[])
-          ON CONFLICT (from_assignment_id, to_assignment_id) DO UPDATE SET labels = EXCLUDED.labels
-        `;
+        await upsertDocumentRelation(
+          tx,
+          { from_assignment_id: assignmentId, to_assignment_id: to, labels: r.labels },
+          { onConflict: "update" }
+        );
       }
     }
 
     // Status only ever moves forward to done: a plain Save, or an editor
     // reviewing someone's work, must not reopen a finished assignment.
     if (kit.status === AssignmentStatuses.DONE) {
-      await tx`
-        UPDATE assignments
-        SET confidence_rating = ${kit.confidence}, status = ${AssignmentStatuses.DONE}::assignment_status
-        WHERE id = ${assignmentId}
-      `;
+      await setAssignmentConfidenceAndStatus(tx, assignmentId, kit.confidence, AssignmentStatuses.DONE);
     } else {
-      await tx`UPDATE assignments SET confidence_rating = ${kit.confidence} WHERE id = ${assignmentId}`;
+      await setAssignmentConfidence(tx, assignmentId, kit.confidence);
     }
   });
 }
@@ -276,20 +258,14 @@ export async function copyDocumentRelations(
 ): Promise<void> {
   const ids = Object.keys(copies).map(Number);
   if (!ids.length) return;
-  const rows = await sql<DbDocumentRelation[]>`
-    SELECT from_assignment_id::int AS from_assignment_id, to_assignment_id::int AS to_assignment_id,
-           labels::text[] AS labels
-    FROM document_relations
-    WHERE from_assignment_id IN ${sql(ids)}
-  `;
-  for (const r of rows) {
+  for (const r of await documentRelationsFrom(sql, ids)) {
     const from = copies[r.from_assignment_id];
     const to = copies[r.to_assignment_id];
     if (!from || !to) continue;
-    await sql`
-      INSERT INTO document_relations (from_assignment_id, to_assignment_id, labels)
-      VALUES (${from}, ${to}, ${r.labels}::text[])
-      ON CONFLICT (from_assignment_id, to_assignment_id) DO NOTHING
-    `;
+    await upsertDocumentRelation(
+      sql,
+      { from_assignment_id: from, to_assignment_id: to, labels: r.labels },
+      { onConflict: "keep" }
+    );
   }
 }

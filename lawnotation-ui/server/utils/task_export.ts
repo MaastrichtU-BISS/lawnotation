@@ -1,5 +1,13 @@
 import type { Sql } from "~/server/db/client";
 import { documentsOfTask } from "~/server/db/queries/documents";
+import {
+  annotationsOfAssignments,
+  assignmentsWithEmailOfTask,
+  documentRelationsFromAssignments,
+  labelsetForExport,
+  exportRelationsFromAnnotations,
+  taskForExport,
+} from "~/server/db/queries/task_export";
 import type { Label } from "~/types";
 import type { ExportTaskOptions } from "~/utils/io";
 
@@ -76,29 +84,14 @@ export async function buildTaskExportData(
     throw new Error(`Error fetching ${what} for export: ${error.message}`);
   };
 
-  const tasks = await sql<
-    {
-      name: string | null;
-      desc: string | null;
-      ann_guidelines: string | null;
-      annotation_level: string | null;
-      labelset_id: number | null;
-      document_labelset_id: number | null;
-    }[]
-  >`
-    SELECT name, "desc", ann_guidelines, annotation_level, labelset_id, document_labelset_id
-    FROM tasks WHERE id = ${task_id}
-  `.catch(failed("task"));
+  const tasks = await taskForExport(sql, task_id).catch(failed("task"));
   if (tasks.length !== 1)
     throw new Error(`Error fetching task for export: expected one task, found ${tasks.length}`);
   const task = tasks[0]!;
 
   const hybrid = task.document_labelset_id != null && task.annotation_level !== "document";
-  type LabelsetRow = { name: string | null; desc: string | null; labels: unknown; relation_labels: string[] | null };
   const labelsetById = async (id: number | null, what: string) => {
-    const rows = await sql<LabelsetRow[]>`
-      SELECT name, "desc", labels, relation_labels FROM labelsets WHERE id = ${id}
-    `.catch(failed(what));
+    const rows = await labelsetForExport(sql, id).catch(failed(what));
     if (rows.length !== 1) throw new Error(`Error fetching ${what} for export: expected one labelset, found ${rows.length}`);
     return rows[0]!;
   };
@@ -107,63 +100,19 @@ export async function buildTaskExportData(
     labelsetById(task.labelset_id, "labelset"),
     hybrid ? labelsetById(task.document_labelset_id, "document labelset") : null,
     documentsOfTask(sql, task_id).catch(failed("documents")),
-    sql<
-      {
-        id: number;
-        document_id: number | null;
-        annotator_id: string | null;
-        seq_pos: number | null;
-        status: string | null;
-        confidence_rating: number | null;
-        email: string | null;
-      }[]
-    >`
-      SELECT a.id, a.document_id, a.annotator_id, a.seq_pos, a.status, a.confidence_rating, u.email
-      FROM assignments AS a
-      INNER JOIN users AS u ON (u.id = a.annotator_id)
-      WHERE a.task_id = ${task_id}
-      ORDER BY a.id
-    `.catch(failed("assignments")),
+    assignmentsWithEmailOfTask(sql, task_id).catch(failed("assignments")),
   ]);
 
-  // One array parameter carries any number of ids.
   const assignmentIds = assignments.map((a) => a.id);
   const [annotationRows, documentRelations] = await Promise.all([
-    sql<
-      {
-        id: number;
-        assignment_id: number | null;
-        start_index: number | null;
-        end_index: number | null;
-        label: string | null;
-        text: string | null;
-        confidence_rating: number;
-        metadata: string | null;
-        kind: string;
-      }[]
-    >`
-      SELECT id, assignment_id, start_index, end_index, label, text, confidence_rating, metadata, kind
-      FROM annotations
-      WHERE assignment_id = ANY(${assignmentIds}::bigint[])
-      ORDER BY id
-    `.catch(failed("annotations")),
-    sql<{ from_assignment_id: number; to_assignment_id: number; labels: string[] | null }[]>`
-      SELECT from_assignment_id, to_assignment_id, labels
-      FROM document_relations
-      WHERE from_assignment_id = ANY(${assignmentIds}::bigint[])
-      ORDER BY id
-    `.catch(failed("document relations")),
+    annotationsOfAssignments(sql, assignmentIds).catch(failed("annotations")),
+    documentRelationsFromAssignments(sql, assignmentIds).catch(failed("document relations")),
   ]);
 
   // Links start at spans; a hybrid task's document tags have none.
   const spanIds = annotationRows.filter((a) => !(hybrid && a.kind === "document")).map((a) => a.id);
   const relations = withRelations
-    ? await sql<{ from_id: number | null; to_id: number | null; direction: string | null; labels: string[] | null }[]>`
-        SELECT from_id, to_id, direction, labels
-        FROM annotation_relations
-        WHERE from_id = ANY(${spanIds}::bigint[])
-        ORDER BY id
-      `.catch(failed("relations"))
+    ? await exportRelationsFromAnnotations(sql, spanIds).catch(failed("relations"))
     : [];
 
   const documentsById = new Map<number, RichDocument>();

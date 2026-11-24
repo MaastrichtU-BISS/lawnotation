@@ -1,19 +1,11 @@
 import type { Context } from "../context";
+import { isDocumentAnnotator, isDocumentEditor } from "~/server/db/queries/documents";
 
 export const documentEditorAuthorizer = async (
   document_id: number,
   user_id: string,
   ctx: Context
-) => {
-  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
-    select exists (
-      select 1
-      from documents d
-      join projects p on p.id = d.project_id
-      where d.id = ${document_id} and p.editor_id = ${user_id}
-    ) as ok`;
-  return ok;
-}
+) => isDocumentEditor(ctx.sql, document_id, user_id);
 
 export const documentEditorOrAnnotatorAuthorizer = async (
   document_id: number,
@@ -22,11 +14,5 @@ export const documentEditorOrAnnotatorAuthorizer = async (
 ) => {
   const editor = await documentEditorAuthorizer(document_id, user_id, ctx);
   if (editor) return true;
-
-  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
-    select exists (
-      select 1 from assignments
-      where document_id = ${document_id} and annotator_id = ${user_id}
-    ) as ok`;
-  return ok;
+  return isDocumentAnnotator(ctx.sql, document_id, user_id);
 };

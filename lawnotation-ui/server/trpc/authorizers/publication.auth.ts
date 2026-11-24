@@ -1,28 +1,14 @@
 import type { Context } from "../context";
+import { isPublicationEditor, isPublicationViewer } from "~/server/db/queries/publications";
 
 export const publicationViewerAuthorizer = async (
   publication_id: number,
   user_id: string,
   ctx: Context
-) => {
-  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
-    select exists (
-      select 1 from publications
-      where id = ${publication_id}
-        and (editor_id = ${user_id} or status = 'published')
-    ) as ok`;
-  return ok;
-};
+) => isPublicationViewer(ctx.sql, publication_id, user_id);
 
 export const publicationEditorAuthorizer = async (
   publication_id: number,
   user_id: string,
   ctx: Context
-) => {
-  const [{ ok }] = await ctx.sql<[{ ok: boolean }]>`
-    select exists (
-      select 1 from publications
-      where id = ${publication_id} and editor_id = ${user_id}
-    ) as ok`;
-  return ok;
-};
+) => isPublicationEditor(ctx.sql, publication_id, user_id);

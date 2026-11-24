@@ -1,6 +1,13 @@
 import type { H3Event } from "h3";
 import { createServerAuth, type ServerAuth, type SessionRecord } from "caselaw-auth/server";
 import sql, { type Sql } from "~/server/db/client";
+import {
+  insertSignedInUser,
+  sessionUserById,
+  signInLinkedUser,
+  signInUserByEmail,
+  type SessionUserRow,
+} from "~/server/db/queries/users";
 
 /**
  * Sign-in through the shared Keycloak (realm `lawnotation`, which asks for an
@@ -53,14 +60,7 @@ export type AppUser = {
   user_metadata: Record<string, any>;
 };
 
-type UserRow = {
-  id: string;
-  email: string;
-  role: AppUser["role"];
-  metadata: Record<string, any> | null;
-};
-
-const toAppUser = (row: UserRow): AppUser => ({
+const toAppUser = (row: SessionUserRow): AppUser => ({
   id: row.id,
   email: row.email,
   role: row.role ?? "editor",
@@ -84,29 +84,19 @@ export async function resolveUser(sub: string, email: string): Promise<AppUser> 
     // postgres.js types a transaction without the call signature it has at
     // runtime; this restores it.
     const tx = transaction as unknown as Sql;
-    const linked = await tx<UserRow[]>`
-      update users set last_sign_in_at = now()
-      where oidc_sub = ${sub}
-      returning id, email, role, metadata`;
+    const linked = await signInLinkedUser(tx, sub);
     if (linked.length) return linked;
 
-    const claimed = await tx<UserRow[]>`
-      update users set oidc_sub = ${sub}, last_sign_in_at = now()
-      where lower(email) = ${normalized}
-      returning id, email, role, metadata`;
+    const claimed = await signInUserByEmail(tx, sub, normalized);
     if (claimed.length) return claimed;
 
-    return tx<UserRow[]>`
-      insert into users (email, oidc_sub, last_sign_in_at)
-      values (${normalized}, ${sub}, now())
-      returning id, email, role, metadata`;
+    return insertSignedInUser(tx, sub, normalized);
   });
   return toAppUser(row!);
 }
 
 export async function findUserById(id: string): Promise<AppUser | null> {
-  const [row] = await sql<UserRow[]>`
-    select id, email, role, metadata from users where id = ${id}`;
+  const row = await sessionUserById(sql, id);
   return row ? toAppUser(row) : null;
 }
 

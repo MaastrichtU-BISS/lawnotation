@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorizer, protectedProcedure, router } from "~/server/trpc";
-import { type Publication, PublicationStatus } from "~/types";
-import type { Context } from "../context";
+import { PublicationStatus } from "~/types";
+import * as Pub from "~/server/db/queries/publications";
 import { publicationEditorAuthorizer, publicationViewerAuthorizer } from "../authorizers";
 
 const ZPublicationFields = z.object({
@@ -23,16 +23,7 @@ const ZPublicationFields = z.object({
   relations: z.number().int()
 });
 
-// The one row a query must return, as PostgREST's .single() demanded.
-function one<T>(rows: readonly T[]): T {
-  if (rows.length !== 1) throw new Error(`expected one row, found ${rows.length}`);
-  return rows[0]!;
-}
-
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
-
-const publicationById = async (ctx: Context, id: number) =>
-  one(await ctx.sql<Publication[]>`SELECT * FROM publications WHERE id = ${id}`);
 
 export const publicationRouter = router({
 
@@ -45,7 +36,7 @@ export const publicationRouter = router({
     )
     .query(async ({ ctx, input: id }) => {
       try {
-        return await publicationById(ctx, id);
+        return await Pub.publicationById(ctx.sql, id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -63,7 +54,7 @@ export const publicationRouter = router({
     )
     .query(async ({ ctx, input: id }) => {
       try {
-        return await publicationById(ctx, id);
+        return await Pub.publicationById(ctx.sql, id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -75,14 +66,8 @@ export const publicationRouter = router({
   create: protectedProcedure
     .input(ZPublicationFields)
     .mutation(async ({ ctx, input }) => {
-      const row: Record<string, unknown> = { ...input, editor_id: ctx.user.id };
       try {
-        return one(
-          await ctx.sql<Publication[]>`
-            INSERT INTO publications ${ctx.sql(row, ...Object.keys(row))}
-            RETURNING *
-          `
-        );
+        return await Pub.insertPublication(ctx.sql, ctx.user.id, input);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -104,18 +89,8 @@ export const publicationRouter = router({
       )
     )
     .mutation(async ({ ctx, input }) => {
-      const updates: Record<string, unknown> = input.updates;
-      const columns = Object.keys(updates).filter((column) => updates[column] !== undefined);
       try {
-        return columns.length
-          ? one(
-              await ctx.sql<Publication[]>`
-                UPDATE publications SET ${ctx.sql(updates, ...columns)}
-                WHERE id = ${input.id}
-                RETURNING *
-              `
-            )
-          : await publicationById(ctx, input.id);
+        return await Pub.updatePublication(ctx.sql, input.id, input.updates);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -133,7 +108,7 @@ export const publicationRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        await ctx.sql`DELETE FROM publications WHERE id = ${input}`;
+        await Pub.deletePublication(ctx.sql, input);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
