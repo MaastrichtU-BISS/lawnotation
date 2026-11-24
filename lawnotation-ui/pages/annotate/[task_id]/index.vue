@@ -45,7 +45,7 @@ import { documentRelationLabelsOf } from "~/utils/relationLabels";
 import DocumentRelationViews from "~/components/annotator/DocumentRelationViews.vue";
 import { useDocumentRelationViews } from "~/composables/useDocumentRelationViews";
 
-const user = useSupabaseUser();
+const user = useAuthUser();
 // "Read more" and "View as graph" on document relations: the kit only asks, these open the modals.
 const relationViews = useDocumentRelationViews();
 const { $toast, $trpc } = useNuxtApp();

@@ -54,7 +54,7 @@ import Breadcrumb from "~/components/Breadcrumb.vue";
 
 const { $toast, $trpc } = useNuxtApp();
 
-const user = useSupabaseUser();
+const user = useAuthUser();
 
 const route = useRoute();
 const task = await $trpc.task.findById.query(+route.params.task_id);

@@ -71,6 +71,8 @@ export default defineNuxtConfig({
   },
   devtools: { enabled: false },
 
+  // Every value can be set at runtime with its NUXT_ variable, e.g.
+  // NUXT_PUBLIC_BASE_URL, NUXT_AUTH_ISSUER, NUXT_SMTP_URL (see .env.example).
   runtimeConfig: {
     smtpUrl: process.env.SMTP_URL,
     iaaServiceUrl:
@@ -81,16 +83,26 @@ export default defineNuxtConfig({
     iaaApiKey: process.env.IAA_API_KEY,
     // Server-only: never expose this through `public` or a VITE_ variable.
     citationsApiKey: process.env.CITATIONS_API_KEY,
+    // Sign-in through Keycloak (realm lawnotation). Server-only.
+    auth: {
+      issuer: process.env.AUTH_ISSUER || "https://auth.lawnotation.org/realms/lawnotation",
+      clientId: process.env.AUTH_CLIENT_ID || "lawnotation",
+      clientSecret: process.env.AUTH_CLIENT_SECRET || "",
+      sessionSecret: process.env.AUTH_SESSION_SECRET || "",
+    },
     public: {
       mlBackendURL: process.env.MLBACKEND_URL,
+      // Where this deployment is reachable; used for sign-in redirects and
+      // links in emails.
       baseURL:
-        process.env.NODE_ENV === "production"
+        process.env.BASE_URL ||
+        (process.env.NODE_ENV === "production"
           ? "https://app.lawnotation.org"
-          : "http://localhost:3000",
+          : "http://localhost:3000"),
     },
   },
 
-  modules: ["@nuxtjs/supabase", "@nuxtjs/tailwindcss", "@primevue/nuxt-module"],
+  modules: ["@nuxtjs/tailwindcss", "@primevue/nuxt-module"],
 
   primevue: {
     options: {
@@ -114,21 +126,6 @@ export default defineNuxtConfig({
   },
 
   css: ["@/assets/styles/main.scss", "epic-spinners/css", "legal-annotation-kit/style.css"],
-
-  supabase: {
-    redirect: false,
-    // redirectOptions: {
-    //   login: '/auth/login',
-    //   callback: '/auth/validate',
-    //   exclude: ['/auth/validate'],
-    // },
-    clientOptions: {
-      auth: {
-        flowType: "implicit",
-        detectSessionInUrl: true,
-      },
-    },
-  },
 
   vite: {
     optimizeDeps: {

@@ -41,9 +41,8 @@
 import type { Assignment } from "~/types/assignment";
 import IndexCard from "~/components/IndexCard.vue";
 
-const user = useSupabaseUser();
+const user = useAuthUser();
 
-const supa = useSupabaseClient();
 const role = ref<string>();
 
 const { $trpc } = useNuxtApp();
@@ -55,7 +54,7 @@ onMounted(async () => {
   if (user.value?.user_metadata?.assigned_task_id) {
     alert_assigned_task_id.value = user.value?.user_metadata?.assigned_task_id;
     await $trpc.user.clearInviteMetadata.mutate();
-    supa.auth.refreshSession()
+    await refreshAuthUser();
   }
 
   $trpc.assignment.findNextAssignmentByUser.query().then((result) => {

@@ -450,7 +450,7 @@ import { watch } from 'vue';
 
 const { $toast, $trpc } = useNuxtApp();
 
-const user = useSupabaseUser();
+const user = useAuthUser();
 
 const route = useRoute();
 // Independent of each other, so asked for together rather than one by one.

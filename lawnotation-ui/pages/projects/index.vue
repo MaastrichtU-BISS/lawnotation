@@ -69,7 +69,7 @@ import { GuidanceSteps } from "~/utils/enums";
 
 const projectTable = ref<InstanceType<typeof Table> | null>();
 
-const user = useSupabaseUser();
+const user = useAuthUser();
 const { $toast, $trpc } = useNuxtApp();
 
 const new_project = reactive<Omit<Project, "id">>({

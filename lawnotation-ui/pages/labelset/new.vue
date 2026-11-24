@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import Breadcrumb from "~/components/Breadcrumb.vue";
 import Labelset from "~/components/labels/Labelset.vue";
-const user = useSupabaseUser();
+const user = useAuthUser();
 
 const labelset = ref({
   editor_id: user.value?.id,

@@ -48,7 +48,7 @@
 import { type Publication, PublicationStatus } from "~/types";
 import Table from "@/components/Table.vue";
 
-const user = useSupabaseUser();
+const user = useAuthUser();
 
 const publicationTable = ref<InstanceType<typeof Table> | null>();
 

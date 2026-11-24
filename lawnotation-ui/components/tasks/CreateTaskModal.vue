@@ -223,7 +223,7 @@ const emit = defineEmits<{
 }>();
 
 const { $toast, $trpc } = useNuxtApp();
-const user = useSupabaseUser();
+const user = useAuthUser();
 
 const models = ref<MlModel[]>(await $trpc.mlModel.findAll.query());
 const labelsets = ref(await $trpc.labelset.find.query({}));

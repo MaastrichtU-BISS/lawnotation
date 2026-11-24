@@ -136,10 +136,8 @@
 import type Menu from 'primevue/menu';
 import type TieredMenu from 'primevue/tieredmenu';
 
-const supabase = useSupabaseClient()
-const user = useSupabaseUser();
+const user = useAuthUser();
 
-const supa = useSupabaseClient();
 
 const { $trpc } = useNuxtApp();
 
@@ -158,14 +156,10 @@ const routeIsActive = computed(() => (match: string) => {
   return route.path.startsWith(match);
 });
 
-const signOut = async () => {
-  await supabase.auth.signOut()
-  navigateTo('/auth/login');
-}
 
 const toggleGuidance = async () => {
   await $trpc.user.setGuidance.mutate(!guidanceIsVisible.value);
-  supa.auth.refreshSession();
+  await refreshAuthUser();
 }
 </script>
 

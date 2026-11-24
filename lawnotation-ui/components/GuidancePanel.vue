@@ -31,8 +31,7 @@ import { guidancePanel } from "~/utils/guidance";
 import { GuidanceSteps } from "~/utils/enums";
 
 const { $trpc } = useNuxtApp();
-const user = useSupabaseUser();
-const supa = useSupabaseClient();
+const user = useAuthUser();
 
 const props = defineProps<{
     currentStep: GuidanceSteps
@@ -59,7 +58,7 @@ const isVisible = computed(() => {
 
 const hide = async () => {
     await $trpc.user.setGuidance.mutate(false);
-    supa.auth.refreshSession();
+    await refreshAuthUser();
 };
 
 

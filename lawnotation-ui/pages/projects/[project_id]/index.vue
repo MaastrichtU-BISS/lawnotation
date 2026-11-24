@@ -170,7 +170,7 @@ const { $toast, $trpc } = useNuxtApp();
 
 const { project } = usePage<{ project: Project }>().value;
 
-const user = useSupabaseUser();
+const user = useAuthUser();
 
 const route = useRoute();
 

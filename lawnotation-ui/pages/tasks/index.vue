@@ -25,7 +25,7 @@
 import type { Task } from "~/types";
 import { taskLevelLabel } from "~/utils/levels";
 
-const user = useSupabaseUser();
+const user = useAuthUser();
 
 definePageMeta({
   middleware: ["auth"],

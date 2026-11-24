@@ -139,7 +139,7 @@ import Breadcrumb from "~/components/Breadcrumb.vue";
 
 
 const { $trpc } = useNuxtApp();
-const user = useSupabaseUser();
+const user = useAuthUser();
 const route = useRoute();
 const publication = ref<Publication>();
 

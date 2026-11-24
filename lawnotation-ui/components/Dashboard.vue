@@ -80,7 +80,7 @@ import CountUp from "vue-countup-v3";
 
 const { $trpc } = useNuxtApp();
 
-const user = useSupabaseUser();
+const user = useAuthUser();
 
 const projectsCount = ref<number>(0);
 const tasksCount = ref<number>(0);

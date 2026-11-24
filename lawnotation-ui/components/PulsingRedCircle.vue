@@ -5,7 +5,7 @@
     </span>
 </template>
 <script setup lang="ts">
-const user = useSupabaseUser();
+const user = useAuthUser();
 
 const guidanceIsVisible = computed(() => {
     return user.value?.user_metadata?.guidanceStatus != false;
