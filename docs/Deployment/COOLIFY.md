@@ -58,7 +58,7 @@ subscriptions, and no Vercel cron jobs, so nothing else had to move.
 | `LAWNOTATION_URL`, `AUTH_ISSUER`, `AUTH_CLIENT_ID`, `IAA_SERVICE_URL` | empty = the compose defaults (`https://next.lawnotation.org`, the lawnotation realm, `lawnotation`, `https://iaa.lawnotation.org`) |
 | `NOINDEX` | empty = `true`: every response has `X-Robots-Tag: noindex, nofollow` and `/robots.txt` disallows everything. Set `false` when this becomes the public `app.lawnotation.org` |
 | `SMTP_URL` | empty: no app emails (assignment/invitation notices). Sign-in codes are sent by Keycloak and don't need it |
-| `CITATIONS_API_KEY` | empty for now: legal-docs search (Rechtspraak/ECHR import) is unavailable until it is set |
+| `CITATIONS_API_KEY` | the Case Law Explorer API key for Lawnotation (runtime only), used by the legal-docs search (Rechtspraak/ECHR import) |
 
 ### Keycloak
 
