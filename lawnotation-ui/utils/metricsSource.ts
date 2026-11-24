@@ -1,12 +1,12 @@
 import type {
   AnnotationFilters,
+  AnnotationPage,
   DocumentOption,
   IaaInputData,
   IaaMetricsResponse,
-  IaaParams,
   LabelOption,
   MetricsSource,
-  RichAnnotation,
+  PageRequest,
 } from "vue-iaa-metrics";
 
 // Implements vue-iaa-metrics' MetricsSource against Lawnotation's existing
@@ -46,7 +46,7 @@ export function createMetricsSource(taskId: number): MetricsSource {
       return docs.map((d) => ({ value: d.id.toString(), label: `${d.id} - ${d.name}` }));
     },
 
-    async getAnnotations(filters: AnnotationFilters): Promise<RichAnnotation[]> {
+    async getAnnotations(filters: AnnotationFilters, page: PageRequest): Promise<AnnotationPage> {
       return $trpc.metrics.get_annotations.query({
         task_id: taskId,
         labels: filters.labels,
@@ -55,6 +55,8 @@ export function createMetricsSource(taskId: number): MetricsSource {
         no_document_labels: filters.noDocumentLabels,
         documents: filters.documents.map(Number),
         annotators: filters.annotators,
+        offset: page.offset,
+        limit: page.limit,
       });
     },
 
@@ -62,18 +64,18 @@ export function createMetricsSource(taskId: number): MetricsSource {
       return $trpc.metrics.get_input_data.query({ task_id: taskId });
     },
 
-    async computeMetrics(input: IaaInputData, params: IaaParams): Promise<IaaMetricsResponse> {
+    async computeMetrics(input: IaaInputData): Promise<IaaMetricsResponse> {
       return $fetch<IaaMetricsResponse>("/api/iaa/metrics", {
         method: "POST",
-        body: JSON.stringify({ input, ...params }),
+        body: JSON.stringify({ input }),
         timeout: 300000, // 5 minutes
       });
     },
 
-    async downloadReport(input: IaaInputData, params: IaaParams): Promise<Blob> {
+    async downloadReport(input: IaaInputData): Promise<Blob> {
       return $fetch<Blob>("/api/iaa/report-zip", {
         method: "POST",
-        body: JSON.stringify({ input, ...params }),
+        body: JSON.stringify({ input }),
         timeout: 300000, // 5 minutes
         responseType: "blob",
       });

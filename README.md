@@ -54,10 +54,10 @@ In document and hybrid tasks the annotator can link a document to other document
 How the work is split between the packages: `legal-annotation-kit` (1.8.0 or later) only *emits* `view-document` and `view-relation-graph` requests, and only offers the buttons when the host opts in (`preview-documents` / `relation-graph`). Lawnotation decides what they do: it loads the text with `annotator.documentPreview` and the queue's relations with `annotator.relationGraph`, and draws the graph with the generic `NetworkGraph` of `vue-legal-docs-visualizer` (1.3.0 or later), which takes plain nodes and edges and knows nothing about legal documents. The wiring lives in `composables/useDocumentRelationViews.ts` and `components/annotator/DocumentRelationViews.vue`; turning the queue into graph input is the tested function `toRelationGraph` in `utils/relationGraph.ts`. Both endpoints are authorized like opening the assignment itself.
 
 ### Metrics for a hybrid task
-The metrics page (`vue-iaa-metrics` 1.4.0 or later) shows:
+The metrics page (`vue-iaa-metrics` 2.0.0 or later) shows:
 - one annotation list with both kinds, each card marked **SPAN** or **DOCUMENT** (document cards also have an indigo bar and a tinted background) and a header such as `Annotations: 11 (5 span · 6 document)`;
 - two label filters, **Span label(s)** and **Document label(s)**. Each also offers **None**, which leaves that kind out of the list and of the computed metrics, for example to look at document tags only;
-- agreement results with a **Span labels / Document labels** switch. Span labels get span matching (precision, recall, F1) and coverage agreement; document labels get agreement on whether each annotator applied the label to the document at all (Krippendorff's α, Cohen's κ). Confidence metrics are unchanged.
+- agreement results with a **Span labels / Document labels** switch. Span labels get span matching (strict and lenient F1) and coverage agreement; document labels get agreement on whether each annotator applied the label to the document at all (Krippendorff's α, Cohen's κ). Confidence metrics are unchanged.
 
 These are computed by the IAA service ([lawnotation-iaa](https://github.com/MaastrichtU-BISS/lawnotation-iaa), a Go service), which must be a version that understands hybrid input (`annotation_level: "hybrid"`). The Lawnotation server sends it the two labelsets and each assignment's spans and document tags.
 
@@ -130,6 +130,12 @@ An existing installation needs, in this order:
 3. **The application**, with `legal-annotation-kit` `^1.7.0` and `vue-iaa-metrics` `^1.4.0` (already set in `lawnotation-ui/package.json`).
 
 The IAA service is configured with `IAA_SERVICE_URL` and `IAA_API_KEY` in `.env`.
+
+### Upgrading to the redesigned metrics
+The metrics page moved to `vue-iaa-metrics` 2.0.0 (per-label agreement, confidence, suggestions, `report.pdf` in Download All, and an annotation list that loads 1,000 at a time). An existing installation needs:
+1. **The database migration** `20261119100000_metrics_annotation_rows.sql`, applied with `pnpm supabase db push`. It adds the view the annotation list pages through, readable by the service role only. Apply it before, or together with, the new application.
+2. **The IAA service** at the redesigned version (`ghcr.io/maastrichtu-biss/lawnotation-iaa`, built from `main`). Its responses have a new shape that the previous metrics page cannot read, so deploy it together with the application, or run it apart and point the new application's `IAA_SERVICE_URL` at it.
+3. **The application**, with `vue-iaa-metrics` `^2.0.0` (already set in `lawnotation-ui/package.json`).
 
 ## Development
 The setup for developing is equivalent to that of self-hosting. The main difference is that Supabase is ran locally instead of remote, and that Nuxt's development server is started instead of its production server. To do this:

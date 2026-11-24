@@ -203,7 +203,7 @@ export const tableRouter = router({
   'assignments': createTableProcedure({
     type: 'supabase_table',
     from: 'assignments',
-    select: 'id, task_id, status, difficulty_rating, seq_pos, annotator_number, origin, annotator:users(id, email), document:documents!inner(id, name, source)',
+    select: 'id, task_id, status, confidence_rating, seq_pos, annotator_number, origin, annotator:users(id, email), document:documents!inner(id, name, source)',
     authorizer: {
       filter_key: 'task_id',
       resolver: taskEditorAuthorizer
@@ -220,7 +220,7 @@ export const tableRouter = router({
   'assignedAssignments': createTableProcedure({
     type: 'supabase_table',
     from: 'assignments',
-    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, difficulty_rating, seq_pos',
+    select: 'id, task_id, annotator:users!inner (id, email), document:documents!inner (id, name, source), status, confidence_rating, seq_pos',
     filter: ({ctx}) => ({
       'annotator.id': ctx.user?.id,
       status: 'done'

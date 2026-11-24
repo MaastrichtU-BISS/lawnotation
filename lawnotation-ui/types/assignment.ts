@@ -7,7 +7,7 @@ export type Assignment = {
   document_id: number;
   status: AssignmentStatuses;
   seq_pos: number;
-  difficulty_rating: number;
+  confidence_rating: number;
   annotator_number: number;
   origin: Origins;
   original_task_id?: number;
@@ -28,7 +28,7 @@ export type AssignmentTableData = {
   };
   status: AssignmentStatuses;
   seq_pos: number;
-  difficulty_rating: number;
+  confidence_rating: number;
   annotator_number: number;
   origin: Origins
 };

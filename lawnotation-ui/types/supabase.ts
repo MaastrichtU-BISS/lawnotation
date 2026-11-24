@@ -131,7 +131,7 @@ export type Database = {
           annotator_id: string | null
           annotator_number: number
           created_at: string | null
-          difficulty_rating: number | null
+          confidence_rating: number | null
           document_id: number | null
           id: number
           origin: Database["public"]["Enums"]["origins"] | null
@@ -144,7 +144,7 @@ export type Database = {
           annotator_id?: string | null
           annotator_number?: number
           created_at?: string | null
-          difficulty_rating?: number | null
+          confidence_rating?: number | null
           document_id?: number | null
           id?: number
           origin?: Database["public"]["Enums"]["origins"] | null
@@ -157,7 +157,7 @@ export type Database = {
           annotator_id?: string | null
           annotator_number?: number
           created_at?: string | null
-          difficulty_rating?: number | null
+          confidence_rating?: number | null
           document_id?: number | null
           id?: number
           origin?: Database["public"]["Enums"]["origins"] | null
@@ -554,7 +554,38 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      metrics_annotation_rows: {
+        Row: {
+          annotator_email: string | null
+          confidence_rating: number | null
+          document_id: number | null
+          end_index: number | null
+          id: number | null
+          kind: string | null
+          label: string | null
+          metadata: string | null
+          original_task_id: number | null
+          start_index: number | null
+          task_id: number | null
+          text: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_all_annotator_tasks: {
@@ -669,12 +700,12 @@ export type Database = {
         }
         Returns: number
       }
-      get_difficulties_by_editor: {
+      get_confidences_by_editor: {
         Args: {
           e_id: string
         }
         Returns: {
-          difficulty: number
+          confidence: number
           count: number
         }[]
       }
@@ -695,7 +726,7 @@ export type Database = {
           annotator_id: string | null
           annotator_number: number
           created_at: string | null
-          difficulty_rating: number | null
+          confidence_rating: number | null
           document_id: number | null
           id: number
           origin: Database["public"]["Enums"]["origins"] | null

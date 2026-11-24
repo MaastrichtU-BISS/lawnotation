@@ -22,7 +22,7 @@ export function toIaaInputData(data: TaskExportData): IaaInputData {
       full_text: doc.full_text,
       assignments: doc.assignments.map((ass) => ({
         annotator: ass.annotator_email,
-        difficulty_rating: ass.difficulty_rating,
+        confidence_rating: ass.confidence_rating,
         annotations: ass.annotations.map((ann) => ({
           start: ann.start,
           end: ann.end,

@@ -142,8 +142,8 @@
                           <div class="flex items-center gap-3 shrink-0">
                             <Badge :value="node.data.status"
                               :severity="node.data.status == 'done' ? 'success' : 'danger'" class="capitalize px-2" />
-                            <Badge severity="yellow" class="px-2 whitespace-nowrap" v-if="node.data.difficulty_rating > 0">
-                              <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
+                            <Badge severity="yellow" class="px-2 whitespace-nowrap" v-if="node.data.confidence_rating > 0">
+                              <i class="pi pi-star" /> {{ node.data.confidence_rating }}
                             </Badge>
                           </div>
                           <div class="flex items-center gap-3 shrink-0">
@@ -250,8 +250,8 @@
                             <Badge :value="node.data.status"
                               :severity="node.data.status == AssignmentStatuses.DONE ? 'success' : 'danger'"
                               class="capitalize px-2" />
-                            <Badge severity="yellow" class="px-2 whitespace-nowrap" v-if="node.data.difficulty_rating > 0">
-                              <i class="pi pi-star" /> {{ node.data.difficulty_rating }}
+                            <Badge severity="yellow" class="px-2 whitespace-nowrap" v-if="node.data.confidence_rating > 0">
+                              <i class="pi pi-star" /> {{ node.data.confidence_rating }}
                             </Badge>
                           </div>
                           <div class="flex items-center gap-3 shrink-0">

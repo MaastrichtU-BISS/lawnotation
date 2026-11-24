@@ -256,8 +256,8 @@ const chartDifficultyOptions = ref({
   labels: ["Unrated", "1-star", "2-stars", "3-stars", "4-stars", "5-stars"],
   colors: difficultyColors,
 });
-const chartDifficultySeries = reactive<number[]>([0, 0, 0, 0, 0, 0]);
-const chartDifficultyAverage = ref<number>(0);
+const chartConfidenceSeries = reactive<number[]>([0, 0, 0, 0, 0, 0]);
+const chartConfidenceAverage = ref<number>(0);
 const chartCompletionOptions = ref({
   chart: {
     type: "donut",
@@ -461,7 +461,7 @@ onMounted(async () => {
     documentsCount.value = result!;
   })
 
-  $trpc.assignment.getDifficultiesByEditor.query().then((result) => {
+  $trpc.assignment.getConfidencesByEditor.query().then((result) => {
     result.map((r) => {
       chartDifficultySeries[r.difficulty] = (chartDifficultySeries[r.difficulty] ?? 0) + r.count;
       chartDifficultyAverage.value += r.difficulty * r.count;
@@ -473,7 +473,7 @@ onMounted(async () => {
     chartDifficultyOptions.value = {
       ...chartDifficultyOptions.value,
       subtitle: {
-        text: `Average: ${chartDifficultyAverage.value.toFixed(2)}`,
+        text: `Average: ${chartConfidenceAverage.value.toFixed(2)}`,
         align: "center",
       },
     };

@@ -1,10 +1,12 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { protectedProcedure, router, authorizer } from '~/server/trpc'
-import { sortByDocumentAndRange, type RichAnnotation, type IaaInputData } from 'vue-iaa-metrics';
+import type { AnnotationPage, RichAnnotation, IaaInputData } from 'vue-iaa-metrics';
 import { taskEditorAuthorizer } from '../authorizers';
 import { buildTaskExportData } from '~/server/utils/task_export';
 import { toIaaInputData } from '~/server/utils/iaa';
+import { hybridKindFilter } from '~/server/utils/annotation_kind_filter';
+import { fetchRowsByIds } from '~/server/utils/fetch_all_rows';
 import { isHybrid } from '~/utils/levels';
 
 export const metricsRouter = router({
@@ -20,10 +22,14 @@ export const metricsRouter = router({
       )
     )
     .query(async ({ ctx, input }): Promise<IaaInputData> => {
-      const data = await buildTaskExportData(ctx.supabase, input.task_id);
+      const data = await buildTaskExportData(ctx.supabase, input.task_id, { relations: false });
       return toIaaInputData(data);
     }),
 
+  // One page of the filtered annotation list, in display order (by document,
+  // then position), with how many match in all. Reads metrics_annotation_rows,
+  // which reaches the task's annotations through its assignments; see the
+  // migration that creates it.
   get_annotations: protectedProcedure
     .input(
       z.object({
@@ -38,6 +44,8 @@ export const metricsRouter = router({
         documents: z.array(z.number()).optional(),
         annotators: z.array(z.string()).optional(),
         intra: z.boolean().default(false),
+        offset: z.number().int().min(0).default(0),
+        limit: z.number().int().min(1).max(1000).default(1000),
       })
     )
     .use((opts) =>
@@ -53,62 +61,82 @@ export const metricsRouter = router({
         .single();
       const hybrid = !!task && isHybrid(task as any);
 
-      let query = ctx.supabase
-        .from("annotations")
-        .select(
-          "id, start_index, end_index, label, text, confidence_rating, metadata, kind, assignment:assignments!inner(task_id, document_id, original_task_id, document:documents(id, name), annotator:users!inner(email))"
-        )
-        .eq("assignments.task_id", input.task_id);
+      const kindFilter = hybrid ? hybridKindFilter(input) : null;
+      if (kindFilter === "nothing")
+        return { annotations: [], total: 0, kinds: { spans: 0, documents: 0 } };
 
-      // A hybrid task has two labelsets, each filtered on its own kind of
-      // annotation below; otherwise there is one labelset for everything.
-      if (input.labels?.length && !hybrid) query = query.in("label", input.labels);
+      // Applied alike to the page and to the per-kind counts.
+      const matching = <Q extends { eq: Function; in: Function; or: Function }>(query: Q): Q => {
+        let q = query.eq("task_id", input.task_id);
+        if (input.documents?.length) q = q.in("document_id", input.documents);
+        if (input.annotators?.length) q = q.in("annotator_email", input.annotators);
+        if (!hybrid && input.labels?.length) q = q.in("label", input.labels);
+        if (kindFilter) q = q.or(kindFilter);
+        return q;
+      };
 
-      if (input.documents?.length)
-        query = query.in("assignments.document_id", input.documents);
-
-      if (input.annotators?.length)
-        query = query.in("assignments.users.email", input.annotators);
-
-      const { data, error } = await query;
-
-      if (error)
-        throw new TRPCError({
+      const fail = (what: string, message: string) =>
+        new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Error in metrics.get_annotations: ${error.message}`,
+          message: `Error in metrics.get_annotations (${what}): ${message}`,
         });
 
-      const spanLabels = new Set(input.labels ?? []);
-      const tagLabels = new Set(input.document_labels ?? []);
-      const wanted = data.filter((ann) => {
-        if (!hybrid) return true;
-        const tags = ann.kind === "document";
-        if (tags ? input.no_document_labels : input.no_span_labels) return false;
-        const selected = tags ? tagLabels : spanLabels;
-        return !selected.size || selected.has(ann.label!);
-      });
+      const countOf = async (kind: "span" | "document") => {
+        const { count, error } = await matching(
+          ctx.supabase.from("metrics_annotation_rows").select("id", { count: "exact", head: true })
+        ).eq("kind", kind);
+        if (error) throw fail("count", error.message);
+        return count ?? 0;
+      };
 
-      const annotations = wanted.map((ann) => {
-        return {
-          start: ann.start_index!,
-          end: ann.end_index!,
-          text: ann.text!,
-          label: ann.label!,
-          annotator: input.intra
-            ? `${ann.assignment!.original_task_id}-${ann.assignment!.annotator!.email}`
-            : ann.assignment!.annotator!.email!,
-          ann_id: ann.id,
-          doc_id: String(ann.assignment!.document_id),
-          doc_name: ann.assignment!.document!.name ?? undefined,
-          confidence: ann.confidence_rating,
-          metadata: ann.metadata ?? undefined,
-          ...(hybrid ? { kind: ann.kind === "document" ? "document" : "span" } : {}),
-        } satisfies RichAnnotation;
-      });
+      const [page, kinds] = await Promise.all([
+        matching(
+          ctx.supabase
+            .from("metrics_annotation_rows")
+            .select(
+              "id, start_index, end_index, label, text, confidence_rating, metadata, kind, document_id, original_task_id, annotator_email",
+              { count: "exact" }
+            )
+        )
+          .order("document_id")
+          // Document tags have no position; they head their document's group.
+          .order("start_index", { nullsFirst: true })
+          .order("end_index")
+          .order("id")
+          .range(input.offset, input.offset + input.limit - 1),
+        hybrid
+          ? Promise.all([countOf("span"), countOf("document")]).then(([spans, documents]) => ({ spans, documents }))
+          : undefined,
+      ]);
+      if (page.error) throw fail("page", page.error.message);
 
-      sortByDocumentAndRange(annotations);
+      const documentIds = [...new Set(page.data.map((row) => row.document_id!))];
+      const names = await fetchRowsByIds(documentIds, (ids, from, to) =>
+        ctx.supabase.from("documents").select("id, name").in("id", ids).order("id").range(from, to)
+      );
+      if (names.error) throw fail("document names", names.error.message);
+      const nameOf = new Map(names.data.map((d) => [d.id, d.name]));
 
-      return annotations;
+      const annotations = page.data.map(
+        (row) =>
+          ({
+            start: row.start_index!,
+            end: row.end_index!,
+            text: row.text!,
+            label: row.label!,
+            annotator: input.intra
+              ? `${row.original_task_id}-${row.annotator_email}`
+              : row.annotator_email!,
+            ann_id: row.id!,
+            doc_id: String(row.document_id),
+            doc_name: nameOf.get(row.document_id!) ?? undefined,
+            confidence: row.confidence_rating!,
+            metadata: row.metadata ?? undefined,
+            ...(hybrid ? { kind: row.kind === "document" ? "document" : "span" } : {}),
+          }) satisfies RichAnnotation
+      );
+
+      return { annotations, total: page.count ?? annotations.length, ...(kinds ? { kinds } : {}) } satisfies AnnotationPage;
     }),
 })
 

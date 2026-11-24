@@ -92,7 +92,7 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
       sortable: true,
     },
     Confidence: {
-      field: "difficulty_rating",
+      field: "confidence_rating",
       sortable: true,
     },
     Action: null,
@@ -130,7 +130,7 @@ export const tableColumns: Record<keyof AppRouter['table']['_def']['procedures']
       sortable: true,
     },
     Confidence: {
-      field: 'difficulty_rating',
+      field: 'confidence_rating',
       sortable: true,
     },
     Action: null
