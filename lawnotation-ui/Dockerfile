@@ -21,10 +21,12 @@ RUN pnpm build \
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
+# psql, for loading a legacy Supabase backup (scripts/restore-legacy-backup.sh).
+RUN apk add --no-cache postgresql17-client
 COPY --from=build /app/.output ./.output
 # The migration runner needs only the postgres driver (no dependencies of its own).
 COPY --from=build /tmp/postgres ./node_modules/postgres
-COPY scripts/migrate.mjs scripts/import-legacy.mjs ./scripts/
+COPY scripts/migrate.mjs scripts/import-legacy.mjs scripts/restore-legacy-backup.sh ./scripts/
 COPY db ./db
 USER node
 EXPOSE 3000

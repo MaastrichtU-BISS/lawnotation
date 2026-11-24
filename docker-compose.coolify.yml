@@ -54,20 +54,40 @@ services:
     environment:
       DATABASE_URL: postgres://lawnotation:${SERVICE_PASSWORD_POSTGRES}@db:5432/lawnotation
 
-  # One-shot: copies the legacy Supabase data in, replacing what is here, when
-  # LEGACY_DATABASE_URL is set and LEGACY_IMPORT_RUN names a run that hasn't
-  # completed yet; otherwise exits at once. See scripts/import-legacy.mjs and
-  # docs/Deployment/COOLIFY.md ("Moving the legacy data").
+  # One-shot pair that copies the legacy Supabase data in, replacing what is
+  # here. Both exit at once unless LEGACY_IMPORT_RUN names a run that hasn't
+  # completed yet (public.legacy_imports) and a source is set: a Supabase
+  # backup download link (LEGACY_DUMP_URL), which legacy-restore loads into the
+  # scratch database legacy_restore, or a live database (LEGACY_DATABASE_URL).
+  # See scripts/import-legacy.mjs and docs/Deployment/COOLIFY.md.
+  legacy-restore:
+    build:
+      context: lawnotation-ui
+    command: ["sh", "scripts/restore-legacy-backup.sh"]
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: db
+      PGUSER: lawnotation
+      PGDATABASE: lawnotation
+      PGPASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      LEGACY_DUMP_URL: ${LEGACY_DUMP_URL:-}
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-}
+      LEGACY_IMPORT_RUN: ${LEGACY_IMPORT_RUN:-}
+
   legacy-import:
     build:
       context: lawnotation-ui
     command: ["node", "scripts/import-legacy.mjs"]
     restart: "no"
     depends_on:
-      migrate:
+      legacy-restore:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: postgres://lawnotation:${SERVICE_PASSWORD_POSTGRES}@db:5432/lawnotation
+      LEGACY_DUMP_URL: ${LEGACY_DUMP_URL:-}
       LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-}
       LEGACY_IMPORT_RUN: ${LEGACY_IMPORT_RUN:-}
 

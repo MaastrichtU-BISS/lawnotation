@@ -122,33 +122,53 @@ the account to the seeded row.
 
 ## Moving the legacy data
 
-The `legacy-import` service (`lawnotation-ui/scripts/import-legacy.mjs`) copies
-the Supabase database into this one. It reads the legacy database in one
-read-only snapshot (nothing is written there) and, in one transaction here:
+Two one-shot services copy the Supabase data into this database. The source
+is one of Supabase's daily backups (Pro plan: Database → Backups → Scheduled,
+"Download"), so the legacy project is only read and needs no database
+password:
+
+1. `legacy-restore` (`lawnotation-ui/scripts/restore-legacy-backup.sh`)
+   downloads the backup from its signed link and loads only its `postgres`
+   database (no roles, no other databases) into a scratch database
+   `legacy_restore` on this server. About 450 statements about Supabase's own
+   roles and extensions are skipped, as expected.
+2. `legacy-import` (`lawnotation-ui/scripts/import-legacy.mjs`) reads that
+   copy in one read-only snapshot and, in one transaction here:
 empties the application tables, copies every table of the legacy public
 schema (the columns both sides have; `documents.hash` recomputes itself),
 fills `users.created_at`, `last_sign_in_at` and the app's metadata keys from
 `auth.users`, copies the `legacy_backup` schema, moves the id sequences on and
-compares row counts. Any failure rolls the whole run back. `users.oidc_sub`
-stays empty; each person's first Keycloak sign-in links their row by email.
+compares row counts. Any failure rolls the whole run back (the scratch copy
+is then kept to look into; after a successful run it is removed).
+`users.oidc_sub` stays empty; each person's first Keycloak sign-in links their
+row by email.
 
-To run it, set in Coolify and deploy:
+To run it, set in Coolify (runtime only, not build time) and deploy:
 
 | Variable | Value |
 |---|---|
-| `LEGACY_DATABASE_URL` | `postgresql://postgres.aukazbmquapjrmbhefkc:<password, URL-encoded>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require` (session pooler: IPv4, allows a long read-only transaction) |
-| `LEGACY_IMPORT_RUN` | a new label, e.g. `2026-11-24` |
+| `LEGACY_DUMP_URL` | the backup's signed download link (what "Download" opens; valid 5 hours, treat it as a secret: it gives the whole database) |
+| `LEGACY_IMPORT_RUN` | a new label, e.g. `2026-11-24-backup` |
 
-The service runs on every deploy but does nothing unless `LEGACY_IMPORT_RUN`
+Alternatively `LEGACY_DATABASE_URL` (the Supabase session pooler,
+`postgresql://postgres.aukazbmquapjrmbhefkc:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require`)
+reads the live database instead of a backup; it takes precedence.
+
+Both services run on every deploy but do nothing unless `LEGACY_IMPORT_RUN`
 names a run that isn't in `public.legacy_imports` yet. **A new label replaces
-everything created on this deployment since the last import.** Remove both
+everything created on this deployment since the last import.** Remove the
 variables once the data has moved for good.
+
+A backup is from around 01:00 UTC, so for the final move freeze writes on the
+old app in the evening and import the next night's backup (or use the live
+database with its password).
 
 ## Later: switching app.lawnotation.org over
 
 1. Announce a short write freeze on the old app (or put it in maintenance).
 2. Import the Keycloak accounts created since (above), then set a new
-   `LEGACY_IMPORT_RUN` and deploy, so the final data comes over.
+   `LEGACY_DUMP_URL` (a backup taken after the freeze) and `LEGACY_IMPORT_RUN`
+   and deploy, so the final data comes over.
 3. Point `app.lawnotation.org` at rice (Vercel DNS), set
    `LAWNOTATION_URL=https://app.lawnotation.org` and `NOINDEX=false`, add
    `https://app.lawnotation.org/api/auth/callback` to the Keycloak client,

@@ -6,6 +6,11 @@
 //   LEGACY_DATABASE_URL=postgres://...supabase...  DATABASE_URL=postgres://...
 //   LEGACY_IMPORT_RUN=<any new label>  node scripts/import-legacy.mjs
 //
+// Instead of a live database it can read a Supabase daily backup: with
+// LEGACY_DUMP_URL set (and no LEGACY_DATABASE_URL), the legacy-restore service
+// has loaded that backup into the scratch database legacy_restore on this
+// server, which this script reads and afterwards removes.
+//
 // It runs as the one-shot `legacy-import` service on every deploy, but only
 // does something when both variables are set and LEGACY_IMPORT_RUN names a
 // run that hasn't completed yet (public.legacy_imports). So: set a new label
@@ -25,12 +30,16 @@
 // by its email (server/utils/auth.ts).
 import postgres from "postgres";
 
-const legacyUrl = process.env.LEGACY_DATABASE_URL;
 const targetUrl = process.env.DATABASE_URL;
 const run = process.env.LEGACY_IMPORT_RUN?.trim();
+const RESTORE_DB = "legacy_restore";
+const fromBackup = !process.env.LEGACY_DATABASE_URL && !!process.env.LEGACY_DUMP_URL && !!targetUrl;
+const legacyUrl =
+  process.env.LEGACY_DATABASE_URL ||
+  (fromBackup ? Object.assign(new URL(targetUrl), { pathname: `/${RESTORE_DB}` }).href : undefined);
 
 if (!legacyUrl || !run) {
-  console.log("legacy import: LEGACY_DATABASE_URL or LEGACY_IMPORT_RUN not set, nothing to do");
+  console.log("legacy import: no legacy source or no LEGACY_IMPORT_RUN, nothing to do");
   process.exit(0);
 }
 if (!targetUrl) {
@@ -199,6 +208,12 @@ try {
   console.error(`legacy import failed, nothing was changed: ${error.message}`);
   process.exitCode = 1;
 } finally {
+  await source.end();
+  // The scratch copy of a backup is removed after a successful run and kept
+  // after a failed one, to look into.
+  if (fromBackup && process.exitCode !== 1) {
+    await target.unsafe(`drop database if exists ${RESTORE_DB} with (force)`).catch(() => {});
+  }
   await target`select pg_advisory_unlock(${LOCK})`.catch(() => {});
-  await Promise.all([source.end(), target.end()]);
+  await target.end();
 }
