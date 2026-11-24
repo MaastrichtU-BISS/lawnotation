@@ -78,7 +78,7 @@ node --experimental-strip-types scripts/validate-task-import.mjs task.json
 ## Self-hosting
 
 > [!NOTE]
-> We're planning to create an easier self-hosting method only using Docker in the future.
+> On the `feature/coolify-deployment` branch Lawnotation runs without Supabase: plain Postgres, sign-in through Keycloak, and a Docker Compose bundle (`docker-compose.coolify.yml`). See [docs/Deployment/COOLIFY.md](docs/Deployment/COOLIFY.md). The steps below describe the Supabase setup used in production today.
 
 It is also possible to install the platform on your own infrastructure. 
 There are some dependencies that have to be resolved in some way or another. Some of these can be self-hosted as well, while others are exclusively external. For this section, use all services externally.

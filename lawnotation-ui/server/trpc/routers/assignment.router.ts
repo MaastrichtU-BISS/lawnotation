@@ -103,36 +103,40 @@ export const assignmentRouter = router({
       }
 
       const config = useRuntimeConfig();
-      // send email to the user
-      if (!config.smtpUrl) throw Error("Mail connection url is not set.");
+      // Email the user when a mail server is configured (SMTP_URL). Without
+      // one the assignment still goes ahead: the user sees the task the next
+      // time they sign in.
+      if (!config.smtpUrl) {
+        console.warn(`assignUserToTask: SMTP_URL is not set, not emailing user ${user_id}`);
+      } else {
+        const mailClient = nodemailer.createTransport(config.smtpUrl);
 
-      const mailClient = nodemailer.createTransport(config.smtpUrl);
-
-      // A new user signs in through Keycloak with this email prefilled, which
-      // sends them a code; the users row is linked to that account then.
-      const body = is_new_user
-        ? `Hello ${user_email},<br />
-        You have been invited to annotate a task on Lawnotation. <a href="${config.public.baseURL}/auth/accept-invite#${encodeURIComponent(user_email)}">Click here</a> to accept the invitation and start annotating.`
-        : `Hello ${user_email},<br />
-        You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
-      try {
-        const mail = await mailClient.sendMail({
-          from: {
-            name: "Lawnotation",
-            address: "no-reply@login.lawnotation.org"
-          },
-          to: user_email,
-          subject: is_new_user
-            ? "Invitation to annotate on Lawnotation"
-            : "Assigned to new task",
-          html: body,
-        });
-      } catch (error) {
-        throw new TRPCError({
-          message:
-            "There was an error sending an email to the invited user.",
-          code: "INTERNAL_SERVER_ERROR",
-        });
+        // A new user signs in through Keycloak with this email prefilled, which
+        // sends them a code; the users row is linked to that account then.
+        const body = is_new_user
+          ? `Hello ${user_email},<br />
+          You have been invited to annotate a task on Lawnotation. <a href="${config.public.baseURL}/auth/accept-invite#${encodeURIComponent(user_email)}">Click here</a> to accept the invitation and start annotating.`
+          : `Hello ${user_email},<br />
+          You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
+        try {
+          const mail = await mailClient.sendMail({
+            from: {
+              name: "Lawnotation",
+              address: "no-reply@login.lawnotation.org"
+            },
+            to: user_email,
+            subject: is_new_user
+              ? "Invitation to annotate on Lawnotation"
+              : "Assigned to new task",
+            html: body,
+          });
+        } catch (error) {
+          throw new TRPCError({
+            message:
+              "There was an error sending an email to the invited user.",
+            code: "INTERNAL_SERVER_ERROR",
+          });
+        }
       }
 
       if (!user_id)
