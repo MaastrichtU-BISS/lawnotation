@@ -36,9 +36,11 @@ export function createMetricsSource(taskId: number): MetricsSource {
       return labelset.labels;
     },
 
+    // In annotator-number order, so the page's A, B, C follow annotators 1, 2, 3.
+    // Annotators without an account have no email and no annotations to show.
     async getAnnotators(): Promise<string[]> {
-      const users = await $trpc.user.findUsersByTask.query(taskId);
-      return users.map((u) => u.email!);
+      const annotators = await $trpc.task.getAllAnnotatorsFromTask.query(taskId);
+      return [...new Set(annotators.map((a) => a.email).filter((email): email is string => !!email))];
     },
 
     async getDocuments(): Promise<DocumentOption[]> {

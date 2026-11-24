@@ -12,6 +12,7 @@ import { assignmentConfidenceRating, validateTaskImport } from "~/utils/taskImpo
 export type TaskImportPayload = {
 	json: any;
 	annotators: string[];
+	notifyAnnotators: boolean;
 	assignmentStatus: AssignmentStatuses;
 	defaultLabelsetId: number;
 };
@@ -41,7 +42,7 @@ export const useTaskImport = ({
 	});
 
 	const importTask = async (payload: TaskImportPayload) => {
-		const { json, annotators, assignmentStatus, defaultLabelsetId } = payload;
+		const { json, annotators, notifyAnnotators, assignmentStatus, defaultLabelsetId } = payload;
 		// Checked when the file was picked; checked again so nothing is
 		// created from a file that would only partly import.
 		const problems = validateTaskImport(json);
@@ -137,6 +138,7 @@ export const useTaskImport = ({
 								trpc.assignment.assignUserToTask.query({
 									email,
 									task_id: task.id,
+									notify: notifyAnnotators,
 								}),
 							);
 						}

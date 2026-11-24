@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { authorizer, protectedProcedure, publicProcedure, disabledProcedure, router } from '~/server/trpc'
 import type { User } from '~/types';
 import { zValidEmail } from '~/utils/validators';
-import { taskEditorAuthorizer } from '../authorizers';
 
 export const userRouter = router({
 
@@ -51,25 +50,6 @@ export const userRouter = router({
       return data as User;
     }),
 
-  findUsersByTask: protectedProcedure
-    .input(
-      z.number().int()
-    )
-    .use((opts) => 
-      authorizer(opts, () =>
-        taskEditorAuthorizer(opts.input, opts.ctx.user.id, opts.ctx))
-    )
-    .query(async ({ctx, input: task_id}) => {
-      const { data, error } = await ctx.supabase
-        .from("users")
-        .select("email, assignment:assignments!inner(task_id)")
-        .eq("assignments.task_id", task_id);
-
-      if (error)
-        throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `Error in users.findUsersByTask: ${error.message}`});
-      return data;
-    }),
-  
   getName: disabledProcedure
     .input(
       z.string()

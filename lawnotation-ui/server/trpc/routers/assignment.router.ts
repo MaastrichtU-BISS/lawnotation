@@ -55,6 +55,7 @@ export const assignmentRouter = router({
       z.object({
         email: zValidEmail,
         task_id: z.number(),
+        notify: z.boolean().default(true),
       })
     )
     .use((opts) =>
@@ -70,11 +71,17 @@ export const assignmentRouter = router({
         .maybeSingle();
       let user_id: User["id"] | null = null;
       if (!email_found.data) {
-        // email is a new user.
-        const invite = await ctx.supabase.auth.admin.inviteUserByEmail(
-          input.email,
-          { data: { assigned_task_id: input.task_id } }
-        );
+        // email is a new user. Without the invite they can still sign in
+        // later with an emailed code, as the account already exists.
+        const invite = input.notify
+          ? await ctx.supabase.auth.admin.inviteUserByEmail(input.email, {
+              data: { assigned_task_id: input.task_id },
+            })
+          : await ctx.supabase.auth.admin.createUser({
+              email: input.email,
+              email_confirm: true,
+              user_metadata: { assigned_task_id: input.task_id },
+            });
 
         if (invite.error)
           throw new TRPCError({
@@ -92,30 +99,32 @@ export const assignmentRouter = router({
           user_metadata: { assigned_task_id: input.task_id },
         });
 
-        const config = useRuntimeConfig();
-        // send email to existing user
-        if (!config.smtpUrl) throw Error("Mail connection url is not set.");
+        if (input.notify) {
+          const config = useRuntimeConfig();
+          // send email to existing user
+          if (!config.smtpUrl) throw Error("Mail connection url is not set.");
 
-        const mailClient = nodemailer.createTransport(config.smtpUrl);
+          const mailClient = nodemailer.createTransport(config.smtpUrl);
 
-        const body = `Hello ${user_email},<br />
+          const body = `Hello ${user_email},<br />
         You have been assigned to a new task. <a href="${config.public.baseURL}/annotate/${input.task_id}?seq=1">Click here</a> to start annotating this task.`;
-        try {
-          const mail = await mailClient.sendMail({
-            from: {
-              name: "Lawnotation",
-              address: "no-reply@login.lawnotation.org"
-            },
-            to: user_email,
-            subject: "Assigned to new task",
-            html: body,
-          });
-        } catch (error) {
-          throw new TRPCError({
-            message:
-              "There was an error sending an email to the invited user.",
-            code: "INTERNAL_SERVER_ERROR",
-          });
+          try {
+            const mail = await mailClient.sendMail({
+              from: {
+                name: "Lawnotation",
+                address: "no-reply@login.lawnotation.org"
+              },
+              to: user_email,
+              subject: "Assigned to new task",
+              html: body,
+            });
+          } catch (error) {
+            throw new TRPCError({
+              message:
+                "There was an error sending an email to the invited user.",
+              code: "INTERNAL_SERVER_ERROR",
+            });
+          }
         }
       }
 
