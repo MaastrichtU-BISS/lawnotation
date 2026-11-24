@@ -5,13 +5,13 @@
         <h1 class="text-3xl font-bold tracking-tight text-slate-800">Dashboard overview</h1>
         <p class="mt-1 text-sm text-slate-500">Explore completion and workload across projects and tasks.</p>
       </div>
-      <div v-if="!isEmpty" class="overflow-hidden rounded-xl border border-primary-600 bg-white shadow-sm">
-        <div class="flex items-center gap-2 p-2">
-          <select v-model="projectFilter" class="min-w-0 flex-1 rounded-lg border border-primary-600 bg-white px-3 py-2 text-sm text-slate-700" aria-label="Filter by project">
+      <div v-if="!isEmpty" class="w-full overflow-hidden rounded-xl border border-primary-600 bg-white shadow-sm md:w-[420px]">
+        <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] items-center gap-2 p-2">
+          <select v-model="projectFilter" class="w-full min-w-0 rounded-lg border border-primary-600 bg-white px-3 py-2 text-sm text-slate-700" aria-label="Filter by project">
             <option value="">All projects</option>
             <option v-for="project in projectOptions" :key="project.id" :value="project.id">{{ project.name }}</option>
           </select>
-          <select v-model="taskFilter" class="min-w-0 max-w-52 flex-1 rounded-lg border border-primary-600 bg-white px-3 py-2 text-sm text-slate-700" aria-label="Filter by task">
+          <select v-model="taskFilter" class="w-full min-w-0 rounded-lg border border-primary-600 bg-white px-3 py-2 text-sm text-slate-700" aria-label="Filter by task">
             <option value="">All tasks</option>
             <option v-for="task in taskOptions" :key="task.id" :value="task.id">{{ task.name }}</option>
           </select>
