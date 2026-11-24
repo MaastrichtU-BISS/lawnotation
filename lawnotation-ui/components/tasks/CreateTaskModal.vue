@@ -178,6 +178,11 @@
               </div>
             </span>
           </div>
+          <div class="flex items-center gap-2">
+            <Checkbox v-model="notifyAnnotators" inputId="notify-annotators" :binary="true"
+              :pt="{ input: { 'data-test': 'notify-annotators' } }" />
+            <label for="notify-annotators" class="text-sm">Email the annotators that they were assigned</label>
+          </div>
           <div class="flex justify-center mt-4 pt-4">
             <Button class="mr-6" label="Cancel" size="small" icon="pi pi-times" iconPos="right" outlined
               @click="emit('update:visible', false)" />
@@ -253,6 +258,7 @@ const importJson = ref<any>(null);
 const importErrors = ref<string[]>([]);
 const taskFileUpload = ref<{ clear: () => void }>();
 const newAnnotators = ref<string[]>([]);
+const notifyAnnotators = ref<boolean>(true);
 
 const newTask = reactive<Optional<Task, "id" | "labelset_id" | "project_id" | "annotation_level">>({
   name: "",
@@ -380,6 +386,7 @@ const resetModal = () => {
   uploadHasStarted.value = false;
   importErrors.value = [];
   newAnnotators.value.splice(0);
+  notifyAnnotators.value = true;
   activeTabTaskModal.value = 0;
   newTask.name = "";
   newTask.desc = "";
@@ -459,6 +466,7 @@ const submitImport = () => {
   emit("import-task", {
     json: importJson.value,
     annotators: [...newAnnotators.value],
+    notifyAnnotators: notifyAnnotators.value,
     assignmentStatus: selectedUploadedAssignmentsStatus.value,
     defaultLabelsetId: labelsets.value[0]?.id ?? 0,
   });
