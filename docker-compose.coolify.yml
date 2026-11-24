@@ -82,7 +82,6 @@ services:
       NUXT_IAA_SERVICE_URL: ${IAA_SERVICE_URL:-https://iaa.lawnotation.org}
       NUXT_IAA_API_KEY: ${IAA_API_KEY:-}
       NUXT_CITATIONS_API_KEY: ${CITATIONS_API_KEY:-}
-      NUXT_PUBLIC_ML_BACKEND_URL: ${MLBACKEND_URL:-}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/auth/me >/dev/null || exit 1"]
       interval: 15s

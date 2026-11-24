@@ -4,7 +4,7 @@ import { protectedProcedure, router } from '~/server/trpc'
 import type { Context } from '~/server/trpc/context';
 import { projectEditorAuthorizer, taskEditorAuthorizer, type AuthorizerDefinition } from '../authorizers';
 import type postgres from 'postgres';
-import type { Sql } from '~/server/trpc/db';
+import type { Sql } from '~/server/db/client';
 import { TRPCForbidden } from '../errors';
 
 type Fragment = postgres.Fragment;

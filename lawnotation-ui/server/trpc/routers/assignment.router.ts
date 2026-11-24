@@ -10,12 +10,13 @@ import type {
   Labelset,
 } from "~/types";
 import type { Context } from "../context";
-import type { Sql } from "../db";
+import type { Sql } from "~/server/db/client";
 import { appRouter } from ".";
 import { zValidEmail } from "~/utils/validators";
 import nodemailer from "nodemailer"
 import postgres from "postgres";
 import { Origins, AssignmentStatuses, Direction } from "~/utils/enums";
+import { completionOfAnnotator, completionOfEditor, confidencesOfEditor, countAssignmentsOfEditor } from "~/server/db/queries/assignments";
 import { assignmentEditorAuthorizer, assignmentEditorOrAnnotatorAuthorizer, projectEditorAuthorizer, taskEditorAuthorizer, taskEditorOrAnnotatorAuthorizer } from "../authorizers";
 
 const ZAssignmentFields = z.object({
@@ -410,11 +411,7 @@ export const assignmentRouter = router({
     .input(z.string())
     .query(async ({ ctx, input: e_id }) => {
       try {
-        // numeric, which PostgREST sent as a JSON number.
-        const [row] = await ctx.sql<[{ v: number }]>`
-          SELECT get_count_assignments(e_id => ${e_id})::int AS v
-        `;
-        return row.v;
+        return await countAssignmentsOfEditor(ctx.sql, e_id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -450,9 +447,7 @@ export const assignmentRouter = router({
   getConfidencesByEditor: protectedProcedure
     .query(async ({ ctx }) => {
       try {
-        return await ctx.sql<{ confidence: number; count: number }[]>`
-          SELECT * FROM get_confidences_by_editor(e_id => ${ctx.user.id})
-        `;
+        return await confidencesOfEditor(ctx.sql, ctx.user.id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -464,9 +459,7 @@ export const assignmentRouter = router({
   getCompletionByEditor: protectedProcedure
     .query(async ({ ctx }) => {
       try {
-        return await ctx.sql<{ status: AssignmentStatuses; count: number }[]>`
-          SELECT * FROM get_completion_by_editor(e_id => ${ctx.user.id})
-        `;
+        return await completionOfEditor(ctx.sql, ctx.user.id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -478,9 +471,7 @@ export const assignmentRouter = router({
   getCompletionByAnnotator: protectedProcedure
     .query(async ({ ctx }) => {
       try {
-        return await ctx.sql<{ status: AssignmentStatuses; count: number }[]>`
-          SELECT * FROM get_completion_by_annotator(a_id => ${ctx.user.id})
-        `;
+        return await completionOfAnnotator(ctx.sql, ctx.user.id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

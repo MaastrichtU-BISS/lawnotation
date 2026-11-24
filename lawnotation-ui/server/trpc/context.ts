@@ -1,5 +1,5 @@
 import type { H3Event } from "h3";
-import sql from "./db";
+import sql from "~/server/db/client";
 import { getSessionUser } from "~/server/utils/auth";
 
 export async function createContext(event: H3Event) {

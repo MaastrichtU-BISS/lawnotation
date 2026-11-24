@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import type { Sql } from "../db";
+import type { Sql } from "~/server/db/client";
 import { protectedProcedure, disabledProcedure, router, authorizer } from "~/server/trpc";
 import type { Annotation } from "~/types";
 import { Origins } from "~/utils/enums";

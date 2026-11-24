@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod'
 import { ZRelationLabel } from '~/server/utils/relation_label'
-import type { Sql } from "../db";
+import type { Sql } from "~/server/db/client";
 import { protectedProcedure, disabledProcedure, router, authorizer } from '~/server/trpc'
 import type { AnnotationRelation } from '~/types';
 import { annotationEditorOrAnnotatorAuthorizer } from '../authorizers/annotation.auth';

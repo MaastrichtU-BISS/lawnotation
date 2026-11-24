@@ -1,6 +1,6 @@
 import type { H3Event } from "h3";
 import { createServerAuth, type ServerAuth, type SessionRecord } from "caselaw-auth/server";
-import sql, { type Sql } from "~/server/trpc/db";
+import sql, { type Sql } from "~/server/db/client";
 
 /**
  * Sign-in through the shared Keycloak (realm `lawnotation`, which asks for an

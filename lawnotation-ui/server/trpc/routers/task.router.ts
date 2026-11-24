@@ -25,6 +25,8 @@ import {
 import * as _ from "lodash";
 import { buildTaskExportData, toExportJson } from "~/server/utils/task_export";
 import { copyDocumentRelations } from "~/server/utils/annotation_kit";
+import { annotatorsOfTask, countTasksOfEditor, tasksOfAnnotator } from "~/server/db/queries/tasks";
+import { documentHashesOfTask } from "~/server/db/queries/documents";
 
 const ZTaskFields = z.object({
   name: z.string(),
@@ -67,24 +69,6 @@ async function insertRows(
     );
   }
   return inserted;
-}
-
-/**
- * A task's annotators, one row per annotator number: { id, email, role,
- * annotator_number }, with a null user for an annotator not (yet) linked to
- * one. What the database function get_all_annotators_from_task returns; that
- * function selects `u.*` and no longer matches its declared columns since
- * users got more of them.
- */
-function annotatorsOfTask(sql: Context["sql"], task_id: number) {
-  return sql<{ id: string | null; email: string | null; role: string | null; annotator_number: number }[]>`
-    select u.id, u.email, u.role, a.annotator_number::int as annotator_number
-    from assignments as a
-    left join users as u on (a.annotator_id = u.id)
-    where a.task_id = ${task_id}
-    group by u.id, a.annotator_number
-    order by annotator_number
-  `;
 }
 
 const ZExportTaskOptions = z.object({
@@ -291,10 +275,7 @@ export const taskRouter = router({
         });
       }
 
-      const docsOfTask = (t_id: number) =>
-        ctx.sql<{ id: number; hash: string }[]>`
-          select * from get_all_docs_from_task_mini(t_id => ${t_id}::int)
-        `;
+      const docsOfTask = (t_id: number) => documentHashesOfTask(ctx.sql, t_id);
 
       const originTaskDocuments = await docsOfTask(task_id);
 
@@ -439,10 +420,7 @@ export const taskRouter = router({
 
   getCountByUser: protectedProcedure.query(async ({ ctx }) => {
     try {
-      const [{ v }] = await ctx.sql<[{ v: number }]>`
-        select get_count_tasks(e_id => ${ctx.user.id}::uuid)::int as v
-      `;
-      return v as number;
+      return await countTasksOfEditor(ctx.sql, ctx.user.id);
     } catch (error: any) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -472,9 +450,7 @@ export const taskRouter = router({
     .input(z.string())
     .query(async ({ ctx, input: annotator_id }) => {
       try {
-        return (await ctx.sql`
-          select * from get_all_annotator_tasks(a_id => ${annotator_id}::uuid)
-        `) as unknown as Task[];
+        return await tasksOfAnnotator(ctx.sql, annotator_id);
       } catch (error: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

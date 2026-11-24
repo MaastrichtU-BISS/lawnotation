@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import type { Sql } from "../db";
+import type { Sql } from "~/server/db/client";
 import {
   authorizer,
   protectedProcedure,
@@ -16,6 +16,7 @@ import {
   taskEditorAuthorizer,
 } from "../authorizers";
 import { extractDocumentText } from "~/server/utils/document_import";
+import { documentsOfTask, randomDocumentIds, sharedDocumentsOfTask } from "~/server/db/queries/documents";
 
 // 6 MB of file, as base64 (4 characters per 3 bytes).
 const EXTRACT_MAX_BASE64 = Math.ceil((6_000_000 / 3) * 4);
@@ -308,9 +309,7 @@ export const documentRouter = router({
     )
     .query(async ({ ctx, input: task_id }) => {
       try {
-        return (await ctx.sql<Document[]>`
-          SELECT * FROM get_all_docs_from_task(t_id => ${task_id})
-        `) as Document[];
+        return await documentsOfTask(ctx.sql, task_id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -328,9 +327,7 @@ export const documentRouter = router({
     )
     .query(async ({ ctx, input: task_id }) => {
       try {
-        return (await ctx.sql<Document[]>`
-          SELECT * FROM get_all_shared_docs_from_task(t_id => ${task_id})
-        `) as Document[];
+        return await sharedDocumentsOfTask(ctx.sql, task_id);
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -348,9 +345,7 @@ export const documentRouter = router({
     )
     .query(async ({ ctx, input: task_id }) => {
       try {
-        return (await ctx.sql<Document[]>`
-          SELECT * FROM get_all_shared_docs_from_task_intra(t_id => ${task_id})
-        `) as Document[];
+        return await sharedDocumentsOfTask(ctx.sql, task_id, { acrossOriginTasks: true });
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -407,12 +402,7 @@ export const documentRouter = router({
         let data: number[] = [];
 
         if (input.randomOrder) {
-          data = (
-            await ctx.sql<{ id: number }[]>`
-              SELECT random_sample AS id
-              FROM random_sample(n => ${input.n}, pid => ${input.project_id})
-            `
-          ).map((x) => x.id);
+          data = await randomDocumentIds(ctx.sql, input.project_id, input.n);
         } else {
           data = (
             await ctx.sql<{ id: number }[]>`

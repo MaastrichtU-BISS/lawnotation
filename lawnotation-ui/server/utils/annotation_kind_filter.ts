@@ -1,4 +1,4 @@
-import type { Sql } from "../trpc/db";
+import type { Sql } from "~/server/db/client";
 
 /** What the metrics page's label filters ask of a hybrid task's annotations. */
 export type KindFilters = {

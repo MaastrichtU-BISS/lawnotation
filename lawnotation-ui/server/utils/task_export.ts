@@ -1,4 +1,5 @@
-import type { Sql } from "~/server/trpc/db";
+import type { Sql } from "~/server/db/client";
+import { documentsOfTask } from "~/server/db/queries/documents";
 import type { Label } from "~/types";
 import type { ExportTaskOptions } from "~/utils/io";
 
@@ -105,9 +106,7 @@ export async function buildTaskExportData(
   const [labelsetRow, documentLabelsetRow, documents, assignments] = await Promise.all([
     labelsetById(task.labelset_id, "labelset"),
     hybrid ? labelsetById(task.document_labelset_id, "document labelset") : null,
-    sql<{ id: number; name: string | null; full_text: string | null }[]>`
-      SELECT id, name, full_text FROM get_all_docs_from_task(t_id => ${task_id}) ORDER BY id
-    `.catch(failed("documents")),
+    documentsOfTask(sql, task_id).catch(failed("documents")),
     sql<
       {
         id: number;

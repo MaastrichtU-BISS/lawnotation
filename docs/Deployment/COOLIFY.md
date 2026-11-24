@@ -22,7 +22,8 @@ browser ──► app (Nuxt/Nitro, node)  next.lawnotation.org
 |---|---|
 | Vercel serverless function running the Nuxt server | the same Nuxt server in a container (`lawnotation-ui/Dockerfile`) |
 | Supabase Postgres + PostgREST (supabase-js `.from()`, `.rpc()`) | plain Postgres 17; the server queries it with postgres.js (`ctx.sql`) |
-| `supabase/migrations` | `lawnotation-ui/db/migrations`: `0001_baseline.sql` is the public schema those migrations produce, without the Supabase parts; `0002_oidc_users.sql` adds sign-in columns. Applied by `scripts/migrate.mjs` on every deploy |
+| `supabase/migrations` | `lawnotation-ui/db/migrations`: `0001_baseline.sql` is the public schema those migrations produce, without the Supabase parts; `0002_oidc_users.sql` adds sign-in columns; `0003_queries_in_code.sql` drops the SQL functions. Applied by `scripts/migrate.mjs` on every deploy |
+| SQL functions in the database, called by name (`supabase.rpc("get_all_docs_from_task")`), typed by the generated `types/supabase.ts` | typed TypeScript functions in `lawnotation-ui/server/db/queries` (`documentsOfTask(ctx.sql, taskId)`), versioned and reviewed with the code; the database keeps only tables, constraints and indexes. `documents.hash` is a generated column instead of a trigger |
 | Supabase Auth (email OTP, magic links, `auth.users`) | Keycloak realm `lawnotation` (email + one-time code, its own mail), via `caselaw-auth/server`; the app keeps a signed httpOnly session cookie |
 | `handle_new_user()` trigger on `auth.users` | `resolveUser()` in `server/utils/auth.ts`: links a users row to a Keycloak account by `oidc_sub`, or by verified email (invited annotators, migrated users), or creates a new editor |
 | `auth.users.raw_user_meta_data` | `users.metadata` (onboarding hints, invitation flag) |
@@ -58,7 +59,6 @@ subscriptions, and no Vercel cron jobs, so nothing else had to move.
 | `NOINDEX` | empty = `true`: every response has `X-Robots-Tag: noindex, nofollow` and `/robots.txt` disallows everything. Set `false` when this becomes the public `app.lawnotation.org` |
 | `SMTP_URL` | empty: no app emails (assignment/invitation notices). Sign-in codes are sent by Keycloak and don't need it |
 | `CITATIONS_API_KEY` | empty for now: legal-docs search (Rechtspraak/ECHR import) is unavailable until it is set |
-| `MLBACKEND_URL` | empty for now: ML pre-annotation and the archives page are unavailable until it is set |
 
 ### Keycloak
 
